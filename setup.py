@@ -34,12 +34,9 @@ install_requires = [
     'loguru>=0.5'
 ]
 
-
 def read(f):
     return (HERE / f).read_text('utf-8').strip()
 
-# Extra dependencies are being available through the
-# `$ pip install .[keyword]` command.
 EXTRA_DEPENDENCIES = {
     'develop': [
         'bumpversion',
@@ -49,7 +46,7 @@ EXTRA_DEPENDENCIES = {
         'wheel'
     ],
     'speedups': [
-        'Brotli',
+        'brotli',
         'cchardet',
         'msgpack'
     ]
@@ -64,7 +61,7 @@ setup(
     author_email='tech@scrapfly.io',
     license='BSD',
     url='https://github.com/scrapfly/python-sdk',
-    long_description='\n\n'.join((read('README.md'))),
+    long_description=read('README.md'),
     long_description_content_type="text/markdown",
     classifiers=[
         'Intended Audience :: Developers',
@@ -73,10 +70,10 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Internet',
-        'Topic :: Data :: Web Scraping',
+        'Topic :: Internet'
     ],
     project_urls={
         'Company': 'https://scrapfly.io',
