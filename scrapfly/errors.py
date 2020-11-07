@@ -157,25 +157,34 @@ class ErrorFactory:
         http_code = api_response.status_code
         retry_delay = 5
         retry_times = 3
+        description = None
+        error_url = 'https://scrapfly.io/docs/scrape-api/errors#api'
 
         if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
             code = api_response.status_code
-            description = None
+
             message = responses[code]
 
             if code not in ScrapflyError.KNOWN_HTTP_API_ERROR_CODE:
                 error_url = 'https://developer.mozilla.org/fr/docs/Web/HTTP/Status/' + str(code)
-            else:
-                error_url = 'https://scrapfly.io/docs/scrape-api/errors#api'
 
             resource = None
         else:
+
             assert api_response.result is not None
             code = api_response.result['result']['error']['code']
-            description = api_response.result['result']['error']['description']
-            message = api_response.result['result']['error']['message']
-            error_url = api_response.result['result']['error']['doc_url']
-            is_retryable = api_response.result['result']['error']['retryable']
+
+            if 'description' in api_response.result['result']['error']:
+                description = api_response.result['result']['error']['description']
+
+            message = str(http_code) + ' ' + api_response.result['result']['error']['message']
+
+            if 'doc_url' in api_response.result['result']['error']:
+                error_url = api_response.result['result']['error']['doc_url']
+
+            if 'retryable' in api_response.result['result']['error']:
+                is_retryable = api_response.result['result']['error']['retryable']
+
             resource = ErrorFactory._get_resource(code=code)
 
         if is_retryable is True:
@@ -184,7 +193,7 @@ class ErrorFactory:
 
         message = '%s: %s' % (message, description) if description else message
 
-        if retry_delay is not None:
+        if retry_delay is not None and is_retryable is True:
             message = '%s. Retry delay : %s seconds' % (message, str(retry_delay))
 
         args = {

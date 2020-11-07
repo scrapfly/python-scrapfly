@@ -27,6 +27,7 @@ class ScrapeConfig:
             ssl:bool = False,
             dns:bool = False,
             asp:bool = False,
+            cache_ttl:Optional[int] = None,
             session: Optional[str] = None,
             debug: Optional[bool] = False,
             tags: Optional[List[str]] = None,
@@ -38,6 +39,7 @@ class ScrapeConfig:
             graphql: Optional[str] = None,
             js: str = None,
             rendering_wait: int = None,
+            screenshots:Optional[Dict]=None,
             raise_on_upstream_error:bool=True
     ):
         assert(type(url) is str)
@@ -54,6 +56,7 @@ class ScrapeConfig:
         self.asp = asp
         self.session = session
         self.debug = debug
+        self.cache_ttl = cache_ttl
         self.tags = tags
         self.correlation_id = correlation_id
         self.body = body
@@ -62,6 +65,7 @@ class ScrapeConfig:
         self.js = js
         self.rendering_wait = rendering_wait
         self.raise_on_upstream_error = raise_on_upstream_error
+        self.screenshots = screenshots
         self.key = None
         self.dns = dns
         self.ssl = ssl
@@ -84,13 +88,17 @@ class ScrapeConfig:
             raise ScrapeConfigError('You cannot pass both parameters body and data. You must choose')
 
         if method in ['POST', 'PUT', 'PATCH'] and self.body is None and self.data is not None:
-            if 'content-type' not in headers:
-                headers['content-type'] = 'application/x-www-form-urlencoded'
-
-            if headers['content-type'] == 'application/json':
-                self.body = json.dumps(data)
-            else:
+            print(self.headers)
+            if 'content-type' not in self.headers:
+                self.headers['content-type'] = 'application/x-www-form-urlencoded'
                 self.body = urlencode(data)
+            else:
+                if self.headers['content-type'] == 'application/json':
+                    self.body = json.dumps(data)
+                elif 'application/x-www-form-urlencoded' == self.headers['content-type']:
+                    self.body = urlencode(data)
+                else:
+                    raise ScrapeConfigError('Content Type %s not support, use body parameter to pass pre encoded body according to your content type' % self.headers['content-type'])
 
     def _bool_to_http(self, _bool:bool) -> str:
         return 'true' if _bool is True else 'false'
@@ -132,6 +140,10 @@ class ScrapeConfig:
         if self.correlation_id:
             params['correlation_id'] = self.correlation_id
 
+        if self.screenshots is not None:
+            for name, element in self.screenshots.items():
+                params['screenshots[%s]' % name] = element
+
         if self.session:
             params['session'] = self.session
 
@@ -140,6 +152,9 @@ class ScrapeConfig:
 
         if self.cache_clear is True:
             params['cache_clear'] = self._bool_to_http(self.cache_clear)
+
+        if self.cache_ttl is not None:
+            params['cache_ttl'] = self.cache_ttl
 
         if self.graphql:
             params['graphql'] = self.graphql

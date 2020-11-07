@@ -2,3 +2,4 @@ build
 dist
 scrapfly_sdk.egg-info
 .pypirc
+*.pyc

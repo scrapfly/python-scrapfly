@@ -6,7 +6,6 @@ from io import BytesIO
 from typing import TextIO, Union
 import requests
 import urllib3
-from loguru import logger
 
 from .retry import retry
 from .errors import *
@@ -77,7 +76,7 @@ class ScrapflyClient:
             verify=self.verify,
             timeout=(self.connect_timeout, self.read_timeout),
             headers={
-                'content-type': self.body_handler.content_type,
+                'content-type': scrape_config.headers['content-type'] if method in ['POST', 'PUT', 'PATCH'] else self.body_handler.content_type,
                 'accept-encoding': self.body_handler.content_encoding,
                 'accept': self.body_handler.accept,
                 'user-agent': self.ua
@@ -149,7 +148,10 @@ class ScrapflyClient:
         file_path = None
 
         if not file:
-            mime_type = scrape_result['response_headers']['content-type']
+            try:
+                mime_type = scrape_result['response_headers']['content-type']
+            except KeyError:
+                mime_type = 'application/octet-stream'
 
             if ';' in mime_type:
                 mime_type = mime_type.split(';')[0]

@@ -13,3 +13,6 @@ release:
 	python setup.py sdist bdist_wheel
 	python -m twine upload --config-file .pypirc dist/*
 	git push --tags
+
+dev:
+	python setup.py develop --user
