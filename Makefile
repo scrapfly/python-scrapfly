@@ -9,14 +9,14 @@ bump:
 	git push
 
 generate-docs:
-	pdoc --html scrapfly --output-dir docs
+	pdoc --html scrapfly --force --output-dir docs
 
 release:
 	-rm dist/*
 	$(MAKE)	generate-docs
-	git add -m "Update API documentation for version $(VERSION)"
 	git add docs/*
-	git push origin master
+	-git commit -m "Update API documentation for version $(VERSION)"
+	-git push origin master
 	git tag -a $(VERSION) -m "Version $(VERSION)"
 	python setup.py sdist bdist_wheel
 	python -m twine upload --config-file .pypirc dist/*
