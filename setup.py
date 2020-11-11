@@ -29,6 +29,7 @@ except IndexError:
     raise RuntimeError('Unable to determine version.')
 
 install_requires = [
+    'decorator>=4.2.0',
     'requests>=2.2.1',
     'python-dateutil>=2.1,<3.0.0',
     'loguru>=0.5'
@@ -43,7 +44,8 @@ EXTRA_DEPENDENCIES = {
         'isort',
         'readme_renderer',
         'setuptools >= 39.2.0',
-        'wheel'
+        'wheel',
+        'pdoc'
     ],
     'speedups': [
         'brotli',

@@ -1,9 +1,9 @@
 import random
 import time
 from functools import partial
-from decorator import decorator
 from typing import Tuple, Union, Iterable
 from loguru import logger
+from decorator import decorator
 
 
 class RetryBudgetExceeded(Exception):
@@ -63,6 +63,7 @@ def retry(exceptions:Union[Tuple[Exception, ...], Exception], tries=0, delay=0, 
     def retry_decorator(f, *fargs, **fkwargs):
         args = fargs if fargs else list()
         kwargs = fkwargs if fkwargs else dict()
+
         return __retry_internal(partial(f, *args, **kwargs), exceptions, tries, delay, max_delay, backoff, jitter)
 
     return retry_decorator

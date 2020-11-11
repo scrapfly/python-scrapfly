@@ -1,0 +1,2093 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>scrapfly API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Package <code>scrapfly</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">__version__ = &#39;0.3.0&#39;
+
+from typing import Tuple
+from .errors import ScrapflyError
+from .errors import ScrapflyAspError
+from .errors import ScrapflyProxyError
+from .errors import ScrapflyScheduleError
+from .errors import ScrapflyScrapeError
+from .errors import ScrapflySessionError
+from .errors import ScrapflyThrottleError
+from .errors import ScrapflyWebhookError
+from .errors import ErrorFactory
+from .errors import HttpError
+from .errors import UpstreamHttpClientError
+from .errors import UpstreamHttpServerError
+from .errors import ApiHttpClientError
+from .errors import ApiHttpServerError
+from .retry import RetryBudgetExceeded
+from .api_response import ScrapeApiResponse, ResponseBodyHandler
+from .client import ScrapflyClient
+from .scrape_config import ScrapeConfig
+
+__all__:Tuple[str, ...] = (
+    &#39;ScrapflyError&#39;,
+    &#39;ScrapflyAspError&#39;,
+    &#39;ScrapflyProxyError&#39;,
+    &#39;ScrapflyScheduleError&#39;,
+    &#39;ScrapflyScrapeError&#39;,
+    &#39;ScrapflySessionError&#39;,
+    &#39;ScrapflyThrottleError&#39;,
+    &#39;ScrapflyWebhookError&#39;,
+    &#39;RetryBudgetExceeded&#39;,
+    &#39;ScrapeApiResponse&#39;,
+    &#39;ErrorFactory&#39;,
+    &#39;HttpError&#39;,
+    &#39;UpstreamHttpClientError&#39;,
+    &#39;UpstreamHttpServerError&#39;,
+    &#39;ApiHttpClientError&#39;,
+    &#39;ApiHttpServerError&#39;,
+    &#39;ScrapflyClient&#39;,
+    &#39;ResponseBodyHandler&#39;,
+    &#39;ScrapeConfig&#39;
+)</code></pre>
+</details>
+</section>
+<section>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+<dl>
+<dt><code class="name"><a title="scrapfly.api_response" href="api_response.html">scrapfly.api_response</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.client" href="client.html">scrapfly.client</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.errors" href="errors.html">scrapfly.errors</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.frozen_dict" href="frozen_dict.html">scrapfly.frozen_dict</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.retry" href="retry.html">scrapfly.retry</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.scrape_config" href="scrape_config.html">scrapfly.scrape_config</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.ApiHttpClientError"><code class="flex name class">
+<span>class <span class="ident">ApiHttpClientError</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ApiHttpClientError(HttpError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.HttpError" href="errors.html#scrapfly.errors.HttpError">HttpError</a></li>
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ApiHttpServerError" href="errors.html#scrapfly.errors.ApiHttpServerError">ApiHttpServerError</a></li>
+<li><a title="scrapfly.errors.BadApiKeyError" href="errors.html#scrapfly.errors.BadApiKeyError">BadApiKeyError</a></li>
+<li><a title="scrapfly.errors.TooManyRequest" href="errors.html#scrapfly.errors.TooManyRequest">TooManyRequest</a></li>
+</ul>
+</dd>
+<dt id="scrapfly.ApiHttpServerError"><code class="flex name class">
+<span>class <span class="ident">ApiHttpServerError</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ApiHttpServerError(ApiHttpClientError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ApiHttpClientError" href="errors.html#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></li>
+<li><a title="scrapfly.errors.HttpError" href="errors.html#scrapfly.errors.HttpError">HttpError</a></li>
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.ErrorFactory"><code class="flex name class">
+<span>class <span class="ident">ErrorFactory</span></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ErrorFactory:
+    RESOURCE_TO_ERROR = {
+        ScrapflyError.RESOURCE_SCRAPE: ScrapflyScrapeError,
+        ScrapflyError.RESOURCE_WEBHOOK: ScrapflyWebhookError,
+        ScrapflyError.RESOURCE_PROXY: ScrapflyProxyError,
+        ScrapflyError.RESOURCE_SCHEDULE: ScrapflyScheduleError,
+        ScrapflyError.RESOURCE_ASP: ScrapflyAspError,
+        ScrapflyError.RESOURCE_SESSION: ScrapflySessionError
+    }
+
+    # Notable http error has own class for more convenience
+    HTTP_STATUS_TO_ERROR = {
+        401: BadApiKeyError,
+        429: TooManyRequest
+    }
+
+    @staticmethod
+    def _get_resource(code: str) -&gt; Tuple[str, str]:
+        _, resource, _ = code.split(&#39;::&#39;)
+        return resource
+
+    @staticmethod
+    def create(api_response: &#39;ScrapeApiResponse&#39;):
+        assert api_response.success is False
+
+        is_retryable = False
+        kind = ScrapflyError.KIND_HTTP_BAD_RESPONSE if api_response.is_api_error else ScrapflyError.KIND_SCRAPFLY_ERROR
+        http_code = api_response.status_code
+        retry_delay = 5
+        retry_times = 3
+        description = None
+        error_url = &#39;https://scrapfly.io/docs/scrape-api/errors#api&#39;
+
+        if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
+            code = api_response.status_code
+
+            message = responses[code]
+
+            if code not in ScrapflyError.KNOWN_HTTP_API_ERROR_CODE:
+                error_url = &#39;https://developer.mozilla.org/fr/docs/Web/HTTP/Status/&#39; + str(code)
+
+            resource = None
+        else:
+
+            assert api_response.result is not None
+            code = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;code&#39;]
+
+            if &#39;description&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
+                description = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;description&#39;]
+
+            message = str(http_code) + &#39; &#39; + api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;message&#39;]
+
+            if &#39;doc_url&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
+                error_url = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;]
+
+            if &#39;retryable&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
+                is_retryable = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;retryable&#39;]
+
+            resource = ErrorFactory._get_resource(code=code)
+
+        if is_retryable is True:
+            if &#39;X-Retry&#39; in api_response.headers:
+                retry_delay = int(api_response.headers[&#39;Retry-After&#39;])
+
+        message = &#39;%s: %s&#39; % (message, description) if description else message
+
+        if retry_delay is not None and is_retryable is True:
+            message = &#39;%s. Retry delay : %s seconds&#39; % (message, str(retry_delay))
+
+        args = {
+            &#39;message&#39;: message,
+            &#39;code&#39;: code,
+            &#39;http_status_code&#39;: http_code,
+            &#39;is_retryable&#39;: is_retryable,
+            &#39;api_response&#39;: api_response,
+            &#39;resource&#39;: resource,
+            &#39;retry_delay&#39;: retry_delay,
+            &#39;retry_times&#39;: retry_times,
+            &#39;documentation_url&#39;: error_url
+        }
+
+        if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
+            args[&#39;request&#39;] = api_response.request
+            args[&#39;response&#39;] = api_response.response
+
+            if 400 &lt;= http_code &lt; 500:
+                if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
+                    return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
+                return ApiHttpClientError(**args)
+
+            return ApiHttpServerError(**args)
+        elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
+            if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
+                args[&#39;request&#39;] = api_response.request
+                args[&#39;response&#39;] = api_response.response
+
+                if 400 &lt;= api_response.result[&#39;result&#39;][&#39;status_code&#39;] &lt; 500:
+                    return UpstreamHttpClientError(**args)
+
+                return UpstreamHttpClientError(**args)
+
+            if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
+
+            return ScrapflyError(**args)</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.ErrorFactory.HTTP_STATUS_TO_ERROR"><code class="name">var <span class="ident">HTTP_STATUS_TO_ERROR</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ErrorFactory.RESOURCE_TO_ERROR"><code class="name">var <span class="ident">RESOURCE_TO_ERROR</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.ErrorFactory.create"><code class="name flex">
+<span>def <span class="ident">create</span></span>(<span>api_response: <a title="scrapfly.ScrapeApiResponse" href="#scrapfly.ScrapeApiResponse">ScrapeApiResponse</a>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def create(api_response: &#39;ScrapeApiResponse&#39;):
+    assert api_response.success is False
+
+    is_retryable = False
+    kind = ScrapflyError.KIND_HTTP_BAD_RESPONSE if api_response.is_api_error else ScrapflyError.KIND_SCRAPFLY_ERROR
+    http_code = api_response.status_code
+    retry_delay = 5
+    retry_times = 3
+    description = None
+    error_url = &#39;https://scrapfly.io/docs/scrape-api/errors#api&#39;
+
+    if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
+        code = api_response.status_code
+
+        message = responses[code]
+
+        if code not in ScrapflyError.KNOWN_HTTP_API_ERROR_CODE:
+            error_url = &#39;https://developer.mozilla.org/fr/docs/Web/HTTP/Status/&#39; + str(code)
+
+        resource = None
+    else:
+
+        assert api_response.result is not None
+        code = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;code&#39;]
+
+        if &#39;description&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
+            description = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;description&#39;]
+
+        message = str(http_code) + &#39; &#39; + api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;message&#39;]
+
+        if &#39;doc_url&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
+            error_url = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;]
+
+        if &#39;retryable&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
+            is_retryable = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;retryable&#39;]
+
+        resource = ErrorFactory._get_resource(code=code)
+
+    if is_retryable is True:
+        if &#39;X-Retry&#39; in api_response.headers:
+            retry_delay = int(api_response.headers[&#39;Retry-After&#39;])
+
+    message = &#39;%s: %s&#39; % (message, description) if description else message
+
+    if retry_delay is not None and is_retryable is True:
+        message = &#39;%s. Retry delay : %s seconds&#39; % (message, str(retry_delay))
+
+    args = {
+        &#39;message&#39;: message,
+        &#39;code&#39;: code,
+        &#39;http_status_code&#39;: http_code,
+        &#39;is_retryable&#39;: is_retryable,
+        &#39;api_response&#39;: api_response,
+        &#39;resource&#39;: resource,
+        &#39;retry_delay&#39;: retry_delay,
+        &#39;retry_times&#39;: retry_times,
+        &#39;documentation_url&#39;: error_url
+    }
+
+    if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
+        args[&#39;request&#39;] = api_response.request
+        args[&#39;response&#39;] = api_response.response
+
+        if 400 &lt;= http_code &lt; 500:
+            if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
+                return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
+            return ApiHttpClientError(**args)
+
+        return ApiHttpServerError(**args)
+    elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
+        if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
+            args[&#39;request&#39;] = api_response.request
+            args[&#39;response&#39;] = api_response.response
+
+            if 400 &lt;= api_response.result[&#39;result&#39;][&#39;status_code&#39;] &lt; 500:
+                return UpstreamHttpClientError(**args)
+
+            return UpstreamHttpClientError(**args)
+
+        if resource in ErrorFactory.RESOURCE_TO_ERROR:
+            return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
+
+        return ScrapflyError(**args)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.HttpError"><code class="flex name class">
+<span>class <span class="ident">HttpError</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class HttpError(ScrapflyError):
+
+    def __init__(self, request:Request, response:Response, **kwargs):
+        self.request = request
+        self.response = response
+        super().__init__(**kwargs)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ApiHttpClientError" href="errors.html#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></li>
+<li><a title="scrapfly.errors.UpstreamHttpClientError" href="errors.html#scrapfly.errors.UpstreamHttpClientError">UpstreamHttpClientError</a></li>
+</ul>
+</dd>
+<dt id="scrapfly.ResponseBodyHandler"><code class="flex name class">
+<span>class <span class="ident">ResponseBodyHandler</span></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ResponseBodyHandler:
+
+    SUPPORTED_COMPRESSION = [&#39;gzip&#39;, &#39;deflate&#39;]
+
+    class JSONDateTimeDecoder(JSONDecoder):
+        def __init__(self, *args, **kargs):
+            JSONDecoder.__init__(self, *args, object_hook=_date_parser, **kargs)
+
+    def __init__(self):
+        try:
+            import brotli
+            #  insert brotli as preferred choice. Be aware brotli is cpu bursting. Not always best choice regarding your hardware
+            self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
+        except BaseException:
+            pass
+
+        self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+
+        try:  # automatically use msgpack if available https://msgpack.org/
+            import msgpack
+            self.accept = &#39;application/msgpack&#39;
+            self.content_type = &#39;application/msgpack&#39;
+            self.content_loader = partial(msgpack.loads, object_hook=_date_parser, strict_map_key=False)
+        except ImportError:
+            self.accept = &#39;application/json;charset=utf-8&#39;
+            self.content_type = &#39;application/json;charset=utf-8&#39;
+            self.content_loader = partial(json.loads, cls=self.JSONDateTimeDecoder)
+
+    def __call__(self, content:bytes) -&gt; str:
+        return self.content_loader(content)</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.ResponseBodyHandler.JSONDateTimeDecoder"><code class="name">var <span class="ident">JSONDateTimeDecoder</span></code></dt>
+<dd>
+<div class="desc"><p>Simple JSON <a href="http://json.org">http://json.org</a> decoder</p>
+<p>Performs the following translations in decoding by default:</p>
+<p>+---------------+-------------------+
+| JSON
+| Python
+|
++===============+===================+
+| object
+| dict
+|
++---------------+-------------------+
+| array
+| list
+|
++---------------+-------------------+
+| string
+| str
+|
++---------------+-------------------+
+| number (int)
+| int
+|
++---------------+-------------------+
+| number (real) | float
+|
++---------------+-------------------+
+| true
+| True
+|
++---------------+-------------------+
+| false
+| False
+|
++---------------+-------------------+
+| null
+| None
+|
++---------------+-------------------+</p>
+<p>It also understands <code>NaN</code>, <code>Infinity</code>, and <code>-Infinity</code> as
+their corresponding <code>float</code> values, which is outside the JSON spec.</p></div>
+</dd>
+<dt id="scrapfly.ResponseBodyHandler.SUPPORTED_COMPRESSION"><code class="name">var <span class="ident">SUPPORTED_COMPRESSION</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.RetryBudgetExceeded"><code class="flex name class">
+<span>class <span class="ident">RetryBudgetExceeded</span></span>
+<span>(</span><span>tries: int, delay: int, retried_error: Exception)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class RetryBudgetExceeded(Exception):
+
+    def __init__(self, tries:int, delay:int, retried_error:Exception):
+        super().__init__(&#39;Retry Budget Exceeded&#39;)
+
+        self.tries = tries
+        self.delay = delay
+        self.retried_error = retried_error
+
+    def __str__(self):
+        return &#39;Error %s has been retried %s times. %s&#39; % (type(self.retried_error), self.tries, str(self.delay), str(self.retried_error))</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse"><code class="flex name class">
+<span>class <span class="ident">ScrapeApiResponse</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, api_result: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapeApiResponse:
+
+    def __init__(self, request:Request, response:Response, scrape_config:ScrapeConfig, api_result:Optional[Dict]=None):
+        self.request = request
+        self.response = response
+        self.scrape_config = scrape_config
+        self.result = self.handle_api_result(api_result=api_result)
+
+    @property
+    def scrape_result(self):
+        return self.result[&#39;result&#39;]
+
+    @property
+    def config(self) -&gt; Dict:
+        return self.result[&#39;config&#39;]
+
+    @property
+    def context(self) -&gt; Dict:
+        return self.result[&#39;context&#39;]
+
+    def content(self) -&gt; Dict:
+        return self.result
+
+    def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
+        if api_result is None:
+            return None
+
+        if self._is_api_error(api_result=api_result) is True:
+            return FrozenDict(api_result)
+
+        if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
+            api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+
+        with suppress(KeyError):
+            api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
+            api_result[&#39;result&#39;][&#39;response_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;response_headers&#39;])
+
+        if api_result[&#39;result&#39;][&#39;format&#39;] == &#39;binary&#39; and api_result[&#39;result&#39;][&#39;content&#39;]:
+            api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+
+        return FrozenDict(api_result)
+
+    def _is_scrape_engine_error(self, api_result:Optional[Dict]=None) -&gt; bool:
+        if api_result is None:
+            return False
+
+        if &#39;result&#39; not in api_result:
+            return False
+
+        try:
+            return api_result[&#39;result&#39;][&#39;error&#39;] is not None
+        except KeyError:
+            return False
+
+    @property
+    def is_scrape_engine_error(self) -&gt; bool:
+        return self._is_scrape_engine_error(self.result)
+
+    def _is_api_error(self, api_result:Dict) -&gt; bool:
+        if api_result is None:
+            return True
+
+        return &#39;error_id&#39; in api_result
+
+    @property
+    def is_api_error(self) -&gt; bool:
+        return self._is_api_error(self.result)
+
+    def raise_for_result(self, raise_on_upstream_error:bool=True):
+        if self.is_api_error is True:
+            raise ErrorFactory.create(api_response=self)
+
+        if self.is_scrape_engine_error is True:
+            error = ErrorFactory.create(api_response=self)
+
+            if isinstance(error, UpstreamHttpClientError) is True:
+                if raise_on_upstream_error is True:
+                    raise error
+            else:
+                raise error
+
+    # /!\ Success means scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
+    @property
+    def success(self) -&gt; bool:
+        return self.is_scrape_engine_error is False and self.is_api_error is False
+
+    @property
+    def status_code(self) -&gt; bool:
+        return self.response.status_code
+
+    @property
+    def headers(self) -&gt; CaseInsensitiveDict:
+        return self.response.headers
+
+    def upstream_result_into_response(self, _class=Response) -&gt; Optional[Response]:
+        if _class != Response:
+            raise RuntimeError(&#39;only Response from requests package is supported at the moment&#39;)
+        if self.result is None:
+            return None
+
+        if self.is_scrape_engine_error is True: # Upstream website must have reply
+            return None
+
+        response = Response()
+
+        response.status_code = self.result[&#39;result&#39;][&#39;status_code&#39;]
+        response.reason = self.result[&#39;result&#39;][&#39;reason&#39;]
+        response._content = self.result[&#39;result&#39;][&#39;content&#39;].encode(&#39;utf-8&#39;) if self.result[&#39;result&#39;][&#39;content&#39;] else None
+        response.headers.update(self.result[&#39;result&#39;][&#39;response_headers&#39;])
+        response.url = self.result[&#39;result&#39;][&#39;url&#39;]
+
+        response.request = Request(
+            method=self.result[&#39;config&#39;][&#39;method&#39;],
+            url=self.result[&#39;config&#39;][&#39;url&#39;],
+            headers=self.result[&#39;result&#39;][&#39;request_headers&#39;],
+            data=self.result[&#39;config&#39;][&#39;body&#39;] if self.result[&#39;config&#39;][&#39;body&#39;] else None
+        )
+
+        if &#39;set-cookie&#39; in response.headers:
+            for raw_cookie in response.headers[&#39;set-cookie&#39;]:
+                for name, cookie in SimpleCookie(raw_cookie).items():
+                    expires = cookie.get(&#39;expires&#39;)
+
+                    if expires == &#39;&#39;:
+                        expires = None
+
+                    if expires:
+                        try:
+                            expires = parse(expires).timestamp()
+                        except ValueError:
+                            expires = None
+
+                    if type(expires) == str:
+                        if &#39;.&#39; in expires:
+                            expires = float(expires)
+                        else:
+                            expires = int(expires)
+
+                    response.cookies.set_cookie(Cookie(
+                        version=cookie.get(&#39;version&#39;) if cookie.get(&#39;version&#39;) else None,
+                        name=name,
+                        value=cookie.value,
+                        path=cookie.get(&#39;path&#39;, &#39;&#39;),
+                        expires=expires,
+                        comment=cookie.get(&#39;comment&#39;),
+                        domain=cookie.get(&#39;domain&#39;, &#39;&#39;),
+                        secure=cookie.get(&#39;secure&#39;),
+                        port=None,
+                        port_specified=False,
+                        domain_specified=cookie.get(&#39;domain&#39;) is not None and cookie.get(&#39;domain&#39;) != &#39;&#39;,
+                        domain_initial_dot=bool(cookie.get(&#39;domain&#39;).startswith(&#39;.&#39;)) if cookie.get(&#39;domain&#39;) is not None else False,
+                        path_specified=cookie.get(&#39;path&#39;) != &#39;&#39; and cookie.get(&#39;path&#39;) is not None,
+                        discard=False,
+                        comment_url=None,
+                        rest={
+                            &#39;httponly&#39;: cookie.get(&#39;httponly&#39;),
+                            &#39;samesite&#39;: cookie.get(&#39;samesite&#39;),
+                            &#39;max-age&#39;: cookie.get(&#39;max-age&#39;)
+                        }
+                    ))
+
+        return response</code></pre>
+</details>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.ScrapeApiResponse.config"><code class="name">var <span class="ident">config</span> : Dict</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def config(self) -&gt; Dict:
+    return self.result[&#39;config&#39;]</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.context"><code class="name">var <span class="ident">context</span> : Dict</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def context(self) -&gt; Dict:
+    return self.result[&#39;context&#39;]</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.headers"><code class="name">var <span class="ident">headers</span> : requests.structures.CaseInsensitiveDict</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def headers(self) -&gt; CaseInsensitiveDict:
+    return self.response.headers</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.is_api_error"><code class="name">var <span class="ident">is_api_error</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_api_error(self) -&gt; bool:
+    return self._is_api_error(self.result)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.is_scrape_engine_error"><code class="name">var <span class="ident">is_scrape_engine_error</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_scrape_engine_error(self) -&gt; bool:
+    return self._is_scrape_engine_error(self.result)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def scrape_result(self):
+    return self.result[&#39;result&#39;]</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def status_code(self) -&gt; bool:
+    return self.response.status_code</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.success"><code class="name">var <span class="ident">success</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def success(self) -&gt; bool:
+    return self.is_scrape_engine_error is False and self.is_api_error is False</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.ScrapeApiResponse.content"><code class="name flex">
+<span>def <span class="ident">content</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def content(self) -&gt; Dict:
+    return self.result</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.handle_api_result"><code class="name flex">
+<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Union[Dict, NoneType]) ‑> Union[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>, NoneType]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
+    if api_result is None:
+        return None
+
+    if self._is_api_error(api_result=api_result) is True:
+        return FrozenDict(api_result)
+
+    if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
+        api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+
+    with suppress(KeyError):
+        api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
+        api_result[&#39;result&#39;][&#39;response_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;response_headers&#39;])
+
+    if api_result[&#39;result&#39;][&#39;format&#39;] == &#39;binary&#39; and api_result[&#39;result&#39;][&#39;content&#39;]:
+        api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+
+    return FrozenDict(api_result)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.raise_for_result"><code class="name flex">
+<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error: bool = True)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def raise_for_result(self, raise_on_upstream_error:bool=True):
+    if self.is_api_error is True:
+        raise ErrorFactory.create(api_response=self)
+
+    if self.is_scrape_engine_error is True:
+        error = ErrorFactory.create(api_response=self)
+
+        if isinstance(error, UpstreamHttpClientError) is True:
+            if raise_on_upstream_error is True:
+                raise error
+        else:
+            raise error</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.upstream_result_into_response"><code class="name flex">
+<span>def <span class="ident">upstream_result_into_response</span></span>(<span>self) ‑> Union[requests.models.Response, NoneType]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def upstream_result_into_response(self, _class=Response) -&gt; Optional[Response]:
+    if _class != Response:
+        raise RuntimeError(&#39;only Response from requests package is supported at the moment&#39;)
+    if self.result is None:
+        return None
+
+    if self.is_scrape_engine_error is True: # Upstream website must have reply
+        return None
+
+    response = Response()
+
+    response.status_code = self.result[&#39;result&#39;][&#39;status_code&#39;]
+    response.reason = self.result[&#39;result&#39;][&#39;reason&#39;]
+    response._content = self.result[&#39;result&#39;][&#39;content&#39;].encode(&#39;utf-8&#39;) if self.result[&#39;result&#39;][&#39;content&#39;] else None
+    response.headers.update(self.result[&#39;result&#39;][&#39;response_headers&#39;])
+    response.url = self.result[&#39;result&#39;][&#39;url&#39;]
+
+    response.request = Request(
+        method=self.result[&#39;config&#39;][&#39;method&#39;],
+        url=self.result[&#39;config&#39;][&#39;url&#39;],
+        headers=self.result[&#39;result&#39;][&#39;request_headers&#39;],
+        data=self.result[&#39;config&#39;][&#39;body&#39;] if self.result[&#39;config&#39;][&#39;body&#39;] else None
+    )
+
+    if &#39;set-cookie&#39; in response.headers:
+        for raw_cookie in response.headers[&#39;set-cookie&#39;]:
+            for name, cookie in SimpleCookie(raw_cookie).items():
+                expires = cookie.get(&#39;expires&#39;)
+
+                if expires == &#39;&#39;:
+                    expires = None
+
+                if expires:
+                    try:
+                        expires = parse(expires).timestamp()
+                    except ValueError:
+                        expires = None
+
+                if type(expires) == str:
+                    if &#39;.&#39; in expires:
+                        expires = float(expires)
+                    else:
+                        expires = int(expires)
+
+                response.cookies.set_cookie(Cookie(
+                    version=cookie.get(&#39;version&#39;) if cookie.get(&#39;version&#39;) else None,
+                    name=name,
+                    value=cookie.value,
+                    path=cookie.get(&#39;path&#39;, &#39;&#39;),
+                    expires=expires,
+                    comment=cookie.get(&#39;comment&#39;),
+                    domain=cookie.get(&#39;domain&#39;, &#39;&#39;),
+                    secure=cookie.get(&#39;secure&#39;),
+                    port=None,
+                    port_specified=False,
+                    domain_specified=cookie.get(&#39;domain&#39;) is not None and cookie.get(&#39;domain&#39;) != &#39;&#39;,
+                    domain_initial_dot=bool(cookie.get(&#39;domain&#39;).startswith(&#39;.&#39;)) if cookie.get(&#39;domain&#39;) is not None else False,
+                    path_specified=cookie.get(&#39;path&#39;) != &#39;&#39; and cookie.get(&#39;path&#39;) is not None,
+                    discard=False,
+                    comment_url=None,
+                    rest={
+                        &#39;httponly&#39;: cookie.get(&#39;httponly&#39;),
+                        &#39;samesite&#39;: cookie.get(&#39;samesite&#39;),
+                        &#39;max-age&#39;: cookie.get(&#39;max-age&#39;)
+                    }
+                ))
+
+    return response</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.ScrapeConfig"><code class="flex name class">
+<span>class <span class="ident">ScrapeConfig</span></span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Union[str, NoneType] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, cache_ttl: Union[int, NoneType] = None, session: Union[str, NoneType] = None, debug: Union[bool, NoneType] = False, tags: Union[List[str], NoneType] = None, correlation_id: Union[str, NoneType] = None, cookies: Union[Dict, NoneType] = None, body: Union[str, NoneType] = None, data: Union[Dict, NoneType] = None, headers: Union[Dict[str, str], NoneType] = None, graphql: Union[str, NoneType] = None, js: str = None, rendering_wait: int = None, screenshots: Union[Dict, NoneType] = None, raise_on_upstream_error: bool = True)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapeConfig:
+
+    def __init__(
+            self,
+            url: str,
+            retry: bool = True,
+            method: str = &#39;GET&#39;,
+            country: Optional[str] = &#39;DE&#39;,
+            render_js: bool = False,
+            cache: bool = False,
+            cache_clear:bool = False,
+            ssl:bool = False,
+            dns:bool = False,
+            asp:bool = False,
+            cache_ttl:Optional[int] = None,
+            session: Optional[str] = None,
+            debug: Optional[bool] = False,
+            tags: Optional[List[str]] = None,
+            correlation_id: Optional[str] = None,
+            cookies: Optional[Dict] = None,
+            body: Optional[str] = None,
+            data: Optional[Dict] = None,
+            headers: Optional[Dict[str, str]] = None,
+            graphql: Optional[str] = None,
+            js: str = None,
+            rendering_wait: int = None,
+            screenshots:Optional[Dict]=None,
+            raise_on_upstream_error:bool=True
+    ):
+        assert(type(url) is str)
+
+        self.cookies = CaseInsensitiveDict(cookies or {})
+        self.headers = CaseInsensitiveDict(headers or {})
+        self.url = url
+        self.retry = retry
+        self.method = method
+        self.country = country
+        self.render_js = render_js
+        self.cache = cache
+        self.cache_clear = cache_clear
+        self.asp = asp
+        self.session = session
+        self.debug = debug
+        self.cache_ttl = cache_ttl
+        self.tags = tags
+        self.correlation_id = correlation_id
+        self.body = body
+        self.data = data
+        self.graphql = graphql
+        self.js = js
+        self.rendering_wait = rendering_wait
+        self.raise_on_upstream_error = raise_on_upstream_error
+        self.screenshots = screenshots
+        self.key = None
+        self.dns = dns
+        self.ssl = ssl
+
+        if cookies:
+            _cookies = []
+
+            for name, value in cookies.items():
+                _cookies.append(name + &#39;=&#39; + value)
+
+            if &#39;cookie&#39; in self.headers:
+                if self.headers[&#39;cookie&#39;][-1] != &#39;;&#39;:
+                    self.headers[&#39;cookie&#39;] += &#39;;&#39;
+                else:
+                    self.headers[&#39;cookie&#39;] = &#39;&#39;
+
+            self.headers[&#39;cookie&#39;] += &#39;; &#39;.join(_cookies)
+
+        if self.body and self.data:
+            raise ScrapeConfigError(&#39;You cannot pass both parameters body and data. You must choose&#39;)
+
+        if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] and self.body is None and self.data is not None:
+            print(self.headers)
+            if &#39;content-type&#39; not in self.headers:
+                self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
+                self.body = urlencode(data)
+            else:
+                if self.headers[&#39;content-type&#39;] == &#39;application/json&#39;:
+                    self.body = json.dumps(data)
+                elif &#39;application/x-www-form-urlencoded&#39; == self.headers[&#39;content-type&#39;]:
+                    self.body = urlencode(data)
+                else:
+                    raise ScrapeConfigError(&#39;Content Type %s not support, use body parameter to pass pre encoded body according to your content type&#39; % self.headers[&#39;content-type&#39;])
+
+    def _bool_to_http(self, _bool:bool) -&gt; str:
+        return &#39;true&#39; if _bool is True else &#39;false&#39;
+
+    def generate_distributed_correlation_id(self):
+        self.correlation_id = abs(hash(&#39;-&#39;.join([gethostname(), str(getpid()), str(currentThread().ident)])))
+
+    def to_api_params(self, key:str) -&gt; Dict:
+        params = {
+            &#39;key&#39;: self.key if self.key is not None else key,
+            &#39;url&#39;: self.url,
+            &#39;country&#39;: self.country,
+        }
+
+        for name, value in self.headers.items():
+            params[&#39;headers[%s]&#39; % name] = value
+
+        if self.render_js is True:
+            params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
+
+        if self.asp is True:
+            params[&#39;asp&#39;] = self._bool_to_http(self.asp)
+
+        if self.retry is False:
+            params[&#39;retry&#39;] = self._bool_to_http(self.retry)
+
+        if self.cache is True:
+            params[&#39;cache&#39;] = self._bool_to_http(self.cache)
+
+        if self.dns is True:
+            params[&#39;dns&#39;] = self._bool_to_http(self.dns)
+
+        if self.ssl is True:
+            params[&#39;ssl&#39;] = self._bool_to_http(self.ssl)
+
+        if self.tags:
+            params[&#39;tags&#39;] = &#39;,&#39;.join(self.tags)
+
+        if self.correlation_id:
+            params[&#39;correlation_id&#39;] = self.correlation_id
+
+        if self.screenshots is not None:
+            for name, element in self.screenshots.items():
+                params[&#39;screenshots[%s]&#39; % name] = element
+
+        if self.session:
+            params[&#39;session&#39;] = self.session
+
+        if self.debug is True:
+            params[&#39;debug&#39;] = self._bool_to_http(self.debug)
+
+        if self.cache_clear is True:
+            params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
+
+        if self.cache_ttl is not None:
+            params[&#39;cache_ttl&#39;] = self.cache_ttl
+
+        if self.graphql:
+            params[&#39;graphql&#39;] = self.graphql
+
+        if self.js:
+            params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+        if self.rendering_wait:
+            params[&#39;rendering_wait&#39;] = self.rendering_wait
+
+        return params</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.ScrapeConfig.generate_distributed_correlation_id"><code class="name flex">
+<span>def <span class="ident">generate_distributed_correlation_id</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def generate_distributed_correlation_id(self):
+    self.correlation_id = abs(hash(&#39;-&#39;.join([gethostname(), str(getpid()), str(currentThread().ident)])))</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeConfig.to_api_params"><code class="name flex">
+<span>def <span class="ident">to_api_params</span></span>(<span>self, key: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_api_params(self, key:str) -&gt; Dict:
+    params = {
+        &#39;key&#39;: self.key if self.key is not None else key,
+        &#39;url&#39;: self.url,
+        &#39;country&#39;: self.country,
+    }
+
+    for name, value in self.headers.items():
+        params[&#39;headers[%s]&#39; % name] = value
+
+    if self.render_js is True:
+        params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
+
+    if self.asp is True:
+        params[&#39;asp&#39;] = self._bool_to_http(self.asp)
+
+    if self.retry is False:
+        params[&#39;retry&#39;] = self._bool_to_http(self.retry)
+
+    if self.cache is True:
+        params[&#39;cache&#39;] = self._bool_to_http(self.cache)
+
+    if self.dns is True:
+        params[&#39;dns&#39;] = self._bool_to_http(self.dns)
+
+    if self.ssl is True:
+        params[&#39;ssl&#39;] = self._bool_to_http(self.ssl)
+
+    if self.tags:
+        params[&#39;tags&#39;] = &#39;,&#39;.join(self.tags)
+
+    if self.correlation_id:
+        params[&#39;correlation_id&#39;] = self.correlation_id
+
+    if self.screenshots is not None:
+        for name, element in self.screenshots.items():
+            params[&#39;screenshots[%s]&#39; % name] = element
+
+    if self.session:
+        params[&#39;session&#39;] = self.session
+
+    if self.debug is True:
+        params[&#39;debug&#39;] = self._bool_to_http(self.debug)
+
+    if self.cache_clear is True:
+        params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
+
+    if self.cache_ttl is not None:
+        params[&#39;cache_ttl&#39;] = self.cache_ttl
+
+    if self.graphql:
+        params[&#39;graphql&#39;] = self.graphql
+
+    if self.js:
+        params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+    if self.rendering_wait:
+        params[&#39;rendering_wait&#39;] = self.rendering_wait
+
+    return params</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.ScrapflyAspError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyAspError</span></span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyAspError(ScrapflyError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.ScrapflyClient"><code class="flex name class">
+<span>class <span class="ident">ScrapflyClient</span></span>
+<span>(</span><span>key: str, host: Union[str, NoneType] = 'https://api.scrapfly.io', verify=True, debug: bool = False, distributed_mode=False, connect_timeout: int = 30, read_timeout: int = 300)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyClient:
+
+    HOST = &#39;https://api.scrapfly.io&#39;
+    DEFAULT_CONNECT_TIMEOUT = 30
+    DEFAULT_READ_TIMEOUT = 300
+
+    def __init__(
+        self,
+        key: str,
+        host: Optional[str] = HOST,
+        verify=True,
+        debug: bool = False,
+        distributed_mode = False,
+        connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        read_timeout:int = DEFAULT_READ_TIMEOUT
+    ):
+        if host[-1] == &#39;/&#39;:  # remove last &#39;/&#39; if exists
+            host = host[:-1]
+
+        self.host = host
+        self.key = key
+        self.verify = verify
+        self.debug = debug
+        self.connect_timeout = connect_timeout
+        self.read_timeout = read_timeout
+        self.distributed_mode = distributed_mode
+        self.body_handler = ResponseBodyHandler()
+        self.http_session = None
+        self.ua = &#39;ScrapflySDK/%s (Python %s, %s, %s)&#39; % (
+            version,
+            platform.python_version(),
+            platform.uname().system,
+            platform.uname().machine
+        )
+
+        if not self.verify and not self.HOST.endswith(&#39;.local&#39;):
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        if self.debug is True:
+            http.client.HTTPConnection.debuglevel = 5
+
+    def _scrape_request(self, scrape_config:ScrapeConfig):
+
+        if not scrape_config.graphql:
+            url = self.host + &#39;/scrape&#39;
+            method = scrape_config.method
+        else:
+            url = self.host + &#39;/graphql&#39;
+            method = &#39;POST&#39;
+
+        if self.distributed_mode is True and scrape_config.correlation_id is None:
+            scrape_config.generate_distributed_correlation_id()
+
+        http_handler = partial(self.http_session.request if self.http_session else requests.request)
+
+        r = http_handler(
+            method=method,
+            url=url,
+            data=scrape_config.body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.read_timeout),
+            headers={
+                &#39;content-type&#39;: scrape_config.headers[&#39;content-type&#39;] if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] else self.body_handler.content_type,
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+            params=scrape_config.to_api_params(key=self.key)
+        )
+
+        return r
+
+    def account(self) -&gt; Dict:
+        http_handler = partial(self.http_session.request if self.http_session else requests.request)
+        return http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key}).json()
+
+    def resilient_scrape(
+        self,
+        scrape_config:ScrapeConfig,
+        retry_on_errors:Union[Exception, Tuple[Exception, ...]]=None,
+        tries: int = 5,
+        delay: int = 20,
+    ) -&gt; ScrapeApiResponse:
+        if retry_on_errors is None:
+            retry_on_errors = [ScrapflyError]  # Retry on all retryable error from Scrapfly
+
+        @retry(retry_on_errors, tries=tries, delay=delay)
+        def inner() -&gt; ScrapeApiResponse:
+            return self.scrape(scrape_config=scrape_config)
+
+        return inner()
+
+    def __enter__(self) -&gt; &#39;ScrapflyClient&#39;:
+        if self.http_session is None:
+            self.http_session = requests.session()
+            self.http_session.params[&#39;key&#39;] = self.key
+
+            self.http_session.headers[&#39;accept-encoding&#39;] = self.body_handler.content_encoding
+            self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
+            self.http_session.headers[&#39;user-agent&#39;] = self.ua
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.http_session.close()
+        self.http_session = None
+
+    @retry((ConnectionError,), tries=5, delay=2)
+    def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
+        logger.info(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+
+        response = self._scrape_request(scrape_config=scrape_config)
+
+        try:
+            api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+                api_response.result[&#39;result&#39;][&#39;reason&#39;],
+                api_response.result[&#39;config&#39;][&#39;url&#39;],
+                api_response.result[&#39;result&#39;][&#39;duration&#39;])
+            )
+
+            return api_response
+        except ApiHttpServerError as e:
+            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
+            raise
+        except UpstreamHttpServerError as e:
+            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+            raise
+        except ScrapflyError as e:
+            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
+            raise
+
+    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
+        # for advance configuration, take screenshots via scrape method with ScrapeConfig
+        api_response = self.scrape(scrape_config=ScrapeConfig(
+            url=url,
+            render_js=True,
+            screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+        ))
+
+        name = name or &#39;main.jpg&#39;
+
+        if not name.endswith(&#39;.jpg&#39;):
+            name += &#39;.jpg&#39;
+
+        with self as client:
+            response = client.http_session.request(
+                method=&#39;GET&#39;,
+                url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
+            )
+
+            response.raise_for_status()
+
+            screenshot = response.content
+
+        self.sink(api_response, path=path, name=name, content=screenshot)
+
+    def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+        scrape_result = api_response.result[&#39;result&#39;]
+        scrape_config = api_response.result[&#39;config&#39;]
+
+        file_content = content or scrape_result[&#39;content&#39;]
+        file_path = None
+        file_extension = None
+
+        if name:
+            name_parts = name.split(&#39;.&#39;)
+            if len(name_parts) &gt; 1:
+                file_extension = name_parts[-1]
+
+        if not file:
+            if file_extension is None:
+                try:
+                    mime_type = scrape_result[&#39;response_headers&#39;][&#39;content-type&#39;]
+                except KeyError:
+                    mime_type = &#39;application/octet-stream&#39;
+
+                if &#39;;&#39; in mime_type:
+                    mime_type = mime_type.split(&#39;;&#39;)[0]
+
+                file_extension = &#39;.&#39; + mime_type.split(&#39;/&#39;)[1]
+
+            if not name:
+                name = scrape_config[&#39;url&#39;].split(&#39;/&#39;)[-1]
+
+            if name.find(file_extension) == -1:
+                name += file_extension
+
+            file_path = path + &#39;/&#39; + name if path else name
+
+            if file_path == file_extension:
+                url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, api_response.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
+
+                if url[-1] == &#39;-&#39;:
+                    url = url[:-1]
+
+                url += file_extension
+
+                file_path = url
+
+            file = open(file_path, &#39;wb&#39;)
+
+        if isinstance(file_content, str):
+            file_content = BytesIO(file_content.encode(&#39;utf-8&#39;))
+        elif isinstance(file_content, bytes):
+            file_content = BytesIO(file_content)
+
+        file_content.seek(0)
+        with file as f:
+            shutil.copyfileobj(file_content, f, length=131072)
+
+        logger.info(&#39;file %s created&#39; % file_path)
+
+    def _handle_api_response(
+        self,
+        response: requests.Response,
+        scrape_config:ScrapeConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -&gt; ScrapeApiResponse:
+        try:
+            result = self.body_handler(response.content)
+        except ValueError:
+            raise ErrorFactory.create(api_response=ScrapeApiResponse(response=response, request=response.request, scrape_config=scrape_config))
+
+        api_response:ScrapeApiResponse = ScrapeApiResponse(response=response, request=response.request, api_result=result, scrape_config=scrape_config)
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_CONNECT_TIMEOUT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.DEFAULT_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_READ_TIMEOUT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.HOST"><code class="name">var <span class="ident">HOST</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.ScrapflyClient.account"><code class="name flex">
+<span>def <span class="ident">account</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def account(self) -&gt; Dict:
+    http_handler = partial(self.http_session.request if self.http_session else requests.request)
+    return http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key}).json()</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapflyClient.resilient_scrape"><code class="name flex">
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Union[Exception, Tuple[Exception, ...]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def resilient_scrape(
+    self,
+    scrape_config:ScrapeConfig,
+    retry_on_errors:Union[Exception, Tuple[Exception, ...]]=None,
+    tries: int = 5,
+    delay: int = 20,
+) -&gt; ScrapeApiResponse:
+    if retry_on_errors is None:
+        retry_on_errors = [ScrapflyError]  # Retry on all retryable error from Scrapfly
+
+    @retry(retry_on_errors, tries=tries, delay=delay)
+    def inner() -&gt; ScrapeApiResponse:
+        return self.scrape(scrape_config=scrape_config)
+
+    return inner()</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapflyClient.scrape"><code class="name flex">
+<span>def <span class="ident">scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@retry((ConnectionError,), tries=5, delay=2)
+def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
+    logger.info(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+
+    response = self._scrape_request(scrape_config=scrape_config)
+
+    try:
+        api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+        logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+            api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+            api_response.result[&#39;result&#39;][&#39;reason&#39;],
+            api_response.result[&#39;config&#39;][&#39;url&#39;],
+            api_response.result[&#39;result&#39;][&#39;duration&#39;])
+        )
+
+        return api_response
+    except ApiHttpServerError as e:
+        logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
+        raise
+    except UpstreamHttpServerError as e:
+        logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+        raise
+    except ScrapflyError as e:
+        logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
+        raise</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapflyClient.screenshot"><code class="name flex">
+<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Union[str, NoneType] = None, name: Union[str, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
+    # for advance configuration, take screenshots via scrape method with ScrapeConfig
+    api_response = self.scrape(scrape_config=ScrapeConfig(
+        url=url,
+        render_js=True,
+        screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+    ))
+
+    name = name or &#39;main.jpg&#39;
+
+    if not name.endswith(&#39;.jpg&#39;):
+        name += &#39;.jpg&#39;
+
+    with self as client:
+        response = client.http_session.request(
+            method=&#39;GET&#39;,
+            url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
+        )
+
+        response.raise_for_status()
+
+        screenshot = response.content
+
+    self.sink(api_response, path=path, name=name, content=screenshot)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapflyClient.sink"><code class="name flex">
+<span>def <span class="ident">sink</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, content: Union[str, bytes, NoneType] = None, path: Union[str, NoneType] = None, name: Union[str, NoneType] = None, file: Union[TextIO, _io.BytesIO, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+    scrape_result = api_response.result[&#39;result&#39;]
+    scrape_config = api_response.result[&#39;config&#39;]
+
+    file_content = content or scrape_result[&#39;content&#39;]
+    file_path = None
+    file_extension = None
+
+    if name:
+        name_parts = name.split(&#39;.&#39;)
+        if len(name_parts) &gt; 1:
+            file_extension = name_parts[-1]
+
+    if not file:
+        if file_extension is None:
+            try:
+                mime_type = scrape_result[&#39;response_headers&#39;][&#39;content-type&#39;]
+            except KeyError:
+                mime_type = &#39;application/octet-stream&#39;
+
+            if &#39;;&#39; in mime_type:
+                mime_type = mime_type.split(&#39;;&#39;)[0]
+
+            file_extension = &#39;.&#39; + mime_type.split(&#39;/&#39;)[1]
+
+        if not name:
+            name = scrape_config[&#39;url&#39;].split(&#39;/&#39;)[-1]
+
+        if name.find(file_extension) == -1:
+            name += file_extension
+
+        file_path = path + &#39;/&#39; + name if path else name
+
+        if file_path == file_extension:
+            url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, api_response.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
+
+            if url[-1] == &#39;-&#39;:
+                url = url[:-1]
+
+            url += file_extension
+
+            file_path = url
+
+        file = open(file_path, &#39;wb&#39;)
+
+    if isinstance(file_content, str):
+        file_content = BytesIO(file_content.encode(&#39;utf-8&#39;))
+    elif isinstance(file_content, bytes):
+        file_content = BytesIO(file_content)
+
+    file_content.seek(0)
+    with file as f:
+        shutil.copyfileobj(file_content, f, length=131072)
+
+    logger.info(&#39;file %s created&#39; % file_path)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.ScrapflyError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyError</span></span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyError(Exception):
+    KIND_HTTP_BAD_RESPONSE = &#39;HTTP_BAD_RESPONSE&#39;
+    KIND_SCRAPFLY_ERROR = &#39;SCRAPFLY_ERROR&#39;
+
+    RESOURCE_PROXY = &#39;PROXY&#39;
+    RESOURCE_THROTTLE = &#39;THROTTLE&#39;
+    RESOURCE_SCRAPE = &#39;SCRAPE&#39;
+    RESOURCE_ASP = &#39;ASP&#39;
+    RESOURCE_SCHEDULE = &#39;SCHEDULE&#39;
+    RESOURCE_WEBHOOK = &#39;WEBHOOK&#39;
+    RESOURCE_SESSION = &#39;SESSION&#39;
+
+    KNOWN_HTTP_API_ERROR_CODE = [
+        400,
+        401,
+        404,
+        422,
+        429,
+        500,
+        503,
+        504
+    ]
+
+    def __init__(
+        self,
+        message: str,
+        code: int,
+        resource: str,
+        http_status_code: int,
+        is_retryable: bool = False,
+        retry_delay: Optional[int] = None,
+        retry_times: Optional[int] = None,
+        documentation_url: Optional[str] = None,
+        api_response: Optional[Dict] = None
+    ):
+        self.message = message
+        self.code = code
+        self.retry_delay = retry_delay
+        self.retry_times = retry_times
+        self.resource = resource
+        self.is_retryable = is_retryable
+        self.documentation_url = documentation_url
+        self.api_response = api_response
+        self.http_status_code = http_status_code
+
+        super().__init__(self.message, str(self.code))
+
+    def __str__(self):
+        message = self.message
+
+        if self.documentation_url is not None:
+            message += &#39;. Learn more: %s&#39; % self.documentation_url
+
+        return message</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.HttpError" href="errors.html#scrapfly.errors.HttpError">HttpError</a></li>
+<li><a title="scrapfly.errors.ScrapflyAspError" href="errors.html#scrapfly.errors.ScrapflyAspError">ScrapflyAspError</a></li>
+<li><a title="scrapfly.errors.ScrapflyProxyError" href="errors.html#scrapfly.errors.ScrapflyProxyError">ScrapflyProxyError</a></li>
+<li><a title="scrapfly.errors.ScrapflyScheduleError" href="errors.html#scrapfly.errors.ScrapflyScheduleError">ScrapflyScheduleError</a></li>
+<li><a title="scrapfly.errors.ScrapflyScrapeError" href="errors.html#scrapfly.errors.ScrapflyScrapeError">ScrapflyScrapeError</a></li>
+<li><a title="scrapfly.errors.ScrapflySessionError" href="errors.html#scrapfly.errors.ScrapflySessionError">ScrapflySessionError</a></li>
+<li><a title="scrapfly.errors.ScrapflyThrottleError" href="errors.html#scrapfly.errors.ScrapflyThrottleError">ScrapflyThrottleError</a></li>
+<li><a title="scrapfly.errors.ScrapflyWebhookError" href="errors.html#scrapfly.errors.ScrapflyWebhookError">ScrapflyWebhookError</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.ScrapflyError.KIND_HTTP_BAD_RESPONSE"><code class="name">var <span class="ident">KIND_HTTP_BAD_RESPONSE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.KIND_SCRAPFLY_ERROR"><code class="name">var <span class="ident">KIND_SCRAPFLY_ERROR</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE"><code class="name">var <span class="ident">KNOWN_HTTP_API_ERROR_CODE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.RESOURCE_ASP"><code class="name">var <span class="ident">RESOURCE_ASP</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.RESOURCE_PROXY"><code class="name">var <span class="ident">RESOURCE_PROXY</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.RESOURCE_SCHEDULE"><code class="name">var <span class="ident">RESOURCE_SCHEDULE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.RESOURCE_SCRAPE"><code class="name">var <span class="ident">RESOURCE_SCRAPE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.RESOURCE_SESSION"><code class="name">var <span class="ident">RESOURCE_SESSION</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.RESOURCE_THROTTLE"><code class="name">var <span class="ident">RESOURCE_THROTTLE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.RESOURCE_WEBHOOK"><code class="name">var <span class="ident">RESOURCE_WEBHOOK</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.ScrapflyProxyError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyProxyError</span></span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyProxyError(ScrapflyError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.ScrapflyScheduleError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyScheduleError</span></span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyScheduleError(ScrapflyError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.ScrapflyScrapeError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyScrapeError</span></span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyScrapeError(ScrapflyError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.QuotaLimitReached" href="errors.html#scrapfly.errors.QuotaLimitReached">QuotaLimitReached</a></li>
+<li><a title="scrapfly.errors.TooManyConcurrentRequest" href="errors.html#scrapfly.errors.TooManyConcurrentRequest">TooManyConcurrentRequest</a></li>
+</ul>
+</dd>
+<dt id="scrapfly.ScrapflySessionError"><code class="flex name class">
+<span>class <span class="ident">ScrapflySessionError</span></span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflySessionError(ScrapflyError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.ScrapflyThrottleError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyThrottleError</span></span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyThrottleError(ScrapflyError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.ScrapflyWebhookError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyWebhookError</span></span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyWebhookError(ScrapflyError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.UpstreamHttpClientError"><code class="flex name class">
+<span>class <span class="ident">UpstreamHttpClientError</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class UpstreamHttpClientError(HttpError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.HttpError" href="errors.html#scrapfly.errors.HttpError">HttpError</a></li>
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.UpstreamHttpServerError" href="errors.html#scrapfly.errors.UpstreamHttpServerError">UpstreamHttpServerError</a></li>
+</ul>
+</dd>
+<dt id="scrapfly.UpstreamHttpServerError"><code class="flex name class">
+<span>class <span class="ident">UpstreamHttpServerError</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class UpstreamHttpServerError(UpstreamHttpClientError):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.UpstreamHttpClientError" href="errors.html#scrapfly.errors.UpstreamHttpClientError">UpstreamHttpClientError</a></li>
+<li><a title="scrapfly.errors.HttpError" href="errors.html#scrapfly.errors.HttpError">HttpError</a></li>
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="scrapfly.api_response" href="api_response.html">scrapfly.api_response</a></code></li>
+<li><code><a title="scrapfly.client" href="client.html">scrapfly.client</a></code></li>
+<li><code><a title="scrapfly.errors" href="errors.html">scrapfly.errors</a></code></li>
+<li><code><a title="scrapfly.frozen_dict" href="frozen_dict.html">scrapfly.frozen_dict</a></code></li>
+<li><code><a title="scrapfly.retry" href="retry.html">scrapfly.retry</a></code></li>
+<li><code><a title="scrapfly.scrape_config" href="scrape_config.html">scrapfly.scrape_config</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.ApiHttpClientError" href="#scrapfly.ApiHttpClientError">ApiHttpClientError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ApiHttpServerError" href="#scrapfly.ApiHttpServerError">ApiHttpServerError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ErrorFactory" href="#scrapfly.ErrorFactory">ErrorFactory</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ErrorFactory.HTTP_STATUS_TO_ERROR" href="#scrapfly.ErrorFactory.HTTP_STATUS_TO_ERROR">HTTP_STATUS_TO_ERROR</a></code></li>
+<li><code><a title="scrapfly.ErrorFactory.RESOURCE_TO_ERROR" href="#scrapfly.ErrorFactory.RESOURCE_TO_ERROR">RESOURCE_TO_ERROR</a></code></li>
+<li><code><a title="scrapfly.ErrorFactory.create" href="#scrapfly.ErrorFactory.create">create</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.HttpError" href="#scrapfly.HttpError">HttpError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ResponseBodyHandler" href="#scrapfly.ResponseBodyHandler">ResponseBodyHandler</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ResponseBodyHandler.JSONDateTimeDecoder" href="#scrapfly.ResponseBodyHandler.JSONDateTimeDecoder">JSONDateTimeDecoder</a></code></li>
+<li><code><a title="scrapfly.ResponseBodyHandler.SUPPORTED_COMPRESSION" href="#scrapfly.ResponseBodyHandler.SUPPORTED_COMPRESSION">SUPPORTED_COMPRESSION</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.RetryBudgetExceeded" href="#scrapfly.RetryBudgetExceeded">RetryBudgetExceeded</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapeApiResponse" href="#scrapfly.ScrapeApiResponse">ScrapeApiResponse</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ScrapeApiResponse.config" href="#scrapfly.ScrapeApiResponse.config">config</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.content" href="#scrapfly.ScrapeApiResponse.content">content</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.context" href="#scrapfly.ScrapeApiResponse.context">context</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.handle_api_result" href="#scrapfly.ScrapeApiResponse.handle_api_result">handle_api_result</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.headers" href="#scrapfly.ScrapeApiResponse.headers">headers</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.is_api_error" href="#scrapfly.ScrapeApiResponse.is_api_error">is_api_error</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.is_scrape_engine_error" href="#scrapfly.ScrapeApiResponse.is_scrape_engine_error">is_scrape_engine_error</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.raise_for_result" href="#scrapfly.ScrapeApiResponse.raise_for_result">raise_for_result</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.scrape_result" href="#scrapfly.ScrapeApiResponse.scrape_result">scrape_result</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.status_code" href="#scrapfly.ScrapeApiResponse.status_code">status_code</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.success" href="#scrapfly.ScrapeApiResponse.success">success</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.upstream_result_into_response" href="#scrapfly.ScrapeApiResponse.upstream_result_into_response">upstream_result_into_response</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapeConfig" href="#scrapfly.ScrapeConfig">ScrapeConfig</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ScrapeConfig.generate_distributed_correlation_id" href="#scrapfly.ScrapeConfig.generate_distributed_correlation_id">generate_distributed_correlation_id</a></code></li>
+<li><code><a title="scrapfly.ScrapeConfig.to_api_params" href="#scrapfly.ScrapeConfig.to_api_params">to_api_params</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyAspError" href="#scrapfly.ScrapflyAspError">ScrapflyAspError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyClient" href="#scrapfly.ScrapflyClient">ScrapflyClient</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT" href="#scrapfly.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT">DEFAULT_CONNECT_TIMEOUT</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.DEFAULT_READ_TIMEOUT" href="#scrapfly.ScrapflyClient.DEFAULT_READ_TIMEOUT">DEFAULT_READ_TIMEOUT</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.HOST" href="#scrapfly.ScrapflyClient.HOST">HOST</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.account" href="#scrapfly.ScrapflyClient.account">account</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.resilient_scrape" href="#scrapfly.ScrapflyClient.resilient_scrape">resilient_scrape</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.scrape" href="#scrapfly.ScrapflyClient.scrape">scrape</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.screenshot" href="#scrapfly.ScrapflyClient.screenshot">screenshot</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.sink" href="#scrapfly.ScrapflyClient.sink">sink</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyError" href="#scrapfly.ScrapflyError">ScrapflyError</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="#scrapfly.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.KIND_SCRAPFLY_ERROR" href="#scrapfly.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE" href="#scrapfly.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE">KNOWN_HTTP_API_ERROR_CODE</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.RESOURCE_ASP" href="#scrapfly.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.RESOURCE_PROXY" href="#scrapfly.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.RESOURCE_SCHEDULE" href="#scrapfly.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.RESOURCE_SCRAPE" href="#scrapfly.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.RESOURCE_SESSION" href="#scrapfly.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.RESOURCE_THROTTLE" href="#scrapfly.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.RESOURCE_WEBHOOK" href="#scrapfly.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyProxyError" href="#scrapfly.ScrapflyProxyError">ScrapflyProxyError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyScheduleError" href="#scrapfly.ScrapflyScheduleError">ScrapflyScheduleError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyScrapeError" href="#scrapfly.ScrapflyScrapeError">ScrapflyScrapeError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflySessionError" href="#scrapfly.ScrapflySessionError">ScrapflySessionError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyThrottleError" href="#scrapfly.ScrapflyThrottleError">ScrapflyThrottleError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyWebhookError" href="#scrapfly.ScrapflyWebhookError">ScrapflyWebhookError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.UpstreamHttpClientError" href="#scrapfly.UpstreamHttpClientError">UpstreamHttpClientError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.UpstreamHttpServerError" href="#scrapfly.UpstreamHttpServerError">UpstreamHttpServerError</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>

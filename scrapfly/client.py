@@ -1,11 +1,14 @@
 import http
 import platform
+import re
 import shutil
 from functools import partial
 from io import BytesIO
 from typing import TextIO, Union
 import requests
 import urllib3
+
+from loguru import logger
 
 from .retry import retry
 from .errors import *
@@ -107,7 +110,14 @@ class ScrapflyClient:
         return inner()
 
     def __enter__(self) -> 'ScrapflyClient':
-        self.http_session = requests.session()
+        if self.http_session is None:
+            self.http_session = requests.session()
+            self.http_session.params['key'] = self.key
+
+            self.http_session.headers['accept-encoding'] = self.body_handler.content_encoding
+            self.http_session.headers['accept'] = self.body_handler.accept
+            self.http_session.headers['user-agent'] = self.ua
+
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -140,23 +150,55 @@ class ScrapflyClient:
             logger.critical('<-- %s - %s' % (e.code, str(e)))
             raise
 
-    def sink(self, api_response:ScrapeApiResponse, path: Optional[str] = None, name: Optional[str] = None, file: Optional[TextIO] = None):
+    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
+        # for advance configuration, take screenshots via scrape method with ScrapeConfig
+        api_response = self.scrape(scrape_config=ScrapeConfig(
+            url=url,
+            render_js=True,
+            screenshots={'main': 'fullpage'}
+        ))
+
+        name = name or 'main.jpg'
+
+        if not name.endswith('.jpg'):
+            name += '.jpg'
+
+        with self as client:
+            response = client.http_session.request(
+                method='GET',
+                url=api_response.scrape_result['screenshots']['main']['url']
+            )
+
+            response.raise_for_status()
+
+            screenshot = response.content
+
+        self.sink(api_response, path=path, name=name, content=screenshot)
+
+    def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
         scrape_result = api_response.result['result']
         scrape_config = api_response.result['config']
 
-        file_content = scrape_result['content']
+        file_content = content or scrape_result['content']
         file_path = None
+        file_extension = None
+
+        if name:
+            name_parts = name.split('.')
+            if len(name_parts) > 1:
+                file_extension = name_parts[-1]
 
         if not file:
-            try:
-                mime_type = scrape_result['response_headers']['content-type']
-            except KeyError:
-                mime_type = 'application/octet-stream'
+            if file_extension is None:
+                try:
+                    mime_type = scrape_result['response_headers']['content-type']
+                except KeyError:
+                    mime_type = 'application/octet-stream'
 
-            if ';' in mime_type:
-                mime_type = mime_type.split(';')[0]
+                if ';' in mime_type:
+                    mime_type = mime_type.split(';')[0]
 
-            file_extension = '.' + mime_type.split('/')[1]
+                file_extension = '.' + mime_type.split('/')[1]
 
             if not name:
                 name = scrape_config['url'].split('/')[-1]
@@ -165,10 +207,23 @@ class ScrapflyClient:
                 name += file_extension
 
             file_path = path + '/' + name if path else name
+
+            if file_path == file_extension:
+                url = re.sub(r'(https|http)?://', '', api_response.config['url']).replace('/', '-')
+
+                if url[-1] == '-':
+                    url = url[:-1]
+
+                url += file_extension
+
+                file_path = url
+
             file = open(file_path, 'wb')
 
         if isinstance(file_content, str):
             file_content = BytesIO(file_content.encode('utf-8'))
+        elif isinstance(file_content, bytes):
+            file_content = BytesIO(file_content)
 
         file_content.seek(0)
         with file as f:

@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>scrapfly.client API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.client</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import http
+import platform
+import re
+import shutil
+from functools import partial
+from io import BytesIO
+from typing import TextIO, Union
+import requests
+import urllib3
+
+from loguru import logger
+
+from .retry import retry
+from .errors import *
+from .api_response import ResponseBodyHandler
+from .scrape_config import ScrapeConfig
+from . import __version__ as version, ScrapeApiResponse
+
+
+class ScrapflyClient:
+
+    HOST = &#39;https://api.scrapfly.io&#39;
+    DEFAULT_CONNECT_TIMEOUT = 30
+    DEFAULT_READ_TIMEOUT = 300
+
+    def __init__(
+        self,
+        key: str,
+        host: Optional[str] = HOST,
+        verify=True,
+        debug: bool = False,
+        distributed_mode = False,
+        connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        read_timeout:int = DEFAULT_READ_TIMEOUT
+    ):
+        if host[-1] == &#39;/&#39;:  # remove last &#39;/&#39; if exists
+            host = host[:-1]
+
+        self.host = host
+        self.key = key
+        self.verify = verify
+        self.debug = debug
+        self.connect_timeout = connect_timeout
+        self.read_timeout = read_timeout
+        self.distributed_mode = distributed_mode
+        self.body_handler = ResponseBodyHandler()
+        self.http_session = None
+        self.ua = &#39;ScrapflySDK/%s (Python %s, %s, %s)&#39; % (
+            version,
+            platform.python_version(),
+            platform.uname().system,
+            platform.uname().machine
+        )
+
+        if not self.verify and not self.HOST.endswith(&#39;.local&#39;):
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        if self.debug is True:
+            http.client.HTTPConnection.debuglevel = 5
+
+    def _scrape_request(self, scrape_config:ScrapeConfig):
+
+        if not scrape_config.graphql:
+            url = self.host + &#39;/scrape&#39;
+            method = scrape_config.method
+        else:
+            url = self.host + &#39;/graphql&#39;
+            method = &#39;POST&#39;
+
+        if self.distributed_mode is True and scrape_config.correlation_id is None:
+            scrape_config.generate_distributed_correlation_id()
+
+        http_handler = partial(self.http_session.request if self.http_session else requests.request)
+
+        r = http_handler(
+            method=method,
+            url=url,
+            data=scrape_config.body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.read_timeout),
+            headers={
+                &#39;content-type&#39;: scrape_config.headers[&#39;content-type&#39;] if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] else self.body_handler.content_type,
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+            params=scrape_config.to_api_params(key=self.key)
+        )
+
+        return r
+
+    def account(self) -&gt; Dict:
+        http_handler = partial(self.http_session.request if self.http_session else requests.request)
+        return http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key}).json()
+
+    def resilient_scrape(
+        self,
+        scrape_config:ScrapeConfig,
+        retry_on_errors:Union[Exception, Tuple[Exception, ...]]=None,
+        tries: int = 5,
+        delay: int = 20,
+    ) -&gt; ScrapeApiResponse:
+        if retry_on_errors is None:
+            retry_on_errors = [ScrapflyError]  # Retry on all retryable error from Scrapfly
+
+        @retry(retry_on_errors, tries=tries, delay=delay)
+        def inner() -&gt; ScrapeApiResponse:
+            return self.scrape(scrape_config=scrape_config)
+
+        return inner()
+
+    def __enter__(self) -&gt; &#39;ScrapflyClient&#39;:
+        if self.http_session is None:
+            self.http_session = requests.session()
+            self.http_session.params[&#39;key&#39;] = self.key
+
+            self.http_session.headers[&#39;accept-encoding&#39;] = self.body_handler.content_encoding
+            self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
+            self.http_session.headers[&#39;user-agent&#39;] = self.ua
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.http_session.close()
+        self.http_session = None
+
+    @retry((ConnectionError,), tries=5, delay=2)
+    def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
+        logger.info(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+
+        response = self._scrape_request(scrape_config=scrape_config)
+
+        try:
+            api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+                api_response.result[&#39;result&#39;][&#39;reason&#39;],
+                api_response.result[&#39;config&#39;][&#39;url&#39;],
+                api_response.result[&#39;result&#39;][&#39;duration&#39;])
+            )
+
+            return api_response
+        except ApiHttpServerError as e:
+            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
+            raise
+        except UpstreamHttpServerError as e:
+            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+            raise
+        except ScrapflyError as e:
+            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
+            raise
+
+    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
+        # for advance configuration, take screenshots via scrape method with ScrapeConfig
+        api_response = self.scrape(scrape_config=ScrapeConfig(
+            url=url,
+            render_js=True,
+            screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+        ))
+
+        name = name or &#39;main.jpg&#39;
+
+        if not name.endswith(&#39;.jpg&#39;):
+            name += &#39;.jpg&#39;
+
+        with self as client:
+            response = client.http_session.request(
+                method=&#39;GET&#39;,
+                url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
+            )
+
+            response.raise_for_status()
+
+            screenshot = response.content
+
+        self.sink(api_response, path=path, name=name, content=screenshot)
+
+    def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+        scrape_result = api_response.result[&#39;result&#39;]
+        scrape_config = api_response.result[&#39;config&#39;]
+
+        file_content = content or scrape_result[&#39;content&#39;]
+        file_path = None
+        file_extension = None
+
+        if name:
+            name_parts = name.split(&#39;.&#39;)
+            if len(name_parts) &gt; 1:
+                file_extension = name_parts[-1]
+
+        if not file:
+            if file_extension is None:
+                try:
+                    mime_type = scrape_result[&#39;response_headers&#39;][&#39;content-type&#39;]
+                except KeyError:
+                    mime_type = &#39;application/octet-stream&#39;
+
+                if &#39;;&#39; in mime_type:
+                    mime_type = mime_type.split(&#39;;&#39;)[0]
+
+                file_extension = &#39;.&#39; + mime_type.split(&#39;/&#39;)[1]
+
+            if not name:
+                name = scrape_config[&#39;url&#39;].split(&#39;/&#39;)[-1]
+
+            if name.find(file_extension) == -1:
+                name += file_extension
+
+            file_path = path + &#39;/&#39; + name if path else name
+
+            if file_path == file_extension:
+                url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, api_response.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
+
+                if url[-1] == &#39;-&#39;:
+                    url = url[:-1]
+
+                url += file_extension
+
+                file_path = url
+
+            file = open(file_path, &#39;wb&#39;)
+
+        if isinstance(file_content, str):
+            file_content = BytesIO(file_content.encode(&#39;utf-8&#39;))
+        elif isinstance(file_content, bytes):
+            file_content = BytesIO(file_content)
+
+        file_content.seek(0)
+        with file as f:
+            shutil.copyfileobj(file_content, f, length=131072)
+
+        logger.info(&#39;file %s created&#39; % file_path)
+
+    def _handle_api_response(
+        self,
+        response: requests.Response,
+        scrape_config:ScrapeConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -&gt; ScrapeApiResponse:
+        try:
+            result = self.body_handler(response.content)
+        except ValueError:
+            raise ErrorFactory.create(api_response=ScrapeApiResponse(response=response, request=response.request, scrape_config=scrape_config))
+
+        api_response:ScrapeApiResponse = ScrapeApiResponse(response=response, request=response.request, api_result=result, scrape_config=scrape_config)
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.client.ScrapflyClient"><code class="flex name class">
+<span>class <span class="ident">ScrapflyClient</span></span>
+<span>(</span><span>key: str, host: Union[str, NoneType] = 'https://api.scrapfly.io', verify=True, debug: bool = False, distributed_mode=False, connect_timeout: int = 30, read_timeout: int = 300)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyClient:
+
+    HOST = &#39;https://api.scrapfly.io&#39;
+    DEFAULT_CONNECT_TIMEOUT = 30
+    DEFAULT_READ_TIMEOUT = 300
+
+    def __init__(
+        self,
+        key: str,
+        host: Optional[str] = HOST,
+        verify=True,
+        debug: bool = False,
+        distributed_mode = False,
+        connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        read_timeout:int = DEFAULT_READ_TIMEOUT
+    ):
+        if host[-1] == &#39;/&#39;:  # remove last &#39;/&#39; if exists
+            host = host[:-1]
+
+        self.host = host
+        self.key = key
+        self.verify = verify
+        self.debug = debug
+        self.connect_timeout = connect_timeout
+        self.read_timeout = read_timeout
+        self.distributed_mode = distributed_mode
+        self.body_handler = ResponseBodyHandler()
+        self.http_session = None
+        self.ua = &#39;ScrapflySDK/%s (Python %s, %s, %s)&#39; % (
+            version,
+            platform.python_version(),
+            platform.uname().system,
+            platform.uname().machine
+        )
+
+        if not self.verify and not self.HOST.endswith(&#39;.local&#39;):
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        if self.debug is True:
+            http.client.HTTPConnection.debuglevel = 5
+
+    def _scrape_request(self, scrape_config:ScrapeConfig):
+
+        if not scrape_config.graphql:
+            url = self.host + &#39;/scrape&#39;
+            method = scrape_config.method
+        else:
+            url = self.host + &#39;/graphql&#39;
+            method = &#39;POST&#39;
+
+        if self.distributed_mode is True and scrape_config.correlation_id is None:
+            scrape_config.generate_distributed_correlation_id()
+
+        http_handler = partial(self.http_session.request if self.http_session else requests.request)
+
+        r = http_handler(
+            method=method,
+            url=url,
+            data=scrape_config.body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.read_timeout),
+            headers={
+                &#39;content-type&#39;: scrape_config.headers[&#39;content-type&#39;] if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] else self.body_handler.content_type,
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+            params=scrape_config.to_api_params(key=self.key)
+        )
+
+        return r
+
+    def account(self) -&gt; Dict:
+        http_handler = partial(self.http_session.request if self.http_session else requests.request)
+        return http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key}).json()
+
+    def resilient_scrape(
+        self,
+        scrape_config:ScrapeConfig,
+        retry_on_errors:Union[Exception, Tuple[Exception, ...]]=None,
+        tries: int = 5,
+        delay: int = 20,
+    ) -&gt; ScrapeApiResponse:
+        if retry_on_errors is None:
+            retry_on_errors = [ScrapflyError]  # Retry on all retryable error from Scrapfly
+
+        @retry(retry_on_errors, tries=tries, delay=delay)
+        def inner() -&gt; ScrapeApiResponse:
+            return self.scrape(scrape_config=scrape_config)
+
+        return inner()
+
+    def __enter__(self) -&gt; &#39;ScrapflyClient&#39;:
+        if self.http_session is None:
+            self.http_session = requests.session()
+            self.http_session.params[&#39;key&#39;] = self.key
+
+            self.http_session.headers[&#39;accept-encoding&#39;] = self.body_handler.content_encoding
+            self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
+            self.http_session.headers[&#39;user-agent&#39;] = self.ua
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.http_session.close()
+        self.http_session = None
+
+    @retry((ConnectionError,), tries=5, delay=2)
+    def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
+        logger.info(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+
+        response = self._scrape_request(scrape_config=scrape_config)
+
+        try:
+            api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+                api_response.result[&#39;result&#39;][&#39;reason&#39;],
+                api_response.result[&#39;config&#39;][&#39;url&#39;],
+                api_response.result[&#39;result&#39;][&#39;duration&#39;])
+            )
+
+            return api_response
+        except ApiHttpServerError as e:
+            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
+            raise
+        except UpstreamHttpServerError as e:
+            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+            raise
+        except ScrapflyError as e:
+            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
+            raise
+
+    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
+        # for advance configuration, take screenshots via scrape method with ScrapeConfig
+        api_response = self.scrape(scrape_config=ScrapeConfig(
+            url=url,
+            render_js=True,
+            screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+        ))
+
+        name = name or &#39;main.jpg&#39;
+
+        if not name.endswith(&#39;.jpg&#39;):
+            name += &#39;.jpg&#39;
+
+        with self as client:
+            response = client.http_session.request(
+                method=&#39;GET&#39;,
+                url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
+            )
+
+            response.raise_for_status()
+
+            screenshot = response.content
+
+        self.sink(api_response, path=path, name=name, content=screenshot)
+
+    def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+        scrape_result = api_response.result[&#39;result&#39;]
+        scrape_config = api_response.result[&#39;config&#39;]
+
+        file_content = content or scrape_result[&#39;content&#39;]
+        file_path = None
+        file_extension = None
+
+        if name:
+            name_parts = name.split(&#39;.&#39;)
+            if len(name_parts) &gt; 1:
+                file_extension = name_parts[-1]
+
+        if not file:
+            if file_extension is None:
+                try:
+                    mime_type = scrape_result[&#39;response_headers&#39;][&#39;content-type&#39;]
+                except KeyError:
+                    mime_type = &#39;application/octet-stream&#39;
+
+                if &#39;;&#39; in mime_type:
+                    mime_type = mime_type.split(&#39;;&#39;)[0]
+
+                file_extension = &#39;.&#39; + mime_type.split(&#39;/&#39;)[1]
+
+            if not name:
+                name = scrape_config[&#39;url&#39;].split(&#39;/&#39;)[-1]
+
+            if name.find(file_extension) == -1:
+                name += file_extension
+
+            file_path = path + &#39;/&#39; + name if path else name
+
+            if file_path == file_extension:
+                url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, api_response.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
+
+                if url[-1] == &#39;-&#39;:
+                    url = url[:-1]
+
+                url += file_extension
+
+                file_path = url
+
+            file = open(file_path, &#39;wb&#39;)
+
+        if isinstance(file_content, str):
+            file_content = BytesIO(file_content.encode(&#39;utf-8&#39;))
+        elif isinstance(file_content, bytes):
+            file_content = BytesIO(file_content)
+
+        file_content.seek(0)
+        with file as f:
+            shutil.copyfileobj(file_content, f, length=131072)
+
+        logger.info(&#39;file %s created&#39; % file_path)
+
+    def _handle_api_response(
+        self,
+        response: requests.Response,
+        scrape_config:ScrapeConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -&gt; ScrapeApiResponse:
+        try:
+            result = self.body_handler(response.content)
+        except ValueError:
+            raise ErrorFactory.create(api_response=ScrapeApiResponse(response=response, request=response.request, scrape_config=scrape_config))
+
+        api_response:ScrapeApiResponse = ScrapeApiResponse(response=response, request=response.request, api_result=result, scrape_config=scrape_config)
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_CONNECT_TIMEOUT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.DEFAULT_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_READ_TIMEOUT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.HOST"><code class="name">var <span class="ident">HOST</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.client.ScrapflyClient.account"><code class="name flex">
+<span>def <span class="ident">account</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def account(self) -&gt; Dict:
+    http_handler = partial(self.http_session.request if self.http_session else requests.request)
+    return http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key}).json()</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.resilient_scrape"><code class="name flex">
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Union[Exception, Tuple[Exception, ...]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def resilient_scrape(
+    self,
+    scrape_config:ScrapeConfig,
+    retry_on_errors:Union[Exception, Tuple[Exception, ...]]=None,
+    tries: int = 5,
+    delay: int = 20,
+) -&gt; ScrapeApiResponse:
+    if retry_on_errors is None:
+        retry_on_errors = [ScrapflyError]  # Retry on all retryable error from Scrapfly
+
+    @retry(retry_on_errors, tries=tries, delay=delay)
+    def inner() -&gt; ScrapeApiResponse:
+        return self.scrape(scrape_config=scrape_config)
+
+    return inner()</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.scrape"><code class="name flex">
+<span>def <span class="ident">scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@retry((ConnectionError,), tries=5, delay=2)
+def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
+    logger.info(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+
+    response = self._scrape_request(scrape_config=scrape_config)
+
+    try:
+        api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+        logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+            api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+            api_response.result[&#39;result&#39;][&#39;reason&#39;],
+            api_response.result[&#39;config&#39;][&#39;url&#39;],
+            api_response.result[&#39;result&#39;][&#39;duration&#39;])
+        )
+
+        return api_response
+    except ApiHttpServerError as e:
+        logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
+        raise
+    except UpstreamHttpServerError as e:
+        logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+        raise
+    except ScrapflyError as e:
+        logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
+        raise</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.screenshot"><code class="name flex">
+<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Union[str, NoneType] = None, name: Union[str, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
+    # for advance configuration, take screenshots via scrape method with ScrapeConfig
+    api_response = self.scrape(scrape_config=ScrapeConfig(
+        url=url,
+        render_js=True,
+        screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+    ))
+
+    name = name or &#39;main.jpg&#39;
+
+    if not name.endswith(&#39;.jpg&#39;):
+        name += &#39;.jpg&#39;
+
+    with self as client:
+        response = client.http_session.request(
+            method=&#39;GET&#39;,
+            url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
+        )
+
+        response.raise_for_status()
+
+        screenshot = response.content
+
+    self.sink(api_response, path=path, name=name, content=screenshot)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.sink"><code class="name flex">
+<span>def <span class="ident">sink</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, content: Union[str, bytes, NoneType] = None, path: Union[str, NoneType] = None, name: Union[str, NoneType] = None, file: Union[TextIO, _io.BytesIO, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+    scrape_result = api_response.result[&#39;result&#39;]
+    scrape_config = api_response.result[&#39;config&#39;]
+
+    file_content = content or scrape_result[&#39;content&#39;]
+    file_path = None
+    file_extension = None
+
+    if name:
+        name_parts = name.split(&#39;.&#39;)
+        if len(name_parts) &gt; 1:
+            file_extension = name_parts[-1]
+
+    if not file:
+        if file_extension is None:
+            try:
+                mime_type = scrape_result[&#39;response_headers&#39;][&#39;content-type&#39;]
+            except KeyError:
+                mime_type = &#39;application/octet-stream&#39;
+
+            if &#39;;&#39; in mime_type:
+                mime_type = mime_type.split(&#39;;&#39;)[0]
+
+            file_extension = &#39;.&#39; + mime_type.split(&#39;/&#39;)[1]
+
+        if not name:
+            name = scrape_config[&#39;url&#39;].split(&#39;/&#39;)[-1]
+
+        if name.find(file_extension) == -1:
+            name += file_extension
+
+        file_path = path + &#39;/&#39; + name if path else name
+
+        if file_path == file_extension:
+            url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, api_response.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
+
+            if url[-1] == &#39;-&#39;:
+                url = url[:-1]
+
+            url += file_extension
+
+            file_path = url
+
+        file = open(file_path, &#39;wb&#39;)
+
+    if isinstance(file_content, str):
+        file_content = BytesIO(file_content.encode(&#39;utf-8&#39;))
+    elif isinstance(file_content, bytes):
+        file_content = BytesIO(file_content)
+
+    file_content.seek(0)
+    with file as f:
+        shutil.copyfileobj(file_content, f, length=131072)
+
+    logger.info(&#39;file %s created&#39; % file_path)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly" href="index.html">scrapfly</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.client.ScrapflyClient" href="#scrapfly.client.ScrapflyClient">ScrapflyClient</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT">DEFAULT_CONNECT_TIMEOUT</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_READ_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_READ_TIMEOUT">DEFAULT_READ_TIMEOUT</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.HOST" href="#scrapfly.client.ScrapflyClient.HOST">HOST</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.account" href="#scrapfly.client.ScrapflyClient.account">account</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.resilient_scrape" href="#scrapfly.client.ScrapflyClient.resilient_scrape">resilient_scrape</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.scrape" href="#scrapfly.client.ScrapflyClient.scrape">scrape</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.screenshot" href="#scrapfly.client.ScrapflyClient.screenshot">screenshot</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.sink" href="#scrapfly.client.ScrapflyClient.sink">sink</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>
