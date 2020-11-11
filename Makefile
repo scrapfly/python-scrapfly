@@ -8,11 +8,14 @@ bump:
 	git commit -m "bump version to $(VERSION)"
 	git push
 
+generate-docs:
+	pdoc --html scrapfly --output-dir docs
+
 release:
 	-rm dist/*
-	pdoc --html scrapfly
+	$(MAKE)	generate-docs
 	git add -m "Update API documentation for version $(VERSION)"
-	git add html/*
+	git add docs/*
 	git push origin master
 	git tag -a $(VERSION) -m "Version $(VERSION)"
 	python setup.py sdist bdist_wheel
