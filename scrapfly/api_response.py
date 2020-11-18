@@ -15,7 +15,7 @@ from typing import Dict, Optional, Iterable
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, UpstreamHttpClientError
+from .errors import ErrorFactory, UpstreamHttpClientError, EncoderError
 from .frozen_dict import FrozenDict
 
 _DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -73,7 +73,13 @@ class ResponseBodyHandler:
             self.content_loader = partial(json.loads, cls=self.JSONDateTimeDecoder)
 
     def __call__(self, content:bytes) -> str:
-        return self.content_loader(content)
+        if len(content) == 0:
+            return content.decode('utf-8')
+
+        try:
+            return self.content_loader(content)
+        except Exception as e:
+            raise EncoderError()
 
 
 class ScrapeApiResponse:
@@ -85,7 +91,7 @@ class ScrapeApiResponse:
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
-    def scrape_result(self):
+    def scrape_result(self) -> Dict:
         return self.result['result']
 
     @property
@@ -96,12 +102,27 @@ class ScrapeApiResponse:
     def context(self) -> Dict:
         return self.result['context']
 
-    def content(self) -> Dict:
-        return self.result
+    @property
+    def content(self) -> str:
+        return self.result['content']
 
     def handle_api_result(self, api_result:Optional[Dict]) -> Optional[FrozenDict]:
-        if api_result is None:
+        if not api_result and self.scrape_config.method != 'HEAD':
             return None
+
+        if self.scrape_config.method == 'HEAD':
+            api_result = {
+                'result': {
+                    'request_headers': {},
+                    'response_headers': self.response.headers,
+                    'status_code': self.response.status_code,
+                    'reason': self.response.reason,
+                    'format': 'text',
+                    'content': ''
+                },
+                'context': {},
+                'config': self.scrape_config.__dict__
+            }
 
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
@@ -135,6 +156,11 @@ class ScrapeApiResponse:
         return self._is_scrape_engine_error(self.result)
 
     def _is_api_error(self, api_result:Dict) -> bool:
+        if self.scrape_config.method == 'HEAD':
+            if 'X-Reject-Reason' in self.response.headers:
+                return True
+            return False
+
         if api_result is None:
             return True
 
@@ -163,7 +189,7 @@ class ScrapeApiResponse:
         return self.is_scrape_engine_error is False and self.is_api_error is False
 
     @property
-    def status_code(self) -> bool:
+    def status_code(self) -> int:
         return self.response.status_code
 
     @property

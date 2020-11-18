@@ -4,7 +4,7 @@ from os import getpid
 from socket import gethostname
 from threading import currentThread
 from typing import Optional, List, Dict
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
 from requests.structures import CaseInsensitiveDict
 
@@ -88,7 +88,6 @@ class ScrapeConfig:
             raise ScrapeConfigError('You cannot pass both parameters body and data. You must choose')
 
         if method in ['POST', 'PUT', 'PATCH'] and self.body is None and self.data is not None:
-            print(self.headers)
             if 'content-type' not in self.headers:
                 self.headers['content-type'] = 'application/x-www-form-urlencoded'
                 self.body = urlencode(data)
@@ -109,7 +108,7 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -> Dict:
         params = {
             'key': self.key if self.key is not None else key,
-            'url': self.url,
+            'url': quote(self.url),
             'country': self.country,
         }
 
@@ -157,7 +156,7 @@ class ScrapeConfig:
             params['cache_ttl'] = self.cache_ttl
 
         if self.graphql:
-            params['graphql'] = self.graphql
+            params['graphql'] = quote(self.graphql)
 
         if self.js:
             params['js'] = b64encode(self.js.encode('utf-8')).decode('utf-8')

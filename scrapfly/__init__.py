@@ -9,6 +9,7 @@ from .errors import ScrapflyScrapeError
 from .errors import ScrapflySessionError
 from .errors import ScrapflyThrottleError
 from .errors import ScrapflyWebhookError
+from .errors import EncoderError
 from .errors import ErrorFactory
 from .errors import HttpError
 from .errors import UpstreamHttpClientError
@@ -29,6 +30,7 @@ __all__:Tuple[str, ...] = (
     'ScrapflySessionError',
     'ScrapflyThrottleError',
     'ScrapflyWebhookError',
+    'EncoderError',
     'RetryBudgetExceeded',
     'ScrapeApiResponse',
     'ErrorFactory',

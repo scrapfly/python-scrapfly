@@ -8,4 +8,6 @@ You can also install extra dependencies to improve performance (recommended)
 
 `pip install "scrapfly-sdk[seepdup]"`
 
-## [Documentation](https://scrapfly.io/docs/sdk/python)
+* [Usage](https://scrapfly.io/docs/sdk/python)
+* [Python API](https://scrapfly.github.io/python-scrapfly/scrapfly)
+* [Open API 3 Spec](https://scrapfly.io/docs/openapi#get-/scrape) 

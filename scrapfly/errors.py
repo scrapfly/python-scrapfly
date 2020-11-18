@@ -37,7 +37,7 @@ class ScrapflyError(Exception):
         retry_delay: Optional[int] = None,
         retry_times: Optional[int] = None,
         documentation_url: Optional[str] = None,
-        api_response: Optional[Dict] = None
+        api_response: Optional['ApiResponse'] = None
     ):
         self.message = message
         self.code = code
@@ -58,6 +58,11 @@ class ScrapflyError(Exception):
             message += '. Learn more: %s' % self.documentation_url
 
         return message
+
+
+class EncoderError(Exception):
+    pass
+
 
 class HttpError(ScrapflyError):
 
