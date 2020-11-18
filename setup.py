@@ -30,9 +30,10 @@ except IndexError:
 
 install_requires = [
     'decorator>=4.2.0',
-    'requests>=2.2.1',
+    'requests>=2.25.0',
     'python-dateutil>=2.1,<3.0.0',
-    'loguru>=0.5'
+    'loguru>=0.5',
+    'urllib3>=1.26.0'
 ]
 
 def read(f):
