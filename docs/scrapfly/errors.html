@@ -65,7 +65,7 @@ class ScrapflyError(Exception):
         retry_delay: Optional[int] = None,
         retry_times: Optional[int] = None,
         documentation_url: Optional[str] = None,
-        api_response: Optional[Dict] = None
+        api_response: Optional[&#39;ApiResponse&#39;] = None
     ):
         self.message = message
         self.code = code
@@ -86,6 +86,11 @@ class ScrapflyError(Exception):
             message += &#39;. Learn more: %s&#39; % self.documentation_url
 
         return message
+
+
+class EncoderError(Exception):
+    pass
+
 
 class HttpError(ScrapflyError):
 
@@ -338,6 +343,25 @@ class ErrorFactory:
 <li><a title="scrapfly.errors.ApiHttpClientError" href="#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></li>
 <li><a title="scrapfly.errors.HttpError" href="#scrapfly.errors.HttpError">HttpError</a></li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.errors.EncoderError"><code class="flex name class">
+<span>class <span class="ident">EncoderError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class EncoderError(Exception):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
@@ -598,7 +622,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.QuotaLimitReached"><code class="flex name class">
 <span>class <span class="ident">QuotaLimitReached</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -619,7 +643,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.ScrapflyAspError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyAspError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -639,7 +663,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.ScrapflyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -680,7 +704,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
         retry_delay: Optional[int] = None,
         retry_times: Optional[int] = None,
         documentation_url: Optional[str] = None,
-        api_response: Optional[Dict] = None
+        api_response: Optional[&#39;ApiResponse&#39;] = None
     ):
         self.message = message
         self.code = code
@@ -764,7 +788,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.ScrapflyProxyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyProxyError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -784,7 +808,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.ScrapflyScheduleError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScheduleError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -804,7 +828,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.ScrapflyScrapeError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScrapeError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -829,7 +853,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.ScrapflySessionError"><code class="flex name class">
 <span>class <span class="ident">ScrapflySessionError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -849,7 +873,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.ScrapflyThrottleError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyThrottleError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -869,7 +893,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.ScrapflyWebhookError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyWebhookError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -889,7 +913,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.errors.TooManyConcurrentRequest"><code class="flex name class">
 <span>class <span class="ident">TooManyConcurrentRequest</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1001,6 +1025,9 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.BadApiKeyError" href="#scrapfly.errors.BadApiKeyError">BadApiKeyError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.errors.EncoderError" href="#scrapfly.errors.EncoderError">EncoderError</a></code></h4>
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.ErrorFactory" href="#scrapfly.errors.ErrorFactory">ErrorFactory</a></code></h4>

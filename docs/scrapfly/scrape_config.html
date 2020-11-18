@@ -32,7 +32,7 @@ from os import getpid
 from socket import gethostname
 from threading import currentThread
 from typing import Optional, List, Dict
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
 from requests.structures import CaseInsensitiveDict
 
@@ -116,7 +116,6 @@ class ScrapeConfig:
             raise ScrapeConfigError(&#39;You cannot pass both parameters body and data. You must choose&#39;)
 
         if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] and self.body is None and self.data is not None:
-            print(self.headers)
             if &#39;content-type&#39; not in self.headers:
                 self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
                 self.body = urlencode(data)
@@ -137,7 +136,7 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: self.url,
+            &#39;url&#39;: quote(self.url),
             &#39;country&#39;: self.country,
         }
 
@@ -185,7 +184,7 @@ class ScrapeConfig:
             params[&#39;cache_ttl&#39;] = self.cache_ttl
 
         if self.graphql:
-            params[&#39;graphql&#39;] = self.graphql
+            params[&#39;graphql&#39;] = quote(self.graphql)
 
         if self.js:
             params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
@@ -290,7 +289,6 @@ class ScrapeConfig:
             raise ScrapeConfigError(&#39;You cannot pass both parameters body and data. You must choose&#39;)
 
         if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] and self.body is None and self.data is not None:
-            print(self.headers)
             if &#39;content-type&#39; not in self.headers:
                 self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
                 self.body = urlencode(data)
@@ -311,7 +309,7 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: self.url,
+            &#39;url&#39;: quote(self.url),
             &#39;country&#39;: self.country,
         }
 
@@ -359,7 +357,7 @@ class ScrapeConfig:
             params[&#39;cache_ttl&#39;] = self.cache_ttl
 
         if self.graphql:
-            params[&#39;graphql&#39;] = self.graphql
+            params[&#39;graphql&#39;] = quote(self.graphql)
 
         if self.js:
             params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
@@ -396,7 +394,7 @@ class ScrapeConfig:
 <pre><code class="python">def to_api_params(self, key:str) -&gt; Dict:
     params = {
         &#39;key&#39;: self.key if self.key is not None else key,
-        &#39;url&#39;: self.url,
+        &#39;url&#39;: quote(self.url),
         &#39;country&#39;: self.country,
     }
 
@@ -444,7 +442,7 @@ class ScrapeConfig:
         params[&#39;cache_ttl&#39;] = self.cache_ttl
 
     if self.graphql:
-        params[&#39;graphql&#39;] = self.graphql
+        params[&#39;graphql&#39;] = quote(self.graphql)
 
     if self.js:
         params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)

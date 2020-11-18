@@ -84,6 +84,7 @@ class ScrapflyClient:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         if self.debug is True:
+            logger.info(debug)
             http.client.HTTPConnection.debuglevel = 5
 
     def _scrape_request(self, scrape_config:ScrapeConfig):
@@ -160,19 +161,32 @@ class ScrapflyClient:
 
         try:
             api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
-            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
-                api_response.result[&#39;result&#39;][&#39;status_code&#39;],
-                api_response.result[&#39;result&#39;][&#39;reason&#39;],
-                api_response.result[&#39;config&#39;][&#39;url&#39;],
-                api_response.result[&#39;result&#39;][&#39;duration&#39;])
-            )
+
+            if scrape_config.method == &#39;HEAD&#39;:
+                logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                    api_response.response.status_code,
+                    api_response.response.reason,
+                    api_response.response.request.url,
+                    0
+                ))
+            else:
+                logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                    api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+                    api_response.result[&#39;result&#39;][&#39;reason&#39;],
+                    api_response.result[&#39;config&#39;][&#39;url&#39;],
+                    api_response.result[&#39;result&#39;][&#39;duration&#39;])
+                )
 
             return api_response
         except ApiHttpServerError as e:
             logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
             raise
         except UpstreamHttpServerError as e:
-            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+
+            if scrape_config.method == &#39;HEAD&#39;:
+                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.response.request.url))
+            else:
+                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
             raise
         except ScrapflyError as e:
             logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
@@ -265,11 +279,7 @@ class ScrapflyClient:
         scrape_config:ScrapeConfig,
         raise_on_upstream_error: Optional[bool] = True
     ) -&gt; ScrapeApiResponse:
-        try:
-            result = self.body_handler(response.content)
-        except ValueError:
-            raise ErrorFactory.create(api_response=ScrapeApiResponse(response=response, request=response.request, scrape_config=scrape_config))
-
+        result = self.body_handler(response.content)
         api_response:ScrapeApiResponse = ScrapeApiResponse(response=response, request=response.request, api_result=result, scrape_config=scrape_config)
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
 
@@ -334,6 +344,7 @@ class ScrapflyClient:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         if self.debug is True:
+            logger.info(debug)
             http.client.HTTPConnection.debuglevel = 5
 
     def _scrape_request(self, scrape_config:ScrapeConfig):
@@ -410,19 +421,32 @@ class ScrapflyClient:
 
         try:
             api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
-            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
-                api_response.result[&#39;result&#39;][&#39;status_code&#39;],
-                api_response.result[&#39;result&#39;][&#39;reason&#39;],
-                api_response.result[&#39;config&#39;][&#39;url&#39;],
-                api_response.result[&#39;result&#39;][&#39;duration&#39;])
-            )
+
+            if scrape_config.method == &#39;HEAD&#39;:
+                logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                    api_response.response.status_code,
+                    api_response.response.reason,
+                    api_response.response.request.url,
+                    0
+                ))
+            else:
+                logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                    api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+                    api_response.result[&#39;result&#39;][&#39;reason&#39;],
+                    api_response.result[&#39;config&#39;][&#39;url&#39;],
+                    api_response.result[&#39;result&#39;][&#39;duration&#39;])
+                )
 
             return api_response
         except ApiHttpServerError as e:
             logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
             raise
         except UpstreamHttpServerError as e:
-            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+
+            if scrape_config.method == &#39;HEAD&#39;:
+                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.response.request.url))
+            else:
+                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
             raise
         except ScrapflyError as e:
             logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
@@ -515,11 +539,7 @@ class ScrapflyClient:
         scrape_config:ScrapeConfig,
         raise_on_upstream_error: Optional[bool] = True
     ) -&gt; ScrapeApiResponse:
-        try:
-            result = self.body_handler(response.content)
-        except ValueError:
-            raise ErrorFactory.create(api_response=ScrapeApiResponse(response=response, request=response.request, scrape_config=scrape_config))
-
+        result = self.body_handler(response.content)
         api_response:ScrapeApiResponse = ScrapeApiResponse(response=response, request=response.request, api_result=result, scrape_config=scrape_config)
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
 
@@ -599,19 +619,32 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 
     try:
         api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
-        logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
-            api_response.result[&#39;result&#39;][&#39;status_code&#39;],
-            api_response.result[&#39;result&#39;][&#39;reason&#39;],
-            api_response.result[&#39;config&#39;][&#39;url&#39;],
-            api_response.result[&#39;result&#39;][&#39;duration&#39;])
-        )
+
+        if scrape_config.method == &#39;HEAD&#39;:
+            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                api_response.response.status_code,
+                api_response.response.reason,
+                api_response.response.request.url,
+                0
+            ))
+        else:
+            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+                api_response.result[&#39;result&#39;][&#39;reason&#39;],
+                api_response.result[&#39;config&#39;][&#39;url&#39;],
+                api_response.result[&#39;result&#39;][&#39;duration&#39;])
+            )
 
         return api_response
     except ApiHttpServerError as e:
         logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
         raise
     except UpstreamHttpServerError as e:
-        logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+
+        if scrape_config.method == &#39;HEAD&#39;:
+            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.response.request.url))
+        else:
+            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
         raise
     except ScrapflyError as e:
         logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))

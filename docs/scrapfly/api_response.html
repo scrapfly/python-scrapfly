@@ -43,7 +43,7 @@ from typing import Dict, Optional, Iterable
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, UpstreamHttpClientError
+from .errors import ErrorFactory, UpstreamHttpClientError, EncoderError
 from .frozen_dict import FrozenDict
 
 _DATE_FORMAT = &#39;%Y-%m-%d %H:%M:%S&#39;
@@ -101,7 +101,13 @@ class ResponseBodyHandler:
             self.content_loader = partial(json.loads, cls=self.JSONDateTimeDecoder)
 
     def __call__(self, content:bytes) -&gt; str:
-        return self.content_loader(content)
+        if len(content) == 0:
+            return content.decode(&#39;utf-8&#39;)
+
+        try:
+            return self.content_loader(content)
+        except Exception as e:
+            raise EncoderError()
 
 
 class ScrapeApiResponse:
@@ -113,7 +119,7 @@ class ScrapeApiResponse:
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
-    def scrape_result(self):
+    def scrape_result(self) -&gt; Dict:
         return self.result[&#39;result&#39;]
 
     @property
@@ -124,12 +130,27 @@ class ScrapeApiResponse:
     def context(self) -&gt; Dict:
         return self.result[&#39;context&#39;]
 
-    def content(self) -&gt; Dict:
-        return self.result
+    @property
+    def content(self) -&gt; str:
+        return self.result[&#39;content&#39;]
 
     def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
-        if api_result is None:
+        if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
             return None
+
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            api_result = {
+                &#39;result&#39;: {
+                    &#39;request_headers&#39;: {},
+                    &#39;response_headers&#39;: self.response.headers,
+                    &#39;status_code&#39;: self.response.status_code,
+                    &#39;reason&#39;: self.response.reason,
+                    &#39;format&#39;: &#39;text&#39;,
+                    &#39;content&#39;: &#39;&#39;
+                },
+                &#39;context&#39;: {},
+                &#39;config&#39;: self.scrape_config.__dict__
+            }
 
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
@@ -163,6 +184,11 @@ class ScrapeApiResponse:
         return self._is_scrape_engine_error(self.result)
 
     def _is_api_error(self, api_result:Dict) -&gt; bool:
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            if &#39;X-Reject-Reason&#39; in self.response.headers:
+                return True
+            return False
+
         if api_result is None:
             return True
 
@@ -191,7 +217,7 @@ class ScrapeApiResponse:
         return self.is_scrape_engine_error is False and self.is_api_error is False
 
     @property
-    def status_code(self) -&gt; bool:
+    def status_code(self) -&gt; int:
         return self.response.status_code
 
     @property
@@ -315,7 +341,13 @@ class ScrapeApiResponse:
             self.content_loader = partial(json.loads, cls=self.JSONDateTimeDecoder)
 
     def __call__(self, content:bytes) -&gt; str:
-        return self.content_loader(content)</code></pre>
+        if len(content) == 0:
+            return content.decode(&#39;utf-8&#39;)
+
+        try:
+            return self.content_loader(content)
+        except Exception as e:
+            raise EncoderError()</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -387,7 +419,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
-    def scrape_result(self):
+    def scrape_result(self) -&gt; Dict:
         return self.result[&#39;result&#39;]
 
     @property
@@ -398,12 +430,27 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
     def context(self) -&gt; Dict:
         return self.result[&#39;context&#39;]
 
-    def content(self) -&gt; Dict:
-        return self.result
+    @property
+    def content(self) -&gt; str:
+        return self.result[&#39;content&#39;]
 
     def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
-        if api_result is None:
+        if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
             return None
+
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            api_result = {
+                &#39;result&#39;: {
+                    &#39;request_headers&#39;: {},
+                    &#39;response_headers&#39;: self.response.headers,
+                    &#39;status_code&#39;: self.response.status_code,
+                    &#39;reason&#39;: self.response.reason,
+                    &#39;format&#39;: &#39;text&#39;,
+                    &#39;content&#39;: &#39;&#39;
+                },
+                &#39;context&#39;: {},
+                &#39;config&#39;: self.scrape_config.__dict__
+            }
 
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
@@ -437,6 +484,11 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         return self._is_scrape_engine_error(self.result)
 
     def _is_api_error(self, api_result:Dict) -&gt; bool:
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            if &#39;X-Reject-Reason&#39; in self.response.headers:
+                return True
+            return False
+
         if api_result is None:
             return True
 
@@ -465,7 +517,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         return self.is_scrape_engine_error is False and self.is_api_error is False
 
     @property
-    def status_code(self) -&gt; bool:
+    def status_code(self) -&gt; int:
         return self.response.status_code
 
     @property
@@ -555,6 +607,18 @@ def config(self) -&gt; Dict:
     return self.result[&#39;config&#39;]</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.content"><code class="name">var <span class="ident">content</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def content(self) -&gt; str:
+    return self.result[&#39;content&#39;]</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.context"><code class="name">var <span class="ident">context</span> : Dict</code></dt>
 <dd>
 <div class="desc"></div>
@@ -603,7 +667,7 @@ def is_scrape_engine_error(self) -&gt; bool:
     return self._is_scrape_engine_error(self.result)</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span></code></dt>
+<dt id="scrapfly.api_response.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span> : Dict</code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
@@ -611,11 +675,11 @@ def is_scrape_engine_error(self) -&gt; bool:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
-def scrape_result(self):
+def scrape_result(self) -&gt; Dict:
     return self.result[&#39;result&#39;]</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : bool</code></dt>
+<dt id="scrapfly.api_response.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : int</code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
@@ -623,7 +687,7 @@ def scrape_result(self):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
-def status_code(self) -&gt; bool:
+def status_code(self) -&gt; int:
     return self.response.status_code</code></pre>
 </details>
 </dd>
@@ -642,19 +706,6 @@ def success(self) -&gt; bool:
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="scrapfly.api_response.ScrapeApiResponse.content"><code class="name flex">
-<span>def <span class="ident">content</span></span>(<span>self) ‑> Dict</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def content(self) -&gt; Dict:
-    return self.result</code></pre>
-</details>
-</dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.handle_api_result"><code class="name flex">
 <span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Union[Dict, NoneType]) ‑> Union[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>, NoneType]</span>
 </code></dt>
@@ -665,8 +716,22 @@ def success(self) -&gt; bool:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
-    if api_result is None:
+    if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
         return None
+
+    if self.scrape_config.method == &#39;HEAD&#39;:
+        api_result = {
+            &#39;result&#39;: {
+                &#39;request_headers&#39;: {},
+                &#39;response_headers&#39;: self.response.headers,
+                &#39;status_code&#39;: self.response.status_code,
+                &#39;reason&#39;: self.response.reason,
+                &#39;format&#39;: &#39;text&#39;,
+                &#39;content&#39;: &#39;&#39;
+            },
+            &#39;context&#39;: {},
+            &#39;config&#39;: self.scrape_config.__dict__
+        }
 
     if self._is_api_error(api_result=api_result) is True:
         return FrozenDict(api_result)

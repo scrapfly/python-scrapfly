@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.3.0&#39;
+<pre><code class="python">__version__ = &#39;0.4.0&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -37,6 +37,7 @@ from .errors import ScrapflyScrapeError
 from .errors import ScrapflySessionError
 from .errors import ScrapflyThrottleError
 from .errors import ScrapflyWebhookError
+from .errors import EncoderError
 from .errors import ErrorFactory
 from .errors import HttpError
 from .errors import UpstreamHttpClientError
@@ -57,6 +58,7 @@ __all__:Tuple[str, ...] = (
     &#39;ScrapflySessionError&#39;,
     &#39;ScrapflyThrottleError&#39;,
     &#39;ScrapflyWebhookError&#39;,
+    &#39;EncoderError&#39;,
     &#39;RetryBudgetExceeded&#39;,
     &#39;ScrapeApiResponse&#39;,
     &#39;ErrorFactory&#39;,
@@ -152,6 +154,25 @@ __all__:Tuple[str, ...] = (
 <li><a title="scrapfly.errors.ApiHttpClientError" href="errors.html#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></li>
 <li><a title="scrapfly.errors.HttpError" href="errors.html#scrapfly.errors.HttpError">HttpError</a></li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.EncoderError"><code class="flex name class">
+<span>class <span class="ident">EncoderError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class EncoderError(Exception):
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
@@ -448,7 +469,13 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
             self.content_loader = partial(json.loads, cls=self.JSONDateTimeDecoder)
 
     def __call__(self, content:bytes) -&gt; str:
-        return self.content_loader(content)</code></pre>
+        if len(content) == 0:
+            return content.decode(&#39;utf-8&#39;)
+
+        try:
+            return self.content_loader(content)
+        except Exception as e:
+            raise EncoderError()</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -548,7 +575,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
-    def scrape_result(self):
+    def scrape_result(self) -&gt; Dict:
         return self.result[&#39;result&#39;]
 
     @property
@@ -559,12 +586,27 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
     def context(self) -&gt; Dict:
         return self.result[&#39;context&#39;]
 
-    def content(self) -&gt; Dict:
-        return self.result
+    @property
+    def content(self) -&gt; str:
+        return self.result[&#39;content&#39;]
 
     def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
-        if api_result is None:
+        if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
             return None
+
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            api_result = {
+                &#39;result&#39;: {
+                    &#39;request_headers&#39;: {},
+                    &#39;response_headers&#39;: self.response.headers,
+                    &#39;status_code&#39;: self.response.status_code,
+                    &#39;reason&#39;: self.response.reason,
+                    &#39;format&#39;: &#39;text&#39;,
+                    &#39;content&#39;: &#39;&#39;
+                },
+                &#39;context&#39;: {},
+                &#39;config&#39;: self.scrape_config.__dict__
+            }
 
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
@@ -598,6 +640,11 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         return self._is_scrape_engine_error(self.result)
 
     def _is_api_error(self, api_result:Dict) -&gt; bool:
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            if &#39;X-Reject-Reason&#39; in self.response.headers:
+                return True
+            return False
+
         if api_result is None:
             return True
 
@@ -626,7 +673,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         return self.is_scrape_engine_error is False and self.is_api_error is False
 
     @property
-    def status_code(self) -&gt; bool:
+    def status_code(self) -&gt; int:
         return self.response.status_code
 
     @property
@@ -716,6 +763,18 @@ def config(self) -&gt; Dict:
     return self.result[&#39;config&#39;]</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.ScrapeApiResponse.content"><code class="name">var <span class="ident">content</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def content(self) -&gt; str:
+    return self.result[&#39;content&#39;]</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.ScrapeApiResponse.context"><code class="name">var <span class="ident">context</span> : Dict</code></dt>
 <dd>
 <div class="desc"></div>
@@ -764,7 +823,7 @@ def is_scrape_engine_error(self) -&gt; bool:
     return self._is_scrape_engine_error(self.result)</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span></code></dt>
+<dt id="scrapfly.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span> : Dict</code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
@@ -772,11 +831,11 @@ def is_scrape_engine_error(self) -&gt; bool:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
-def scrape_result(self):
+def scrape_result(self) -&gt; Dict:
     return self.result[&#39;result&#39;]</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : bool</code></dt>
+<dt id="scrapfly.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : int</code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
@@ -784,7 +843,7 @@ def scrape_result(self):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
-def status_code(self) -&gt; bool:
+def status_code(self) -&gt; int:
     return self.response.status_code</code></pre>
 </details>
 </dd>
@@ -803,19 +862,6 @@ def success(self) -&gt; bool:
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="scrapfly.ScrapeApiResponse.content"><code class="name flex">
-<span>def <span class="ident">content</span></span>(<span>self) ‑> Dict</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def content(self) -&gt; Dict:
-    return self.result</code></pre>
-</details>
-</dd>
 <dt id="scrapfly.ScrapeApiResponse.handle_api_result"><code class="name flex">
 <span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Union[Dict, NoneType]) ‑> Union[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>, NoneType]</span>
 </code></dt>
@@ -826,8 +872,22 @@ def success(self) -&gt; bool:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
-    if api_result is None:
+    if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
         return None
+
+    if self.scrape_config.method == &#39;HEAD&#39;:
+        api_result = {
+            &#39;result&#39;: {
+                &#39;request_headers&#39;: {},
+                &#39;response_headers&#39;: self.response.headers,
+                &#39;status_code&#39;: self.response.status_code,
+                &#39;reason&#39;: self.response.reason,
+                &#39;format&#39;: &#39;text&#39;,
+                &#39;content&#39;: &#39;&#39;
+            },
+            &#39;context&#39;: {},
+            &#39;config&#39;: self.scrape_config.__dict__
+        }
 
     if self._is_api_error(api_result=api_result) is True:
         return FrozenDict(api_result)
@@ -1034,7 +1094,6 @@ def success(self) -&gt; bool:
             raise ScrapeConfigError(&#39;You cannot pass both parameters body and data. You must choose&#39;)
 
         if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] and self.body is None and self.data is not None:
-            print(self.headers)
             if &#39;content-type&#39; not in self.headers:
                 self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
                 self.body = urlencode(data)
@@ -1055,7 +1114,7 @@ def success(self) -&gt; bool:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: self.url,
+            &#39;url&#39;: quote(self.url),
             &#39;country&#39;: self.country,
         }
 
@@ -1103,7 +1162,7 @@ def success(self) -&gt; bool:
             params[&#39;cache_ttl&#39;] = self.cache_ttl
 
         if self.graphql:
-            params[&#39;graphql&#39;] = self.graphql
+            params[&#39;graphql&#39;] = quote(self.graphql)
 
         if self.js:
             params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
@@ -1140,7 +1199,7 @@ def success(self) -&gt; bool:
 <pre><code class="python">def to_api_params(self, key:str) -&gt; Dict:
     params = {
         &#39;key&#39;: self.key if self.key is not None else key,
-        &#39;url&#39;: self.url,
+        &#39;url&#39;: quote(self.url),
         &#39;country&#39;: self.country,
     }
 
@@ -1188,7 +1247,7 @@ def success(self) -&gt; bool:
         params[&#39;cache_ttl&#39;] = self.cache_ttl
 
     if self.graphql:
-        params[&#39;graphql&#39;] = self.graphql
+        params[&#39;graphql&#39;] = quote(self.graphql)
 
     if self.js:
         params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
@@ -1203,7 +1262,7 @@ def success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.ScrapflyAspError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyAspError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1270,6 +1329,7 @@ def success(self) -&gt; bool:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         if self.debug is True:
+            logger.info(debug)
             http.client.HTTPConnection.debuglevel = 5
 
     def _scrape_request(self, scrape_config:ScrapeConfig):
@@ -1346,19 +1406,32 @@ def success(self) -&gt; bool:
 
         try:
             api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
-            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
-                api_response.result[&#39;result&#39;][&#39;status_code&#39;],
-                api_response.result[&#39;result&#39;][&#39;reason&#39;],
-                api_response.result[&#39;config&#39;][&#39;url&#39;],
-                api_response.result[&#39;result&#39;][&#39;duration&#39;])
-            )
+
+            if scrape_config.method == &#39;HEAD&#39;:
+                logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                    api_response.response.status_code,
+                    api_response.response.reason,
+                    api_response.response.request.url,
+                    0
+                ))
+            else:
+                logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                    api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+                    api_response.result[&#39;result&#39;][&#39;reason&#39;],
+                    api_response.result[&#39;config&#39;][&#39;url&#39;],
+                    api_response.result[&#39;result&#39;][&#39;duration&#39;])
+                )
 
             return api_response
         except ApiHttpServerError as e:
             logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
             raise
         except UpstreamHttpServerError as e:
-            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+
+            if scrape_config.method == &#39;HEAD&#39;:
+                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.response.request.url))
+            else:
+                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
             raise
         except ScrapflyError as e:
             logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
@@ -1451,11 +1524,7 @@ def success(self) -&gt; bool:
         scrape_config:ScrapeConfig,
         raise_on_upstream_error: Optional[bool] = True
     ) -&gt; ScrapeApiResponse:
-        try:
-            result = self.body_handler(response.content)
-        except ValueError:
-            raise ErrorFactory.create(api_response=ScrapeApiResponse(response=response, request=response.request, scrape_config=scrape_config))
-
+        result = self.body_handler(response.content)
         api_response:ScrapeApiResponse = ScrapeApiResponse(response=response, request=response.request, api_result=result, scrape_config=scrape_config)
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
 
@@ -1535,19 +1604,32 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 
     try:
         api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
-        logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
-            api_response.result[&#39;result&#39;][&#39;status_code&#39;],
-            api_response.result[&#39;result&#39;][&#39;reason&#39;],
-            api_response.result[&#39;config&#39;][&#39;url&#39;],
-            api_response.result[&#39;result&#39;][&#39;duration&#39;])
-        )
+
+        if scrape_config.method == &#39;HEAD&#39;:
+            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                api_response.response.status_code,
+                api_response.response.reason,
+                api_response.response.request.url,
+                0
+            ))
+        else:
+            logger.info(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
+                api_response.result[&#39;result&#39;][&#39;status_code&#39;],
+                api_response.result[&#39;result&#39;][&#39;reason&#39;],
+                api_response.result[&#39;config&#39;][&#39;url&#39;],
+                api_response.result[&#39;result&#39;][&#39;duration&#39;])
+            )
 
         return api_response
     except ApiHttpServerError as e:
         logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
         raise
     except UpstreamHttpServerError as e:
-        logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+
+        if scrape_config.method == &#39;HEAD&#39;:
+            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.response.request.url))
+        else:
+            logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
         raise
     except ScrapflyError as e:
         logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
@@ -1659,7 +1741,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1700,7 +1782,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         retry_delay: Optional[int] = None,
         retry_times: Optional[int] = None,
         documentation_url: Optional[str] = None,
-        api_response: Optional[Dict] = None
+        api_response: Optional[&#39;ApiResponse&#39;] = None
     ):
         self.message = message
         self.code = code
@@ -1784,7 +1866,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyProxyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyProxyError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1804,7 +1886,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyScheduleError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScheduleError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1824,7 +1906,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyScrapeError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScrapeError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1849,7 +1931,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflySessionError"><code class="flex name class">
 <span>class <span class="ident">ScrapflySessionError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1869,7 +1951,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyThrottleError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyThrottleError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1889,7 +1971,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyWebhookError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyWebhookError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Union[int, NoneType] = None, retry_times: Union[int, NoneType] = None, documentation_url: Union[str, NoneType] = None, api_response: Union[ForwardRef('ApiResponse'), NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -1980,6 +2062,9 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </li>
 <li>
 <h4><code><a title="scrapfly.ApiHttpServerError" href="#scrapfly.ApiHttpServerError">ApiHttpServerError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.EncoderError" href="#scrapfly.EncoderError">EncoderError</a></code></h4>
 </li>
 <li>
 <h4><code><a title="scrapfly.ErrorFactory" href="#scrapfly.ErrorFactory">ErrorFactory</a></code></h4>
