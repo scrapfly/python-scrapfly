@@ -1,10 +1,10 @@
-from typing import Optional, Dict, Tuple
+from typing import Optional, Tuple
 from http.client import responses
 
 from requests import Request, Response
 
 
-class ScrapflyError(Exception):
+class ScrapflyError(BaseException):
     KIND_HTTP_BAD_RESPONSE = 'HTTP_BAD_RESPONSE'
     KIND_SCRAPFLY_ERROR = 'SCRAPFLY_ERROR'
 
@@ -60,8 +60,11 @@ class ScrapflyError(Exception):
         return message
 
 
-class EncoderError(Exception):
-    pass
+class EncoderError(BaseException):
+
+    def __init__(self, content:str):
+        self.content = content
+        super().__init__()
 
 
 class HttpError(ScrapflyError):

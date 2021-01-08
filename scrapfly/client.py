@@ -1,14 +1,20 @@
+from concurrent.futures.thread import ThreadPoolExecutor
+
+import asyncio
 import http
 import platform
 import re
 import shutil
 from functools import partial
 from io import BytesIO
-from typing import TextIO, Union
+
+from requests import Session
+from typing import TextIO, Union, List, Dict
 import requests
 import urllib3
+import logging as logger
 
-from loguru import logger
+logger.getLogger('scrapfly')
 
 from .retry import retry
 from .errors import *
@@ -16,12 +22,28 @@ from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from . import __version__ as version, ScrapeApiResponse
 
+NetworkError = Union[
+    ConnectionError,
+    requests.exceptions.ConnectionError,
+    requests.exceptions.ConnectTimeout,
+    requests.exceptions.ReadTimeout
+]
+
 
 class ScrapflyClient:
 
     HOST = 'https://api.scrapfly.io'
     DEFAULT_CONNECT_TIMEOUT = 30
-    DEFAULT_READ_TIMEOUT = 300
+    DEFAULT_READ_TIMEOUT = 150
+
+    host:str
+    key:str
+    max_concurrency:int
+    verify:bool
+    debug:bool
+    distributed_mode:bool
+    connect_timeout:int
+    read_timeout:int
 
     def __init__(
         self,
@@ -29,6 +51,7 @@ class ScrapflyClient:
         host: Optional[str] = HOST,
         verify=True,
         debug: bool = False,
+        max_concurrency:int=1,
         distributed_mode = False,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
         read_timeout:int = DEFAULT_READ_TIMEOUT
@@ -42,8 +65,10 @@ class ScrapflyClient:
         self.debug = debug
         self.connect_timeout = connect_timeout
         self.read_timeout = read_timeout
+        self.max_concurrency = max_concurrency
         self.distributed_mode = distributed_mode
         self.body_handler = ResponseBodyHandler()
+        self.async_executor = ThreadPoolExecutor()
         self.http_session = None
         self.ua = 'ScrapflySDK/%s (Python %s, %s, %s)' % (
             version,
@@ -56,7 +81,6 @@ class ScrapflyClient:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         if self.debug is True:
-            logger.info(debug)
             http.client.HTTPConnection.debuglevel = 5
 
     def _scrape_request(self, scrape_config:ScrapeConfig):
@@ -71,28 +95,26 @@ class ScrapflyClient:
         if self.distributed_mode is True and scrape_config.correlation_id is None:
             scrape_config.generate_distributed_correlation_id()
 
-        http_handler = partial(self.http_session.request if self.http_session else requests.request)
-
-        r = http_handler(
-            method=method,
-            url=url,
-            data=scrape_config.body,
-            verify=self.verify,
-            timeout=(self.connect_timeout, self.read_timeout),
-            headers={
+        return {
+            'method': method,
+            'url': url,
+            'data': scrape_config.body,
+            'verify': self.verify,
+            'timeout': (self.connect_timeout, self.read_timeout),
+            'headers': {
                 'content-type': scrape_config.headers['content-type'] if method in ['POST', 'PUT', 'PATCH'] else self.body_handler.content_type,
                 'accept-encoding': self.body_handler.content_encoding,
                 'accept': self.body_handler.accept,
                 'user-agent': self.ua
             },
-            params=scrape_config.to_api_params(key=self.key)
-        )
-
-        return r
+            'params': scrape_config.to_api_params(key=self.key)
+        }
 
     def account(self) -> Dict:
         http_handler = partial(self.http_session.request if self.http_session else requests.request)
-        return http_handler('GET', self.host + '/account', params={'key': self.key}).json()
+        response = http_handler('GET', self.host + '/account', params={'key': self.key})
+        response.raise_for_status()
+        return self.body_handler(response.content)
 
     def resilient_scrape(
         self,
@@ -110,39 +132,70 @@ class ScrapflyClient:
 
         return inner()
 
-    def __enter__(self) -> 'ScrapflyClient':
+    def open(self):
         if self.http_session is None:
-            self.http_session = requests.session()
+            self.http_session = Session()
             self.http_session.params['key'] = self.key
-
             self.http_session.headers['accept-encoding'] = self.body_handler.content_encoding
             self.http_session.headers['accept'] = self.body_handler.accept
             self.http_session.headers['user-agent'] = self.ua
 
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def close(self):
         self.http_session.close()
         self.http_session = None
 
-    @retry((ConnectionError,), tries=5, delay=2)
+    def __enter__(self) -> 'ScrapflyClient':
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    async def async_scrape(self, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
+        return await asyncio.get_running_loop().run_in_executor(self.async_executor, self.scrape, scrape_config)
+
+    async def concurrent_scrape(self, scrape_configs:List[ScrapeConfig], concurrency:Optional[int]=None) -> List[ScrapeApiResponse]:
+
+        try:
+            from asyncio_pool import AioPool
+        except ImportError:
+            print('You must run pip install scrapfly-sdk[concurrency]')
+            raise
+
+        if concurrency is None:
+            concurrency = self.max_concurrency
+
+        futures = []
+
+        async def call(scrape_config:ScrapeConfig) -> ScrapeApiResponse:
+            return await self.async_scrape(scrape_config=scrape_config)
+
+        async with AioPool(size=concurrency) as pool:
+            [futures.append(await pool.spawn(call(scrape_config))) for scrape_config in scrape_configs]
+
+        return [future.result() for future in futures]
+
+    @retry(exceptions=(NetworkError,), tries=5, delay=2)
     def scrape(self, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
-        logger.info('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
+        logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
+        request_data = self._scrape_request(scrape_config=scrape_config)
+        http_handler = partial(self.http_session.request if self.http_session else requests.request)
+        response = http_handler(**request_data)
+        return self._handle_response(response=response, scrape_config=scrape_config)
 
-        response = self._scrape_request(scrape_config=scrape_config)
-
+    def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
         try:
             api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
 
             if scrape_config.method == 'HEAD':
-                logger.info('<-- [%s %s] %s | %ss' % (
+                logger.debug('<-- [%s %s] %s | %ss' % (
                     api_response.response.status_code,
                     api_response.response.reason,
                     api_response.response.request.url,
                     0
                 ))
             else:
-                logger.info('<-- [%s %s] %s | %ss' % (
+                logger.debug('<-- [%s %s] %s | %ss' % (
                     api_response.result['result']['status_code'],
                     api_response.result['result']['reason'],
                     api_response.result['config']['url'],
@@ -154,7 +207,6 @@ class ScrapflyClient:
             logger.critical('<-- %s - %s' % (e.response.status_code, str(e)))
             raise
         except UpstreamHttpServerError as e:
-
             if scrape_config.method == 'HEAD':
                 logger.warning('<-- %s - %s | %s' % (e.code, str(e), e.api_response.response.request.url))
             else:

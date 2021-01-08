@@ -48,10 +48,23 @@ EXTRA_DEPENDENCIES = {
         'wheel',
         'pdoc'
     ],
+    'scrapy': [
+        'scrapy >= 2.4.0'
+    ],
     'speedups': [
         'brotli',
         'cchardet',
         'msgpack'
+    ],
+    'concurrency': [
+        'asyncio-pool'
+    ],
+    'all': [
+        'asyncio-pool',
+        'brotli',
+        'cchardet',
+        'msgpack',
+        'scrapy >= 2.4.0'
     ]
 }
 
@@ -59,7 +72,7 @@ setup(
     name=PACKAGE,
     version=version,
     description='Scrapfly SDK for Scrapfly',
-    keywords=['scraping', 'web scraping', 'data', 'extraction', 'scrapfly', 'sdk', 'cloud'],
+    keywords=['scraping', 'web scraping', 'data', 'extraction', 'scrapfly', 'sdk', 'cloud', 'scrapy'],
     author='Scrapfly',
     author_email='tech@scrapfly.io',
     license='BSD',

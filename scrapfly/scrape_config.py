@@ -27,9 +27,10 @@ class ScrapeConfig:
             ssl:bool = False,
             dns:bool = False,
             asp:bool = False,
+            debug: bool = False,
+            raise_on_upstream_error:bool = True,
             cache_ttl:Optional[int] = None,
             session: Optional[str] = None,
-            debug: Optional[bool] = False,
             tags: Optional[List[str]] = None,
             correlation_id: Optional[str] = None,
             cookies: Optional[Dict] = None,
@@ -39,8 +40,7 @@ class ScrapeConfig:
             graphql: Optional[str] = None,
             js: str = None,
             rendering_wait: int = None,
-            screenshots:Optional[Dict]=None,
-            raise_on_upstream_error:bool=True
+            screenshots:Optional[Dict]=None
     ):
         assert(type(url) is str)
 
@@ -79,25 +79,28 @@ class ScrapeConfig:
             if 'cookie' in self.headers:
                 if self.headers['cookie'][-1] != ';':
                     self.headers['cookie'] += ';'
-                else:
-                    self.headers['cookie'] = ''
+            else:
+                self.headers['cookie'] = ''
 
             self.headers['cookie'] += '; '.join(_cookies)
 
         if self.body and self.data:
             raise ScrapeConfigError('You cannot pass both parameters body and data. You must choose')
 
-        if method in ['POST', 'PUT', 'PATCH'] and self.body is None and self.data is not None:
-            if 'content-type' not in self.headers:
-                self.headers['content-type'] = 'application/x-www-form-urlencoded'
-                self.body = urlencode(data)
-            else:
-                if self.headers['content-type'] == 'application/json':
-                    self.body = json.dumps(data)
-                elif 'application/x-www-form-urlencoded' == self.headers['content-type']:
+        if method in ['POST', 'PUT', 'PATCH']:
+            if self.body is None and self.data is not None:
+                if 'content-type' not in self.headers:
+                    self.headers['content-type'] = 'application/x-www-form-urlencoded'
                     self.body = urlencode(data)
                 else:
-                    raise ScrapeConfigError('Content Type %s not support, use body parameter to pass pre encoded body according to your content type' % self.headers['content-type'])
+                    if self.headers['content-type'] == 'application/json':
+                        self.body = json.dumps(data)
+                    elif 'application/x-www-form-urlencoded' == self.headers['content-type']:
+                        self.body = urlencode(data)
+                    else:
+                        raise ScrapeConfigError('Content Type %s not support, use body parameter to pass pre encoded body according to your content type' % self.headers['content-type'])
+            elif self.body is None and self.data is None:
+                self.headers['content-type'] = 'text/plain'
 
     def _bool_to_http(self, _bool:bool) -> str:
         return 'true' if _bool is True else 'false'

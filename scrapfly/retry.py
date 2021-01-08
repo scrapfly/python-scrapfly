@@ -2,13 +2,14 @@ import random
 import time
 from functools import partial
 from typing import Tuple, Union, Iterable
-from loguru import logger
+import logging as logger
 from decorator import decorator
 
+logger.getLogger('scrapfly')
 
-class RetryBudgetExceeded(Exception):
+class RetryBudgetExceeded(BaseException):
 
-    def __init__(self, tries:int, delay:int, retried_error:Exception):
+    def __init__(self, tries:int, delay:int, retried_error:BaseException):
         super().__init__('Retry Budget Exceeded')
 
         self.tries = tries
@@ -19,7 +20,7 @@ class RetryBudgetExceeded(Exception):
         return 'Error %s has been retried %s times. %s' % (type(self.retried_error), self.tries, str(self.delay), str(self.retried_error))
 
 
-def __retry_internal(f, exceptions=Tuple[Exception, ...], tries=0, delay=0, max_delay=None, backoff=1, jitter=0):
+def __retry_internal(f, exceptions=Tuple[BaseException, ...], tries=0, delay=0, max_delay=None, backoff=1, jitter=0):
     _tries, _delay = tries, delay
     _tries_from_exception_set = None
 
@@ -52,7 +53,7 @@ def __retry_internal(f, exceptions=Tuple[Exception, ...], tries=0, delay=0, max_
                 _delay = min(_delay, max_delay)
 
 
-def retry(exceptions:Union[Tuple[Exception, ...], Exception], tries=0, delay=0, max_delay=None, backoff=1, jitter=0):
+def retry(exceptions:Union[Tuple[BaseException, ...], BaseException], tries=0, delay=0, max_delay=None, backoff=1, jitter=0):
     if not isinstance(exceptions, tuple):
         if not isinstance(exceptions, Iterable):
             exceptions = [exceptions]
