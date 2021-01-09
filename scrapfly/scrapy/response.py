@@ -55,7 +55,8 @@ class ScrapflyScrapyResponse(TextResponse):
         else:
             raise RuntimeError('Unsupported body %s' % type(self.content))
 
-        super().__init__(
+        TextResponse.__init__(
+            self,
             url=self.scrape_api_response.scrape_result['url'],
             status=self.scrape_api_response.scrape_result['status_code'],
             headers=self.scrape_api_response.scrape_result['response_headers'],

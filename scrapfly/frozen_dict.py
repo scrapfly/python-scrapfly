@@ -3,6 +3,9 @@ class FrozenDict(dict):
         self._hash = None
         super(FrozenDict, self).__init__(*args, **kwargs)
 
+    def __eq__(self, other):
+        return self._hash == other.__hash
+
     def __hash__(self):
         if self._hash is None:
             self._hash = hash(tuple(sorted(self.items())))

@@ -69,7 +69,7 @@ class EncoderError(BaseException):
 
 class HttpError(ScrapflyError):
 
-    def __init__(self, request:Request, response:Response, **kwargs):
+    def __init__(self, request:Request, response:Optional[Response]=None, **kwargs):
         self.request = request
         self.response = response
         super().__init__(**kwargs)
@@ -240,3 +240,18 @@ class ErrorFactory:
                 return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ScrapflyError(**args)
+
+__all__:Tuple[str, ...] = [
+    'ScrapflyError',
+    'ScrapflyAspError',
+    'ScrapflyProxyError',
+    'ScrapflyScheduleError',
+    'ScrapflyScrapeError',
+    'ScrapflySessionError',
+    'ScrapflyThrottleError',
+    'ScrapflyWebhookError',
+    'UpstreamHttpClientError',
+    'UpstreamHttpServerError',
+    'ApiHttpClientError',
+    'ApiHttpServerError'
+]

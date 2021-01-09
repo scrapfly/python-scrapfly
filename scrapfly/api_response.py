@@ -1,4 +1,7 @@
-import json
+import re
+import logging as logger
+import shutil
+
 from base64 import b64decode
 from contextlib import suppress
 from datetime import datetime
@@ -7,9 +10,7 @@ from http.cookiejar import Cookie
 from http.cookies import SimpleCookie
 from io import BytesIO
 from json import JSONDecoder
-import re
-import logging as logger
-import shutil
+
 from dateutil.parser import parse
 from requests import Request, Response
 from typing import Dict, Optional, Iterable, Union, TextIO
@@ -49,7 +50,9 @@ def _date_parser(value):
 
 
 class ResponseBodyHandler:
+
     SUPPORTED_COMPRESSION = ['gzip', 'deflate']
+    SUPPORTED_CONTENT_TYPES = ['application/msgpack', 'application/json']
 
     class JSONDateTimeDecoder(JSONDecoder):
         def __init__(self, *args, **kargs):
@@ -58,9 +61,8 @@ class ResponseBodyHandler:
     def __init__(self):
         try:
             import brotli
-            #  insert brotli as preferred choice. Be aware brotli is cpu bursting. Not always best choice regarding your hardware
             self.SUPPORTED_COMPRESSION.insert(0, 'br')
-        except BaseException:
+        except ImportError:
             pass
 
         self.content_encoding = ', '.join(self.SUPPORTED_COMPRESSION)
@@ -73,11 +75,19 @@ class ResponseBodyHandler:
         except ImportError:
             self.accept = 'application/json;charset=utf-8'
             self.content_type = 'application/json;charset=utf-8'
-            self.content_loader = partial(json.loads, cls=self.JSONDateTimeDecoder)
+            self.content_loader = partial(loads, cls=self.JSONDateTimeDecoder)
+
+    def support(self, headers:Dict) -> bool:
+        if 'content-type' not in headers:
+            return False
+
+        for content_type in self.SUPPORTED_CONTENT_TYPES:
+            if headers['content-type'].find(content_type) != -1:
+                return True
+
+        return False
 
     def __call__(self, content: bytes) -> Union[str, Dict]:
-        if len(content) == 0:
-            return content.decode('utf-8')
         try:
             return self.content_loader(content)
         except Exception as e:

@@ -17,7 +17,7 @@ class RetryBudgetExceeded(BaseException):
         self.retried_error = retried_error
 
     def __str__(self):
-        return 'Error %s has been retried %s times. %s' % (type(self.retried_error), self.tries, str(self.delay), str(self.retried_error))
+        return 'Error %s has been retried %s times. %s' % (type(self.retried_error), self.tries, str(self.retried_error))
 
 
 def __retry_internal(f, exceptions=Tuple[BaseException, ...], tries=0, delay=0, max_delay=None, backoff=1, jitter=0):

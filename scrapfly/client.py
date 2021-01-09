@@ -8,8 +8,9 @@ import shutil
 from functools import partial
 from io import BytesIO
 
-from requests import Session
-from typing import TextIO, Union, List, Dict
+from requests import Session, RequestException, HTTPError as RequestsHTTPError, Response
+from requests import exceptions as RequestExceptions
+from typing import TextIO, Union, List, Dict, Optional, Tuple
 import requests
 import urllib3
 import logging as logger
@@ -22,12 +23,12 @@ from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from . import __version__ as version, ScrapeApiResponse
 
-NetworkError = Union[
+NetworkError = (
     ConnectionError,
-    requests.exceptions.ConnectionError,
-    requests.exceptions.ConnectTimeout,
-    requests.exceptions.ReadTimeout
-]
+    RequestExceptions.ConnectionError,
+    RequestExceptions.ConnectTimeout,
+    RequestExceptions.ReadTimeout
+)
 
 
 class ScrapflyClient:
@@ -110,11 +111,16 @@ class ScrapflyClient:
             'params': scrape_config.to_api_params(key=self.key)
         }
 
-    def account(self) -> Dict:
+    def account(self) -> Union[str, Dict]:
         http_handler = partial(self.http_session.request if self.http_session else requests.request)
         response = http_handler('GET', self.host + '/account', params={'key': self.key})
-        response.raise_for_status()
-        return self.body_handler(response.content)
+
+        self.raise_for_api_status(response=response)
+
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content)
+
+        return response.content.decode('utf-8')
 
     def resilient_scrape(
         self,
@@ -175,7 +181,7 @@ class ScrapflyClient:
 
         return [future.result() for future in futures]
 
-    @retry(exceptions=(NetworkError,), tries=5, delay=2)
+    @retry(exceptions=NetworkError, tries=5, delay=2)
     def scrape(self, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
         logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
         request_data = self._scrape_request(scrape_config=scrape_config)
@@ -297,14 +303,44 @@ class ScrapflyClient:
 
         logger.info('file %s created' % file_path)
 
+    @staticmethod
+    def raise_for_api_status(response:Response):
+
+        try:
+            response.raise_for_status()
+        except RequestsHTTPError as e:
+
+            if e.response is None:
+                raise RequestsHTTPError(request=e.request, response=e.response) from e
+
+            if 400 <= e.response < 500:
+                raise ApiHttpClientError(request=e.request) from e
+            else:
+                raise ApiHttpServerError(request=e.request, response=e.response) from e
+
+        except RequestException as e:
+            raise RequestsHTTPError(request=e.request, response=e.response) from e
+
     def _handle_api_response(
         self,
-        response: requests.Response,
+        response: Response,
         scrape_config:ScrapeConfig,
         raise_on_upstream_error: Optional[bool] = True
     ) -> ScrapeApiResponse:
-        result = self.body_handler(response.content)
-        api_response:ScrapeApiResponse = ScrapeApiResponse(response=response, request=response.request, api_result=result, scrape_config=scrape_config)
+
+        self.raise_for_api_status(response=response)
+
+        if self.body_handler.support(headers=response.headers):
+            result = self.body_handler(response.content)
+        else:
+            result = response.content.decode('utf-8')
+
+        api_response:ScrapeApiResponse = ScrapeApiResponse(
+            response=response,
+            request=response.request,
+            api_result=result,
+            scrape_config=scrape_config
+        )
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
 
         return api_response
