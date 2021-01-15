@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.2" />
-<title>scrapfly.retry API documentation</title>
+<title>scrapfly.scrapy.middleware API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,84 +19,38 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>scrapfly.retry</code></h1>
+<h1 class="title">Module <code>scrapfly.scrapy.middleware</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import random
-import time
-from functools import partial
-from typing import Tuple, Union, Iterable
-import logging as logger
-from decorator import decorator
+<pre><code class="python">from typing import Union, Optional
 
-logger.getLogger(&#39;scrapfly&#39;)
+from scrapy import Spider
+from scrapy.http import Request
 
-
-class RetryBudgetExceeded(BaseException):
-
-    def __init__(self, tries:int, delay:int, retried_error:BaseException):
-        super().__init__(&#39;Retry Budget Exceeded&#39;)
-
-        self.tries = tries
-        self.delay = delay
-        self.retried_error = retried_error
-
-    def __str__(self):
-        return &#39;Error %s has been retried %s times. %s&#39; % (type(self.retried_error), self.tries, str(self.retried_error))
+from .spider import ScrapflySpider
+from .request import ScrapflyScrapyRequest
+from .response import ScrapflyScrapyResponse
 
 
-def __retry_internal(f, exceptions=Tuple[BaseException, ...], tries=0, delay=0, max_delay=None, backoff=1, jitter=0):
-    _tries, _delay = tries, delay
-    _tries_from_exception_set = None
+class ScrapflyMiddleware:
 
-    while _tries:
-        try:
-            return f()
-        except exceptions as e:
-            if e.is_retryable is True:
-                if _tries_from_exception_set is None:
-                    _tries_from_exception_set = True
-            else:
-                raise
+    def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+        if not isinstance(request, ScrapflyScrapyRequest):
+            return None
 
-            _tries -= 1
+        if not isinstance(spider, ScrapflySpider):
+            raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
 
-            if not _tries:
-                raise RetryBudgetExceeded(tries=tries, delay=delay, retried_error=e) from e
+        if request.scrape_config.tags is None:
+            request.scrape_config.tags = []
 
-            logger.warning(&#39;[%s/%s] %s, retrying in %s seconds...&#39; % (tries - _tries, tries, e, _delay))
+        request.scrape_config.tags.append(spider.name)
 
-            time.sleep(_delay)
-            _delay *= backoff
-
-            if isinstance(jitter, tuple):
-                _delay += random.uniform(*jitter)
-            else:
-                _delay += jitter
-
-            if max_delay is not None:
-                _delay = min(_delay, max_delay)
-
-
-def retry(exceptions:Union[Tuple[BaseException, ...], BaseException], tries=0, delay=0, max_delay=None, backoff=1, jitter=0):
-    if not isinstance(exceptions, tuple):
-        if not isinstance(exceptions, Iterable):
-            exceptions = [exceptions]
-
-        exceptions = tuple(exceptions)
-
-    @decorator
-    def retry_decorator(f, *fargs, **fkwargs):
-        args = fargs if fargs else list()
-        kwargs = fkwargs if fkwargs else dict()
-
-        return __retry_internal(partial(f, *args, **kwargs), exceptions, tries, delay, max_delay, backoff, jitter)
-
-    return retry_decorator</code></pre>
+        return None</code></pre>
 </details>
 </section>
 <section>
@@ -104,10 +58,12 @@ def retry(exceptions:Union[Tuple[BaseException, ...], BaseException], tries=0, d
 <section>
 </section>
 <section>
-<h2 class="section-title" id="header-functions">Functions</h2>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="scrapfly.retry.retry"><code class="name flex">
-<span>def <span class="ident">retry</span></span>(<span>exceptions: Union[Tuple[BaseException, ...], BaseException], tries=0, delay=0, max_delay=None, backoff=1, jitter=0)</span>
+<dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware"><code class="flex name class">
+<span>class <span class="ident">ScrapflyMiddleware</span></span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -115,54 +71,49 @@ def retry(exceptions:Union[Tuple[BaseException, ...], BaseException], tries=0, d
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def retry(exceptions:Union[Tuple[BaseException, ...], BaseException], tries=0, delay=0, max_delay=None, backoff=1, jitter=0):
-    if not isinstance(exceptions, tuple):
-        if not isinstance(exceptions, Iterable):
-            exceptions = [exceptions]
+<pre><code class="python">class ScrapflyMiddleware:
 
-        exceptions = tuple(exceptions)
+    def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+        if not isinstance(request, ScrapflyScrapyRequest):
+            return None
 
-    @decorator
-    def retry_decorator(f, *fargs, **fkwargs):
-        args = fargs if fargs else list()
-        kwargs = fkwargs if fkwargs else dict()
+        if not isinstance(spider, ScrapflySpider):
+            raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
 
-        return __retry_internal(partial(f, *args, **kwargs), exceptions, tries, delay, max_delay, backoff, jitter)
+        if request.scrape_config.tags is None:
+            request.scrape_config.tags = []
 
-    return retry_decorator</code></pre>
+        request.scrape_config.tags.append(spider.name)
+
+        return None</code></pre>
 </details>
-</dd>
-</dl>
-</section>
-<section>
-<h2 class="section-title" id="header-classes">Classes</h2>
+<h3>Methods</h3>
 <dl>
-<dt id="scrapfly.retry.RetryBudgetExceeded"><code class="flex name class">
-<span>class <span class="ident">RetryBudgetExceeded</span></span>
-<span>(</span><span>tries: int, delay: int, retried_error: BaseException)</span>
+<dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request"><code class="name flex">
+<span>def <span class="ident">process_request</span></span>(<span>self, request: Union[scrapy.http.request.Request, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>], spider: Union[scrapy.spiders.Spider, <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>]) ‑> Optional[<a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>]</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class RetryBudgetExceeded(BaseException):
+<pre><code class="python">def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+    if not isinstance(request, ScrapflyScrapyRequest):
+        return None
 
-    def __init__(self, tries:int, delay:int, retried_error:BaseException):
-        super().__init__(&#39;Retry Budget Exceeded&#39;)
+    if not isinstance(spider, ScrapflySpider):
+        raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
 
-        self.tries = tries
-        self.delay = delay
-        self.retried_error = retried_error
+    if request.scrape_config.tags is None:
+        request.scrape_config.tags = []
 
-    def __str__(self):
-        return &#39;Error %s has been retried %s times. %s&#39; % (type(self.retried_error), self.tries, str(self.retried_error))</code></pre>
+    request.scrape_config.tags.append(spider.name)
+
+    return None</code></pre>
 </details>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li>builtins.BaseException</li>
-</ul>
+</dd>
+</dl>
 </dd>
 </dl>
 </section>
@@ -175,18 +126,16 @@ def retry(exceptions:Union[Tuple[BaseException, ...], BaseException], tries=0, d
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="scrapfly" href="index.html">scrapfly</a></code></li>
-</ul>
-</li>
-<li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="">
-<li><code><a title="scrapfly.retry.retry" href="#scrapfly.retry.retry">retry</a></code></li>
+<li><code><a title="scrapfly.scrapy" href="index.html">scrapfly.scrapy</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="scrapfly.retry.RetryBudgetExceeded" href="#scrapfly.retry.RetryBudgetExceeded">RetryBudgetExceeded</a></code></h4>
+<h4><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware">ScrapflyMiddleware</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request">process_request</a></code></li>
+</ul>
 </li>
 </ul>
 </li>

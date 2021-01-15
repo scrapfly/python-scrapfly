@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.1" />
+<meta name="generator" content="pdoc 0.9.2" />
 <title>scrapfly.scrape_config API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -55,9 +55,10 @@ class ScrapeConfig:
             ssl:bool = False,
             dns:bool = False,
             asp:bool = False,
+            debug: bool = False,
+            raise_on_upstream_error:bool = True,
             cache_ttl:Optional[int] = None,
             session: Optional[str] = None,
-            debug: Optional[bool] = False,
             tags: Optional[List[str]] = None,
             correlation_id: Optional[str] = None,
             cookies: Optional[Dict] = None,
@@ -67,8 +68,7 @@ class ScrapeConfig:
             graphql: Optional[str] = None,
             js: str = None,
             rendering_wait: int = None,
-            screenshots:Optional[Dict]=None,
-            raise_on_upstream_error:bool=True
+            screenshots:Optional[Dict]=None
     ):
         assert(type(url) is str)
 
@@ -107,25 +107,28 @@ class ScrapeConfig:
             if &#39;cookie&#39; in self.headers:
                 if self.headers[&#39;cookie&#39;][-1] != &#39;;&#39;:
                     self.headers[&#39;cookie&#39;] += &#39;;&#39;
-                else:
-                    self.headers[&#39;cookie&#39;] = &#39;&#39;
+            else:
+                self.headers[&#39;cookie&#39;] = &#39;&#39;
 
             self.headers[&#39;cookie&#39;] += &#39;; &#39;.join(_cookies)
 
         if self.body and self.data:
             raise ScrapeConfigError(&#39;You cannot pass both parameters body and data. You must choose&#39;)
 
-        if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] and self.body is None and self.data is not None:
-            if &#39;content-type&#39; not in self.headers:
-                self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
-                self.body = urlencode(data)
-            else:
-                if self.headers[&#39;content-type&#39;] == &#39;application/json&#39;:
-                    self.body = json.dumps(data)
-                elif &#39;application/x-www-form-urlencoded&#39; == self.headers[&#39;content-type&#39;]:
+        if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
+            if self.body is None and self.data is not None:
+                if &#39;content-type&#39; not in self.headers:
+                    self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
                     self.body = urlencode(data)
                 else:
-                    raise ScrapeConfigError(&#39;Content Type %s not support, use body parameter to pass pre encoded body according to your content type&#39; % self.headers[&#39;content-type&#39;])
+                    if self.headers[&#39;content-type&#39;] == &#39;application/json&#39;:
+                        self.body = json.dumps(data)
+                    elif &#39;application/x-www-form-urlencoded&#39; == self.headers[&#39;content-type&#39;]:
+                        self.body = urlencode(data)
+                    else:
+                        raise ScrapeConfigError(&#39;Content Type %s not support, use body parameter to pass pre encoded body according to your content type&#39; % self.headers[&#39;content-type&#39;])
+            elif self.body is None and self.data is None:
+                self.headers[&#39;content-type&#39;] = &#39;text/plain&#39;
 
     def _bool_to_http(self, _bool:bool) -&gt; str:
         return &#39;true&#39; if _bool is True else &#39;false&#39;
@@ -184,7 +187,7 @@ class ScrapeConfig:
             params[&#39;cache_ttl&#39;] = self.cache_ttl
 
         if self.graphql:
-            params[&#39;graphql&#39;] = quote(self.graphql)
+            params[&#39;graphql_query&#39;] = quote(self.graphql)
 
         if self.js:
             params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
@@ -206,7 +209,7 @@ class ScrapeConfig:
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Union[str, NoneType] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, cache_ttl: Union[int, NoneType] = None, session: Union[str, NoneType] = None, debug: Union[bool, NoneType] = False, tags: Union[List[str], NoneType] = None, correlation_id: Union[str, NoneType] = None, cookies: Union[Dict, NoneType] = None, body: Union[str, NoneType] = None, data: Union[Dict, NoneType] = None, headers: Union[Dict[str, str], NoneType] = None, graphql: Union[str, NoneType] = None, js: str = None, rendering_wait: int = None, screenshots: Union[Dict, NoneType] = None, raise_on_upstream_error: bool = True)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[Dict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Optional[Dict[str, str]] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -228,9 +231,10 @@ class ScrapeConfig:
             ssl:bool = False,
             dns:bool = False,
             asp:bool = False,
+            debug: bool = False,
+            raise_on_upstream_error:bool = True,
             cache_ttl:Optional[int] = None,
             session: Optional[str] = None,
-            debug: Optional[bool] = False,
             tags: Optional[List[str]] = None,
             correlation_id: Optional[str] = None,
             cookies: Optional[Dict] = None,
@@ -240,8 +244,7 @@ class ScrapeConfig:
             graphql: Optional[str] = None,
             js: str = None,
             rendering_wait: int = None,
-            screenshots:Optional[Dict]=None,
-            raise_on_upstream_error:bool=True
+            screenshots:Optional[Dict]=None
     ):
         assert(type(url) is str)
 
@@ -280,25 +283,28 @@ class ScrapeConfig:
             if &#39;cookie&#39; in self.headers:
                 if self.headers[&#39;cookie&#39;][-1] != &#39;;&#39;:
                     self.headers[&#39;cookie&#39;] += &#39;;&#39;
-                else:
-                    self.headers[&#39;cookie&#39;] = &#39;&#39;
+            else:
+                self.headers[&#39;cookie&#39;] = &#39;&#39;
 
             self.headers[&#39;cookie&#39;] += &#39;; &#39;.join(_cookies)
 
         if self.body and self.data:
             raise ScrapeConfigError(&#39;You cannot pass both parameters body and data. You must choose&#39;)
 
-        if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] and self.body is None and self.data is not None:
-            if &#39;content-type&#39; not in self.headers:
-                self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
-                self.body = urlencode(data)
-            else:
-                if self.headers[&#39;content-type&#39;] == &#39;application/json&#39;:
-                    self.body = json.dumps(data)
-                elif &#39;application/x-www-form-urlencoded&#39; == self.headers[&#39;content-type&#39;]:
+        if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
+            if self.body is None and self.data is not None:
+                if &#39;content-type&#39; not in self.headers:
+                    self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
                     self.body = urlencode(data)
                 else:
-                    raise ScrapeConfigError(&#39;Content Type %s not support, use body parameter to pass pre encoded body according to your content type&#39; % self.headers[&#39;content-type&#39;])
+                    if self.headers[&#39;content-type&#39;] == &#39;application/json&#39;:
+                        self.body = json.dumps(data)
+                    elif &#39;application/x-www-form-urlencoded&#39; == self.headers[&#39;content-type&#39;]:
+                        self.body = urlencode(data)
+                    else:
+                        raise ScrapeConfigError(&#39;Content Type %s not support, use body parameter to pass pre encoded body according to your content type&#39; % self.headers[&#39;content-type&#39;])
+            elif self.body is None and self.data is None:
+                self.headers[&#39;content-type&#39;] = &#39;text/plain&#39;
 
     def _bool_to_http(self, _bool:bool) -&gt; str:
         return &#39;true&#39; if _bool is True else &#39;false&#39;
@@ -357,7 +363,7 @@ class ScrapeConfig:
             params[&#39;cache_ttl&#39;] = self.cache_ttl
 
         if self.graphql:
-            params[&#39;graphql&#39;] = quote(self.graphql)
+            params[&#39;graphql_query&#39;] = quote(self.graphql)
 
         if self.js:
             params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
@@ -442,7 +448,7 @@ class ScrapeConfig:
         params[&#39;cache_ttl&#39;] = self.cache_ttl
 
     if self.graphql:
-        params[&#39;graphql&#39;] = quote(self.graphql)
+        params[&#39;graphql_query&#39;] = quote(self.graphql)
 
     if self.js:
         params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
@@ -506,7 +512,7 @@ class ScrapeConfig:
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
 </footer>
 </body>
 </html>

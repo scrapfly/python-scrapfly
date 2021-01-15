@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.1" />
+<meta name="generator" content="pdoc 0.9.2" />
 <title>scrapfly.api_response API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -26,7 +26,10 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import json
+<pre><code class="python">import re
+import logging as logger
+import shutil
+
 from base64 import b64decode
 from contextlib import suppress
 from datetime import datetime
@@ -38,13 +41,15 @@ from json import JSONDecoder
 
 from dateutil.parser import parse
 from requests import Request, Response
-from typing import Dict, Optional, Iterable
+from typing import Dict, Optional, Iterable, Union, TextIO
 
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
 from .errors import ErrorFactory, UpstreamHttpClientError, EncoderError
 from .frozen_dict import FrozenDict
+
+logger.getLogger(&#39;scrapfly&#39;)
 
 _DATE_FORMAT = &#39;%Y-%m-%d %H:%M:%S&#39;
 
@@ -75,6 +80,7 @@ def _date_parser(value):
 class ResponseBodyHandler:
 
     SUPPORTED_COMPRESSION = [&#39;gzip&#39;, &#39;deflate&#39;]
+    SUPPORTED_CONTENT_TYPES = [&#39;application/msgpack&#39;, &#39;application/json&#39;]
 
     class JSONDateTimeDecoder(JSONDecoder):
         def __init__(self, *args, **kargs):
@@ -83,9 +89,8 @@ class ResponseBodyHandler:
     def __init__(self):
         try:
             import brotli
-            #  insert brotli as preferred choice. Be aware brotli is cpu bursting. Not always best choice regarding your hardware
             self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
-        except BaseException:
+        except ImportError:
             pass
 
         self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
@@ -98,21 +103,29 @@ class ResponseBodyHandler:
         except ImportError:
             self.accept = &#39;application/json;charset=utf-8&#39;
             self.content_type = &#39;application/json;charset=utf-8&#39;
-            self.content_loader = partial(json.loads, cls=self.JSONDateTimeDecoder)
+            self.content_loader = partial(loads, cls=self.JSONDateTimeDecoder)
 
-    def __call__(self, content:bytes) -&gt; str:
-        if len(content) == 0:
-            return content.decode(&#39;utf-8&#39;)
+    def support(self, headers:Dict) -&gt; bool:
+        if &#39;content-type&#39; not in headers:
+            return False
 
+        for content_type in self.SUPPORTED_CONTENT_TYPES:
+            if headers[&#39;content-type&#39;].find(content_type) != -1:
+                return True
+
+        return False
+
+    def __call__(self, content: bytes) -&gt; Union[str, Dict]:
         try:
             return self.content_loader(content)
         except Exception as e:
-            raise EncoderError()
+            raise EncoderError(content=content.decode(&#39;utf-8&#39;)) from e
 
 
 class ScrapeApiResponse:
 
-    def __init__(self, request:Request, response:Response, scrape_config:ScrapeConfig, api_result:Optional[Dict]=None):
+    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig,
+                 api_result: Optional[Dict] = None):
         self.request = request
         self.response = response
         self.scrape_config = scrape_config
@@ -132,9 +145,22 @@ class ScrapeApiResponse:
 
     @property
     def content(self) -&gt; str:
-        return self.result[&#39;content&#39;]
+        return self.scrape_result[&#39;content&#39;]
 
-    def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
+    # /!\ Success means scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
+    @property
+    def success(self) -&gt; bool:
+        return self.is_scrape_engine_error is False and self.is_api_error is False
+
+    @property
+    def status_code(self) -&gt; int:
+        return self.response.status_code
+
+    @property
+    def headers(self) -&gt; CaseInsensitiveDict:
+        return self.response.headers
+
+    def handle_api_result(self, api_result: Optional[Dict]) -&gt; Optional[FrozenDict]:
         if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
             return None
 
@@ -167,7 +193,7 @@ class ScrapeApiResponse:
 
         return FrozenDict(api_result)
 
-    def _is_scrape_engine_error(self, api_result:Optional[Dict]=None) -&gt; bool:
+    def _is_scrape_engine_error(self, api_result: Optional[Dict] = None) -&gt; bool:
         if api_result is None:
             return False
 
@@ -183,7 +209,7 @@ class ScrapeApiResponse:
     def is_scrape_engine_error(self) -&gt; bool:
         return self._is_scrape_engine_error(self.result)
 
-    def _is_api_error(self, api_result:Dict) -&gt; bool:
+    def _is_api_error(self, api_result: Dict) -&gt; bool:
         if self.scrape_config.method == &#39;HEAD&#39;:
             if &#39;X-Reject-Reason&#39; in self.response.headers:
                 return True
@@ -198,7 +224,7 @@ class ScrapeApiResponse:
     def is_api_error(self) -&gt; bool:
         return self._is_api_error(self.result)
 
-    def raise_for_result(self, raise_on_upstream_error:bool=True):
+    def raise_for_result(self, raise_on_upstream_error: bool = True):
         if self.is_api_error is True:
             raise ErrorFactory.create(api_response=self)
 
@@ -211,33 +237,20 @@ class ScrapeApiResponse:
             else:
                 raise error
 
-    # /!\ Success means scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
-    @property
-    def success(self) -&gt; bool:
-        return self.is_scrape_engine_error is False and self.is_api_error is False
-
-    @property
-    def status_code(self) -&gt; int:
-        return self.response.status_code
-
-    @property
-    def headers(self) -&gt; CaseInsensitiveDict:
-        return self.response.headers
-
     def upstream_result_into_response(self, _class=Response) -&gt; Optional[Response]:
         if _class != Response:
             raise RuntimeError(&#39;only Response from requests package is supported at the moment&#39;)
         if self.result is None:
             return None
 
-        if self.is_scrape_engine_error is True: # Upstream website must have reply
+        if self.is_scrape_engine_error is True:  # Upstream website must have reply
             return None
 
         response = Response()
-
         response.status_code = self.result[&#39;result&#39;][&#39;status_code&#39;]
         response.reason = self.result[&#39;result&#39;][&#39;reason&#39;]
-        response._content = self.result[&#39;result&#39;][&#39;content&#39;].encode(&#39;utf-8&#39;) if self.result[&#39;result&#39;][&#39;content&#39;] else None
+        response._content = self.result[&#39;result&#39;][&#39;content&#39;].encode(&#39;utf-8&#39;) if self.result[&#39;result&#39;][
+            &#39;content&#39;] else None
         response.headers.update(self.result[&#39;result&#39;][&#39;response_headers&#39;])
         response.url = self.result[&#39;result&#39;][&#39;url&#39;]
 
@@ -280,7 +293,8 @@ class ScrapeApiResponse:
                         port=None,
                         port_specified=False,
                         domain_specified=cookie.get(&#39;domain&#39;) is not None and cookie.get(&#39;domain&#39;) != &#39;&#39;,
-                        domain_initial_dot=bool(cookie.get(&#39;domain&#39;).startswith(&#39;.&#39;)) if cookie.get(&#39;domain&#39;) is not None else False,
+                        domain_initial_dot=bool(cookie.get(&#39;domain&#39;).startswith(&#39;.&#39;)) if cookie.get(
+                            &#39;domain&#39;) is not None else False,
                         path_specified=cookie.get(&#39;path&#39;) != &#39;&#39; and cookie.get(&#39;path&#39;) is not None,
                         discard=False,
                         comment_url=None,
@@ -291,7 +305,61 @@ class ScrapeApiResponse:
                         }
                     ))
 
-        return response</code></pre>
+        return response
+
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None,
+             file: Optional[Union[TextIO, BytesIO]] = None):
+        file_content = self.scrape_result[&#39;content&#39;]
+        file_path = None
+        file_extension = None
+
+        if name:
+            name_parts = name.split(&#39;.&#39;)
+            if len(name_parts) &gt; 1:
+                file_extension = name_parts[-1]
+
+        if not file:
+            if file_extension is None:
+                try:
+                    mime_type = self.scrape_result[&#39;response_headers&#39;][&#39;content-type&#39;]
+                except KeyError:
+                    mime_type = &#39;application/octet-stream&#39;
+
+                if &#39;;&#39; in mime_type:
+                    mime_type = mime_type.split(&#39;;&#39;)[0]
+
+                file_extension = &#39;.&#39; + mime_type.split(&#39;/&#39;)[1]
+
+            if not name:
+                name = self.config[&#39;url&#39;].split(&#39;/&#39;)[-1]
+
+            if name.find(file_extension) == -1:
+                name += file_extension
+
+            file_path = path + &#39;/&#39; + name if path else name
+
+            if file_path == file_extension:
+                url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, self.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
+
+                if url[-1] == &#39;-&#39;:
+                    url = url[:-1]
+
+                url += file_extension
+
+                file_path = url
+
+            file = open(file_path, &#39;wb&#39;)
+
+        if isinstance(file_content, str):
+            file_content = BytesIO(file_content.encode(&#39;utf-8&#39;))
+        elif isinstance(file_content, bytes):
+            file_content = BytesIO(file_content)
+
+        file_content.seek(0)
+        with file as f:
+            shutil.copyfileobj(file_content, f, length=131072)
+
+        logger.info(&#39;file %s created&#39; % file_path)</code></pre>
 </details>
 </section>
 <section>
@@ -315,6 +383,7 @@ class ScrapeApiResponse:
 <pre><code class="python">class ResponseBodyHandler:
 
     SUPPORTED_COMPRESSION = [&#39;gzip&#39;, &#39;deflate&#39;]
+    SUPPORTED_CONTENT_TYPES = [&#39;application/msgpack&#39;, &#39;application/json&#39;]
 
     class JSONDateTimeDecoder(JSONDecoder):
         def __init__(self, *args, **kargs):
@@ -323,9 +392,8 @@ class ScrapeApiResponse:
     def __init__(self):
         try:
             import brotli
-            #  insert brotli as preferred choice. Be aware brotli is cpu bursting. Not always best choice regarding your hardware
             self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
-        except BaseException:
+        except ImportError:
             pass
 
         self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
@@ -338,16 +406,23 @@ class ScrapeApiResponse:
         except ImportError:
             self.accept = &#39;application/json;charset=utf-8&#39;
             self.content_type = &#39;application/json;charset=utf-8&#39;
-            self.content_loader = partial(json.loads, cls=self.JSONDateTimeDecoder)
+            self.content_loader = partial(loads, cls=self.JSONDateTimeDecoder)
 
-    def __call__(self, content:bytes) -&gt; str:
-        if len(content) == 0:
-            return content.decode(&#39;utf-8&#39;)
+    def support(self, headers:Dict) -&gt; bool:
+        if &#39;content-type&#39; not in headers:
+            return False
 
+        for content_type in self.SUPPORTED_CONTENT_TYPES:
+            if headers[&#39;content-type&#39;].find(content_type) != -1:
+                return True
+
+        return False
+
+    def __call__(self, content: bytes) -&gt; Union[str, Dict]:
         try:
             return self.content_loader(content)
         except Exception as e:
-            raise EncoderError()</code></pre>
+            raise EncoderError(content=content.decode(&#39;utf-8&#39;)) from e</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -398,11 +473,38 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.api_response.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES"><code class="name">var <span class="ident">SUPPORTED_CONTENT_TYPES</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.api_response.ResponseBodyHandler.support"><code class="name flex">
+<span>def <span class="ident">support</span></span>(<span>self, headers: Dict) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def support(self, headers:Dict) -&gt; bool:
+    if &#39;content-type&#39; not in headers:
+        return False
+
+    for content_type in self.SUPPORTED_CONTENT_TYPES:
+        if headers[&#39;content-type&#39;].find(content_type) != -1:
+            return True
+
+    return False</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse"><code class="flex name class">
 <span>class <span class="ident">ScrapeApiResponse</span></span>
-<span>(</span><span>request: requests.models.Request, response: requests.models.Response, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, api_result: Union[Dict, NoneType] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, api_result: Optional[Dict] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -412,7 +514,8 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </summary>
 <pre><code class="python">class ScrapeApiResponse:
 
-    def __init__(self, request:Request, response:Response, scrape_config:ScrapeConfig, api_result:Optional[Dict]=None):
+    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig,
+                 api_result: Optional[Dict] = None):
         self.request = request
         self.response = response
         self.scrape_config = scrape_config
@@ -432,9 +535,22 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     @property
     def content(self) -&gt; str:
-        return self.result[&#39;content&#39;]
+        return self.scrape_result[&#39;content&#39;]
 
-    def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
+    # /!\ Success means scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
+    @property
+    def success(self) -&gt; bool:
+        return self.is_scrape_engine_error is False and self.is_api_error is False
+
+    @property
+    def status_code(self) -&gt; int:
+        return self.response.status_code
+
+    @property
+    def headers(self) -&gt; CaseInsensitiveDict:
+        return self.response.headers
+
+    def handle_api_result(self, api_result: Optional[Dict]) -&gt; Optional[FrozenDict]:
         if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
             return None
 
@@ -467,7 +583,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
         return FrozenDict(api_result)
 
-    def _is_scrape_engine_error(self, api_result:Optional[Dict]=None) -&gt; bool:
+    def _is_scrape_engine_error(self, api_result: Optional[Dict] = None) -&gt; bool:
         if api_result is None:
             return False
 
@@ -483,7 +599,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
     def is_scrape_engine_error(self) -&gt; bool:
         return self._is_scrape_engine_error(self.result)
 
-    def _is_api_error(self, api_result:Dict) -&gt; bool:
+    def _is_api_error(self, api_result: Dict) -&gt; bool:
         if self.scrape_config.method == &#39;HEAD&#39;:
             if &#39;X-Reject-Reason&#39; in self.response.headers:
                 return True
@@ -498,7 +614,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
     def is_api_error(self) -&gt; bool:
         return self._is_api_error(self.result)
 
-    def raise_for_result(self, raise_on_upstream_error:bool=True):
+    def raise_for_result(self, raise_on_upstream_error: bool = True):
         if self.is_api_error is True:
             raise ErrorFactory.create(api_response=self)
 
@@ -511,33 +627,20 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             else:
                 raise error
 
-    # /!\ Success means scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
-    @property
-    def success(self) -&gt; bool:
-        return self.is_scrape_engine_error is False and self.is_api_error is False
-
-    @property
-    def status_code(self) -&gt; int:
-        return self.response.status_code
-
-    @property
-    def headers(self) -&gt; CaseInsensitiveDict:
-        return self.response.headers
-
     def upstream_result_into_response(self, _class=Response) -&gt; Optional[Response]:
         if _class != Response:
             raise RuntimeError(&#39;only Response from requests package is supported at the moment&#39;)
         if self.result is None:
             return None
 
-        if self.is_scrape_engine_error is True: # Upstream website must have reply
+        if self.is_scrape_engine_error is True:  # Upstream website must have reply
             return None
 
         response = Response()
-
         response.status_code = self.result[&#39;result&#39;][&#39;status_code&#39;]
         response.reason = self.result[&#39;result&#39;][&#39;reason&#39;]
-        response._content = self.result[&#39;result&#39;][&#39;content&#39;].encode(&#39;utf-8&#39;) if self.result[&#39;result&#39;][&#39;content&#39;] else None
+        response._content = self.result[&#39;result&#39;][&#39;content&#39;].encode(&#39;utf-8&#39;) if self.result[&#39;result&#39;][
+            &#39;content&#39;] else None
         response.headers.update(self.result[&#39;result&#39;][&#39;response_headers&#39;])
         response.url = self.result[&#39;result&#39;][&#39;url&#39;]
 
@@ -580,7 +683,8 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                         port=None,
                         port_specified=False,
                         domain_specified=cookie.get(&#39;domain&#39;) is not None and cookie.get(&#39;domain&#39;) != &#39;&#39;,
-                        domain_initial_dot=bool(cookie.get(&#39;domain&#39;).startswith(&#39;.&#39;)) if cookie.get(&#39;domain&#39;) is not None else False,
+                        domain_initial_dot=bool(cookie.get(&#39;domain&#39;).startswith(&#39;.&#39;)) if cookie.get(
+                            &#39;domain&#39;) is not None else False,
                         path_specified=cookie.get(&#39;path&#39;) != &#39;&#39; and cookie.get(&#39;path&#39;) is not None,
                         discard=False,
                         comment_url=None,
@@ -591,7 +695,61 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                         }
                     ))
 
-        return response</code></pre>
+        return response
+
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None,
+             file: Optional[Union[TextIO, BytesIO]] = None):
+        file_content = self.scrape_result[&#39;content&#39;]
+        file_path = None
+        file_extension = None
+
+        if name:
+            name_parts = name.split(&#39;.&#39;)
+            if len(name_parts) &gt; 1:
+                file_extension = name_parts[-1]
+
+        if not file:
+            if file_extension is None:
+                try:
+                    mime_type = self.scrape_result[&#39;response_headers&#39;][&#39;content-type&#39;]
+                except KeyError:
+                    mime_type = &#39;application/octet-stream&#39;
+
+                if &#39;;&#39; in mime_type:
+                    mime_type = mime_type.split(&#39;;&#39;)[0]
+
+                file_extension = &#39;.&#39; + mime_type.split(&#39;/&#39;)[1]
+
+            if not name:
+                name = self.config[&#39;url&#39;].split(&#39;/&#39;)[-1]
+
+            if name.find(file_extension) == -1:
+                name += file_extension
+
+            file_path = path + &#39;/&#39; + name if path else name
+
+            if file_path == file_extension:
+                url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, self.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
+
+                if url[-1] == &#39;-&#39;:
+                    url = url[:-1]
+
+                url += file_extension
+
+                file_path = url
+
+            file = open(file_path, &#39;wb&#39;)
+
+        if isinstance(file_content, str):
+            file_content = BytesIO(file_content.encode(&#39;utf-8&#39;))
+        elif isinstance(file_content, bytes):
+            file_content = BytesIO(file_content)
+
+        file_content.seek(0)
+        with file as f:
+            shutil.copyfileobj(file_content, f, length=131072)
+
+        logger.info(&#39;file %s created&#39; % file_path)</code></pre>
 </details>
 <h3>Instance variables</h3>
 <dl>
@@ -616,7 +774,7 @@ def config(self) -&gt; Dict:
 </summary>
 <pre><code class="python">@property
 def content(self) -&gt; str:
-    return self.result[&#39;content&#39;]</code></pre>
+    return self.scrape_result[&#39;content&#39;]</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.context"><code class="name">var <span class="ident">context</span> : Dict</code></dt>
@@ -707,7 +865,7 @@ def success(self) -&gt; bool:
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.api_response.ScrapeApiResponse.handle_api_result"><code class="name flex">
-<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Union[Dict, NoneType]) ‑> Union[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>, NoneType]</span>
+<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Optional[Dict]) ‑> Optional[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -715,7 +873,7 @@ def success(self) -&gt; bool:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def handle_api_result(self, api_result:Optional[Dict]) -&gt; Optional[FrozenDict]:
+<pre><code class="python">def handle_api_result(self, api_result: Optional[Dict]) -&gt; Optional[FrozenDict]:
     if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
         return None
 
@@ -758,7 +916,7 @@ def success(self) -&gt; bool:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def raise_for_result(self, raise_on_upstream_error:bool=True):
+<pre><code class="python">def raise_for_result(self, raise_on_upstream_error: bool = True):
     if self.is_api_error is True:
         raise ErrorFactory.create(api_response=self)
 
@@ -772,8 +930,72 @@ def success(self) -&gt; bool:
             raise error</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.sink"><code class="name flex">
+<span>def <span class="ident">sink</span></span>(<span>self, path: Optional[str] = None, name: Optional[str] = None, file: Union[TextIO, _io.BytesIO, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def sink(self, path: Optional[str] = None, name: Optional[str] = None,
+         file: Optional[Union[TextIO, BytesIO]] = None):
+    file_content = self.scrape_result[&#39;content&#39;]
+    file_path = None
+    file_extension = None
+
+    if name:
+        name_parts = name.split(&#39;.&#39;)
+        if len(name_parts) &gt; 1:
+            file_extension = name_parts[-1]
+
+    if not file:
+        if file_extension is None:
+            try:
+                mime_type = self.scrape_result[&#39;response_headers&#39;][&#39;content-type&#39;]
+            except KeyError:
+                mime_type = &#39;application/octet-stream&#39;
+
+            if &#39;;&#39; in mime_type:
+                mime_type = mime_type.split(&#39;;&#39;)[0]
+
+            file_extension = &#39;.&#39; + mime_type.split(&#39;/&#39;)[1]
+
+        if not name:
+            name = self.config[&#39;url&#39;].split(&#39;/&#39;)[-1]
+
+        if name.find(file_extension) == -1:
+            name += file_extension
+
+        file_path = path + &#39;/&#39; + name if path else name
+
+        if file_path == file_extension:
+            url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, self.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
+
+            if url[-1] == &#39;-&#39;:
+                url = url[:-1]
+
+            url += file_extension
+
+            file_path = url
+
+        file = open(file_path, &#39;wb&#39;)
+
+    if isinstance(file_content, str):
+        file_content = BytesIO(file_content.encode(&#39;utf-8&#39;))
+    elif isinstance(file_content, bytes):
+        file_content = BytesIO(file_content)
+
+    file_content.seek(0)
+    with file as f:
+        shutil.copyfileobj(file_content, f, length=131072)
+
+    logger.info(&#39;file %s created&#39; % file_path)</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response"><code class="name flex">
-<span>def <span class="ident">upstream_result_into_response</span></span>(<span>self) ‑> Union[requests.models.Response, NoneType]</span>
+<span>def <span class="ident">upstream_result_into_response</span></span>(<span>self) ‑> Optional[requests.models.Response]</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -787,14 +1009,14 @@ def success(self) -&gt; bool:
     if self.result is None:
         return None
 
-    if self.is_scrape_engine_error is True: # Upstream website must have reply
+    if self.is_scrape_engine_error is True:  # Upstream website must have reply
         return None
 
     response = Response()
-
     response.status_code = self.result[&#39;result&#39;][&#39;status_code&#39;]
     response.reason = self.result[&#39;result&#39;][&#39;reason&#39;]
-    response._content = self.result[&#39;result&#39;][&#39;content&#39;].encode(&#39;utf-8&#39;) if self.result[&#39;result&#39;][&#39;content&#39;] else None
+    response._content = self.result[&#39;result&#39;][&#39;content&#39;].encode(&#39;utf-8&#39;) if self.result[&#39;result&#39;][
+        &#39;content&#39;] else None
     response.headers.update(self.result[&#39;result&#39;][&#39;response_headers&#39;])
     response.url = self.result[&#39;result&#39;][&#39;url&#39;]
 
@@ -837,7 +1059,8 @@ def success(self) -&gt; bool:
                     port=None,
                     port_specified=False,
                     domain_specified=cookie.get(&#39;domain&#39;) is not None and cookie.get(&#39;domain&#39;) != &#39;&#39;,
-                    domain_initial_dot=bool(cookie.get(&#39;domain&#39;).startswith(&#39;.&#39;)) if cookie.get(&#39;domain&#39;) is not None else False,
+                    domain_initial_dot=bool(cookie.get(&#39;domain&#39;).startswith(&#39;.&#39;)) if cookie.get(
+                        &#39;domain&#39;) is not None else False,
                     path_specified=cookie.get(&#39;path&#39;) != &#39;&#39; and cookie.get(&#39;path&#39;) is not None,
                     discard=False,
                     comment_url=None,
@@ -874,6 +1097,8 @@ def success(self) -&gt; bool:
 <ul class="">
 <li><code><a title="scrapfly.api_response.ResponseBodyHandler.JSONDateTimeDecoder" href="#scrapfly.api_response.ResponseBodyHandler.JSONDateTimeDecoder">JSONDateTimeDecoder</a></code></li>
 <li><code><a title="scrapfly.api_response.ResponseBodyHandler.SUPPORTED_COMPRESSION" href="#scrapfly.api_response.ResponseBodyHandler.SUPPORTED_COMPRESSION">SUPPORTED_COMPRESSION</a></code></li>
+<li><code><a title="scrapfly.api_response.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES" href="#scrapfly.api_response.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES">SUPPORTED_CONTENT_TYPES</a></code></li>
+<li><code><a title="scrapfly.api_response.ResponseBodyHandler.support" href="#scrapfly.api_response.ResponseBodyHandler.support">support</a></code></li>
 </ul>
 </li>
 <li>
@@ -888,6 +1113,7 @@ def success(self) -&gt; bool:
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.is_scrape_engine_error" href="#scrapfly.api_response.ScrapeApiResponse.is_scrape_engine_error">is_scrape_engine_error</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.raise_for_result" href="#scrapfly.api_response.ScrapeApiResponse.raise_for_result">raise_for_result</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.scrape_result" href="#scrapfly.api_response.ScrapeApiResponse.scrape_result">scrape_result</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.sink" href="#scrapfly.api_response.ScrapeApiResponse.sink">sink</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.status_code" href="#scrapfly.api_response.ScrapeApiResponse.status_code">status_code</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.success" href="#scrapfly.api_response.ScrapeApiResponse.success">success</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response" href="#scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response">upstream_result_into_response</a></code></li>
@@ -899,7 +1125,7 @@ def success(self) -&gt; bool:
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
 </footer>
 </body>
 </html>

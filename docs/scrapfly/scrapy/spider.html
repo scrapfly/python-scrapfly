@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>scrapfly.scrapy.spider API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.scrapy.spider</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import copy
+from typing import Dict, Iterable, Sequence
+
+import scrapy
+from scrapy.crawler import Crawler
+from scrapy.spiders import Rule
+from scrapy.utils.spider import iterate_spider_output
+
+from scrapfly import ScrapflyClient, ScrapeConfig
+from . import ScrapflyScrapyRequest, ScrapflyScrapyResponse
+
+
+class ScrapflySpider(scrapy.Spider):
+
+    scrapfly_client:ScrapflyClient
+    account_info:Dict
+
+    custom_settings:Dict = {
+        &#39;DOWNLOADER_MIDDLEWARES&#39;: {
+            &#39;scrapfly.scrapy.middleware.ScrapflyMiddleware&#39;: 725,
+            &#39;scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.useragent.UserAgentMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.redirect.RedirectMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.cookies.CookiesMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None
+        },
+        &#39;DOWNLOAD_HANDLERS_BASE&#39;: {
+            &#39;http&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;,
+            &#39;https&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;
+        },
+    }
+
+    def __init__(self, scrapfly_client:ScrapflyClient, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.scrapfly_client = scrapfly_client
+
+    def closed(self, reason:str):
+        self.scrapfly_client.close()
+
+    def start_requests(self) -&gt; Iterable[ScrapflyScrapyRequest]:
+        for scrape_config in self.start_urls:
+            if not isinstance(scrape_config, ScrapeConfig):
+                raise RuntimeError(&#39;start_urls must contains ScrapeConfig Object with ScrapflySpider&#39;)
+            yield ScrapflyScrapyRequest(scrape_config=scrape_config)
+
+    @classmethod
+    def from_crawler(cls, crawler:Crawler, *args, **kwargs):
+
+        scrapfly_client = ScrapflyClient(
+            key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
+            host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
+            verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
+            debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
+            distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
+            connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
+            read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
+        )
+
+        scrapfly_client.open()
+        spider = cls(*args, scrapfly_client=scrapfly_client, **kwargs)
+        spider._set_crawler(crawler)
+
+        return spider
+
+
+class ScrapflyCrawlSpider(ScrapflySpider):
+
+    def _scrape_config_factory(self, rule_index, link):
+        return ScrapeConfig(url=link.url)
+
+    def _build_request(self, rule_index, link):
+        return ScrapflyScrapyRequest(
+            scrape_config=self._scrape_config_factory(rule_index, link),
+            callback=self._callback,
+            errback=self._errback,
+            meta=dict(rule=rule_index, link_text=link.text),
+        )
+
+    rules: Sequence[Rule] = ()
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self._compile_rules()
+
+    def _parse(self, response, **kwargs):
+        return self._parse_response(
+            response=response,
+            callback=self.parse_start_url,
+            cb_kwargs=kwargs,
+            follow=True,
+        )
+
+    def parse_start_url(self, response, **kwargs):
+        return []
+
+    def process_results(self, response, results):
+        return results
+
+    def _requests_to_follow(self, response):
+        if not isinstance(response, ScrapflyScrapyResponse):
+            return
+
+        seen = set()
+
+        for rule_index, rule in enumerate(self._rules):
+
+            links = [lnk for lnk in rule.link_extractor.extract_links(response) if lnk not in seen]
+
+            for link in rule.process_links(links):
+                seen.add(link)
+                request = self._build_request(rule_index, link)
+                yield rule.process_request(request, response)
+
+    def _callback(self, response):
+        rule = self._rules[response.meta[&#39;rule&#39;]]
+        return self._parse_response(response, rule.callback, rule.cb_kwargs, rule.follow)
+
+    def _errback(self, failure):
+        rule = self._rules[failure.request.meta[&#39;rule&#39;]]
+        return self._handle_failure(failure, rule.errback)
+
+    def _parse_response(self, response, callback, cb_kwargs, follow=True):
+        if callback:
+            cb_res = callback(response, **cb_kwargs) or ()
+            cb_res = self.process_results(response, cb_res)
+            for request_or_item in iterate_spider_output(cb_res):
+                yield request_or_item
+
+        if follow and self._follow_links:
+            for request_or_item in self._requests_to_follow(response):
+                yield request_or_item
+
+    def _handle_failure(self, failure, errback):
+        if errback:
+            results = errback(failure) or ()
+            for request_or_item in iterate_spider_output(results):
+                yield request_or_item
+
+    def _compile_rules(self):
+        self._rules = []
+        for rule in self.rules:
+            self._rules.append(copy.copy(rule))
+            self._rules[-1]._compile(self)
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super().from_crawler(crawler, *args, **kwargs)
+        spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
+        return spider</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.scrapy.spider.ScrapflyCrawlSpider"><code class="flex name class">
+<span>class <span class="ident">ScrapflyCrawlSpider</span></span>
+<span>(</span><span>*a, **kw)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
+class.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyCrawlSpider(ScrapflySpider):
+
+    def _scrape_config_factory(self, rule_index, link):
+        return ScrapeConfig(url=link.url)
+
+    def _build_request(self, rule_index, link):
+        return ScrapflyScrapyRequest(
+            scrape_config=self._scrape_config_factory(rule_index, link),
+            callback=self._callback,
+            errback=self._errback,
+            meta=dict(rule=rule_index, link_text=link.text),
+        )
+
+    rules: Sequence[Rule] = ()
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self._compile_rules()
+
+    def _parse(self, response, **kwargs):
+        return self._parse_response(
+            response=response,
+            callback=self.parse_start_url,
+            cb_kwargs=kwargs,
+            follow=True,
+        )
+
+    def parse_start_url(self, response, **kwargs):
+        return []
+
+    def process_results(self, response, results):
+        return results
+
+    def _requests_to_follow(self, response):
+        if not isinstance(response, ScrapflyScrapyResponse):
+            return
+
+        seen = set()
+
+        for rule_index, rule in enumerate(self._rules):
+
+            links = [lnk for lnk in rule.link_extractor.extract_links(response) if lnk not in seen]
+
+            for link in rule.process_links(links):
+                seen.add(link)
+                request = self._build_request(rule_index, link)
+                yield rule.process_request(request, response)
+
+    def _callback(self, response):
+        rule = self._rules[response.meta[&#39;rule&#39;]]
+        return self._parse_response(response, rule.callback, rule.cb_kwargs, rule.follow)
+
+    def _errback(self, failure):
+        rule = self._rules[failure.request.meta[&#39;rule&#39;]]
+        return self._handle_failure(failure, rule.errback)
+
+    def _parse_response(self, response, callback, cb_kwargs, follow=True):
+        if callback:
+            cb_res = callback(response, **cb_kwargs) or ()
+            cb_res = self.process_results(response, cb_res)
+            for request_or_item in iterate_spider_output(cb_res):
+                yield request_or_item
+
+        if follow and self._follow_links:
+            for request_or_item in self._requests_to_follow(response):
+                yield request_or_item
+
+    def _handle_failure(self, failure, errback):
+        if errback:
+            results = errback(failure) or ()
+            for request_or_item in iterate_spider_output(results):
+                yield request_or_item
+
+    def _compile_rules(self):
+        self._rules = []
+        for rule in self.rules:
+            self._rules.append(copy.copy(rule))
+            self._rules[-1]._compile(self)
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super().from_crawler(crawler, *args, **kwargs)
+        spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
+        return spider</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.scrapy.spider.ScrapflySpider" href="#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></li>
+<li>scrapy.spiders.Spider</li>
+<li>scrapy.utils.trackref.object_ref</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.scrapy.spider.ScrapflyCrawlSpider.rules"><code class="name">var <span class="ident">rules</span> : Sequence[scrapy.spiders.crawl.Rule]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.spider.ScrapflyCrawlSpider.from_crawler"><code class="name flex">
+<span>def <span class="ident">from_crawler</span></span>(<span>crawler, *args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def from_crawler(cls, crawler, *args, **kwargs):
+    spider = super().from_crawler(crawler, *args, **kwargs)
+    spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
+    return spider</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.spider.ScrapflyCrawlSpider.parse_start_url"><code class="name flex">
+<span>def <span class="ident">parse_start_url</span></span>(<span>self, response, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def parse_start_url(self, response, **kwargs):
+    return []</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.spider.ScrapflyCrawlSpider.process_results"><code class="name flex">
+<span>def <span class="ident">process_results</span></span>(<span>self, response, results)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_results(self, response, results):
+    return results</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.scrapy.spider.ScrapflySpider"><code class="flex name class">
+<span>class <span class="ident">ScrapflySpider</span></span>
+<span>(</span><span>scrapfly_client: <a title="scrapfly.client.ScrapflyClient" href="../client.html#scrapfly.client.ScrapflyClient">ScrapflyClient</a>, *args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
+class.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflySpider(scrapy.Spider):
+
+    scrapfly_client:ScrapflyClient
+    account_info:Dict
+
+    custom_settings:Dict = {
+        &#39;DOWNLOADER_MIDDLEWARES&#39;: {
+            &#39;scrapfly.scrapy.middleware.ScrapflyMiddleware&#39;: 725,
+            &#39;scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.useragent.UserAgentMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.redirect.RedirectMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.cookies.CookiesMiddleware&#39;: None,
+            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None
+        },
+        &#39;DOWNLOAD_HANDLERS_BASE&#39;: {
+            &#39;http&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;,
+            &#39;https&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;
+        },
+    }
+
+    def __init__(self, scrapfly_client:ScrapflyClient, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.scrapfly_client = scrapfly_client
+
+    def closed(self, reason:str):
+        self.scrapfly_client.close()
+
+    def start_requests(self) -&gt; Iterable[ScrapflyScrapyRequest]:
+        for scrape_config in self.start_urls:
+            if not isinstance(scrape_config, ScrapeConfig):
+                raise RuntimeError(&#39;start_urls must contains ScrapeConfig Object with ScrapflySpider&#39;)
+            yield ScrapflyScrapyRequest(scrape_config=scrape_config)
+
+    @classmethod
+    def from_crawler(cls, crawler:Crawler, *args, **kwargs):
+
+        scrapfly_client = ScrapflyClient(
+            key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
+            host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
+            verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
+            debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
+            distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
+            connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
+            read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
+        )
+
+        scrapfly_client.open()
+        spider = cls(*args, scrapfly_client=scrapfly_client, **kwargs)
+        spider._set_crawler(crawler)
+
+        return spider</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>scrapy.spiders.Spider</li>
+<li>scrapy.utils.trackref.object_ref</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.scrapy.spider.ScrapflyCrawlSpider" href="#scrapfly.scrapy.spider.ScrapflyCrawlSpider">ScrapflyCrawlSpider</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.scrapy.spider.ScrapflySpider.account_info"><code class="name">var <span class="ident">account_info</span> : Dict</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrapy.spider.ScrapflySpider.custom_settings"><code class="name">var <span class="ident">custom_settings</span> : Dict</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client"><code class="name">var <span class="ident">scrapfly_client</span> : <a title="scrapfly.client.ScrapflyClient" href="../client.html#scrapfly.client.ScrapflyClient">ScrapflyClient</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.spider.ScrapflySpider.from_crawler"><code class="name flex">
+<span>def <span class="ident">from_crawler</span></span>(<span>crawler: scrapy.crawler.Crawler, *args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def from_crawler(cls, crawler:Crawler, *args, **kwargs):
+
+    scrapfly_client = ScrapflyClient(
+        key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
+        host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
+        verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
+        debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
+        distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
+        connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
+        read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
+    )
+
+    scrapfly_client.open()
+    spider = cls(*args, scrapfly_client=scrapfly_client, **kwargs)
+    spider._set_crawler(crawler)
+
+    return spider</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.spider.ScrapflySpider.closed"><code class="name flex">
+<span>def <span class="ident">closed</span></span>(<span>self, reason: str)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def closed(self, reason:str):
+    self.scrapfly_client.close()</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.spider.ScrapflySpider.start_requests"><code class="name flex">
+<span>def <span class="ident">start_requests</span></span>(<span>self) ‑> Iterable[<a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def start_requests(self) -&gt; Iterable[ScrapflyScrapyRequest]:
+    for scrape_config in self.start_urls:
+        if not isinstance(scrape_config, ScrapeConfig):
+            raise RuntimeError(&#39;start_urls must contains ScrapeConfig Object with ScrapflySpider&#39;)
+        yield ScrapflyScrapyRequest(scrape_config=scrape_config)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly.scrapy" href="index.html">scrapfly.scrapy</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.scrapy.spider.ScrapflyCrawlSpider" href="#scrapfly.scrapy.spider.ScrapflyCrawlSpider">ScrapflyCrawlSpider</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.spider.ScrapflyCrawlSpider.from_crawler" href="#scrapfly.scrapy.spider.ScrapflyCrawlSpider.from_crawler">from_crawler</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflyCrawlSpider.parse_start_url" href="#scrapfly.scrapy.spider.ScrapflyCrawlSpider.parse_start_url">parse_start_url</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflyCrawlSpider.process_results" href="#scrapfly.scrapy.spider.ScrapflyCrawlSpider.process_results">process_results</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflyCrawlSpider.rules" href="#scrapfly.scrapy.spider.ScrapflyCrawlSpider.rules">rules</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.scrapy.spider.ScrapflySpider" href="#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.account_info" href="#scrapfly.scrapy.spider.ScrapflySpider.account_info">account_info</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.closed" href="#scrapfly.scrapy.spider.ScrapflySpider.closed">closed</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.custom_settings" href="#scrapfly.scrapy.spider.ScrapflySpider.custom_settings">custom_settings</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.from_crawler" href="#scrapfly.scrapy.spider.ScrapflySpider.from_crawler">from_crawler</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client" href="#scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client">scrapfly_client</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.start_requests" href="#scrapfly.scrapy.spider.ScrapflySpider.start_requests">start_requests</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>

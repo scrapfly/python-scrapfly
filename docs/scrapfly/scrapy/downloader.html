@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>scrapfly.scrapy.downloader API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.scrapy.downloader</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import requests
+
+from io import BytesIO
+
+import zlib
+from requests.structures import CaseInsensitiveDict
+from twisted.internet.protocol import Protocol
+from twisted.web.iweb import IBodyProducer
+
+from urllib.parse import urlencode
+
+from twisted.web._newclient import Response
+from twisted.internet.defer import succeed, Deferred
+from twisted.web.client import Agent
+from twisted.internet import reactor
+from twisted.web.http_headers import Headers
+from zope.interface import implementer
+
+from . import ScrapflyScrapyRequest, ScrapflySpider, ScrapflyScrapyResponse
+
+
+class ScrapflyHTTPDownloader:
+
+    def __init__(self, settings, crawler=None):
+        self._crawler = crawler
+        self.agent = Agent(reactor)
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings, crawler)
+
+    def _cb_bodydone(self, twisted_response:Response, request:ScrapflyScrapyRequest, spider:ScrapflySpider) -&gt; Deferred:
+
+        headers = CaseInsensitiveDict()
+        status_code = twisted_response.code
+        reason = twisted_response.phrase.decode(&#39;utf-8&#39;)
+
+        for name, values in twisted_response.headers.getAllRawHeaders():
+            headers[name.decode(&#39;utf-8&#39;)] = &#39;; &#39;.join([value.decode(&#39;utf-8&#39;) for value in values])
+
+        defered = Deferred()
+        body_receiver = BodyReceiver(defered)
+
+        def on_body_downloaded(body):
+            if &#39;content-encoding&#39; in headers:
+                if headers[&#39;content-encoding&#39;] == &#39;gzip&#39;:
+                    body = zlib.decompress(body, 16+zlib.MAX_WBITS)
+                elif headers[&#39;content-encoding&#39;] == &#39;br&#39;:
+                    try:
+                        from brotli import brotli
+                    except ImportError:
+                        print(&#39;You must run pip install scrapfly-sdk[speedups]&#39;)
+                        raise
+
+                    body = brotli.decompress(body)
+
+            response = requests.Response()
+            response.status_code = status_code
+            response.reason = reason
+            response._content = body
+
+            response.headers.update(headers)
+            response.url = request.url
+
+            return ScrapflyScrapyResponse(
+                request=request,
+                scrape_api_response=spider.scrapfly_client._handle_response(response=response, scrape_config=request.scrape_config)
+            )
+
+        defered.addCallback(on_body_downloaded)
+        twisted_response.deliverBody(body_receiver)
+
+        return defered
+
+    def download_request(self, request, spider):
+        if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):
+            return None
+
+        request_data = spider.scrapfly_client._scrape_request(scrape_config=request.scrape_config)
+
+        uri = &#39;%s?%s&#39; % (request_data[&#39;url&#39;], urlencode(request_data[&#39;params&#39;]))
+
+        request_kwargs = {
+            &#39;method&#39;: request_data[&#39;method&#39;].encode(&#39;utf-8&#39;),
+            &#39;uri&#39;: uri.encode(&#39;utf-8&#39;),
+            &#39;headers&#39;: Headers({name: [value] for name, value in request_data[&#39;headers&#39;].items()})
+        }
+
+        if request_data[&#39;method&#39;] in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
+            request_kwargs[&#39;bodyProducer&#39;] = BodyProducer(request_data[&#39;body&#39;].encode(&#39;utf-8&#39;))
+
+        d = self.agent.request(**request_kwargs)
+        d.addCallback(self._cb_bodydone, request, spider)
+
+        return d
+
+    def close(self):
+        pass
+
+
+class BinaryBody(BytesIO):
+
+    def __init__(self, body:BytesIO):
+        self.body = body
+        BytesIO.__init__(self)
+
+    def encode(self, encoding:str):
+        pass
+
+
+class BodyReceiver(Protocol):
+
+    def __init__(self, defered:Deferred):
+        self.defered = defered
+        self.content = BytesIO()
+
+    def dataReceived(self, bytes):
+        self.content.write(bytes)
+
+    def connectionLost(self, reason):
+        self.defered.callback(self.content.getvalue())
+
+
+@implementer(IBodyProducer)
+class BodyProducer(object):
+    def __init__(self, body):
+        self.body = body
+        self.length = len(body)
+
+    def startProducing(self, consumer):
+        consumer.write(self.body)
+        return succeed(None)
+
+    def pauseProducing(self):
+        pass
+
+    def stopProducing(self):
+        pass</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.scrapy.downloader.BinaryBody"><code class="flex name class">
+<span>class <span class="ident">BinaryBody</span></span>
+<span>(</span><span>body: _io.BytesIO)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Buffered I/O implementation using an in-memory bytes buffer.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class BinaryBody(BytesIO):
+
+    def __init__(self, body:BytesIO):
+        self.body = body
+        BytesIO.__init__(self)
+
+    def encode(self, encoding:str):
+        pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>_io.BytesIO</li>
+<li>_io._BufferedIOBase</li>
+<li>_io._IOBase</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.downloader.BinaryBody.encode"><code class="name flex">
+<span>def <span class="ident">encode</span></span>(<span>self, encoding: str)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def encode(self, encoding:str):
+    pass</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.scrapy.downloader.BodyProducer"><code class="flex name class">
+<span>class <span class="ident">BodyProducer</span></span>
+<span>(</span><span>body)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@implementer(IBodyProducer)
+class BodyProducer(object):
+    def __init__(self, body):
+        self.body = body
+        self.length = len(body)
+
+    def startProducing(self, consumer):
+        consumer.write(self.body)
+        return succeed(None)
+
+    def pauseProducing(self):
+        pass
+
+    def stopProducing(self):
+        pass</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.downloader.BodyProducer.pauseProducing"><code class="name flex">
+<span>def <span class="ident">pauseProducing</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pauseProducing(self):
+    pass</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.downloader.BodyProducer.startProducing"><code class="name flex">
+<span>def <span class="ident">startProducing</span></span>(<span>self, consumer)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def startProducing(self, consumer):
+    consumer.write(self.body)
+    return succeed(None)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.downloader.BodyProducer.stopProducing"><code class="name flex">
+<span>def <span class="ident">stopProducing</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def stopProducing(self):
+    pass</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.scrapy.downloader.BodyReceiver"><code class="flex name class">
+<span>class <span class="ident">BodyReceiver</span></span>
+<span>(</span><span>defered: twisted.internet.defer.Deferred)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This is the base class for streaming connection-oriented protocols.</p>
+<p>If you are going to write a new connection-oriented protocol for Twisted,
+start here.
+Any protocol implementation, either client or server, should
+be a subclass of this class.</p>
+<p>The API is quite simple.
+Implement L{dataReceived} to handle both
+event-based and synchronous input; output can be sent through the
+'transport' attribute, which is to be an instance that implements
+L{twisted.internet.interfaces.ITransport}.
+Override C{connectionLost} to be
+notified when the connection ends.</p>
+<p>Some subclasses exist already to help you write common types of protocols:
+see the L{twisted.protocols.basic} module for a few of them.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class BodyReceiver(Protocol):
+
+    def __init__(self, defered:Deferred):
+        self.defered = defered
+        self.content = BytesIO()
+
+    def dataReceived(self, bytes):
+        self.content.write(bytes)
+
+    def connectionLost(self, reason):
+        self.defered.callback(self.content.getvalue())</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>twisted.internet.protocol.Protocol</li>
+<li>twisted.internet.protocol.BaseProtocol</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.downloader.BodyReceiver.connectionLost"><code class="name flex">
+<span>def <span class="ident">connectionLost</span></span>(<span>self, reason)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Called when the connection is shut down.</p>
+<p>Clear any circular references here, and any external references
+to this Protocol.
+The connection has been closed.</p>
+<p>@type reason: L{twisted.python.failure.Failure}</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def connectionLost(self, reason):
+    self.defered.callback(self.content.getvalue())</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.downloader.BodyReceiver.dataReceived"><code class="name flex">
+<span>def <span class="ident">dataReceived</span></span>(<span>self, bytes)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Called whenever data is received.</p>
+<p>Use this method to translate to a higher-level message.
+Usually, some
+callback will be made upon the receipt of each complete protocol
+message.</p>
+<p>@param data: a string of indeterminate length.
+Please keep in mind
+that you will probably need to buffer some data, as partial
+(or multiple) protocol messages may be received!
+I recommend
+that unit tests for protocols call through to this method with
+differing chunk sizes, down to one byte at a time.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def dataReceived(self, bytes):
+    self.content.write(bytes)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader"><code class="flex name class">
+<span>class <span class="ident">ScrapflyHTTPDownloader</span></span>
+<span>(</span><span>settings, crawler=None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyHTTPDownloader:
+
+    def __init__(self, settings, crawler=None):
+        self._crawler = crawler
+        self.agent = Agent(reactor)
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings, crawler)
+
+    def _cb_bodydone(self, twisted_response:Response, request:ScrapflyScrapyRequest, spider:ScrapflySpider) -&gt; Deferred:
+
+        headers = CaseInsensitiveDict()
+        status_code = twisted_response.code
+        reason = twisted_response.phrase.decode(&#39;utf-8&#39;)
+
+        for name, values in twisted_response.headers.getAllRawHeaders():
+            headers[name.decode(&#39;utf-8&#39;)] = &#39;; &#39;.join([value.decode(&#39;utf-8&#39;) for value in values])
+
+        defered = Deferred()
+        body_receiver = BodyReceiver(defered)
+
+        def on_body_downloaded(body):
+            if &#39;content-encoding&#39; in headers:
+                if headers[&#39;content-encoding&#39;] == &#39;gzip&#39;:
+                    body = zlib.decompress(body, 16+zlib.MAX_WBITS)
+                elif headers[&#39;content-encoding&#39;] == &#39;br&#39;:
+                    try:
+                        from brotli import brotli
+                    except ImportError:
+                        print(&#39;You must run pip install scrapfly-sdk[speedups]&#39;)
+                        raise
+
+                    body = brotli.decompress(body)
+
+            response = requests.Response()
+            response.status_code = status_code
+            response.reason = reason
+            response._content = body
+
+            response.headers.update(headers)
+            response.url = request.url
+
+            return ScrapflyScrapyResponse(
+                request=request,
+                scrape_api_response=spider.scrapfly_client._handle_response(response=response, scrape_config=request.scrape_config)
+            )
+
+        defered.addCallback(on_body_downloaded)
+        twisted_response.deliverBody(body_receiver)
+
+        return defered
+
+    def download_request(self, request, spider):
+        if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):
+            return None
+
+        request_data = spider.scrapfly_client._scrape_request(scrape_config=request.scrape_config)
+
+        uri = &#39;%s?%s&#39; % (request_data[&#39;url&#39;], urlencode(request_data[&#39;params&#39;]))
+
+        request_kwargs = {
+            &#39;method&#39;: request_data[&#39;method&#39;].encode(&#39;utf-8&#39;),
+            &#39;uri&#39;: uri.encode(&#39;utf-8&#39;),
+            &#39;headers&#39;: Headers({name: [value] for name, value in request_data[&#39;headers&#39;].items()})
+        }
+
+        if request_data[&#39;method&#39;] in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
+            request_kwargs[&#39;bodyProducer&#39;] = BodyProducer(request_data[&#39;body&#39;].encode(&#39;utf-8&#39;))
+
+        d = self.agent.request(**request_kwargs)
+        d.addCallback(self._cb_bodydone, request, spider)
+
+        return d
+
+    def close(self):
+        pass</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.from_crawler"><code class="name flex">
+<span>def <span class="ident">from_crawler</span></span>(<span>crawler)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def from_crawler(cls, crawler):
+    return cls(crawler.settings, crawler)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.close"><code class="name flex">
+<span>def <span class="ident">close</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def close(self):
+    pass</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.download_request"><code class="name flex">
+<span>def <span class="ident">download_request</span></span>(<span>self, request, spider)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def download_request(self, request, spider):
+    if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):
+        return None
+
+    request_data = spider.scrapfly_client._scrape_request(scrape_config=request.scrape_config)
+
+    uri = &#39;%s?%s&#39; % (request_data[&#39;url&#39;], urlencode(request_data[&#39;params&#39;]))
+
+    request_kwargs = {
+        &#39;method&#39;: request_data[&#39;method&#39;].encode(&#39;utf-8&#39;),
+        &#39;uri&#39;: uri.encode(&#39;utf-8&#39;),
+        &#39;headers&#39;: Headers({name: [value] for name, value in request_data[&#39;headers&#39;].items()})
+    }
+
+    if request_data[&#39;method&#39;] in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
+        request_kwargs[&#39;bodyProducer&#39;] = BodyProducer(request_data[&#39;body&#39;].encode(&#39;utf-8&#39;))
+
+    d = self.agent.request(**request_kwargs)
+    d.addCallback(self._cb_bodydone, request, spider)
+
+    return d</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly.scrapy" href="index.html">scrapfly.scrapy</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.scrapy.downloader.BinaryBody" href="#scrapfly.scrapy.downloader.BinaryBody">BinaryBody</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.downloader.BinaryBody.encode" href="#scrapfly.scrapy.downloader.BinaryBody.encode">encode</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.scrapy.downloader.BodyProducer" href="#scrapfly.scrapy.downloader.BodyProducer">BodyProducer</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.downloader.BodyProducer.pauseProducing" href="#scrapfly.scrapy.downloader.BodyProducer.pauseProducing">pauseProducing</a></code></li>
+<li><code><a title="scrapfly.scrapy.downloader.BodyProducer.startProducing" href="#scrapfly.scrapy.downloader.BodyProducer.startProducing">startProducing</a></code></li>
+<li><code><a title="scrapfly.scrapy.downloader.BodyProducer.stopProducing" href="#scrapfly.scrapy.downloader.BodyProducer.stopProducing">stopProducing</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.scrapy.downloader.BodyReceiver" href="#scrapfly.scrapy.downloader.BodyReceiver">BodyReceiver</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.downloader.BodyReceiver.connectionLost" href="#scrapfly.scrapy.downloader.BodyReceiver.connectionLost">connectionLost</a></code></li>
+<li><code><a title="scrapfly.scrapy.downloader.BodyReceiver.dataReceived" href="#scrapfly.scrapy.downloader.BodyReceiver.dataReceived">dataReceived</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader" href="#scrapfly.scrapy.downloader.ScrapflyHTTPDownloader">ScrapflyHTTPDownloader</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.close" href="#scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.close">close</a></code></li>
+<li><code><a title="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.download_request" href="#scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.download_request">download_request</a></code></li>
+<li><code><a title="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.from_crawler" href="#scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.from_crawler">from_crawler</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>
