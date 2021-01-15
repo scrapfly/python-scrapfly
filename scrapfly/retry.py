@@ -7,6 +7,7 @@ from decorator import decorator
 
 logger.getLogger('scrapfly')
 
+
 class RetryBudgetExceeded(BaseException):
 
     def __init__(self, tries:int, delay:int, retried_error:BaseException):

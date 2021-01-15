@@ -159,7 +159,7 @@ class ScrapeConfig:
             params['cache_ttl'] = self.cache_ttl
 
         if self.graphql:
-            params['graphql'] = quote(self.graphql)
+            params['graphql_query'] = quote(self.graphql)
 
         if self.js:
             params['js'] = b64encode(self.js.encode('utf-8')).decode('utf-8')

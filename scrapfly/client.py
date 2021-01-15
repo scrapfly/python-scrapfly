@@ -86,24 +86,17 @@ class ScrapflyClient:
 
     def _scrape_request(self, scrape_config:ScrapeConfig):
 
-        if not scrape_config.graphql:
-            url = self.host + '/scrape'
-            method = scrape_config.method
-        else:
-            url = self.host + '/graphql'
-            method = 'POST'
-
         if self.distributed_mode is True and scrape_config.correlation_id is None:
             scrape_config.generate_distributed_correlation_id()
 
         return {
-            'method': method,
-            'url': url,
+            'method': scrape_config.method,
+            'url': self.host + '/scrape',
             'data': scrape_config.body,
             'verify': self.verify,
             'timeout': (self.connect_timeout, self.read_timeout),
             'headers': {
-                'content-type': scrape_config.headers['content-type'] if method in ['POST', 'PUT', 'PATCH'] else self.body_handler.content_type,
+                'content-type': scrape_config.headers['content-type'] if scrape_config.method in ['POST', 'PUT', 'PATCH'] else self.body_handler.content_type,
                 'accept-encoding': self.body_handler.content_encoding,
                 'accept': self.body_handler.accept,
                 'user-agent': self.ua
@@ -115,7 +108,7 @@ class ScrapflyClient:
         http_handler = partial(self.http_session.request if self.http_session else requests.request)
         response = http_handler('GET', self.host + '/account', params={'key': self.key})
 
-        self.raise_for_api_status(response=response)
+        response.raise_for_status()
 
         if self.body_handler.support(response.headers):
             return self.body_handler(response.content)
@@ -177,7 +170,12 @@ class ScrapflyClient:
             return await self.async_scrape(scrape_config=scrape_config)
 
         async with AioPool(size=concurrency) as pool:
-            [futures.append(await pool.spawn(call(scrape_config))) for scrape_config in scrape_configs]
+            for index, scrape_config in enumerate(scrape_configs):
+                # handle concurrent session access correctly to prevent 429 session concurrent access
+                if (scrape_config.session is not None or scrape_config.asp is True) and not scrape_config.correlation_id:
+                    scrape_config.correlation_id = 'concurrent_slot_' + str(index)
+
+                futures.append(await pool.spawn(call(scrape_config)))
 
         return [future.result() for future in futures]
 
@@ -303,32 +301,12 @@ class ScrapflyClient:
 
         logger.info('file %s created' % file_path)
 
-    @staticmethod
-    def raise_for_api_status(response:Response):
-
-        try:
-            response.raise_for_status()
-        except RequestsHTTPError as e:
-
-            if e.response is None:
-                raise RequestsHTTPError(request=e.request, response=e.response) from e
-
-            if 400 <= e.response < 500:
-                raise ApiHttpClientError(request=e.request) from e
-            else:
-                raise ApiHttpServerError(request=e.request, response=e.response) from e
-
-        except RequestException as e:
-            raise RequestsHTTPError(request=e.request, response=e.response) from e
-
     def _handle_api_response(
         self,
         response: Response,
         scrape_config:ScrapeConfig,
         raise_on_upstream_error: Optional[bool] = True
     ) -> ScrapeApiResponse:
-
-        self.raise_for_api_status(response=response)
 
         if self.body_handler.support(headers=response.headers):
             result = self.body_handler(response.content)
@@ -341,6 +319,7 @@ class ScrapflyClient:
             api_result=result,
             scrape_config=scrape_config
         )
+
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
 
         return api_response
