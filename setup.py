@@ -44,9 +44,10 @@ EXTRA_DEPENDENCIES = {
         'bumpversion',
         'isort',
         'readme_renderer',
+        'twine',
         'setuptools >= 39.2.0',
         'wheel',
-        'pdoc'
+        'pdoc3'
     ],
     'scrapy': [
         'scrapy >= 2.4.0'
