@@ -29,7 +29,7 @@
 <pre><code class="python">from io import BytesIO
 from typing import Union, Dict, Optional, TextIO
 
-from scrapy.http import TextResponse
+from scrapy.http import TextResponse, HtmlResponse, XmlResponse
 
 from .. import ScrapeApiResponse, ScrapeConfig
 from .request import ScrapflyScrapyRequest
@@ -92,6 +92,17 @@ class ScrapflyScrapyResponse(TextResponse):
             request=request,
             ip_address=self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;]
         )
+
+    @property
+    def __class__(self):
+        response_headers = self.scrape_api_response.scrape_result[&#39;response_headers&#39;]
+
+        if &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;text/html&#39;) &gt;= 0:
+            return HtmlResponse
+        elif &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;application/xml&#39;) &gt;= 0:
+            return XmlResponse
+        else:
+            return TextResponse
 
     def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
         self.scrape_api_response.sink(path=path, name=name, file=file)</code></pre>
@@ -173,6 +184,17 @@ class ScrapflyScrapyResponse(TextResponse):
             request=request,
             ip_address=self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;]
         )
+
+    @property
+    def __class__(self):
+        response_headers = self.scrape_api_response.scrape_result[&#39;response_headers&#39;]
+
+        if &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;text/html&#39;) &gt;= 0:
+            return HtmlResponse
+        elif &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;application/xml&#39;) &gt;= 0:
+            return XmlResponse
+        else:
+            return TextResponse
 
     def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
         self.scrape_api_response.sink(path=path, name=name, file=file)</code></pre>

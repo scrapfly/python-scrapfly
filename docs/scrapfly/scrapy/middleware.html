@@ -26,7 +26,9 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from typing import Union, Optional
+<pre><code class="python">import uuid
+from os import environ
+from typing import Union, Optional
 
 from scrapy import Spider
 from scrapy.http import Request
@@ -37,6 +39,11 @@ from .response import ScrapflyScrapyResponse
 
 
 class ScrapflyMiddleware:
+
+    run_id:str
+
+    def __init__(self):
+        self.run_id = environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())
 
     def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
@@ -49,6 +56,7 @@ class ScrapflyMiddleware:
             request.scrape_config.tags = []
 
         request.scrape_config.tags.append(spider.name)
+        request.scrape_config.tags.append(self.run_id)
 
         return None</code></pre>
 </details>
@@ -73,6 +81,11 @@ class ScrapflyMiddleware:
 </summary>
 <pre><code class="python">class ScrapflyMiddleware:
 
+    run_id:str
+
+    def __init__(self):
+        self.run_id = environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())
+
     def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
             return None
@@ -84,9 +97,17 @@ class ScrapflyMiddleware:
             request.scrape_config.tags = []
 
         request.scrape_config.tags.append(spider.name)
+        request.scrape_config.tags.append(self.run_id)
 
         return None</code></pre>
 </details>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.run_id"><code class="name">var <span class="ident">run_id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request"><code class="name flex">
@@ -109,6 +130,7 @@ class ScrapflyMiddleware:
         request.scrape_config.tags = []
 
     request.scrape_config.tags.append(spider.name)
+    request.scrape_config.tags.append(self.run_id)
 
     return None</code></pre>
 </details>
@@ -135,6 +157,7 @@ class ScrapflyMiddleware:
 <h4><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware">ScrapflyMiddleware</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request">process_request</a></code></li>
+<li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.run_id" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.run_id">run_id</a></code></li>
 </ul>
 </li>
 </ul>

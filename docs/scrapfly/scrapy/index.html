@@ -104,6 +104,7 @@ class.</p></div>
         self._compile_rules()
 
     def _parse(self, response, **kwargs):
+
         return self._parse_response(
             response=response,
             callback=self.parse_start_url,
@@ -242,6 +243,11 @@ def from_crawler(cls, crawler, *args, **kwargs):
 </summary>
 <pre><code class="python">class ScrapflyMiddleware:
 
+    run_id:str
+
+    def __init__(self):
+        self.run_id = environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())
+
     def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
             return None
@@ -253,9 +259,17 @@ def from_crawler(cls, crawler, *args, **kwargs):
             request.scrape_config.tags = []
 
         request.scrape_config.tags.append(spider.name)
+        request.scrape_config.tags.append(self.run_id)
 
         return None</code></pre>
 </details>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.scrapy.ScrapflyMiddleware.run_id"><code class="name">var <span class="ident">run_id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.process_request"><code class="name flex">
@@ -278,6 +292,7 @@ def from_crawler(cls, crawler, *args, **kwargs):
         request.scrape_config.tags = []
 
     request.scrape_config.tags.append(spider.name)
+    request.scrape_config.tags.append(self.run_id)
 
     return None</code></pre>
 </details>
@@ -504,6 +519,17 @@ def from_crawler(cls, crawler, *args, **kwargs):
             ip_address=self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;]
         )
 
+    @property
+    def __class__(self):
+        response_headers = self.scrape_api_response.scrape_result[&#39;response_headers&#39;]
+
+        if &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;text/html&#39;) &gt;= 0:
+            return HtmlResponse
+        elif &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;application/xml&#39;) &gt;= 0:
+            return XmlResponse
+        else:
+            return TextResponse
+
     def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
         self.scrape_api_response.sink(path=path, name=name, file=file)</code></pre>
 </details>
@@ -651,6 +677,7 @@ class.</p></div>
 
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
+        crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
         scrapfly_client = ScrapflyClient(
             key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
@@ -705,6 +732,7 @@ class.</p></div>
 </summary>
 <pre><code class="python">@classmethod
 def from_crawler(cls, crawler:Crawler, *args, **kwargs):
+    crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
     scrapfly_client = ScrapflyClient(
         key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
@@ -795,6 +823,7 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 <h4><code><a title="scrapfly.scrapy.ScrapflyMiddleware" href="#scrapfly.scrapy.ScrapflyMiddleware">ScrapflyMiddleware</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.process_request" href="#scrapfly.scrapy.ScrapflyMiddleware.process_request">process_request</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.run_id" href="#scrapfly.scrapy.ScrapflyMiddleware.run_id">run_id</a></code></li>
 </ul>
 </li>
 <li>

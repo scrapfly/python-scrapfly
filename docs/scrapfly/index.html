@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.6.0&#39;
+<pre><code class="python">__version__ = &#39;0.7.0&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -44,7 +44,6 @@ from .errors import UpstreamHttpClientError
 from .errors import UpstreamHttpServerError
 from .errors import ApiHttpClientError
 from .errors import ApiHttpServerError
-from .retry import RetryBudgetExceeded
 from .api_response import ScrapeApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient
 from .scrape_config import ScrapeConfig
@@ -63,7 +62,6 @@ __all__:Tuple[str, ...] = (
     &#39;ApiHttpClientError&#39;,
     &#39;ApiHttpServerError&#39;,
     &#39;EncoderError&#39;,
-    &#39;RetryBudgetExceeded&#39;,
     &#39;ScrapeApiResponse&#39;,
     &#39;ErrorFactory&#39;,
     &#39;HttpError&#39;,
@@ -89,10 +87,6 @@ __all__:Tuple[str, ...] = (
 <div class="desc"></div>
 </dd>
 <dt><code class="name"><a title="scrapfly.frozen_dict" href="frozen_dict.html">scrapfly.frozen_dict</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="scrapfly.retry" href="retry.html">scrapfly.retry</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -564,33 +558,6 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </details>
 </dd>
 </dl>
-</dd>
-<dt id="scrapfly.RetryBudgetExceeded"><code class="flex name class">
-<span>class <span class="ident">RetryBudgetExceeded</span></span>
-<span>(</span><span>tries: int, delay: int, retried_error: BaseException)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class RetryBudgetExceeded(BaseException):
-
-    def __init__(self, tries:int, delay:int, retried_error:BaseException):
-        super().__init__(&#39;Retry Budget Exceeded&#39;)
-
-        self.tries = tries
-        self.delay = delay
-        self.retried_error = retried_error
-
-    def __str__(self):
-        return &#39;Error %s has been retried %s times. %s&#39; % (type(self.retried_error), self.tries, str(self.retried_error))</code></pre>
-</details>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li>builtins.BaseException</li>
-</ul>
 </dd>
 <dt id="scrapfly.ScrapeApiResponse"><code class="flex name class">
 <span>class <span class="ident">ScrapeApiResponse</span></span>
@@ -1536,14 +1503,20 @@ def success(self) -&gt; bool:
     def resilient_scrape(
         self,
         scrape_config:ScrapeConfig,
-        retry_on_errors:Union[Exception, Tuple[Exception, ...]]=None,
+        retry_on_errors:Optional[Set[Exception]]=None,
         tries: int = 5,
         delay: int = 20,
     ) -&gt; ScrapeApiResponse:
-        if retry_on_errors is None:
-            retry_on_errors = [ScrapflyError]  # Retry on all retryable error from Scrapfly
 
-        @retry(retry_on_errors, tries=tries, delay=delay)
+        if not isinstance(retry_on_errors, Set) and isinstance(retry_on_errors, Iterable): # keep compat
+            retry_on_errors = set(retry_on_errors)
+
+        retryable_errors = retry_on_errors or {ScrapflyError}
+
+        if retry_on_errors is not None:
+            retryable_errors += retry_on_errors
+
+        @backoff.on_exception(backoff.expo, exception=retryable_errors, max_tries=tries, max_time=delay)
         def inner() -&gt; ScrapeApiResponse:
             return self.scrape(scrape_config=scrape_config)
 
@@ -1597,7 +1570,7 @@ def success(self) -&gt; bool:
 
         return [future.result() for future in futures]
 
-    @retry(exceptions=NetworkError, tries=5, delay=2)
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
     def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
         request_data = self._scrape_request(scrape_config=scrape_config)
@@ -1633,6 +1606,10 @@ def success(self) -&gt; bool:
                 logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.response.request.url))
             else:
                 logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+
+                if scrape_config.asp is False and e.api_response.status_code in [403, 429, 999]:
+                    logger.warning(&#39;Enable ASP to bypass anti bot solution for better success rate. Checkout: https://scrapfly.io/docs/scrape-api/anti-scraping-protection&#39;)
+
             raise
         except ScrapflyError as e:
             logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
@@ -1894,7 +1871,7 @@ def success(self) -&gt; bool:
 </details>
 </dd>
 <dt id="scrapfly.ScrapflyClient.resilient_scrape"><code class="name flex">
-<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Union[Exception, Tuple[Exception, ...]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Optional[Set[Exception]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1905,14 +1882,20 @@ def success(self) -&gt; bool:
 <pre><code class="python">def resilient_scrape(
     self,
     scrape_config:ScrapeConfig,
-    retry_on_errors:Union[Exception, Tuple[Exception, ...]]=None,
+    retry_on_errors:Optional[Set[Exception]]=None,
     tries: int = 5,
     delay: int = 20,
 ) -&gt; ScrapeApiResponse:
-    if retry_on_errors is None:
-        retry_on_errors = [ScrapflyError]  # Retry on all retryable error from Scrapfly
 
-    @retry(retry_on_errors, tries=tries, delay=delay)
+    if not isinstance(retry_on_errors, Set) and isinstance(retry_on_errors, Iterable): # keep compat
+        retry_on_errors = set(retry_on_errors)
+
+    retryable_errors = retry_on_errors or {ScrapflyError}
+
+    if retry_on_errors is not None:
+        retryable_errors += retry_on_errors
+
+    @backoff.on_exception(backoff.expo, exception=retryable_errors, max_tries=tries, max_time=delay)
     def inner() -&gt; ScrapeApiResponse:
         return self.scrape(scrape_config=scrape_config)
 
@@ -1928,7 +1911,7 @@ def success(self) -&gt; bool:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">@retry(exceptions=NetworkError, tries=5, delay=2)
+<pre><code class="python">@backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
 def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
     logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
     request_data = self._scrape_request(scrape_config=scrape_config)
@@ -2343,7 +2326,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.client" href="client.html">scrapfly.client</a></code></li>
 <li><code><a title="scrapfly.errors" href="errors.html">scrapfly.errors</a></code></li>
 <li><code><a title="scrapfly.frozen_dict" href="frozen_dict.html">scrapfly.frozen_dict</a></code></li>
-<li><code><a title="scrapfly.retry" href="retry.html">scrapfly.retry</a></code></li>
 <li><code><a title="scrapfly.scrape_config" href="scrape_config.html">scrapfly.scrape_config</a></code></li>
 <li><code><a title="scrapfly.scrapy" href="scrapy/index.html">scrapfly.scrapy</a></code></li>
 </ul>
@@ -2378,9 +2360,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES" href="#scrapfly.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES">SUPPORTED_CONTENT_TYPES</a></code></li>
 <li><code><a title="scrapfly.ResponseBodyHandler.support" href="#scrapfly.ResponseBodyHandler.support">support</a></code></li>
 </ul>
-</li>
-<li>
-<h4><code><a title="scrapfly.RetryBudgetExceeded" href="#scrapfly.RetryBudgetExceeded">RetryBudgetExceeded</a></code></h4>
 </li>
 <li>
 <h4><code><a title="scrapfly.ScrapeApiResponse" href="#scrapfly.ScrapeApiResponse">ScrapeApiResponse</a></code></h4>
