@@ -33,7 +33,8 @@ install_requires = [
     'requests>=2.25.0',
     'python-dateutil>=2.1,<3.0.0',
     'loguru>=0.5',
-    'urllib3>=1.26.0'
+    'urllib3>=1.26.0',
+    'backoff>=1.10.0'
 ]
 
 def read(f):

@@ -1,3 +1,5 @@
+import uuid
+from os import environ
 from typing import Union, Optional
 
 from scrapy import Spider
@@ -10,6 +12,11 @@ from .response import ScrapflyScrapyResponse
 
 class ScrapflyMiddleware:
 
+    run_id:str
+
+    def __init__(self):
+        self.run_id = environ.get('SPIDER_RUN_ID') or str(uuid.uuid4())
+
     def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -> Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
             return None
@@ -21,5 +28,6 @@ class ScrapflyMiddleware:
             request.scrape_config.tags = []
 
         request.scrape_config.tags.append(spider.name)
+        request.scrape_config.tags.append(self.run_id)
 
         return None

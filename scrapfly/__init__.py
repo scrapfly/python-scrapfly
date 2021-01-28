@@ -16,7 +16,6 @@ from .errors import UpstreamHttpClientError
 from .errors import UpstreamHttpServerError
 from .errors import ApiHttpClientError
 from .errors import ApiHttpServerError
-from .retry import RetryBudgetExceeded
 from .api_response import ScrapeApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient
 from .scrape_config import ScrapeConfig
@@ -35,7 +34,6 @@ __all__:Tuple[str, ...] = (
     'ApiHttpClientError',
     'ApiHttpServerError',
     'EncoderError',
-    'RetryBudgetExceeded',
     'ScrapeApiResponse',
     'ErrorFactory',
     'HttpError',

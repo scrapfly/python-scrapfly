@@ -1,7 +1,7 @@
 from io import BytesIO
 from typing import Union, Dict, Optional, TextIO
 
-from scrapy.http import TextResponse
+from scrapy.http import TextResponse, HtmlResponse, XmlResponse
 
 from .. import ScrapeApiResponse, ScrapeConfig
 from .request import ScrapflyScrapyRequest
@@ -64,6 +64,17 @@ class ScrapflyScrapyResponse(TextResponse):
             request=request,
             ip_address=self.scrape_api_response.context['proxy']['ipv4']
         )
+
+    @property
+    def __class__(self):
+        response_headers = self.scrape_api_response.scrape_result['response_headers']
+
+        if 'content-type' in response_headers and response_headers['content-type'].find('text/html') >= 0:
+            return HtmlResponse
+        elif 'content-type' in response_headers and response_headers['content-type'].find('application/xml') >= 0:
+            return XmlResponse
+        else:
+            return TextResponse
 
     def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
         self.scrape_api_response.sink(path=path, name=name, file=file)

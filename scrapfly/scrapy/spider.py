@@ -49,6 +49,7 @@ class ScrapflySpider(scrapy.Spider):
 
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
+        crawler.stats.set_value('scrapfly/api_call_cost', 0)
 
         scrapfly_client = ScrapflyClient(
             key=crawler.settings.get('SCRAPFLY_API_KEY'),
@@ -87,6 +88,7 @@ class ScrapflyCrawlSpider(ScrapflySpider):
         self._compile_rules()
 
     def _parse(self, response, **kwargs):
+
         return self._parse_response(
             response=response,
             callback=self.parse_start_url,

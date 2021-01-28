@@ -3,6 +3,8 @@ import requests
 from io import BytesIO
 
 import zlib
+
+from loguru import logger
 from requests.structures import CaseInsensitiveDict
 from twisted.internet.protocol import Protocol
 from twisted.web.iweb import IBodyProducer
@@ -40,6 +42,9 @@ class ScrapflyHTTPDownloader:
 
         defered = Deferred()
         body_receiver = BodyReceiver(defered)
+
+        if 'x-scrapfly-api-cost' in headers:
+            self._crawler.stats.inc_value('scrapfly/api_call_cost', count=headers['x-scrapfly-api-cost'])
 
         def on_body_downloaded(body):
             if 'content-encoding' in headers:

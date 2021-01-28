@@ -24,4 +24,5 @@ release:
 	$(MAKE) bump VERSION=$(NEXT_VERSION)
 
 dev:
+	rm -Rf $(shell python -m site --user-site )/scrapfly*
 	python setup.py develop --user

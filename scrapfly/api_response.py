@@ -9,7 +9,7 @@ from functools import partial
 from http.cookiejar import Cookie
 from http.cookies import SimpleCookie
 from io import BytesIO
-from json import JSONDecoder
+from json import JSONDecoder, loads
 
 from dateutil.parser import parse
 from requests import Request, Response

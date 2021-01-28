@@ -1,3 +1,4 @@
+from collections import Iterable
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import asyncio
@@ -8,16 +9,16 @@ import shutil
 from functools import partial
 from io import BytesIO
 
-from requests import Session, RequestException, HTTPError as RequestsHTTPError, Response
+import backoff
+from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Tuple
+from typing import TextIO, Union, List, Dict, Optional, Set
 import requests
 import urllib3
 import logging as logger
 
 logger.getLogger('scrapfly')
 
-from .retry import retry
 from .errors import *
 from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
@@ -26,7 +27,6 @@ from . import __version__ as version, ScrapeApiResponse
 NetworkError = (
     ConnectionError,
     RequestExceptions.ConnectionError,
-    RequestExceptions.ConnectTimeout,
     RequestExceptions.ReadTimeout
 )
 
@@ -118,14 +118,20 @@ class ScrapflyClient:
     def resilient_scrape(
         self,
         scrape_config:ScrapeConfig,
-        retry_on_errors:Union[Exception, Tuple[Exception, ...]]=None,
+        retry_on_errors:Optional[Set[Exception]]=None,
         tries: int = 5,
         delay: int = 20,
     ) -> ScrapeApiResponse:
-        if retry_on_errors is None:
-            retry_on_errors = [ScrapflyError]  # Retry on all retryable error from Scrapfly
 
-        @retry(retry_on_errors, tries=tries, delay=delay)
+        if not isinstance(retry_on_errors, Set) and isinstance(retry_on_errors, Iterable): # keep compat
+            retry_on_errors = set(retry_on_errors)
+
+        retryable_errors = retry_on_errors or {ScrapflyError}
+
+        if retry_on_errors is not None:
+            retryable_errors += retry_on_errors
+
+        @backoff.on_exception(backoff.expo, exception=retryable_errors, max_tries=tries, max_time=delay)
         def inner() -> ScrapeApiResponse:
             return self.scrape(scrape_config=scrape_config)
 
@@ -179,7 +185,7 @@ class ScrapflyClient:
 
         return [future.result() for future in futures]
 
-    @retry(exceptions=NetworkError, tries=5, delay=2)
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
     def scrape(self, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
         logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
         request_data = self._scrape_request(scrape_config=scrape_config)
@@ -215,6 +221,10 @@ class ScrapflyClient:
                 logger.warning('<-- %s - %s | %s' % (e.code, str(e), e.api_response.response.request.url))
             else:
                 logger.warning('<-- %s - %s | %s' % (e.code, str(e), e.api_response.result['result']['url']))
+
+                if scrape_config.asp is False and e.api_response.status_code in [403, 429, 999]:
+                    logger.warning('Enable ASP to bypass anti bot solution for better success rate. Checkout: https://scrapfly.io/docs/scrape-api/anti-scraping-protection')
+
             raise
         except ScrapflyError as e:
             logger.critical('<-- %s - %s' % (e.code, str(e)))
