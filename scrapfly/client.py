@@ -10,19 +10,19 @@ from functools import partial
 from io import BytesIO
 
 import backoff
-from requests import Session, Response
+from requests import Session, Response, HTTPError
 from requests import exceptions as RequestExceptions
 from typing import TextIO, Union, List, Dict, Optional, Set
 import requests
 import urllib3
 import logging as logger
 
-logger.getLogger('scrapfly')
-
 from .errors import *
 from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from . import __version__ as version, ScrapeApiResponse
+
+logger.getLogger('scrapfly')
 
 NetworkError = (
     ConnectionError,
@@ -213,21 +213,17 @@ class ScrapflyClient:
                 )
 
             return api_response
-        except ApiHttpServerError as e:
-            logger.critical('<-- %s - %s' % (e.response.status_code, str(e)))
-            raise
-        except UpstreamHttpServerError as e:
+        except UpstreamHttpClientError as e:
             if scrape_config.method == 'HEAD':
-                logger.warning('<-- %s - %s | %s' % (e.code, str(e), e.api_response.response.request.url))
+                logger.warning('<-- %s | %s' % (str(e), e.api_response.response.request.url))
             else:
-                logger.warning('<-- %s - %s | %s' % (e.code, str(e), e.api_response.result['result']['url']))
-
-                if scrape_config.asp is False and e.api_response.status_code in [403, 429, 999]:
-                    logger.warning('Enable ASP to bypass anti bot solution for better success rate. Checkout: https://scrapfly.io/docs/scrape-api/anti-scraping-protection')
-
+                logger.warning('<-- %s | %s' % (str(e), e.api_response.result['result']['url']))
+            raise
+        except ApiHttpServerError as e:
+            logger.critical('<-- %s' % str(e))
             raise
         except ScrapflyError as e:
-            logger.critical('<-- %s - %s' % (e.code, str(e)))
+            logger.critical('<-- - %s' % (str(e)))
             raise
 
     def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
@@ -322,6 +318,28 @@ class ScrapflyClient:
             result = self.body_handler(response.content)
         else:
             result = response.content.decode('utf-8')
+
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            if 400 >= e.response.status_code < 500:
+                raise ApiHttpClientError(
+                    request=e.request,
+                    response=e.response,
+                    message=result['reason'] + ' - ' + result['message'],
+                    code='',
+                    resource='API',
+                    http_status_code=result['http_code']
+                )
+            else:
+                raise ApiHttpServerError(
+                    request=e.request,
+                    response=e.response,
+                    message=result['reason'] + ' - ' + result['message'],
+                    code='',
+                    resource='',
+                    http_status_code=e.response.status_code
+                )
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,

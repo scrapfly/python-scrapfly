@@ -5,7 +5,7 @@ import shutil
 from base64 import b64decode
 from contextlib import suppress
 from datetime import datetime
-from functools import partial
+from functools import partial, cached_property
 from http.cookiejar import Cookie
 from http.cookies import SimpleCookie
 from io import BytesIO
@@ -96,8 +96,7 @@ class ResponseBodyHandler:
 
 class ScrapeApiResponse:
 
-    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig,
-                 api_result: Optional[Dict] = None):
+    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig, api_result: Optional[Dict] = None):
         self.request = request
         self.response = response
         self.scrape_config = scrape_config
@@ -119,10 +118,21 @@ class ScrapeApiResponse:
     def content(self) -> str:
         return self.scrape_result['content']
 
-    # /!\ Success means scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
     @property
     def success(self) -> bool:
-        return self.is_scrape_engine_error is False and self.is_api_error is False
+        """
+            /!\ Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
+        """
+        return 200 >= self.response.status_code <= 299
+
+    @property
+    def scrape_success(self) -> bool:
+        return self.scrape_result['success']
+
+    @property
+    def error(self) -> Optional[Dict]:
+        if self.scrape_success is False:
+            return self.scrape_result['error']
 
     @property
     def status_code(self) -> int:
@@ -165,21 +175,14 @@ class ScrapeApiResponse:
 
         return FrozenDict(api_result)
 
-    def _is_scrape_engine_error(self, api_result: Optional[Dict] = None) -> bool:
-        if api_result is None:
-            return False
-
-        if 'result' not in api_result:
-            return False
-
+    @cached_property
+    def selector(self):
         try:
-            return api_result['result']['error'] is not None
-        except KeyError:
-            return False
-
-    @property
-    def is_scrape_engine_error(self) -> bool:
-        return self._is_scrape_engine_error(self.result)
+            from scrapy import Selector
+            return Selector(text=self.content)
+        except ImportError as e:
+            logger.error('You must install scrapfly[scrapy] to enable this feature')
+            raise e
 
     def _is_api_error(self, api_result: Dict) -> bool:
         if self.scrape_config.method == 'HEAD':
@@ -192,45 +195,41 @@ class ScrapeApiResponse:
 
         return 'error_id' in api_result
 
-    @property
-    def is_api_error(self) -> bool:
-        return self._is_api_error(self.result)
-
     def raise_for_result(self, raise_on_upstream_error: bool = True):
-        if self.is_api_error is True:
-            raise ErrorFactory.create(api_response=self)
+        self.response.raise_for_status()
 
-        if self.is_scrape_engine_error is True:
+        if self.scrape_success is False:
             error = ErrorFactory.create(api_response=self)
 
-            if isinstance(error, UpstreamHttpClientError) is True:
-                if raise_on_upstream_error is True:
+            if error:
+                if isinstance(error, UpstreamHttpClientError):
+                    if raise_on_upstream_error is True:
+                        raise error
+                else:
                     raise error
-            else:
-                raise error
 
     def upstream_result_into_response(self, _class=Response) -> Optional[Response]:
         if _class != Response:
             raise RuntimeError('only Response from requests package is supported at the moment')
+
         if self.result is None:
             return None
 
-        if self.is_scrape_engine_error is True:  # Upstream website must have reply
+        if self.response.status_code != 200:
             return None
 
         response = Response()
-        response.status_code = self.result['result']['status_code']
-        response.reason = self.result['result']['reason']
-        response._content = self.result['result']['content'].encode('utf-8') if self.result['result'][
-            'content'] else None
-        response.headers.update(self.result['result']['response_headers'])
-        response.url = self.result['result']['url']
+        response.status_code = self.scrape_result['status_code']
+        response.reason = self.scrape_result['reason']
+        response._content = self.scrape_result['content'].encode('utf-8') if self.scrape_result['content'] else None
+        response.headers.update(self.scrape_result['response_headers'])
+        response.url = self.scrape_result['url']
 
         response.request = Request(
-            method=self.result['config']['method'],
-            url=self.result['config']['url'],
-            headers=self.result['result']['request_headers'],
-            data=self.result['config']['body'] if self.result['config']['body'] else None
+            method=self.config['method'],
+            url=self.config['url'],
+            headers=self.scrape_result['request_headers'],
+            data=self.config['body'] if self.config['body'] else None
         )
 
         if 'set-cookie' in response.headers:
@@ -265,8 +264,7 @@ class ScrapeApiResponse:
                         port=None,
                         port_specified=False,
                         domain_specified=cookie.get('domain') is not None and cookie.get('domain') != '',
-                        domain_initial_dot=bool(cookie.get('domain').startswith('.')) if cookie.get(
-                            'domain') is not None else False,
+                        domain_initial_dot=bool(cookie.get('domain').startswith('.')) if cookie.get('domain') is not None else False,
                         path_specified=cookie.get('path') != '' and cookie.get('path') is not None,
                         discard=False,
                         comment_url=None,
@@ -279,8 +277,7 @@ class ScrapeApiResponse:
 
         return response
 
-    def sink(self, path: Optional[str] = None, name: Optional[str] = None,
-             file: Optional[Union[TextIO, BytesIO]] = None):
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
         file_content = self.scrape_result['content']
         file_path = None
         file_extension = None
