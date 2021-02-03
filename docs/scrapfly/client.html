@@ -38,19 +38,19 @@ from functools import partial
 from io import BytesIO
 
 import backoff
-from requests import Session, Response
+from requests import Session, Response, HTTPError
 from requests import exceptions as RequestExceptions
 from typing import TextIO, Union, List, Dict, Optional, Set
 import requests
 import urllib3
 import logging as logger
 
-logger.getLogger(&#39;scrapfly&#39;)
-
 from .errors import *
 from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from . import __version__ as version, ScrapeApiResponse
+
+logger.getLogger(&#39;scrapfly&#39;)
 
 NetworkError = (
     ConnectionError,
@@ -241,21 +241,17 @@ class ScrapflyClient:
                 )
 
             return api_response
-        except ApiHttpServerError as e:
-            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
-            raise
-        except UpstreamHttpServerError as e:
+        except UpstreamHttpClientError as e:
             if scrape_config.method == &#39;HEAD&#39;:
-                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.response.request.url))
+                logger.warning(&#39;&lt;-- %s | %s&#39; % (str(e), e.api_response.response.request.url))
             else:
-                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
-
-                if scrape_config.asp is False and e.api_response.status_code in [403, 429, 999]:
-                    logger.warning(&#39;Enable ASP to bypass anti bot solution for better success rate. Checkout: https://scrapfly.io/docs/scrape-api/anti-scraping-protection&#39;)
-
+                logger.warning(&#39;&lt;-- %s | %s&#39; % (str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+            raise
+        except ApiHttpServerError as e:
+            logger.critical(&#39;&lt;-- %s&#39; % str(e))
             raise
         except ScrapflyError as e:
-            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
+            logger.critical(&#39;&lt;-- - %s&#39; % (str(e)))
             raise
 
     def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
@@ -350,6 +346,28 @@ class ScrapflyClient:
             result = self.body_handler(response.content)
         else:
             result = response.content.decode(&#39;utf-8&#39;)
+
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            if 400 &gt;= e.response.status_code &lt; 500:
+                raise ApiHttpClientError(
+                    request=e.request,
+                    response=e.response,
+                    message=result[&#39;reason&#39;] + &#39; - &#39; + result[&#39;message&#39;],
+                    code=&#39;&#39;,
+                    resource=&#39;API&#39;,
+                    http_status_code=result[&#39;http_code&#39;]
+                )
+            else:
+                raise ApiHttpServerError(
+                    request=e.request,
+                    response=e.response,
+                    message=result[&#39;reason&#39;] + &#39; - &#39; + result[&#39;message&#39;],
+                    code=&#39;&#39;,
+                    resource=&#39;&#39;,
+                    http_status_code=e.response.status_code
+                )
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
@@ -564,21 +582,17 @@ class ScrapflyClient:
                 )
 
             return api_response
-        except ApiHttpServerError as e:
-            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.response.status_code, str(e)))
-            raise
-        except UpstreamHttpServerError as e:
+        except UpstreamHttpClientError as e:
             if scrape_config.method == &#39;HEAD&#39;:
-                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.response.request.url))
+                logger.warning(&#39;&lt;-- %s | %s&#39; % (str(e), e.api_response.response.request.url))
             else:
-                logger.warning(&#39;&lt;-- %s - %s | %s&#39; % (e.code, str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
-
-                if scrape_config.asp is False and e.api_response.status_code in [403, 429, 999]:
-                    logger.warning(&#39;Enable ASP to bypass anti bot solution for better success rate. Checkout: https://scrapfly.io/docs/scrape-api/anti-scraping-protection&#39;)
-
+                logger.warning(&#39;&lt;-- %s | %s&#39; % (str(e), e.api_response.result[&#39;result&#39;][&#39;url&#39;]))
+            raise
+        except ApiHttpServerError as e:
+            logger.critical(&#39;&lt;-- %s&#39; % str(e))
             raise
         except ScrapflyError as e:
-            logger.critical(&#39;&lt;-- %s - %s&#39; % (e.code, str(e)))
+            logger.critical(&#39;&lt;-- - %s&#39; % (str(e)))
             raise
 
     def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
@@ -673,6 +687,28 @@ class ScrapflyClient:
             result = self.body_handler(response.content)
         else:
             result = response.content.decode(&#39;utf-8&#39;)
+
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            if 400 &gt;= e.response.status_code &lt; 500:
+                raise ApiHttpClientError(
+                    request=e.request,
+                    response=e.response,
+                    message=result[&#39;reason&#39;] + &#39; - &#39; + result[&#39;message&#39;],
+                    code=&#39;&#39;,
+                    resource=&#39;API&#39;,
+                    http_status_code=result[&#39;http_code&#39;]
+                )
+            else:
+                raise ApiHttpServerError(
+                    request=e.request,
+                    response=e.response,
+                    message=result[&#39;reason&#39;] + &#39; - &#39; + result[&#39;message&#39;],
+                    code=&#39;&#39;,
+                    resource=&#39;&#39;,
+                    http_status_code=e.response.status_code
+                )
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,

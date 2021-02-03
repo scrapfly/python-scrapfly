@@ -27,8 +27,6 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">from typing import Optional, Tuple
-from http.client import responses
-
 from requests import Request, Response
 
 
@@ -180,48 +178,40 @@ class ErrorFactory:
     }
 
     @staticmethod
-    def _get_resource(code: str) -&gt; Tuple[str, str]:
-        _, resource, _ = code.split(&#39;::&#39;)
-        return resource
+    def _get_resource(code: str) -&gt; Optional[Tuple[str, str]]:
+
+        if isinstance(code, str) and &#39;::&#39; in code:
+            _, resource, _ = code.split(&#39;::&#39;)
+            return resource
+
+        return None
 
     @staticmethod
     def create(api_response: &#39;ScrapeApiResponse&#39;):
-        assert api_response.success is False
-
         is_retryable = False
-        kind = ScrapflyError.KIND_HTTP_BAD_RESPONSE if api_response.is_api_error else ScrapflyError.KIND_SCRAPFLY_ERROR
+        kind = ScrapflyError.KIND_HTTP_BAD_RESPONSE if api_response.success is False else ScrapflyError.KIND_SCRAPFLY_ERROR
         http_code = api_response.status_code
         retry_delay = 5
         retry_times = 3
         description = None
         error_url = &#39;https://scrapfly.io/docs/scrape-api/errors#api&#39;
+        code = api_response.error[&#39;code&#39;]
 
-        if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
-            code = api_response.status_code
+        if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
+            http_code = api_response.error[&#39;http_code&#39;]
 
-            message = responses[code]
+        if &#39;description&#39; in api_response.error:
+            description = api_response.error[&#39;description&#39;]
 
-            if code not in ScrapflyError.KNOWN_HTTP_API_ERROR_CODE:
-                error_url = &#39;https://developer.mozilla.org/fr/docs/Web/HTTP/Status/&#39; + str(code)
+        message = str(http_code) + &#39; &#39; + api_response.error[&#39;message&#39;]
 
-            resource = None
-        else:
+        if &#39;doc_url&#39; in api_response.error:
+            error_url = api_response.error[&#39;doc_url&#39;]
 
-            assert api_response.result is not None
-            code = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;code&#39;]
+        if &#39;retryable&#39; in api_response.error:
+            is_retryable = api_response.error[&#39;retryable&#39;]
 
-            if &#39;description&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
-                description = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;description&#39;]
-
-            message = str(http_code) + &#39; &#39; + api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;message&#39;]
-
-            if &#39;doc_url&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
-                error_url = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;]
-
-            if &#39;retryable&#39; in api_response.result[&#39;result&#39;][&#39;error&#39;]:
-                is_retryable = api_response.result[&#39;result&#39;][&#39;error&#39;][&#39;retryable&#39;]
-
-            resource = ErrorFactory._get_resource(code=code)
+        resource = ErrorFactory._get_resource(code=code)
 
         if is_retryable is True:
             if &#39;X-Retry&#39; in api_response.headers:
@@ -241,13 +231,12 @@ class ErrorFactory:
             &#39;resource&#39;: resource,
             &#39;retry_delay&#39;: retry_delay,
             &#39;retry_times&#39;: retry_times,
-            &#39;documentation_url&#39;: error_url
+            &#39;documentation_url&#39;: error_url,
+            &#39;request&#39;: api_response.request,
+            &#39;response&#39;: api_response.response
         }
 
         if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
-            args[&#39;request&#39;] = api_response.request
-            args[&#39;response&#39;] = api_response.response
-
             if 400 &lt;= http_code &lt; 500:
                 if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
                     return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
@@ -256,10 +245,7 @@ class ErrorFactory:
             return ApiHttpServerError(**args)
         elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
             if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
-                args[&#39;request&#39;] = api_response.request
-                args[&#39;response&#39;] = api_response.response
-
-                if 400 &lt;= api_response.result[&#39;result&#39;][&#39;status_code&#39;] &lt; 500:
+                if 400 &lt;= http_code &lt; 500:
                     return UpstreamHttpClientError(**args)
 
                 return UpstreamHttpClientError(**args)
@@ -268,6 +254,7 @@ class ErrorFactory:
                 return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ScrapflyError(**args)
+
 
 __all__:Tuple[str, ...] = [
     &#39;ScrapflyError&#39;,

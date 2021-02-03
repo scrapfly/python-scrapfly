@@ -27,12 +27,11 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import requests
-
+import logging as logger
 from io import BytesIO
 
 import zlib
 
-from loguru import logger
 from requests.structures import CaseInsensitiveDict
 from twisted.internet.protocol import Protocol
 from twisted.web.iweb import IBodyProducer
@@ -47,6 +46,8 @@ from twisted.web.http_headers import Headers
 from zope.interface import implementer
 
 from . import ScrapflyScrapyRequest, ScrapflySpider, ScrapflyScrapyResponse
+
+logger.getLogger(&#39;scrapfly&#39;)
 
 
 class ScrapflyHTTPDownloader:
@@ -72,7 +73,7 @@ class ScrapflyHTTPDownloader:
         body_receiver = BodyReceiver(defered)
 
         if &#39;x-scrapfly-api-cost&#39; in headers:
-            self._crawler.stats.inc_value(&#39;scrapfly/api_call_cost&#39;, count=headers[&#39;x-scrapfly-api-cost&#39;])
+            self._crawler.stats.inc_value(&#39;scrapfly/api_call_cost&#39;, count=int(headers[&#39;x-scrapfly-api-cost&#39;]))
 
         def on_body_downloaded(body):
             if &#39;content-encoding&#39; in headers:
@@ -410,7 +411,7 @@ differing chunk sizes, down to one byte at a time.</p></div>
         body_receiver = BodyReceiver(defered)
 
         if &#39;x-scrapfly-api-cost&#39; in headers:
-            self._crawler.stats.inc_value(&#39;scrapfly/api_call_cost&#39;, count=headers[&#39;x-scrapfly-api-cost&#39;])
+            self._crawler.stats.inc_value(&#39;scrapfly/api_call_cost&#39;, count=int(headers[&#39;x-scrapfly-api-cost&#39;]))
 
         def on_body_downloaded(body):
             if &#39;content-encoding&#39; in headers:
