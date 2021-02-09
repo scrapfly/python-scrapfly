@@ -343,36 +343,14 @@ class ScrapflyClient:
     ) -&gt; ScrapeApiResponse:
 
         if self.body_handler.support(headers=response.headers):
-            result = self.body_handler(response.content)
+            body = self.body_handler(response.content)
         else:
-            result = response.content.decode(&#39;utf-8&#39;)
-
-        try:
-            response.raise_for_status()
-        except HTTPError as e:
-            if 400 &gt;= e.response.status_code &lt; 500:
-                raise ApiHttpClientError(
-                    request=e.request,
-                    response=e.response,
-                    message=result[&#39;reason&#39;] + &#39; - &#39; + result[&#39;message&#39;],
-                    code=&#39;&#39;,
-                    resource=&#39;API&#39;,
-                    http_status_code=result[&#39;http_code&#39;]
-                )
-            else:
-                raise ApiHttpServerError(
-                    request=e.request,
-                    response=e.response,
-                    message=result[&#39;reason&#39;] + &#39; - &#39; + result[&#39;message&#39;],
-                    code=&#39;&#39;,
-                    resource=&#39;&#39;,
-                    http_status_code=e.response.status_code
-                )
+            body = response.content.decode(&#39;utf-8&#39;)
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
             request=response.request,
-            api_result=result,
+            api_result=body,
             scrape_config=scrape_config
         )
 
@@ -684,36 +662,14 @@ class ScrapflyClient:
     ) -&gt; ScrapeApiResponse:
 
         if self.body_handler.support(headers=response.headers):
-            result = self.body_handler(response.content)
+            body = self.body_handler(response.content)
         else:
-            result = response.content.decode(&#39;utf-8&#39;)
-
-        try:
-            response.raise_for_status()
-        except HTTPError as e:
-            if 400 &gt;= e.response.status_code &lt; 500:
-                raise ApiHttpClientError(
-                    request=e.request,
-                    response=e.response,
-                    message=result[&#39;reason&#39;] + &#39; - &#39; + result[&#39;message&#39;],
-                    code=&#39;&#39;,
-                    resource=&#39;API&#39;,
-                    http_status_code=result[&#39;http_code&#39;]
-                )
-            else:
-                raise ApiHttpServerError(
-                    request=e.request,
-                    response=e.response,
-                    message=result[&#39;reason&#39;] + &#39; - &#39; + result[&#39;message&#39;],
-                    code=&#39;&#39;,
-                    resource=&#39;&#39;,
-                    http_status_code=e.response.status_code
-                )
+            body = response.content.decode(&#39;utf-8&#39;)
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
             request=response.request,
-            api_result=result,
+            api_result=body,
             scrape_config=scrape_config
         )
 

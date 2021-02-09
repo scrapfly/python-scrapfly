@@ -43,6 +43,35 @@ class ScrapeConfigError(Exception):
 
 class ScrapeConfig:
 
+    PUBLIC_DATACENTER_POOL = &#39;public_datacenter_pool&#39;
+    PUBLIC_RESIDENTIAL_POOL = &#39;public_residential_pool&#39;
+
+    url: str
+    retry: bool = True
+    method: str = &#39;GET&#39;
+    country: Optional[str] = &#39;DE&#39;
+    render_js: bool = False
+    cache: bool = False
+    cache_clear:bool = False
+    ssl:bool = False
+    dns:bool = False
+    asp:bool = False
+    debug: bool = False
+    raise_on_upstream_error:bool = True
+    cache_ttl:Optional[int] = None
+    proxy_pool:Optional[str] = None
+    session: Optional[str] = None
+    tags: Optional[List[str]] = None
+    correlation_id: Optional[str] = None
+    cookies: Optional[CaseInsensitiveDict] = None
+    body: Optional[str] = None
+    data: Optional[Dict] = None
+    headers: Optional[CaseInsensitiveDict] = None
+    graphql: Optional[str] = None
+    js: str = None
+    rendering_wait: int = None
+    screenshots:Optional[Dict]=None
+
     def __init__(
             self,
             url: str,
@@ -58,13 +87,14 @@ class ScrapeConfig:
             debug: bool = False,
             raise_on_upstream_error:bool = True,
             cache_ttl:Optional[int] = None,
+            proxy_pool:Optional[str] = None,
             session: Optional[str] = None,
             tags: Optional[List[str]] = None,
             correlation_id: Optional[str] = None,
-            cookies: Optional[Dict] = None,
+            cookies: Optional[CaseInsensitiveDict] = None,
             body: Optional[str] = None,
             data: Optional[Dict] = None,
-            headers: Optional[Dict[str, str]] = None,
+            headers: Optional[CaseInsensitiveDict] = None,
             graphql: Optional[str] = None,
             js: str = None,
             rendering_wait: int = None,
@@ -72,8 +102,11 @@ class ScrapeConfig:
     ):
         assert(type(url) is str)
 
-        self.cookies = CaseInsensitiveDict(cookies or {})
-        self.headers = CaseInsensitiveDict(headers or {})
+        cookies = cookies or {}
+        headers = headers or {}
+
+        self.cookies = CaseInsensitiveDict(cookies)
+        self.headers = CaseInsensitiveDict(headers)
         self.url = url
         self.retry = retry
         self.method = method
@@ -85,6 +118,7 @@ class ScrapeConfig:
         self.session = session
         self.debug = debug
         self.cache_ttl = cache_ttl
+        self.proxy_pool = proxy_pool
         self.tags = tags
         self.correlation_id = correlation_id
         self.body = body
@@ -188,6 +222,9 @@ class ScrapeConfig:
 
         if self.graphql:
             params[&#39;graphql_query&#39;] = quote(self.graphql)
+
+        if self.proxy_pool is not None:
+            params[&#39;proxy_pool&#39;] = self.proxy_pool
 
         if self.js:
             params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
@@ -209,7 +246,7 @@ class ScrapeConfig:
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[Dict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Optional[Dict[str, str]] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Optional[requests.structures.CaseInsensitiveDict] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -218,6 +255,35 @@ class ScrapeConfig:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ScrapeConfig:
+
+    PUBLIC_DATACENTER_POOL = &#39;public_datacenter_pool&#39;
+    PUBLIC_RESIDENTIAL_POOL = &#39;public_residential_pool&#39;
+
+    url: str
+    retry: bool = True
+    method: str = &#39;GET&#39;
+    country: Optional[str] = &#39;DE&#39;
+    render_js: bool = False
+    cache: bool = False
+    cache_clear:bool = False
+    ssl:bool = False
+    dns:bool = False
+    asp:bool = False
+    debug: bool = False
+    raise_on_upstream_error:bool = True
+    cache_ttl:Optional[int] = None
+    proxy_pool:Optional[str] = None
+    session: Optional[str] = None
+    tags: Optional[List[str]] = None
+    correlation_id: Optional[str] = None
+    cookies: Optional[CaseInsensitiveDict] = None
+    body: Optional[str] = None
+    data: Optional[Dict] = None
+    headers: Optional[CaseInsensitiveDict] = None
+    graphql: Optional[str] = None
+    js: str = None
+    rendering_wait: int = None
+    screenshots:Optional[Dict]=None
 
     def __init__(
             self,
@@ -234,13 +300,14 @@ class ScrapeConfig:
             debug: bool = False,
             raise_on_upstream_error:bool = True,
             cache_ttl:Optional[int] = None,
+            proxy_pool:Optional[str] = None,
             session: Optional[str] = None,
             tags: Optional[List[str]] = None,
             correlation_id: Optional[str] = None,
-            cookies: Optional[Dict] = None,
+            cookies: Optional[CaseInsensitiveDict] = None,
             body: Optional[str] = None,
             data: Optional[Dict] = None,
-            headers: Optional[Dict[str, str]] = None,
+            headers: Optional[CaseInsensitiveDict] = None,
             graphql: Optional[str] = None,
             js: str = None,
             rendering_wait: int = None,
@@ -248,8 +315,11 @@ class ScrapeConfig:
     ):
         assert(type(url) is str)
 
-        self.cookies = CaseInsensitiveDict(cookies or {})
-        self.headers = CaseInsensitiveDict(headers or {})
+        cookies = cookies or {}
+        headers = headers or {}
+
+        self.cookies = CaseInsensitiveDict(cookies)
+        self.headers = CaseInsensitiveDict(headers)
         self.url = url
         self.retry = retry
         self.method = method
@@ -261,6 +331,7 @@ class ScrapeConfig:
         self.session = session
         self.debug = debug
         self.cache_ttl = cache_ttl
+        self.proxy_pool = proxy_pool
         self.tags = tags
         self.correlation_id = correlation_id
         self.body = body
@@ -365,6 +436,9 @@ class ScrapeConfig:
         if self.graphql:
             params[&#39;graphql_query&#39;] = quote(self.graphql)
 
+        if self.proxy_pool is not None:
+            params[&#39;proxy_pool&#39;] = self.proxy_pool
+
         if self.js:
             params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
 
@@ -373,6 +447,117 @@ class ScrapeConfig:
 
         return params</code></pre>
 </details>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.scrape_config.ScrapeConfig.PUBLIC_DATACENTER_POOL"><code class="name">var <span class="ident">PUBLIC_DATACENTER_POOL</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL"><code class="name">var <span class="ident">PUBLIC_RESIDENTIAL_POOL</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.asp"><code class="name">var <span class="ident">asp</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.body"><code class="name">var <span class="ident">body</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.cache"><code class="name">var <span class="ident">cache</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.cache_clear"><code class="name">var <span class="ident">cache_clear</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.cookies"><code class="name">var <span class="ident">cookies</span> : Optional[requests.structures.CaseInsensitiveDict]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.correlation_id"><code class="name">var <span class="ident">correlation_id</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.country"><code class="name">var <span class="ident">country</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.data"><code class="name">var <span class="ident">data</span> : Optional[Dict]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.debug"><code class="name">var <span class="ident">debug</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.dns"><code class="name">var <span class="ident">dns</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.graphql"><code class="name">var <span class="ident">graphql</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.headers"><code class="name">var <span class="ident">headers</span> : Optional[requests.structures.CaseInsensitiveDict]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.js"><code class="name">var <span class="ident">js</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.method"><code class="name">var <span class="ident">method</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.proxy_pool"><code class="name">var <span class="ident">proxy_pool</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error"><code class="name">var <span class="ident">raise_on_upstream_error</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.render_js"><code class="name">var <span class="ident">render_js</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.rendering_wait"><code class="name">var <span class="ident">rendering_wait</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.retry"><code class="name">var <span class="ident">retry</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.screenshots"><code class="name">var <span class="ident">screenshots</span> : Optional[Dict]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.session"><code class="name">var <span class="ident">session</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.tags"><code class="name">var <span class="ident">tags</span> : Optional[List[str]]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig.generate_distributed_correlation_id"><code class="name flex">
@@ -450,6 +635,9 @@ class ScrapeConfig:
     if self.graphql:
         params[&#39;graphql_query&#39;] = quote(self.graphql)
 
+    if self.proxy_pool is not None:
+        params[&#39;proxy_pool&#39;] = self.proxy_pool
+
     if self.js:
         params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
 
@@ -499,8 +687,35 @@ class ScrapeConfig:
 <li>
 <h4><code><a title="scrapfly.scrape_config.ScrapeConfig" href="#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></h4>
 <ul class="">
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.PUBLIC_DATACENTER_POOL" href="#scrapfly.scrape_config.ScrapeConfig.PUBLIC_DATACENTER_POOL">PUBLIC_DATACENTER_POOL</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL" href="#scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL">PUBLIC_RESIDENTIAL_POOL</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.asp" href="#scrapfly.scrape_config.ScrapeConfig.asp">asp</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.body" href="#scrapfly.scrape_config.ScrapeConfig.body">body</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.cache" href="#scrapfly.scrape_config.ScrapeConfig.cache">cache</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.cache_clear" href="#scrapfly.scrape_config.ScrapeConfig.cache_clear">cache_clear</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.cache_ttl" href="#scrapfly.scrape_config.ScrapeConfig.cache_ttl">cache_ttl</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.cookies" href="#scrapfly.scrape_config.ScrapeConfig.cookies">cookies</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.correlation_id" href="#scrapfly.scrape_config.ScrapeConfig.correlation_id">correlation_id</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.country" href="#scrapfly.scrape_config.ScrapeConfig.country">country</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.data" href="#scrapfly.scrape_config.ScrapeConfig.data">data</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.debug" href="#scrapfly.scrape_config.ScrapeConfig.debug">debug</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.dns" href="#scrapfly.scrape_config.ScrapeConfig.dns">dns</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.generate_distributed_correlation_id" href="#scrapfly.scrape_config.ScrapeConfig.generate_distributed_correlation_id">generate_distributed_correlation_id</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.graphql" href="#scrapfly.scrape_config.ScrapeConfig.graphql">graphql</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.headers" href="#scrapfly.scrape_config.ScrapeConfig.headers">headers</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.js" href="#scrapfly.scrape_config.ScrapeConfig.js">js</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.method" href="#scrapfly.scrape_config.ScrapeConfig.method">method</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.proxy_pool" href="#scrapfly.scrape_config.ScrapeConfig.proxy_pool">proxy_pool</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error" href="#scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.render_js" href="#scrapfly.scrape_config.ScrapeConfig.render_js">render_js</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.rendering_wait" href="#scrapfly.scrape_config.ScrapeConfig.rendering_wait">rendering_wait</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.retry" href="#scrapfly.scrape_config.ScrapeConfig.retry">retry</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.screenshots" href="#scrapfly.scrape_config.ScrapeConfig.screenshots">screenshots</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.session" href="#scrapfly.scrape_config.ScrapeConfig.session">session</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.ssl" href="#scrapfly.scrape_config.ScrapeConfig.ssl">ssl</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.tags" href="#scrapfly.scrape_config.ScrapeConfig.tags">tags</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.to_api_params" href="#scrapfly.scrape_config.ScrapeConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.url" href="#scrapfly.scrape_config.ScrapeConfig.url">url</a></code></li>
 </ul>
 </li>
 <li>

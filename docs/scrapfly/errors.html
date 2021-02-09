@@ -101,7 +101,11 @@ class HttpError(ScrapflyError):
         super().__init__(**kwargs)
 
 
-class UpstreamHttpClientError(HttpError):
+class UpstreamHttpError(HttpError):
+    pass
+
+
+class UpstreamHttpClientError(UpstreamHttpError):
     pass
 
 
@@ -237,21 +241,23 @@ class ErrorFactory:
         }
 
         if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
-            if 400 &lt;= http_code &lt; 500:
-                if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
-                    return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
-                return ApiHttpClientError(**args)
+            if http_code &gt;= 500:
+                return ApiHttpServerError(**args)
 
-            return ApiHttpServerError(**args)
+            if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
+                return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
+
+            return ApiHttpClientError(**args)
+
         elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
             if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
-                if 400 &lt;= http_code &lt; 500:
-                    return UpstreamHttpClientError(**args)
+                if http_code &gt;= 500:
+                    return UpstreamHttpServerError(**args)
+
+                if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                    return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
                 return UpstreamHttpClientError(**args)
-
-            if resource in ErrorFactory.RESOURCE_TO_ERROR:
-                return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ScrapflyError(**args)
 
@@ -600,11 +606,12 @@ __all__:Tuple[str, ...] = [
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class UpstreamHttpClientError(HttpError):
+<pre><code class="python">class UpstreamHttpClientError(UpstreamHttpError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.UpstreamHttpError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
@@ -630,6 +637,7 @@ __all__:Tuple[str, ...] = [
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.errors.UpstreamHttpClientError" href="#scrapfly.errors.UpstreamHttpClientError">UpstreamHttpClientError</a></li>
+<li>scrapfly.errors.UpstreamHttpError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
