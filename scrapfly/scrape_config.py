@@ -15,6 +15,35 @@ class ScrapeConfigError(Exception):
 
 class ScrapeConfig:
 
+    PUBLIC_DATACENTER_POOL = 'public_datacenter_pool'
+    PUBLIC_RESIDENTIAL_POOL = 'public_residential_pool'
+
+    url: str
+    retry: bool = True
+    method: str = 'GET'
+    country: Optional[str] = 'DE'
+    render_js: bool = False
+    cache: bool = False
+    cache_clear:bool = False
+    ssl:bool = False
+    dns:bool = False
+    asp:bool = False
+    debug: bool = False
+    raise_on_upstream_error:bool = True
+    cache_ttl:Optional[int] = None
+    proxy_pool:Optional[str] = None
+    session: Optional[str] = None
+    tags: Optional[List[str]] = None
+    correlation_id: Optional[str] = None
+    cookies: Optional[CaseInsensitiveDict] = None
+    body: Optional[str] = None
+    data: Optional[Dict] = None
+    headers: Optional[CaseInsensitiveDict] = None
+    graphql: Optional[str] = None
+    js: str = None
+    rendering_wait: int = None
+    screenshots:Optional[Dict]=None
+
     def __init__(
             self,
             url: str,
@@ -30,13 +59,14 @@ class ScrapeConfig:
             debug: bool = False,
             raise_on_upstream_error:bool = True,
             cache_ttl:Optional[int] = None,
+            proxy_pool:Optional[str] = None,
             session: Optional[str] = None,
             tags: Optional[List[str]] = None,
             correlation_id: Optional[str] = None,
-            cookies: Optional[Dict] = None,
+            cookies: Optional[CaseInsensitiveDict] = None,
             body: Optional[str] = None,
             data: Optional[Dict] = None,
-            headers: Optional[Dict[str, str]] = None,
+            headers: Optional[CaseInsensitiveDict] = None,
             graphql: Optional[str] = None,
             js: str = None,
             rendering_wait: int = None,
@@ -44,8 +74,11 @@ class ScrapeConfig:
     ):
         assert(type(url) is str)
 
-        self.cookies = CaseInsensitiveDict(cookies or {})
-        self.headers = CaseInsensitiveDict(headers or {})
+        cookies = cookies or {}
+        headers = headers or {}
+
+        self.cookies = CaseInsensitiveDict(cookies)
+        self.headers = CaseInsensitiveDict(headers)
         self.url = url
         self.retry = retry
         self.method = method
@@ -57,6 +90,7 @@ class ScrapeConfig:
         self.session = session
         self.debug = debug
         self.cache_ttl = cache_ttl
+        self.proxy_pool = proxy_pool
         self.tags = tags
         self.correlation_id = correlation_id
         self.body = body
@@ -160,6 +194,9 @@ class ScrapeConfig:
 
         if self.graphql:
             params['graphql_query'] = quote(self.graphql)
+
+        if self.proxy_pool is not None:
+            params['proxy_pool'] = self.proxy_pool
 
         if self.js:
             params['js'] = b64encode(self.js.encode('utf-8')).decode('utf-8')

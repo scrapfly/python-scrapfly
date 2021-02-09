@@ -1,4 +1,4 @@
-__version__ = '0.8.0'
+__version__ = '0.7.2'
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -12,6 +12,7 @@ from .errors import ScrapflyWebhookError
 from .errors import EncoderError
 from .errors import ErrorFactory
 from .errors import HttpError
+from .errors import UpstreamHttpError
 from .errors import UpstreamHttpClientError
 from .errors import UpstreamHttpServerError
 from .errors import ApiHttpClientError
@@ -29,6 +30,7 @@ __all__:Tuple[str, ...] = (
     'ScrapflySessionError',
     'ScrapflyThrottleError',
     'ScrapflyWebhookError',
+    'UpstreamHttpError',
     'UpstreamHttpClientError',
     'UpstreamHttpServerError',
     'ApiHttpClientError',

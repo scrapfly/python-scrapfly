@@ -73,7 +73,11 @@ class HttpError(ScrapflyError):
         super().__init__(**kwargs)
 
 
-class UpstreamHttpClientError(HttpError):
+class UpstreamHttpError(HttpError):
+    pass
+
+
+class UpstreamHttpClientError(UpstreamHttpError):
     pass
 
 
@@ -209,21 +213,23 @@ class ErrorFactory:
         }
 
         if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
-            if 400 <= http_code < 500:
-                if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
-                    return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
-                return ApiHttpClientError(**args)
+            if http_code >= 500:
+                return ApiHttpServerError(**args)
 
-            return ApiHttpServerError(**args)
+            if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
+                return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
+
+            return ApiHttpClientError(**args)
+
         elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
             if code == 'ERR::SCRAPE::BAD_UPSTREAM_RESPONSE':
-                if 400 <= http_code < 500:
-                    return UpstreamHttpClientError(**args)
+                if http_code >= 500:
+                    return UpstreamHttpServerError(**args)
+
+                if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                    return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
                 return UpstreamHttpClientError(**args)
-
-            if resource in ErrorFactory.RESOURCE_TO_ERROR:
-                return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ScrapflyError(**args)
 

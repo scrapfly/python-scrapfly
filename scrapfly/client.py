@@ -315,36 +315,14 @@ class ScrapflyClient:
     ) -> ScrapeApiResponse:
 
         if self.body_handler.support(headers=response.headers):
-            result = self.body_handler(response.content)
+            body = self.body_handler(response.content)
         else:
-            result = response.content.decode('utf-8')
-
-        try:
-            response.raise_for_status()
-        except HTTPError as e:
-            if 400 >= e.response.status_code < 500:
-                raise ApiHttpClientError(
-                    request=e.request,
-                    response=e.response,
-                    message=result['reason'] + ' - ' + result['message'],
-                    code='',
-                    resource='API',
-                    http_status_code=result['http_code']
-                )
-            else:
-                raise ApiHttpServerError(
-                    request=e.request,
-                    response=e.response,
-                    message=result['reason'] + ' - ' + result['message'],
-                    code='',
-                    resource='',
-                    http_status_code=e.response.status_code
-                )
+            body = response.content.decode('utf-8')
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
             request=response.request,
-            api_result=result,
+            api_result=body,
             scrape_config=scrape_config
         )
 

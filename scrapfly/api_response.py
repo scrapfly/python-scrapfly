@@ -12,13 +12,14 @@ from io import BytesIO
 from json import JSONDecoder, loads
 
 from dateutil.parser import parse
-from requests import Request, Response
+from requests import Request, Response, HTTPError
 from typing import Dict, Optional, Iterable, Union, TextIO
 
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, UpstreamHttpClientError, EncoderError
+from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, \
+    HttpError
 from .frozen_dict import FrozenDict
 
 logger.getLogger('scrapfly')
@@ -196,13 +197,35 @@ class ScrapeApiResponse:
         return 'error_id' in api_result
 
     def raise_for_result(self, raise_on_upstream_error: bool = True):
-        self.response.raise_for_status()
+
+        try:
+            self.response.raise_for_status()
+        except HTTPError as e:
+            if 'http_code' in self.result:
+                if e.response.status_code >= 500:
+                    raise ApiHttpServerError(
+                        request=e.request,
+                        response=e.response,
+                        message= self.result['message'],
+                        code='',
+                        resource='',
+                        http_status_code=e.response.status_code
+                    ) from e
+                else:
+                    raise ApiHttpClientError(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result['message'],
+                        code='',
+                        resource='API',
+                        http_status_code=self.result['http_code']
+                    ) from e
 
         if self.scrape_success is False:
             error = ErrorFactory.create(api_response=self)
 
             if error:
-                if isinstance(error, UpstreamHttpClientError):
+                if isinstance(error, HttpError):
                     if raise_on_upstream_error is True:
                         raise error
                 else:
