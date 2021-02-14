@@ -10,7 +10,7 @@ from functools import partial
 from io import BytesIO
 
 import backoff
-from requests import Session, Response, HTTPError
+from requests import Session, Response
 from requests import exceptions as RequestExceptions
 from typing import TextIO, Union, List, Dict, Optional, Set
 import requests
@@ -314,10 +314,13 @@ class ScrapflyClient:
         raise_on_upstream_error: Optional[bool] = True
     ) -> ScrapeApiResponse:
 
-        if self.body_handler.support(headers=response.headers):
-            body = self.body_handler(response.content)
+        if scrape_config.method == 'HEAD':
+            body = None
         else:
-            body = response.content.decode('utf-8')
+            if self.body_handler.support(headers=response.headers):
+                body = self.body_handler(response.content)
+            else:
+                body = response.content.decode('utf-8')
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,

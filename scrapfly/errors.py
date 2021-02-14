@@ -64,6 +64,9 @@ class EncoderError(BaseException):
         self.content = content
         super().__init__()
 
+    def __str__(self) -> str:
+        return self.content
+
 
 class HttpError(ScrapflyError):
 
@@ -207,14 +210,12 @@ class ErrorFactory:
             'resource': resource,
             'retry_delay': retry_delay,
             'retry_times': retry_times,
-            'documentation_url': error_url,
-            'request': api_response.request,
-            'response': api_response.response
+            'documentation_url': error_url
         }
 
         if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
             if http_code >= 500:
-                return ApiHttpServerError(**args)
+                return ApiHttpServerError(**args, request=api_response.request, response=api_response.response)
 
             if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
                 return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
@@ -224,12 +225,12 @@ class ErrorFactory:
         elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
             if code == 'ERR::SCRAPE::BAD_UPSTREAM_RESPONSE':
                 if http_code >= 500:
-                    return UpstreamHttpServerError(**args)
+                    return UpstreamHttpServerError(**args, **args, request=api_response.request, response=api_response.response)
 
                 if resource in ErrorFactory.RESOURCE_TO_ERROR:
                     return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
-                return UpstreamHttpClientError(**args)
+                return UpstreamHttpClientError(**args, **args, request=api_response.request, response=api_response.response)
 
             return ScrapflyError(**args)
 

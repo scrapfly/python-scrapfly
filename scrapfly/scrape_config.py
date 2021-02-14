@@ -21,7 +21,7 @@ class ScrapeConfig:
     url: str
     retry: bool = True
     method: str = 'GET'
-    country: Optional[str] = 'DE'
+    country: Optional[str] = None
     render_js: bool = False
     cache: bool = False
     cache_clear:bool = False
