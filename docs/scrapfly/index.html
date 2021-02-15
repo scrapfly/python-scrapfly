@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.7.2&#39;
+<pre><code class="python">__version__ = &#39;0.7.3&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -170,7 +170,10 @@ __all__:Tuple[str, ...] = (
 
     def __init__(self, content:str):
         self.content = content
-        super().__init__()</code></pre>
+        super().__init__()
+
+    def __str__(self) -&gt; str:
+        return self.content</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -256,14 +259,12 @@ __all__:Tuple[str, ...] = (
             &#39;resource&#39;: resource,
             &#39;retry_delay&#39;: retry_delay,
             &#39;retry_times&#39;: retry_times,
-            &#39;documentation_url&#39;: error_url,
-            &#39;request&#39;: api_response.request,
-            &#39;response&#39;: api_response.response
+            &#39;documentation_url&#39;: error_url
         }
 
         if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
             if http_code &gt;= 500:
-                return ApiHttpServerError(**args)
+                return ApiHttpServerError(**args, request=api_response.request, response=api_response.response)
 
             if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
                 return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
@@ -273,12 +274,12 @@ __all__:Tuple[str, ...] = (
         elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
             if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
                 if http_code &gt;= 500:
-                    return UpstreamHttpServerError(**args)
+                    return UpstreamHttpServerError(**args, request=api_response.request, response=api_response.response)
 
                 if resource in ErrorFactory.RESOURCE_TO_ERROR:
                     return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
-                return UpstreamHttpClientError(**args)
+                return UpstreamHttpClientError(**args, request=api_response.request, response=api_response.response)
 
             return ScrapflyError(**args)</code></pre>
 </details>
@@ -349,14 +350,12 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
         &#39;resource&#39;: resource,
         &#39;retry_delay&#39;: retry_delay,
         &#39;retry_times&#39;: retry_times,
-        &#39;documentation_url&#39;: error_url,
-        &#39;request&#39;: api_response.request,
-        &#39;response&#39;: api_response.response
+        &#39;documentation_url&#39;: error_url
     }
 
     if kind == ScrapflyError.KIND_HTTP_BAD_RESPONSE:
         if http_code &gt;= 500:
-            return ApiHttpServerError(**args)
+            return ApiHttpServerError(**args, request=api_response.request, response=api_response.response)
 
         if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
             return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
@@ -366,12 +365,12 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
     elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
         if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
             if http_code &gt;= 500:
-                return UpstreamHttpServerError(**args)
+                return UpstreamHttpServerError(**args, request=api_response.request, response=api_response.response)
 
             if resource in ErrorFactory.RESOURCE_TO_ERROR:
                 return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
-            return UpstreamHttpClientError(**args)
+            return UpstreamHttpClientError(**args, request=api_response.request, response=api_response.response)
 
         return ScrapflyError(**args)</code></pre>
 </details>
@@ -553,6 +552,34 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         self.request = request
         self.response = response
         self.scrape_config = scrape_config
+
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            api_result = {
+                &#39;result&#39;: {
+                    &#39;request_headers&#39;: {},
+                    &#39;success&#39;: 200 &gt;= self.response.status_code &lt; 300,
+                    &#39;response_headers&#39;: self.response.headers,
+                    &#39;status_code&#39;: self.response.status_code,
+                    &#39;reason&#39;: self.response.reason,
+                    &#39;format&#39;: &#39;text&#39;,
+                    &#39;content&#39;: &#39;&#39;
+                },
+                &#39;context&#39;: {},
+                &#39;config&#39;: self.scrape_config.__dict__
+            }
+
+            if &#39;X-Scrapfly-Reject-Code&#39; in response.headers:
+                api_result[&#39;result&#39;][&#39;error&#39;] = {
+                    &#39;code&#39;: response.headers[&#39;X-Scrapfly-Reject-Code&#39;],
+                    &#39;http_code&#39;: response.headers[&#39;X-Scrapfly-Reject-Http-Code&#39;],
+                    &#39;message&#39;: response.headers[&#39;X-Scrapfly-Reject-Description&#39;],
+                    &#39;error_id&#39;: response.headers[&#39;X-Scrapfly-Reject-ID&#39;],
+                    &#39;retryable&#39;: True if response.headers[&#39;X-Scrapfly-Reject-Retryable&#39;] == &#39;yes&#39; else False
+                }
+
+                if &#39;X-Scrapfly-Reject-Doc&#39; in response.headers:
+                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
+
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
@@ -595,24 +622,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
     def headers(self) -&gt; CaseInsensitiveDict:
         return self.response.headers
 
-    def handle_api_result(self, api_result: Optional[Dict]) -&gt; Optional[FrozenDict]:
-        if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
-            return None
-
-        if self.scrape_config.method == &#39;HEAD&#39;:
-            api_result = {
-                &#39;result&#39;: {
-                    &#39;request_headers&#39;: {},
-                    &#39;response_headers&#39;: self.response.headers,
-                    &#39;status_code&#39;: self.response.status_code,
-                    &#39;reason&#39;: self.response.reason,
-                    &#39;format&#39;: &#39;text&#39;,
-                    &#39;content&#39;: &#39;&#39;
-                },
-                &#39;context&#39;: {},
-                &#39;config&#39;: self.scrape_config.__dict__
-            }
-
+    def handle_api_result(self, api_result: Dict) -&gt; Optional[FrozenDict]:
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
 
@@ -962,7 +972,7 @@ def success(self) -&gt; bool:
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.ScrapeApiResponse.handle_api_result"><code class="name flex">
-<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Optional[Dict]) ‑> Optional[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>]</span>
+<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Dict) ‑> Optional[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -970,24 +980,7 @@ def success(self) -&gt; bool:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def handle_api_result(self, api_result: Optional[Dict]) -&gt; Optional[FrozenDict]:
-    if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
-        return None
-
-    if self.scrape_config.method == &#39;HEAD&#39;:
-        api_result = {
-            &#39;result&#39;: {
-                &#39;request_headers&#39;: {},
-                &#39;response_headers&#39;: self.response.headers,
-                &#39;status_code&#39;: self.response.status_code,
-                &#39;reason&#39;: self.response.reason,
-                &#39;format&#39;: &#39;text&#39;,
-                &#39;content&#39;: &#39;&#39;
-            },
-            &#39;context&#39;: {},
-            &#39;config&#39;: self.scrape_config.__dict__
-        }
-
+<pre><code class="python">def handle_api_result(self, api_result: Dict) -&gt; Optional[FrozenDict]:
     if self._is_api_error(api_result=api_result) is True:
         return FrozenDict(api_result)
 
@@ -1211,7 +1204,7 @@ def success(self) -&gt; bool:
     url: str
     retry: bool = True
     method: str = &#39;GET&#39;
-    country: Optional[str] = &#39;DE&#39;
+    country: Optional[str] = None
     render_js: bool = False
     cache: bool = False
     cache_clear:bool = False
@@ -1680,6 +1673,10 @@ def success(self) -&gt; bool:
         if self.debug is True:
             http.client.HTTPConnection.debuglevel = 5
 
+    @cached_property
+    def _http_handler(self):
+        return partial(self.http_session.request if self.http_session else requests.request)
+
     def _scrape_request(self, scrape_config:ScrapeConfig):
 
         if self.distributed_mode is True and scrape_config.correlation_id is None:
@@ -1701,8 +1698,7 @@ def success(self) -&gt; bool:
         }
 
     def account(self) -&gt; Union[str, Dict]:
-        http_handler = partial(self.http_session.request if self.http_session else requests.request)
-        response = http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key})
+        response = self._http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key})
 
         response.raise_for_status()
 
@@ -1736,6 +1732,8 @@ def success(self) -&gt; bool:
     def open(self):
         if self.http_session is None:
             self.http_session = Session()
+            self.http_session.verify = self.verify
+            self.http_session.timeout = (self.connect_timeout, self.read_timeout)
             self.http_session.params[&#39;key&#39;] = self.key
             self.http_session.headers[&#39;accept-encoding&#39;] = self.body_handler.content_encoding
             self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
@@ -1785,8 +1783,7 @@ def success(self) -&gt; bool:
     def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
         request_data = self._scrape_request(scrape_config=scrape_config)
-        http_handler = partial(self.http_session.request if self.http_session else requests.request)
-        response = http_handler(**request_data)
+        response = self._http_handler(**request_data)
         return self._handle_response(response=response, scrape_config=scrape_config)
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
@@ -1822,7 +1819,7 @@ def success(self) -&gt; bool:
             logger.critical(&#39;&lt;-- - %s&#39; % (str(e)))
             raise
 
-    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
+    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
         # for advance configuration, take screenshots via scrape method with ScrapeConfig
         api_response = self.scrape(scrape_config=ScrapeConfig(
             url=url,
@@ -1845,9 +1842,9 @@ def success(self) -&gt; bool:
 
             screenshot = response.content
 
-        self.sink(api_response, path=path, name=name, content=screenshot)
+        return self.sink(api_response, path=path, name=name, content=screenshot)
 
-    def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+    def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None) -&gt; str:
         scrape_result = api_response.result[&#39;result&#39;]
         scrape_config = api_response.result[&#39;config&#39;]
 
@@ -1902,6 +1899,7 @@ def success(self) -&gt; bool:
             shutil.copyfileobj(file_content, f, length=131072)
 
         logger.info(&#39;file %s created&#39; % file_path)
+        return file_path
 
     def _handle_api_response(
         self,
@@ -1910,10 +1908,13 @@ def success(self) -&gt; bool:
         raise_on_upstream_error: Optional[bool] = True
     ) -&gt; ScrapeApiResponse:
 
-        if self.body_handler.support(headers=response.headers):
-            body = self.body_handler(response.content)
+        if scrape_config.method == &#39;HEAD&#39;:
+            body = None
         else:
-            body = response.content.decode(&#39;utf-8&#39;)
+            if self.body_handler.support(headers=response.headers):
+                body = self.body_handler(response.content)
+            else:
+                body = response.content.decode(&#39;utf-8&#39;)
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
@@ -1985,8 +1986,7 @@ def success(self) -&gt; bool:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def account(self) -&gt; Union[str, Dict]:
-    http_handler = partial(self.http_session.request if self.http_session else requests.request)
-    response = http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key})
+    response = self._http_handler(&#39;GET&#39;, self.host + &#39;/account&#39;, params={&#39;key&#39;: self.key})
 
     response.raise_for_status()
 
@@ -2071,6 +2071,8 @@ def success(self) -&gt; bool:
 <pre><code class="python">def open(self):
     if self.http_session is None:
         self.http_session = Session()
+        self.http_session.verify = self.verify
+        self.http_session.timeout = (self.connect_timeout, self.read_timeout)
         self.http_session.params[&#39;key&#39;] = self.key
         self.http_session.headers[&#39;accept-encoding&#39;] = self.body_handler.content_encoding
         self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
@@ -2122,13 +2124,12 @@ def success(self) -&gt; bool:
 def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
     logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
     request_data = self._scrape_request(scrape_config=scrape_config)
-    http_handler = partial(self.http_session.request if self.http_session else requests.request)
-    response = http_handler(**request_data)
+    response = self._http_handler(**request_data)
     return self._handle_response(response=response, scrape_config=scrape_config)</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.ScrapflyClient.screenshot"><code class="name flex">
-<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Optional[str] = None, name: Optional[str] = None)</span>
+<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Optional[str] = None, name: Optional[str] = None) ‑> str</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -2136,7 +2137,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None):
+<pre><code class="python">def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
     # for advance configuration, take screenshots via scrape method with ScrapeConfig
     api_response = self.scrape(scrape_config=ScrapeConfig(
         url=url,
@@ -2159,11 +2160,11 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 
         screenshot = response.content
 
-    self.sink(api_response, path=path, name=name, content=screenshot)</code></pre>
+    return self.sink(api_response, path=path, name=name, content=screenshot)</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.ScrapflyClient.sink"><code class="name flex">
-<span>def <span class="ident">sink</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, content: Union[str, bytes, NoneType] = None, path: Optional[str] = None, name: Optional[str] = None, file: Union[TextIO, _io.BytesIO, NoneType] = None)</span>
+<span>def <span class="ident">sink</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, content: Union[str, bytes, NoneType] = None, path: Optional[str] = None, name: Optional[str] = None, file: Union[TextIO, _io.BytesIO, NoneType] = None) ‑> str</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -2171,7 +2172,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+<pre><code class="python">def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None) -&gt; str:
     scrape_result = api_response.result[&#39;result&#39;]
     scrape_config = api_response.result[&#39;config&#39;]
 
@@ -2225,7 +2226,8 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
     with file as f:
         shutil.copyfileobj(file_content, f, length=131072)
 
-    logger.info(&#39;file %s created&#39; % file_path)</code></pre>
+    logger.info(&#39;file %s created&#39; % file_path)
+    return file_path</code></pre>
 </details>
 </dd>
 </dl>

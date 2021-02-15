@@ -129,6 +129,34 @@ class ScrapeApiResponse:
         self.request = request
         self.response = response
         self.scrape_config = scrape_config
+
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            api_result = {
+                &#39;result&#39;: {
+                    &#39;request_headers&#39;: {},
+                    &#39;success&#39;: 200 &gt;= self.response.status_code &lt; 300,
+                    &#39;response_headers&#39;: self.response.headers,
+                    &#39;status_code&#39;: self.response.status_code,
+                    &#39;reason&#39;: self.response.reason,
+                    &#39;format&#39;: &#39;text&#39;,
+                    &#39;content&#39;: &#39;&#39;
+                },
+                &#39;context&#39;: {},
+                &#39;config&#39;: self.scrape_config.__dict__
+            }
+
+            if &#39;X-Scrapfly-Reject-Code&#39; in response.headers:
+                api_result[&#39;result&#39;][&#39;error&#39;] = {
+                    &#39;code&#39;: response.headers[&#39;X-Scrapfly-Reject-Code&#39;],
+                    &#39;http_code&#39;: response.headers[&#39;X-Scrapfly-Reject-Http-Code&#39;],
+                    &#39;message&#39;: response.headers[&#39;X-Scrapfly-Reject-Description&#39;],
+                    &#39;error_id&#39;: response.headers[&#39;X-Scrapfly-Reject-ID&#39;],
+                    &#39;retryable&#39;: True if response.headers[&#39;X-Scrapfly-Reject-Retryable&#39;] == &#39;yes&#39; else False
+                }
+
+                if &#39;X-Scrapfly-Reject-Doc&#39; in response.headers:
+                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
+
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
@@ -171,24 +199,7 @@ class ScrapeApiResponse:
     def headers(self) -&gt; CaseInsensitiveDict:
         return self.response.headers
 
-    def handle_api_result(self, api_result: Optional[Dict]) -&gt; Optional[FrozenDict]:
-        if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
-            return None
-
-        if self.scrape_config.method == &#39;HEAD&#39;:
-            api_result = {
-                &#39;result&#39;: {
-                    &#39;request_headers&#39;: {},
-                    &#39;response_headers&#39;: self.response.headers,
-                    &#39;status_code&#39;: self.response.status_code,
-                    &#39;reason&#39;: self.response.reason,
-                    &#39;format&#39;: &#39;text&#39;,
-                    &#39;content&#39;: &#39;&#39;
-                },
-                &#39;context&#39;: {},
-                &#39;config&#39;: self.scrape_config.__dict__
-            }
-
+    def handle_api_result(self, api_result: Dict) -&gt; Optional[FrozenDict]:
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
 
@@ -538,6 +549,34 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         self.request = request
         self.response = response
         self.scrape_config = scrape_config
+
+        if self.scrape_config.method == &#39;HEAD&#39;:
+            api_result = {
+                &#39;result&#39;: {
+                    &#39;request_headers&#39;: {},
+                    &#39;success&#39;: 200 &gt;= self.response.status_code &lt; 300,
+                    &#39;response_headers&#39;: self.response.headers,
+                    &#39;status_code&#39;: self.response.status_code,
+                    &#39;reason&#39;: self.response.reason,
+                    &#39;format&#39;: &#39;text&#39;,
+                    &#39;content&#39;: &#39;&#39;
+                },
+                &#39;context&#39;: {},
+                &#39;config&#39;: self.scrape_config.__dict__
+            }
+
+            if &#39;X-Scrapfly-Reject-Code&#39; in response.headers:
+                api_result[&#39;result&#39;][&#39;error&#39;] = {
+                    &#39;code&#39;: response.headers[&#39;X-Scrapfly-Reject-Code&#39;],
+                    &#39;http_code&#39;: response.headers[&#39;X-Scrapfly-Reject-Http-Code&#39;],
+                    &#39;message&#39;: response.headers[&#39;X-Scrapfly-Reject-Description&#39;],
+                    &#39;error_id&#39;: response.headers[&#39;X-Scrapfly-Reject-ID&#39;],
+                    &#39;retryable&#39;: True if response.headers[&#39;X-Scrapfly-Reject-Retryable&#39;] == &#39;yes&#39; else False
+                }
+
+                if &#39;X-Scrapfly-Reject-Doc&#39; in response.headers:
+                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
+
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
@@ -580,24 +619,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
     def headers(self) -&gt; CaseInsensitiveDict:
         return self.response.headers
 
-    def handle_api_result(self, api_result: Optional[Dict]) -&gt; Optional[FrozenDict]:
-        if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
-            return None
-
-        if self.scrape_config.method == &#39;HEAD&#39;:
-            api_result = {
-                &#39;result&#39;: {
-                    &#39;request_headers&#39;: {},
-                    &#39;response_headers&#39;: self.response.headers,
-                    &#39;status_code&#39;: self.response.status_code,
-                    &#39;reason&#39;: self.response.reason,
-                    &#39;format&#39;: &#39;text&#39;,
-                    &#39;content&#39;: &#39;&#39;
-                },
-                &#39;context&#39;: {},
-                &#39;config&#39;: self.scrape_config.__dict__
-            }
-
+    def handle_api_result(self, api_result: Dict) -&gt; Optional[FrozenDict]:
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
 
@@ -947,7 +969,7 @@ def success(self) -&gt; bool:
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.api_response.ScrapeApiResponse.handle_api_result"><code class="name flex">
-<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Optional[Dict]) ‑> Optional[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>]</span>
+<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Dict) ‑> Optional[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>]</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -955,24 +977,7 @@ def success(self) -&gt; bool:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def handle_api_result(self, api_result: Optional[Dict]) -&gt; Optional[FrozenDict]:
-    if not api_result and self.scrape_config.method != &#39;HEAD&#39;:
-        return None
-
-    if self.scrape_config.method == &#39;HEAD&#39;:
-        api_result = {
-            &#39;result&#39;: {
-                &#39;request_headers&#39;: {},
-                &#39;response_headers&#39;: self.response.headers,
-                &#39;status_code&#39;: self.response.status_code,
-                &#39;reason&#39;: self.response.reason,
-                &#39;format&#39;: &#39;text&#39;,
-                &#39;content&#39;: &#39;&#39;
-            },
-            &#39;context&#39;: {},
-            &#39;config&#39;: self.scrape_config.__dict__
-        }
-
+<pre><code class="python">def handle_api_result(self, api_result: Dict) -&gt; Optional[FrozenDict]:
     if self._is_api_error(api_result=api_result) is True:
         return FrozenDict(api_result)
 
