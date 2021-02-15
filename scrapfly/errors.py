@@ -225,12 +225,12 @@ class ErrorFactory:
         elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
             if code == 'ERR::SCRAPE::BAD_UPSTREAM_RESPONSE':
                 if http_code >= 500:
-                    return UpstreamHttpServerError(**args, **args, request=api_response.request, response=api_response.response)
+                    return UpstreamHttpServerError(**args, request=api_response.request, response=api_response.response)
 
                 if resource in ErrorFactory.RESOURCE_TO_ERROR:
                     return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
-                return UpstreamHttpClientError(**args, **args, request=api_response.request, response=api_response.response)
+                return UpstreamHttpClientError(**args, request=api_response.request, response=api_response.response)
 
             return ScrapflyError(**args)
 
