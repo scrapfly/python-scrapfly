@@ -88,6 +88,10 @@ class ScrapflyClient:
     def _http_handler(self):
         return partial(self.http_session.request if self.http_session else requests.request)
 
+    @property
+    def http(self):
+        return self._http_handler
+
     def _scrape_request(self, scrape_config:ScrapeConfig):
 
         if self.distributed_mode is True and scrape_config.correlation_id is None:
@@ -230,6 +234,27 @@ class ScrapflyClient:
             logger.critical('<-- - %s' % (str(e)))
             raise
 
+    def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+
+        try:
+            api_response.scrape_result['screenshots'][name]
+        except KeyError:
+            raise Exception('Screenshot %s do no exists' % name)
+
+        screenshot_response = self._http_handler(
+            method='GET',
+            url=api_response.scrape_result['screenshots'][name]['url'],
+            params={'key': self.key},
+            verify=False
+        )
+
+        screenshot_response.raise_for_status()
+
+        if not name.endswith('.jpg'):
+            name += '.jpg'
+
+        api_response.sink(path=path, name=name, content=screenshot_response.content)
+
     def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -> str:
         # for advance configuration, take screenshots via scrape method with ScrapeConfig
         api_response = self.scrape(scrape_config=ScrapeConfig(
@@ -243,17 +268,14 @@ class ScrapflyClient:
         if not name.endswith('.jpg'):
             name += '.jpg'
 
-        with self as client:
-            response = client.http_session.request(
-                method='GET',
-                url=api_response.scrape_result['screenshots']['main']['url']
-            )
+        response = self._http_handler.request(
+            method='GET',
+            url=api_response.scrape_result['screenshots']['main']['url']
+        )
 
-            response.raise_for_status()
+        response.raise_for_status()
 
-            screenshot = response.content
-
-        return self.sink(api_response, path=path, name=name, content=screenshot)
+        return self.sink(api_response, path=path, name=name, content=response.content)
 
     def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None) -> str:
         scrape_result = api_response.result['result']

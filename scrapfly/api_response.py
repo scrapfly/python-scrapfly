@@ -11,6 +11,7 @@ from http.cookies import SimpleCookie
 from io import BytesIO
 from json import JSONDecoder, loads
 
+import requests
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
 from typing import Dict, Optional, Iterable, Union, TextIO
@@ -311,8 +312,8 @@ class ScrapeApiResponse:
 
         return response
 
-    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
-        file_content = self.scrape_result['content']
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content:Optional[Union[str, bytes]]=None):
+        file_content = content or self.scrape_result['content']
         file_path = None
         file_extension = None
 
@@ -339,7 +340,7 @@ class ScrapeApiResponse:
             if name.find(file_extension) == -1:
                 name += file_extension
 
-            file_path = path + '/' + name if path else name
+            file_path = path + '/' + name if path is not None else name
 
             if file_path == file_extension:
                 url = re.sub(r'(https|http)?://', '', self.config['url']).replace('/', '-')
