@@ -1,4 +1,4 @@
-__version__ = '0.8.0'
+__version__ = '0.7.4'
 
 from typing import Tuple
 from .errors import ScrapflyError
