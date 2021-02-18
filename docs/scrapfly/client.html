@@ -116,6 +116,10 @@ class ScrapflyClient:
     def _http_handler(self):
         return partial(self.http_session.request if self.http_session else requests.request)
 
+    @property
+    def http(self):
+        return self._http_handler
+
     def _scrape_request(self, scrape_config:ScrapeConfig):
 
         if self.distributed_mode is True and scrape_config.correlation_id is None:
@@ -258,6 +262,27 @@ class ScrapflyClient:
             logger.critical(&#39;&lt;-- - %s&#39; % (str(e)))
             raise
 
+    def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+
+        try:
+            api_response.scrape_result[&#39;screenshots&#39;][name]
+        except KeyError:
+            raise Exception(&#39;Screenshot %s do no exists&#39; % name)
+
+        screenshot_response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=api_response.scrape_result[&#39;screenshots&#39;][name][&#39;url&#39;],
+            params={&#39;key&#39;: self.key},
+            verify=False
+        )
+
+        screenshot_response.raise_for_status()
+
+        if not name.endswith(&#39;.jpg&#39;):
+            name += &#39;.jpg&#39;
+
+        api_response.sink(path=path, name=name, content=screenshot_response.content)
+
     def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
         # for advance configuration, take screenshots via scrape method with ScrapeConfig
         api_response = self.scrape(scrape_config=ScrapeConfig(
@@ -271,17 +296,14 @@ class ScrapflyClient:
         if not name.endswith(&#39;.jpg&#39;):
             name += &#39;.jpg&#39;
 
-        with self as client:
-            response = client.http_session.request(
-                method=&#39;GET&#39;,
-                url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
-            )
+        response = self._http_handler.request(
+            method=&#39;GET&#39;,
+            url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
+        )
 
-            response.raise_for_status()
+        response.raise_for_status()
 
-            screenshot = response.content
-
-        return self.sink(api_response, path=path, name=name, content=screenshot)
+        return self.sink(api_response, path=path, name=name, content=response.content)
 
     def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None) -&gt; str:
         scrape_result = api_response.result[&#39;result&#39;]
@@ -443,6 +465,10 @@ class ScrapflyClient:
     def _http_handler(self):
         return partial(self.http_session.request if self.http_session else requests.request)
 
+    @property
+    def http(self):
+        return self._http_handler
+
     def _scrape_request(self, scrape_config:ScrapeConfig):
 
         if self.distributed_mode is True and scrape_config.correlation_id is None:
@@ -585,6 +611,27 @@ class ScrapflyClient:
             logger.critical(&#39;&lt;-- - %s&#39; % (str(e)))
             raise
 
+    def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+
+        try:
+            api_response.scrape_result[&#39;screenshots&#39;][name]
+        except KeyError:
+            raise Exception(&#39;Screenshot %s do no exists&#39; % name)
+
+        screenshot_response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=api_response.scrape_result[&#39;screenshots&#39;][name][&#39;url&#39;],
+            params={&#39;key&#39;: self.key},
+            verify=False
+        )
+
+        screenshot_response.raise_for_status()
+
+        if not name.endswith(&#39;.jpg&#39;):
+            name += &#39;.jpg&#39;
+
+        api_response.sink(path=path, name=name, content=screenshot_response.content)
+
     def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
         # for advance configuration, take screenshots via scrape method with ScrapeConfig
         api_response = self.scrape(scrape_config=ScrapeConfig(
@@ -598,17 +645,14 @@ class ScrapflyClient:
         if not name.endswith(&#39;.jpg&#39;):
             name += &#39;.jpg&#39;
 
-        with self as client:
-            response = client.http_session.request(
-                method=&#39;GET&#39;,
-                url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
-            )
+        response = self._http_handler.request(
+            method=&#39;GET&#39;,
+            url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
+        )
 
-            response.raise_for_status()
+        response.raise_for_status()
 
-            screenshot = response.content
-
-        return self.sink(api_response, path=path, name=name, content=screenshot)
+        return self.sink(api_response, path=path, name=name, content=response.content)
 
     def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None) -&gt; str:
         scrape_result = api_response.result[&#39;result&#39;]
@@ -738,6 +782,21 @@ class ScrapflyClient:
 <dt id="scrapfly.client.ScrapflyClient.verify"><code class="name">var <span class="ident">verify</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.client.ScrapflyClient.http"><code class="name">var <span class="ident">http</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def http(self):
+    return self._http_handler</code></pre>
+</details>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -877,6 +936,37 @@ class ScrapflyClient:
     return inner()</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.save_screenshot"><code class="name flex">
+<span>def <span class="ident">save_screenshot</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, name: str, path: Optional[str] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+
+    try:
+        api_response.scrape_result[&#39;screenshots&#39;][name]
+    except KeyError:
+        raise Exception(&#39;Screenshot %s do no exists&#39; % name)
+
+    screenshot_response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=api_response.scrape_result[&#39;screenshots&#39;][name][&#39;url&#39;],
+        params={&#39;key&#39;: self.key},
+        verify=False
+    )
+
+    screenshot_response.raise_for_status()
+
+    if not name.endswith(&#39;.jpg&#39;):
+        name += &#39;.jpg&#39;
+
+    api_response.sink(path=path, name=name, content=screenshot_response.content)</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.scrape"><code class="name flex">
 <span>def <span class="ident">scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
@@ -916,17 +1006,14 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
     if not name.endswith(&#39;.jpg&#39;):
         name += &#39;.jpg&#39;
 
-    with self as client:
-        response = client.http_session.request(
-            method=&#39;GET&#39;,
-            url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
-        )
+    response = self._http_handler.request(
+        method=&#39;GET&#39;,
+        url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;]
+    )
 
-        response.raise_for_status()
+    response.raise_for_status()
 
-        screenshot = response.content
-
-    return self.sink(api_response, path=path, name=name, content=screenshot)</code></pre>
+    return self.sink(api_response, path=path, name=name, content=response.content)</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.sink"><code class="name flex">
@@ -1028,11 +1115,13 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.client.ScrapflyClient.debug" href="#scrapfly.client.ScrapflyClient.debug">debug</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.distributed_mode" href="#scrapfly.client.ScrapflyClient.distributed_mode">distributed_mode</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.host" href="#scrapfly.client.ScrapflyClient.host">host</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.http" href="#scrapfly.client.ScrapflyClient.http">http</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.key" href="#scrapfly.client.ScrapflyClient.key">key</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.max_concurrency" href="#scrapfly.client.ScrapflyClient.max_concurrency">max_concurrency</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.open" href="#scrapfly.client.ScrapflyClient.open">open</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.read_timeout" href="#scrapfly.client.ScrapflyClient.read_timeout">read_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.resilient_scrape" href="#scrapfly.client.ScrapflyClient.resilient_scrape">resilient_scrape</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.save_screenshot" href="#scrapfly.client.ScrapflyClient.save_screenshot">save_screenshot</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.scrape" href="#scrapfly.client.ScrapflyClient.scrape">scrape</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.screenshot" href="#scrapfly.client.ScrapflyClient.screenshot">screenshot</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.sink" href="#scrapfly.client.ScrapflyClient.sink">sink</a></code></li>

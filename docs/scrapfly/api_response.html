@@ -39,6 +39,7 @@ from http.cookies import SimpleCookie
 from io import BytesIO
 from json import JSONDecoder, loads
 
+import requests
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
 from typing import Dict, Optional, Iterable, Union, TextIO
@@ -339,8 +340,8 @@ class ScrapeApiResponse:
 
         return response
 
-    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
-        file_content = self.scrape_result[&#39;content&#39;]
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content:Optional[Union[str, bytes]]=None):
+        file_content = content or self.scrape_result[&#39;content&#39;]
         file_path = None
         file_extension = None
 
@@ -367,7 +368,7 @@ class ScrapeApiResponse:
             if name.find(file_extension) == -1:
                 name += file_extension
 
-            file_path = path + &#39;/&#39; + name if path else name
+            file_path = path + &#39;/&#39; + name if path is not None else name
 
             if file_path == file_extension:
                 url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, self.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
@@ -759,8 +760,8 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
         return response
 
-    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
-        file_content = self.scrape_result[&#39;content&#39;]
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content:Optional[Union[str, bytes]]=None):
+        file_content = content or self.scrape_result[&#39;content&#39;]
         file_path = None
         file_extension = None
 
@@ -787,7 +788,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             if name.find(file_extension) == -1:
                 name += file_extension
 
-            file_path = path + &#39;/&#39; + name if path else name
+            file_path = path + &#39;/&#39; + name if path is not None else name
 
             if file_path == file_extension:
                 url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, self.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
@@ -1040,7 +1041,7 @@ def success(self) -&gt; bool:
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.sink"><code class="name flex">
-<span>def <span class="ident">sink</span></span>(<span>self, path: Optional[str] = None, name: Optional[str] = None, file: Union[TextIO, _io.BytesIO, NoneType] = None)</span>
+<span>def <span class="ident">sink</span></span>(<span>self, path: Optional[str] = None, name: Optional[str] = None, file: Union[TextIO, _io.BytesIO, NoneType] = None, content: Union[str, bytes, NoneType] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1048,8 +1049,8 @@ def success(self) -&gt; bool:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
-    file_content = self.scrape_result[&#39;content&#39;]
+<pre><code class="python">def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content:Optional[Union[str, bytes]]=None):
+    file_content = content or self.scrape_result[&#39;content&#39;]
     file_path = None
     file_extension = None
 
@@ -1076,7 +1077,7 @@ def success(self) -&gt; bool:
         if name.find(file_extension) == -1:
             name += file_extension
 
-        file_path = path + &#39;/&#39; + name if path else name
+        file_path = path + &#39;/&#39; + name if path is not None else name
 
         if file_path == file_extension:
             url = re.sub(r&#39;(https|http)?://&#39;, &#39;&#39;, self.config[&#39;url&#39;]).replace(&#39;/&#39;, &#39;-&#39;)
