@@ -104,39 +104,39 @@ class ApiHttpServerError(ApiHttpClientError):
     pass
 
 
-class ScrapflyScrapeError(ScrapflyError):
+class ScrapflyScrapeError(HttpError):
     pass
 
 
-class ScrapflyProxyError(ScrapflyError):
+class ScrapflyProxyError(HttpError):
     pass
 
 
-class ScrapflyThrottleError(ScrapflyError):
+class ScrapflyThrottleError(HttpError):
     pass
 
 
-class ScrapflyAspError(ScrapflyError):
+class ScrapflyAspError(HttpError):
     pass
 
 
-class ScrapflyScheduleError(ScrapflyError):
+class ScrapflyScheduleError(HttpError):
     pass
 
 
-class ScrapflyWebhookError(ScrapflyError):
+class ScrapflyWebhookError(HttpError):
     pass
 
 
-class ScrapflySessionError(ScrapflyError):
+class ScrapflySessionError(HttpError):
     pass
 
 
-class TooManyConcurrentRequest(ScrapflyScrapeError):
+class TooManyConcurrentRequest(HttpError):
     pass
 
 
-class QuotaLimitReached(ScrapflyScrapeError):
+class QuotaLimitReached(HttpError):
     pass
 
 
@@ -182,7 +182,7 @@ class ErrorFactory:
         if 'description' in api_response.error:
             description = api_response.error['description']
 
-        message = str(http_code) + ' ' + api_response.error['message']
+        message = '%s %s %s' % (str(http_code), code, api_response.error['message'])
 
         if 'doc_url' in api_response.error:
             error_url = api_response.error['doc_url']
@@ -222,6 +222,9 @@ class ErrorFactory:
             if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
                 return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
 
+            if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
+
             return ApiHttpClientError(**args)
 
         elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
@@ -229,17 +232,11 @@ class ErrorFactory:
                 if http_code >= 500:
                     return UpstreamHttpServerError(**args)
 
-                if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                if http_code >= 400:
+                    return UpstreamHttpClientError(**args)
 
-                    del args['request']
-                    del args['response']
-
-                    return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
-
-                return UpstreamHttpClientError(**args)
-
-            del args['request']
-            del args['response']
+            if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ScrapflyError(**args)
 

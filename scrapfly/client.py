@@ -203,7 +203,11 @@ class ScrapflyClient:
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
         try:
-            api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+            api_response = self._handle_api_response(
+                response=response,
+                scrape_config=scrape_config,
+                raise_on_upstream_error=scrape_config.raise_on_upstream_error
+            )
 
             if scrape_config.method == 'HEAD':
                 logger.debug('<-- [%s %s] %s | %ss' % (
@@ -236,10 +240,13 @@ class ScrapflyClient:
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
 
+        if not api_response.scrape_result['screenshots']:
+            raise RuntimeError('Screenshot %s do no exists' % name)
+
         try:
             api_response.scrape_result['screenshots'][name]
         except KeyError:
-            raise Exception('Screenshot %s do no exists' % name)
+            raise RuntimeError('Screenshot %s do no exists' % name)
 
         screenshot_response = self._http_handler(
             method='GET',

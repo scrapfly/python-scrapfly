@@ -53,6 +53,12 @@ EXTRA_DEPENDENCIES = {
     'scrapy': [
         'scrapy >= 2.4.0'
     ],
+    'parser': [
+        'lxml',
+        'beautifulsoup4',
+        'soupsieve',
+        'extruct'
+    ],
     'speedups': [
         'brotli',
         'cchardet',

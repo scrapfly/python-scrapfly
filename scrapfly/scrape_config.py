@@ -1,10 +1,12 @@
+import base64
 import json
 from base64 import b64encode
 from os import getpid
 from socket import gethostname
 from threading import currentThread
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Iterable, Union
 from urllib.parse import urlencode, quote
+
 
 from requests.structures import CaseInsensitiveDict
 
@@ -42,35 +44,37 @@ class ScrapeConfig:
     graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
+    session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
 
     def __init__(
-            self,
-            url: str,
-            retry: bool = True,
-            method: str = 'GET',
-            country: Optional[str] = 'DE',
-            render_js: bool = False,
-            cache: bool = False,
-            cache_clear:bool = False,
-            ssl:bool = False,
-            dns:bool = False,
-            asp:bool = False,
-            debug: bool = False,
-            raise_on_upstream_error:bool = True,
-            cache_ttl:Optional[int] = None,
-            proxy_pool:Optional[str] = None,
-            session: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            correlation_id: Optional[str] = None,
-            cookies: Optional[CaseInsensitiveDict] = None,
-            body: Optional[str] = None,
-            data: Optional[Dict] = None,
-            headers: Optional[CaseInsensitiveDict] = None,
-            graphql: Optional[str] = None,
-            js: str = None,
-            rendering_wait: int = None,
-            screenshots:Optional[Dict]=None
+        self,
+        url: str,
+        retry: bool = True,
+        method: str = 'GET',
+        country: Optional[str] = 'DE',
+        render_js: bool = False,
+        cache: bool = False,
+        cache_clear:bool = False,
+        ssl:bool = False,
+        dns:bool = False,
+        asp:bool = False,
+        debug: bool = False,
+        raise_on_upstream_error:bool = True,
+        cache_ttl:Optional[int] = None,
+        proxy_pool:Optional[str] = None,
+        session: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        correlation_id: Optional[str] = None,
+        cookies: Optional[CaseInsensitiveDict] = None,
+        body: Optional[str] = None,
+        data: Optional[Dict] = None,
+        headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
+        graphql: Optional[str] = None,
+        js: str = None,
+        rendering_wait: int = None,
+        screenshots:Optional[Dict]=None,
+        session_sticky_proxy:bool = True
     ):
         assert(type(url) is str)
 
@@ -83,6 +87,7 @@ class ScrapeConfig:
         self.retry = retry
         self.method = method
         self.country = country
+        self.session_sticky_proxy = session_sticky_proxy
         self.render_js = render_js
         self.cache = cache
         self.cache_clear = cache_clear
@@ -182,6 +187,7 @@ class ScrapeConfig:
 
         if self.session:
             params['session'] = self.session
+            params['session_sticky_proxy'] = self._bool_to_http(self.session_sticky_proxy)
 
         if self.debug is True:
             params['debug'] = self._bool_to_http(self.debug)
@@ -205,3 +211,47 @@ class ScrapeConfig:
             params['rendering_wait'] = self.rendering_wait
 
         return params
+
+    @staticmethod
+    def from_exported_config(config:str) -> 'ScrapeConfig':
+        try:
+            from msgpack import loads as msgpack_loads
+        except ImportError as e:
+            print('You must install msgpack package - run: pip install msgpack')
+            raise
+
+        data = msgpack_loads(base64.b64decode(config))
+
+        headers = {}
+
+        for name, value in data['headers'].items():
+            if isinstance(value, Iterable):
+                headers[name] = '; '.join(value)
+            else:
+                headers[name] = value
+
+        return ScrapeConfig(
+            url=data['url'],
+            retry=data['retry'],
+            headers=headers,
+            session=data['session'],
+            session_sticky_proxy=data['session_sticky_proxy'],
+            cache=data['cache'],
+            cache_ttl=data['cache_ttl'],
+            cache_clear=data['cache_clear'],
+            render_js=data['render_js'],
+            method=data['method'],
+            asp=data['asp'],
+            body=data['body'],
+            ssl=data['ssl'],
+            dns=data['dns'],
+            country=data['country'],
+            debug=data['debug'],
+            correlation_id=data['correlation_id'],
+            tags=data['tags'],
+            graphql=data['graphql_query'],
+            js=data['js'],
+            rendering_wait=data['rendering_wait'],
+            screenshots=data['screenshots'] or {},
+            proxy_pool=data['proxy_pool']
+        )

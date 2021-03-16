@@ -11,7 +11,6 @@ from http.cookies import SimpleCookie
 from io import BytesIO
 from json import JSONDecoder, loads
 
-import requests
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
 from typing import Dict, Optional, Iterable, Union, TextIO
@@ -189,7 +188,16 @@ class ScrapeApiResponse:
         return FrozenDict(api_result)
 
     @cached_property
-    def selector(self):
+    def soup(self) -> 'BeautifulSoup':
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(self.content, "lxml")
+            return soup
+        except ImportError as e:
+            logger.error('You must install scrapfly[parser] to enable this feature')
+
+    @cached_property
+    def selector(self) -> 'Selector':
         try:
             from scrapy import Selector
             return Selector(text=self.content)
