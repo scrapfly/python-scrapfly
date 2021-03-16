@@ -39,7 +39,6 @@ from http.cookies import SimpleCookie
 from io import BytesIO
 from json import JSONDecoder, loads
 
-import requests
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
 from typing import Dict, Optional, Iterable, Union, TextIO
@@ -217,7 +216,16 @@ class ScrapeApiResponse:
         return FrozenDict(api_result)
 
     @cached_property
-    def selector(self):
+    def soup(self) -&gt; &#39;BeautifulSoup&#39;:
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(self.content, &#34;lxml&#34;)
+            return soup
+        except ImportError as e:
+            logger.error(&#39;You must install scrapfly[parser] to enable this feature&#39;)
+
+    @cached_property
+    def selector(self) -&gt; &#39;Selector&#39;:
         try:
             from scrapy import Selector
             return Selector(text=self.content)
@@ -637,7 +645,16 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         return FrozenDict(api_result)
 
     @cached_property
-    def selector(self):
+    def soup(self) -&gt; &#39;BeautifulSoup&#39;:
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(self.content, &#34;lxml&#34;)
+            return soup
+        except ImportError as e:
+            logger.error(&#39;You must install scrapfly[parser] to enable this feature&#39;)
+
+    @cached_property
+    def selector(self) -&gt; &#39;Selector&#39;:
         try:
             from scrapy import Selector
             return Selector(text=self.content)
@@ -901,6 +918,45 @@ def scrape_success(self) -&gt; bool:
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.selector"><code class="name">var <span class="ident">selector</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def __get__(self, instance, owner=None):
+    if instance is None:
+        return self
+    if self.attrname is None:
+        raise TypeError(
+            &#34;Cannot use cached_property instance without calling __set_name__ on it.&#34;)
+    try:
+        cache = instance.__dict__
+    except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
+        msg = (
+            f&#34;No &#39;__dict__&#39; attribute on {type(instance).__name__!r} &#34;
+            f&#34;instance to cache {self.attrname!r} property.&#34;
+        )
+        raise TypeError(msg) from None
+    val = cache.get(self.attrname, _NOT_FOUND)
+    if val is _NOT_FOUND:
+        with self.lock:
+            # check if another thread filled cache while we awaited lock
+            val = cache.get(self.attrname, _NOT_FOUND)
+            if val is _NOT_FOUND:
+                val = self.func(instance)
+                try:
+                    cache[self.attrname] = val
+                except TypeError:
+                    msg = (
+                        f&#34;The &#39;__dict__&#39; attribute on {type(instance).__name__!r} instance &#34;
+                        f&#34;does not support item assignment for caching {self.attrname!r} property.&#34;
+                    )
+                    raise TypeError(msg) from None
+    return val</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.soup"><code class="name">var <span class="ident">soup</span></code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
@@ -1223,6 +1279,7 @@ def success(self) -&gt; bool:
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.scrape_success" href="#scrapfly.api_response.ScrapeApiResponse.scrape_success">scrape_success</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.selector" href="#scrapfly.api_response.ScrapeApiResponse.selector">selector</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.sink" href="#scrapfly.api_response.ScrapeApiResponse.sink">sink</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.soup" href="#scrapfly.api_response.ScrapeApiResponse.soup">soup</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.status_code" href="#scrapfly.api_response.ScrapeApiResponse.status_code">status_code</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.success" href="#scrapfly.api_response.ScrapeApiResponse.success">success</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response" href="#scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response">upstream_result_into_response</a></code></li>

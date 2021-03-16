@@ -231,7 +231,11 @@ class ScrapflyClient:
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         try:
-            api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+            api_response = self._handle_api_response(
+                response=response,
+                scrape_config=scrape_config,
+                raise_on_upstream_error=scrape_config.raise_on_upstream_error
+            )
 
             if scrape_config.method == &#39;HEAD&#39;:
                 logger.debug(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
@@ -264,10 +268,13 @@ class ScrapflyClient:
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
 
+        if not api_response.scrape_result[&#39;screenshots&#39;]:
+            raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
+
         try:
             api_response.scrape_result[&#39;screenshots&#39;][name]
         except KeyError:
-            raise Exception(&#39;Screenshot %s do no exists&#39; % name)
+            raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
 
         screenshot_response = self._http_handler(
             method=&#39;GET&#39;,
@@ -580,7 +587,11 @@ class ScrapflyClient:
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         try:
-            api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+            api_response = self._handle_api_response(
+                response=response,
+                scrape_config=scrape_config,
+                raise_on_upstream_error=scrape_config.raise_on_upstream_error
+            )
 
             if scrape_config.method == &#39;HEAD&#39;:
                 logger.debug(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
@@ -613,10 +624,13 @@ class ScrapflyClient:
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
 
+        if not api_response.scrape_result[&#39;screenshots&#39;]:
+            raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
+
         try:
             api_response.scrape_result[&#39;screenshots&#39;][name]
         except KeyError:
-            raise Exception(&#39;Screenshot %s do no exists&#39; % name)
+            raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
 
         screenshot_response = self._http_handler(
             method=&#39;GET&#39;,
@@ -947,10 +961,13 @@ def http(self):
 </summary>
 <pre><code class="python">def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
 
+    if not api_response.scrape_result[&#39;screenshots&#39;]:
+        raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
+
     try:
         api_response.scrape_result[&#39;screenshots&#39;][name]
     except KeyError:
-        raise Exception(&#39;Screenshot %s do no exists&#39; % name)
+        raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
 
     screenshot_response = self._http_handler(
         method=&#39;GET&#39;,

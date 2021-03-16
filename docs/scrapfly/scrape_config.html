@@ -26,13 +26,15 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import json
+<pre><code class="python">import base64
+import json
 from base64 import b64encode
 from os import getpid
 from socket import gethostname
 from threading import currentThread
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Iterable, Union
 from urllib.parse import urlencode, quote
+
 
 from requests.structures import CaseInsensitiveDict
 
@@ -70,35 +72,37 @@ class ScrapeConfig:
     graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
+    session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
 
     def __init__(
-            self,
-            url: str,
-            retry: bool = True,
-            method: str = &#39;GET&#39;,
-            country: Optional[str] = &#39;DE&#39;,
-            render_js: bool = False,
-            cache: bool = False,
-            cache_clear:bool = False,
-            ssl:bool = False,
-            dns:bool = False,
-            asp:bool = False,
-            debug: bool = False,
-            raise_on_upstream_error:bool = True,
-            cache_ttl:Optional[int] = None,
-            proxy_pool:Optional[str] = None,
-            session: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            correlation_id: Optional[str] = None,
-            cookies: Optional[CaseInsensitiveDict] = None,
-            body: Optional[str] = None,
-            data: Optional[Dict] = None,
-            headers: Optional[CaseInsensitiveDict] = None,
-            graphql: Optional[str] = None,
-            js: str = None,
-            rendering_wait: int = None,
-            screenshots:Optional[Dict]=None
+        self,
+        url: str,
+        retry: bool = True,
+        method: str = &#39;GET&#39;,
+        country: Optional[str] = &#39;DE&#39;,
+        render_js: bool = False,
+        cache: bool = False,
+        cache_clear:bool = False,
+        ssl:bool = False,
+        dns:bool = False,
+        asp:bool = False,
+        debug: bool = False,
+        raise_on_upstream_error:bool = True,
+        cache_ttl:Optional[int] = None,
+        proxy_pool:Optional[str] = None,
+        session: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        correlation_id: Optional[str] = None,
+        cookies: Optional[CaseInsensitiveDict] = None,
+        body: Optional[str] = None,
+        data: Optional[Dict] = None,
+        headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
+        graphql: Optional[str] = None,
+        js: str = None,
+        rendering_wait: int = None,
+        screenshots:Optional[Dict]=None,
+        session_sticky_proxy:bool = True
     ):
         assert(type(url) is str)
 
@@ -111,6 +115,7 @@ class ScrapeConfig:
         self.retry = retry
         self.method = method
         self.country = country
+        self.session_sticky_proxy = session_sticky_proxy
         self.render_js = render_js
         self.cache = cache
         self.cache_clear = cache_clear
@@ -210,6 +215,7 @@ class ScrapeConfig:
 
         if self.session:
             params[&#39;session&#39;] = self.session
+            params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
 
         if self.debug is True:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
@@ -232,7 +238,51 @@ class ScrapeConfig:
         if self.rendering_wait:
             params[&#39;rendering_wait&#39;] = self.rendering_wait
 
-        return params</code></pre>
+        return params
+
+    @staticmethod
+    def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
+        try:
+            from msgpack import loads as msgpack_loads
+        except ImportError as e:
+            print(&#39;You must install msgpack package - run: pip install msgpack&#39;)
+            raise
+
+        data = msgpack_loads(base64.b64decode(config))
+
+        headers = {}
+
+        for name, value in data[&#39;headers&#39;].items():
+            if isinstance(value, Iterable):
+                headers[name] = &#39;; &#39;.join(value)
+            else:
+                headers[name] = value
+
+        return ScrapeConfig(
+            url=data[&#39;url&#39;],
+            retry=data[&#39;retry&#39;],
+            headers=headers,
+            session=data[&#39;session&#39;],
+            session_sticky_proxy=data[&#39;session_sticky_proxy&#39;],
+            cache=data[&#39;cache&#39;],
+            cache_ttl=data[&#39;cache_ttl&#39;],
+            cache_clear=data[&#39;cache_clear&#39;],
+            render_js=data[&#39;render_js&#39;],
+            method=data[&#39;method&#39;],
+            asp=data[&#39;asp&#39;],
+            body=data[&#39;body&#39;],
+            ssl=data[&#39;ssl&#39;],
+            dns=data[&#39;dns&#39;],
+            country=data[&#39;country&#39;],
+            debug=data[&#39;debug&#39;],
+            correlation_id=data[&#39;correlation_id&#39;],
+            tags=data[&#39;tags&#39;],
+            graphql=data[&#39;graphql_query&#39;],
+            js=data[&#39;js&#39;],
+            rendering_wait=data[&#39;rendering_wait&#39;],
+            screenshots=data[&#39;screenshots&#39;] or {},
+            proxy_pool=data[&#39;proxy_pool&#39;]
+        )</code></pre>
 </details>
 </section>
 <section>
@@ -246,7 +296,7 @@ class ScrapeConfig:
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Optional[requests.structures.CaseInsensitiveDict] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], NoneType] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None, session_sticky_proxy: bool = True)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -283,35 +333,37 @@ class ScrapeConfig:
     graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
+    session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
 
     def __init__(
-            self,
-            url: str,
-            retry: bool = True,
-            method: str = &#39;GET&#39;,
-            country: Optional[str] = &#39;DE&#39;,
-            render_js: bool = False,
-            cache: bool = False,
-            cache_clear:bool = False,
-            ssl:bool = False,
-            dns:bool = False,
-            asp:bool = False,
-            debug: bool = False,
-            raise_on_upstream_error:bool = True,
-            cache_ttl:Optional[int] = None,
-            proxy_pool:Optional[str] = None,
-            session: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            correlation_id: Optional[str] = None,
-            cookies: Optional[CaseInsensitiveDict] = None,
-            body: Optional[str] = None,
-            data: Optional[Dict] = None,
-            headers: Optional[CaseInsensitiveDict] = None,
-            graphql: Optional[str] = None,
-            js: str = None,
-            rendering_wait: int = None,
-            screenshots:Optional[Dict]=None
+        self,
+        url: str,
+        retry: bool = True,
+        method: str = &#39;GET&#39;,
+        country: Optional[str] = &#39;DE&#39;,
+        render_js: bool = False,
+        cache: bool = False,
+        cache_clear:bool = False,
+        ssl:bool = False,
+        dns:bool = False,
+        asp:bool = False,
+        debug: bool = False,
+        raise_on_upstream_error:bool = True,
+        cache_ttl:Optional[int] = None,
+        proxy_pool:Optional[str] = None,
+        session: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        correlation_id: Optional[str] = None,
+        cookies: Optional[CaseInsensitiveDict] = None,
+        body: Optional[str] = None,
+        data: Optional[Dict] = None,
+        headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
+        graphql: Optional[str] = None,
+        js: str = None,
+        rendering_wait: int = None,
+        screenshots:Optional[Dict]=None,
+        session_sticky_proxy:bool = True
     ):
         assert(type(url) is str)
 
@@ -324,6 +376,7 @@ class ScrapeConfig:
         self.retry = retry
         self.method = method
         self.country = country
+        self.session_sticky_proxy = session_sticky_proxy
         self.render_js = render_js
         self.cache = cache
         self.cache_clear = cache_clear
@@ -423,6 +476,7 @@ class ScrapeConfig:
 
         if self.session:
             params[&#39;session&#39;] = self.session
+            params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
 
         if self.debug is True:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
@@ -445,7 +499,51 @@ class ScrapeConfig:
         if self.rendering_wait:
             params[&#39;rendering_wait&#39;] = self.rendering_wait
 
-        return params</code></pre>
+        return params
+
+    @staticmethod
+    def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
+        try:
+            from msgpack import loads as msgpack_loads
+        except ImportError as e:
+            print(&#39;You must install msgpack package - run: pip install msgpack&#39;)
+            raise
+
+        data = msgpack_loads(base64.b64decode(config))
+
+        headers = {}
+
+        for name, value in data[&#39;headers&#39;].items():
+            if isinstance(value, Iterable):
+                headers[name] = &#39;; &#39;.join(value)
+            else:
+                headers[name] = value
+
+        return ScrapeConfig(
+            url=data[&#39;url&#39;],
+            retry=data[&#39;retry&#39;],
+            headers=headers,
+            session=data[&#39;session&#39;],
+            session_sticky_proxy=data[&#39;session_sticky_proxy&#39;],
+            cache=data[&#39;cache&#39;],
+            cache_ttl=data[&#39;cache_ttl&#39;],
+            cache_clear=data[&#39;cache_clear&#39;],
+            render_js=data[&#39;render_js&#39;],
+            method=data[&#39;method&#39;],
+            asp=data[&#39;asp&#39;],
+            body=data[&#39;body&#39;],
+            ssl=data[&#39;ssl&#39;],
+            dns=data[&#39;dns&#39;],
+            country=data[&#39;country&#39;],
+            debug=data[&#39;debug&#39;],
+            correlation_id=data[&#39;correlation_id&#39;],
+            tags=data[&#39;tags&#39;],
+            graphql=data[&#39;graphql_query&#39;],
+            js=data[&#39;js&#39;],
+            rendering_wait=data[&#39;rendering_wait&#39;],
+            screenshots=data[&#39;screenshots&#39;] or {},
+            proxy_pool=data[&#39;proxy_pool&#39;]
+        )</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -545,6 +643,10 @@ class ScrapeConfig:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.session_sticky_proxy"><code class="name">var <span class="ident">session_sticky_proxy</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
@@ -556,6 +658,63 @@ class ScrapeConfig:
 <dt id="scrapfly.scrape_config.ScrapeConfig.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.scrape_config.ScrapeConfig.from_exported_config"><code class="name flex">
+<span>def <span class="ident">from_exported_config</span></span>(<span>config: str) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
+    try:
+        from msgpack import loads as msgpack_loads
+    except ImportError as e:
+        print(&#39;You must install msgpack package - run: pip install msgpack&#39;)
+        raise
+
+    data = msgpack_loads(base64.b64decode(config))
+
+    headers = {}
+
+    for name, value in data[&#39;headers&#39;].items():
+        if isinstance(value, Iterable):
+            headers[name] = &#39;; &#39;.join(value)
+        else:
+            headers[name] = value
+
+    return ScrapeConfig(
+        url=data[&#39;url&#39;],
+        retry=data[&#39;retry&#39;],
+        headers=headers,
+        session=data[&#39;session&#39;],
+        session_sticky_proxy=data[&#39;session_sticky_proxy&#39;],
+        cache=data[&#39;cache&#39;],
+        cache_ttl=data[&#39;cache_ttl&#39;],
+        cache_clear=data[&#39;cache_clear&#39;],
+        render_js=data[&#39;render_js&#39;],
+        method=data[&#39;method&#39;],
+        asp=data[&#39;asp&#39;],
+        body=data[&#39;body&#39;],
+        ssl=data[&#39;ssl&#39;],
+        dns=data[&#39;dns&#39;],
+        country=data[&#39;country&#39;],
+        debug=data[&#39;debug&#39;],
+        correlation_id=data[&#39;correlation_id&#39;],
+        tags=data[&#39;tags&#39;],
+        graphql=data[&#39;graphql_query&#39;],
+        js=data[&#39;js&#39;],
+        rendering_wait=data[&#39;rendering_wait&#39;],
+        screenshots=data[&#39;screenshots&#39;] or {},
+        proxy_pool=data[&#39;proxy_pool&#39;]
+    )</code></pre>
+</details>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -622,6 +781,7 @@ class ScrapeConfig:
 
     if self.session:
         params[&#39;session&#39;] = self.session
+        params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
 
     if self.debug is True:
         params[&#39;debug&#39;] = self._bool_to_http(self.debug)
@@ -700,6 +860,7 @@ class ScrapeConfig:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.data" href="#scrapfly.scrape_config.ScrapeConfig.data">data</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.debug" href="#scrapfly.scrape_config.ScrapeConfig.debug">debug</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.dns" href="#scrapfly.scrape_config.ScrapeConfig.dns">dns</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.from_exported_config" href="#scrapfly.scrape_config.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.generate_distributed_correlation_id" href="#scrapfly.scrape_config.ScrapeConfig.generate_distributed_correlation_id">generate_distributed_correlation_id</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.graphql" href="#scrapfly.scrape_config.ScrapeConfig.graphql">graphql</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.headers" href="#scrapfly.scrape_config.ScrapeConfig.headers">headers</a></code></li>
@@ -712,6 +873,7 @@ class ScrapeConfig:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.retry" href="#scrapfly.scrape_config.ScrapeConfig.retry">retry</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.screenshots" href="#scrapfly.scrape_config.ScrapeConfig.screenshots">screenshots</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.session" href="#scrapfly.scrape_config.ScrapeConfig.session">session</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.session_sticky_proxy" href="#scrapfly.scrape_config.ScrapeConfig.session_sticky_proxy">session_sticky_proxy</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.ssl" href="#scrapfly.scrape_config.ScrapeConfig.ssl">ssl</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.tags" href="#scrapfly.scrape_config.ScrapeConfig.tags">tags</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.to_api_params" href="#scrapfly.scrape_config.ScrapeConfig.to_api_params">to_api_params</a></code></li>

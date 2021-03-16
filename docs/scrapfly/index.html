@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.7.4&#39;
+<pre><code class="python">__version__ = &#39;0.7.5&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -231,7 +231,7 @@ __all__:Tuple[str, ...] = (
         if &#39;description&#39; in api_response.error:
             description = api_response.error[&#39;description&#39;]
 
-        message = str(http_code) + &#39; &#39; + api_response.error[&#39;message&#39;]
+        message = &#39;%s %s %s&#39; % (str(http_code), code, api_response.error[&#39;message&#39;])
 
         if &#39;doc_url&#39; in api_response.error:
             error_url = api_response.error[&#39;doc_url&#39;]
@@ -271,6 +271,9 @@ __all__:Tuple[str, ...] = (
             if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
                 return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
 
+            if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
+
             return ApiHttpClientError(**args)
 
         elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
@@ -278,17 +281,11 @@ __all__:Tuple[str, ...] = (
                 if http_code &gt;= 500:
                     return UpstreamHttpServerError(**args)
 
-                if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                if http_code &gt;= 400:
+                    return UpstreamHttpClientError(**args)
 
-                    del args[&#39;request&#39;]
-                    del args[&#39;response&#39;]
-
-                    return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
-
-                return UpstreamHttpClientError(**args)
-
-            del args[&#39;request&#39;]
-            del args[&#39;response&#39;]
+            if resource in ErrorFactory.RESOURCE_TO_ERROR:
+                return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ScrapflyError(**args)</code></pre>
 </details>
@@ -331,7 +328,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
     if &#39;description&#39; in api_response.error:
         description = api_response.error[&#39;description&#39;]
 
-    message = str(http_code) + &#39; &#39; + api_response.error[&#39;message&#39;]
+    message = &#39;%s %s %s&#39; % (str(http_code), code, api_response.error[&#39;message&#39;])
 
     if &#39;doc_url&#39; in api_response.error:
         error_url = api_response.error[&#39;doc_url&#39;]
@@ -371,6 +368,9 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
         if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
             return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
 
+        if resource in ErrorFactory.RESOURCE_TO_ERROR:
+            return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
+
         return ApiHttpClientError(**args)
 
     elif kind == ScrapflyError.KIND_SCRAPFLY_ERROR:
@@ -378,17 +378,11 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
             if http_code &gt;= 500:
                 return UpstreamHttpServerError(**args)
 
-            if resource in ErrorFactory.RESOURCE_TO_ERROR:
+            if http_code &gt;= 400:
+                return UpstreamHttpClientError(**args)
 
-                del args[&#39;request&#39;]
-                del args[&#39;response&#39;]
-
-                return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
-
-            return UpstreamHttpClientError(**args)
-
-        del args[&#39;request&#39;]
-        del args[&#39;response&#39;]
+        if resource in ErrorFactory.RESOURCE_TO_ERROR:
+            return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
         return ScrapflyError(**args)</code></pre>
 </details>
@@ -420,6 +414,15 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 <h3>Subclasses</h3>
 <ul class="hlist">
 <li><a title="scrapfly.errors.ApiHttpClientError" href="errors.html#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></li>
+<li>scrapfly.errors.QuotaLimitReached</li>
+<li><a title="scrapfly.errors.ScrapflyAspError" href="errors.html#scrapfly.errors.ScrapflyAspError">ScrapflyAspError</a></li>
+<li><a title="scrapfly.errors.ScrapflyProxyError" href="errors.html#scrapfly.errors.ScrapflyProxyError">ScrapflyProxyError</a></li>
+<li><a title="scrapfly.errors.ScrapflyScheduleError" href="errors.html#scrapfly.errors.ScrapflyScheduleError">ScrapflyScheduleError</a></li>
+<li><a title="scrapfly.errors.ScrapflyScrapeError" href="errors.html#scrapfly.errors.ScrapflyScrapeError">ScrapflyScrapeError</a></li>
+<li><a title="scrapfly.errors.ScrapflySessionError" href="errors.html#scrapfly.errors.ScrapflySessionError">ScrapflySessionError</a></li>
+<li><a title="scrapfly.errors.ScrapflyThrottleError" href="errors.html#scrapfly.errors.ScrapflyThrottleError">ScrapflyThrottleError</a></li>
+<li><a title="scrapfly.errors.ScrapflyWebhookError" href="errors.html#scrapfly.errors.ScrapflyWebhookError">ScrapflyWebhookError</a></li>
+<li>scrapfly.errors.TooManyConcurrentRequest</li>
 <li>scrapfly.errors.UpstreamHttpError</li>
 </ul>
 </dd>
@@ -657,7 +660,16 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         return FrozenDict(api_result)
 
     @cached_property
-    def selector(self):
+    def soup(self) -&gt; &#39;BeautifulSoup&#39;:
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(self.content, &#34;lxml&#34;)
+            return soup
+        except ImportError as e:
+            logger.error(&#39;You must install scrapfly[parser] to enable this feature&#39;)
+
+    @cached_property
+    def selector(self) -&gt; &#39;Selector&#39;:
         try:
             from scrapy import Selector
             return Selector(text=self.content)
@@ -959,6 +971,45 @@ def scrape_success(self) -&gt; bool:
     return val</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.ScrapeApiResponse.soup"><code class="name">var <span class="ident">soup</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def __get__(self, instance, owner=None):
+    if instance is None:
+        return self
+    if self.attrname is None:
+        raise TypeError(
+            &#34;Cannot use cached_property instance without calling __set_name__ on it.&#34;)
+    try:
+        cache = instance.__dict__
+    except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
+        msg = (
+            f&#34;No &#39;__dict__&#39; attribute on {type(instance).__name__!r} &#34;
+            f&#34;instance to cache {self.attrname!r} property.&#34;
+        )
+        raise TypeError(msg) from None
+    val = cache.get(self.attrname, _NOT_FOUND)
+    if val is _NOT_FOUND:
+        with self.lock:
+            # check if another thread filled cache while we awaited lock
+            val = cache.get(self.attrname, _NOT_FOUND)
+            if val is _NOT_FOUND:
+                val = self.func(instance)
+                try:
+                    cache[self.attrname] = val
+                except TypeError:
+                    msg = (
+                        f&#34;The &#39;__dict__&#39; attribute on {type(instance).__name__!r} instance &#34;
+                        f&#34;does not support item assignment for caching {self.attrname!r} property.&#34;
+                    )
+                    raise TypeError(msg) from None
+    return val</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : int</code></dt>
 <dd>
 <div class="desc"></div>
@@ -1206,7 +1257,7 @@ def success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Optional[requests.structures.CaseInsensitiveDict] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], NoneType] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None, session_sticky_proxy: bool = True)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1243,35 +1294,37 @@ def success(self) -&gt; bool:
     graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
+    session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
 
     def __init__(
-            self,
-            url: str,
-            retry: bool = True,
-            method: str = &#39;GET&#39;,
-            country: Optional[str] = &#39;DE&#39;,
-            render_js: bool = False,
-            cache: bool = False,
-            cache_clear:bool = False,
-            ssl:bool = False,
-            dns:bool = False,
-            asp:bool = False,
-            debug: bool = False,
-            raise_on_upstream_error:bool = True,
-            cache_ttl:Optional[int] = None,
-            proxy_pool:Optional[str] = None,
-            session: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            correlation_id: Optional[str] = None,
-            cookies: Optional[CaseInsensitiveDict] = None,
-            body: Optional[str] = None,
-            data: Optional[Dict] = None,
-            headers: Optional[CaseInsensitiveDict] = None,
-            graphql: Optional[str] = None,
-            js: str = None,
-            rendering_wait: int = None,
-            screenshots:Optional[Dict]=None
+        self,
+        url: str,
+        retry: bool = True,
+        method: str = &#39;GET&#39;,
+        country: Optional[str] = &#39;DE&#39;,
+        render_js: bool = False,
+        cache: bool = False,
+        cache_clear:bool = False,
+        ssl:bool = False,
+        dns:bool = False,
+        asp:bool = False,
+        debug: bool = False,
+        raise_on_upstream_error:bool = True,
+        cache_ttl:Optional[int] = None,
+        proxy_pool:Optional[str] = None,
+        session: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        correlation_id: Optional[str] = None,
+        cookies: Optional[CaseInsensitiveDict] = None,
+        body: Optional[str] = None,
+        data: Optional[Dict] = None,
+        headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
+        graphql: Optional[str] = None,
+        js: str = None,
+        rendering_wait: int = None,
+        screenshots:Optional[Dict]=None,
+        session_sticky_proxy:bool = True
     ):
         assert(type(url) is str)
 
@@ -1284,6 +1337,7 @@ def success(self) -&gt; bool:
         self.retry = retry
         self.method = method
         self.country = country
+        self.session_sticky_proxy = session_sticky_proxy
         self.render_js = render_js
         self.cache = cache
         self.cache_clear = cache_clear
@@ -1383,6 +1437,7 @@ def success(self) -&gt; bool:
 
         if self.session:
             params[&#39;session&#39;] = self.session
+            params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
 
         if self.debug is True:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
@@ -1405,7 +1460,51 @@ def success(self) -&gt; bool:
         if self.rendering_wait:
             params[&#39;rendering_wait&#39;] = self.rendering_wait
 
-        return params</code></pre>
+        return params
+
+    @staticmethod
+    def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
+        try:
+            from msgpack import loads as msgpack_loads
+        except ImportError as e:
+            print(&#39;You must install msgpack package - run: pip install msgpack&#39;)
+            raise
+
+        data = msgpack_loads(base64.b64decode(config))
+
+        headers = {}
+
+        for name, value in data[&#39;headers&#39;].items():
+            if isinstance(value, Iterable):
+                headers[name] = &#39;; &#39;.join(value)
+            else:
+                headers[name] = value
+
+        return ScrapeConfig(
+            url=data[&#39;url&#39;],
+            retry=data[&#39;retry&#39;],
+            headers=headers,
+            session=data[&#39;session&#39;],
+            session_sticky_proxy=data[&#39;session_sticky_proxy&#39;],
+            cache=data[&#39;cache&#39;],
+            cache_ttl=data[&#39;cache_ttl&#39;],
+            cache_clear=data[&#39;cache_clear&#39;],
+            render_js=data[&#39;render_js&#39;],
+            method=data[&#39;method&#39;],
+            asp=data[&#39;asp&#39;],
+            body=data[&#39;body&#39;],
+            ssl=data[&#39;ssl&#39;],
+            dns=data[&#39;dns&#39;],
+            country=data[&#39;country&#39;],
+            debug=data[&#39;debug&#39;],
+            correlation_id=data[&#39;correlation_id&#39;],
+            tags=data[&#39;tags&#39;],
+            graphql=data[&#39;graphql_query&#39;],
+            js=data[&#39;js&#39;],
+            rendering_wait=data[&#39;rendering_wait&#39;],
+            screenshots=data[&#39;screenshots&#39;] or {},
+            proxy_pool=data[&#39;proxy_pool&#39;]
+        )</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -1505,6 +1604,10 @@ def success(self) -&gt; bool:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.ScrapeConfig.session_sticky_proxy"><code class="name">var <span class="ident">session_sticky_proxy</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.ScrapeConfig.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
@@ -1516,6 +1619,63 @@ def success(self) -&gt; bool:
 <dt id="scrapfly.ScrapeConfig.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.ScrapeConfig.from_exported_config"><code class="name flex">
+<span>def <span class="ident">from_exported_config</span></span>(<span>config: str) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
+    try:
+        from msgpack import loads as msgpack_loads
+    except ImportError as e:
+        print(&#39;You must install msgpack package - run: pip install msgpack&#39;)
+        raise
+
+    data = msgpack_loads(base64.b64decode(config))
+
+    headers = {}
+
+    for name, value in data[&#39;headers&#39;].items():
+        if isinstance(value, Iterable):
+            headers[name] = &#39;; &#39;.join(value)
+        else:
+            headers[name] = value
+
+    return ScrapeConfig(
+        url=data[&#39;url&#39;],
+        retry=data[&#39;retry&#39;],
+        headers=headers,
+        session=data[&#39;session&#39;],
+        session_sticky_proxy=data[&#39;session_sticky_proxy&#39;],
+        cache=data[&#39;cache&#39;],
+        cache_ttl=data[&#39;cache_ttl&#39;],
+        cache_clear=data[&#39;cache_clear&#39;],
+        render_js=data[&#39;render_js&#39;],
+        method=data[&#39;method&#39;],
+        asp=data[&#39;asp&#39;],
+        body=data[&#39;body&#39;],
+        ssl=data[&#39;ssl&#39;],
+        dns=data[&#39;dns&#39;],
+        country=data[&#39;country&#39;],
+        debug=data[&#39;debug&#39;],
+        correlation_id=data[&#39;correlation_id&#39;],
+        tags=data[&#39;tags&#39;],
+        graphql=data[&#39;graphql_query&#39;],
+        js=data[&#39;js&#39;],
+        rendering_wait=data[&#39;rendering_wait&#39;],
+        screenshots=data[&#39;screenshots&#39;] or {},
+        proxy_pool=data[&#39;proxy_pool&#39;]
+    )</code></pre>
+</details>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -1582,6 +1742,7 @@ def success(self) -&gt; bool:
 
     if self.session:
         params[&#39;session&#39;] = self.session
+        params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
 
     if self.debug is True:
         params[&#39;debug&#39;] = self._bool_to_http(self.debug)
@@ -1611,7 +1772,7 @@ def success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.ScrapflyAspError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyAspError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -1619,11 +1780,12 @@ def success(self) -&gt; bool:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyAspError(ScrapflyError):
+<pre><code class="python">class ScrapflyAspError(HttpError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
 </ul>
@@ -1810,7 +1972,11 @@ def success(self) -&gt; bool:
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         try:
-            api_response = self._handle_api_response(response=response, scrape_config=scrape_config, raise_on_upstream_error=scrape_config.raise_on_upstream_error)
+            api_response = self._handle_api_response(
+                response=response,
+                scrape_config=scrape_config,
+                raise_on_upstream_error=scrape_config.raise_on_upstream_error
+            )
 
             if scrape_config.method == &#39;HEAD&#39;:
                 logger.debug(&#39;&lt;-- [%s %s] %s | %ss&#39; % (
@@ -1843,10 +2009,13 @@ def success(self) -&gt; bool:
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
 
+        if not api_response.scrape_result[&#39;screenshots&#39;]:
+            raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
+
         try:
             api_response.scrape_result[&#39;screenshots&#39;][name]
         except KeyError:
-            raise Exception(&#39;Screenshot %s do no exists&#39; % name)
+            raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
 
         screenshot_response = self._http_handler(
             method=&#39;GET&#39;,
@@ -2177,10 +2346,13 @@ def http(self):
 </summary>
 <pre><code class="python">def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
 
+    if not api_response.scrape_result[&#39;screenshots&#39;]:
+        raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
+
     try:
         api_response.scrape_result[&#39;screenshots&#39;][name]
     except KeyError:
-        raise Exception(&#39;Screenshot %s do no exists&#39; % name)
+        raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
 
     screenshot_response = self._http_handler(
         method=&#39;GET&#39;,
@@ -2387,13 +2559,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <h3>Subclasses</h3>
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
-<li><a title="scrapfly.errors.ScrapflyAspError" href="errors.html#scrapfly.errors.ScrapflyAspError">ScrapflyAspError</a></li>
-<li><a title="scrapfly.errors.ScrapflyProxyError" href="errors.html#scrapfly.errors.ScrapflyProxyError">ScrapflyProxyError</a></li>
-<li><a title="scrapfly.errors.ScrapflyScheduleError" href="errors.html#scrapfly.errors.ScrapflyScheduleError">ScrapflyScheduleError</a></li>
-<li><a title="scrapfly.errors.ScrapflyScrapeError" href="errors.html#scrapfly.errors.ScrapflyScrapeError">ScrapflyScrapeError</a></li>
-<li><a title="scrapfly.errors.ScrapflySessionError" href="errors.html#scrapfly.errors.ScrapflySessionError">ScrapflySessionError</a></li>
-<li><a title="scrapfly.errors.ScrapflyThrottleError" href="errors.html#scrapfly.errors.ScrapflyThrottleError">ScrapflyThrottleError</a></li>
-<li><a title="scrapfly.errors.ScrapflyWebhookError" href="errors.html#scrapfly.errors.ScrapflyWebhookError">ScrapflyWebhookError</a></li>
 </ul>
 <h3>Class variables</h3>
 <dl>
@@ -2441,7 +2606,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyProxyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyProxyError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -2449,18 +2614,19 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyProxyError(ScrapflyError):
+<pre><code class="python">class ScrapflyProxyError(HttpError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
 <dt id="scrapfly.ScrapflyScheduleError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScheduleError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -2468,18 +2634,19 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyScheduleError(ScrapflyError):
+<pre><code class="python">class ScrapflyScheduleError(HttpError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
 <dt id="scrapfly.ScrapflyScrapeError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScrapeError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -2487,23 +2654,19 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyScrapeError(ScrapflyError):
+<pre><code class="python">class ScrapflyScrapeError(HttpError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
-</ul>
-<h3>Subclasses</h3>
-<ul class="hlist">
-<li>scrapfly.errors.QuotaLimitReached</li>
-<li>scrapfly.errors.TooManyConcurrentRequest</li>
 </ul>
 </dd>
 <dt id="scrapfly.ScrapflySessionError"><code class="flex name class">
 <span>class <span class="ident">ScrapflySessionError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -2511,18 +2674,19 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflySessionError(ScrapflyError):
+<pre><code class="python">class ScrapflySessionError(HttpError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
 <dt id="scrapfly.ScrapflyThrottleError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyThrottleError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -2530,18 +2694,19 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyThrottleError(ScrapflyError):
+<pre><code class="python">class ScrapflyThrottleError(HttpError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
 <dt id="scrapfly.ScrapflyWebhookError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyWebhookError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -2549,11 +2714,12 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyWebhookError(ScrapflyError):
+<pre><code class="python">class ScrapflyWebhookError(HttpError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.BaseException</li>
 </ul>
@@ -2693,6 +2859,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapeApiResponse.scrape_success" href="#scrapfly.ScrapeApiResponse.scrape_success">scrape_success</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.selector" href="#scrapfly.ScrapeApiResponse.selector">selector</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.sink" href="#scrapfly.ScrapeApiResponse.sink">sink</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.soup" href="#scrapfly.ScrapeApiResponse.soup">soup</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.status_code" href="#scrapfly.ScrapeApiResponse.status_code">status_code</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.success" href="#scrapfly.ScrapeApiResponse.success">success</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.upstream_result_into_response" href="#scrapfly.ScrapeApiResponse.upstream_result_into_response">upstream_result_into_response</a></code></li>
@@ -2714,6 +2881,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapeConfig.data" href="#scrapfly.ScrapeConfig.data">data</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.debug" href="#scrapfly.ScrapeConfig.debug">debug</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.dns" href="#scrapfly.ScrapeConfig.dns">dns</a></code></li>
+<li><code><a title="scrapfly.ScrapeConfig.from_exported_config" href="#scrapfly.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.generate_distributed_correlation_id" href="#scrapfly.ScrapeConfig.generate_distributed_correlation_id">generate_distributed_correlation_id</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.graphql" href="#scrapfly.ScrapeConfig.graphql">graphql</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.headers" href="#scrapfly.ScrapeConfig.headers">headers</a></code></li>
@@ -2726,6 +2894,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapeConfig.retry" href="#scrapfly.ScrapeConfig.retry">retry</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.screenshots" href="#scrapfly.ScrapeConfig.screenshots">screenshots</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.session" href="#scrapfly.ScrapeConfig.session">session</a></code></li>
+<li><code><a title="scrapfly.ScrapeConfig.session_sticky_proxy" href="#scrapfly.ScrapeConfig.session_sticky_proxy">session_sticky_proxy</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.ssl" href="#scrapfly.ScrapeConfig.ssl">ssl</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.tags" href="#scrapfly.ScrapeConfig.tags">tags</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.to_api_params" href="#scrapfly.ScrapeConfig.to_api_params">to_api_params</a></code></li>
