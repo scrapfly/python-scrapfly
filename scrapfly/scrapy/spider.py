@@ -1,7 +1,11 @@
 import copy
 import uuid
 import logging
-from functools import cached_property
+
+try:
+    from functools import cached_property
+except ImportError:
+    from ..polyfill.cached_property import cached_property
 
 from os import environ
 from typing import Dict, Iterable, Sequence, Union, Optional

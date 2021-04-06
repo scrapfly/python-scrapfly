@@ -5,7 +5,13 @@ import shutil
 from base64 import b64decode
 from contextlib import suppress
 from datetime import datetime
-from functools import partial, cached_property
+from functools import partial
+
+try:
+    from functools import cached_property
+except ImportError:
+    from .polyfill.cached_property import cached_property
+
 from http.cookiejar import Cookie
 from http.cookies import SimpleCookie
 from io import BytesIO

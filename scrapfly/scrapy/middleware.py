@@ -2,6 +2,7 @@ from typing import Union, Optional
 
 from scrapy import Spider
 from scrapy.http import Request, Response
+from twisted.web._newclient import ResponseNeverReceived
 
 from .spider import ScrapflySpider
 from .request import ScrapflyScrapyRequest
@@ -36,6 +37,9 @@ class ScrapflyMiddleware:
         return None
 
     def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+        if isinstance(exception, ResponseNeverReceived):
+            return spider.retry(request, exception, 5)
+
         if not isinstance(exception, ScrapflyError):
             raise exception
 
