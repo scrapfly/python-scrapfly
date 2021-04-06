@@ -14,6 +14,19 @@ class ScrapflyError(BaseException):
     RESOURCE_WEBHOOK = 'WEBHOOK'
     RESOURCE_SESSION = 'SESSION'
 
+    RETRYABLE_CODE = [
+        'ERR::SCRAPE::OPERATION_TIMEOUT',
+        'ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST',
+        'ERR::PROXY::RESOURCES_SATURATION',
+        'ERR::PROXY::NOT_REACHABLE',
+        'ERR::PROXY::NETWORK_DOWN',
+        'ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED',
+        'ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED',
+        'ERR::SESSION::CONCURRENT_ACCESS',
+        'ERR::ASP::SHIELD_EXPIRED',
+        'ERR::SCRAPE::NETWORK_ISSUE'
+    ]
+
     KNOWN_HTTP_API_ERROR_CODE = [
         400,
         401,
@@ -29,8 +42,8 @@ class ScrapflyError(BaseException):
         self,
         message: str,
         code: int,
-        resource: str,
         http_status_code: int,
+        resource: Optional[str]=None,
         is_retryable: bool = False,
         retry_delay: Optional[int] = None,
         retry_times: Optional[int] = None,

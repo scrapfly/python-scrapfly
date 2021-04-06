@@ -1,19 +1,30 @@
 import copy
-from typing import Dict, Iterable, Sequence
+import uuid
+import logging
+from functools import cached_property
+
+from os import environ
+from typing import Dict, Iterable, Sequence, Union, Optional
 
 import scrapy
 from scrapy.crawler import Crawler
 from scrapy.spiders import Rule
+from scrapy.utils.python import global_object_name
 from scrapy.utils.spider import iterate_spider_output
+from twisted.internet.defer import Deferred
+from twisted.internet import reactor, task
 
-from scrapfly import ScrapflyClient, ScrapeConfig
+from scrapfly import ScrapflyClient, ScrapeConfig, ScrapflyError
 from . import ScrapflyScrapyRequest, ScrapflyScrapyResponse
+
+logger = logging.getLogger(__name__)
 
 
 class ScrapflySpider(scrapy.Spider):
 
     scrapfly_client:ScrapflyClient
     account_info:Dict
+    run_id:int
 
     custom_settings:Dict = {
         'DOWNLOADER_MIDDLEWARES': {
@@ -31,12 +42,12 @@ class ScrapflySpider(scrapy.Spider):
         'DOWNLOAD_HANDLERS_BASE': {
             'http': 'scrapfly.scrapy.downloader.ScrapflyHTTPDownloader',
             'https': 'scrapfly.scrapy.downloader.ScrapflyHTTPDownloader'
-        },
+        }
     }
 
-    def __init__(self, scrapfly_client:ScrapflyClient, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.scrapfly_client = scrapfly_client
+    @cached_property
+    def run_id(self):
+        return environ.get('SPIDER_RUN_ID') or str(uuid.uuid4())
 
     def closed(self, reason:str):
         self.scrapfly_client.close()
@@ -47,24 +58,61 @@ class ScrapflySpider(scrapy.Spider):
                 raise RuntimeError('start_urls must contains ScrapeConfig Object with ScrapflySpider')
             yield ScrapflyScrapyRequest(scrape_config=scrape_config)
 
+    def retry(self, request:ScrapflyScrapyRequest, reason:Union[str, Exception], delay:Optional[int]=None):
+        logger.info('==> Retrying request for reason %s' % reason)
+        stats = self.crawler.stats
+        retries = request.meta.get('retry_times', 0) + 1
+
+        if retries >= self.custom_settings.get('SCRAPFLY_MAX_API_RETRIES', 5):
+            return None
+
+        retryreq = request.replace(dont_filter=True)
+        retryreq.priority += 100
+
+        if retryreq.scrape_config.cache is True:
+            retryreq.scrape_config.cache_clear = True
+
+        retryreq.meta['retry_times'] = retries
+
+        if isinstance(reason, ScrapflyError):
+            stats.inc_value(f'scrapfly/api_retry/{reason.code}')
+
+        if isinstance(reason, Exception):
+            reason = global_object_name(reason.__class__)
+
+        logger.warning(f"Retrying {request} for x{retries - 1}: {reason}", extra={'spider': self})
+        stats.inc_value('scrapfly/api_retry/count')
+
+        if delay is None:
+            deferred = Deferred()
+            deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
+        else:
+            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+
+        return deferred
+
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
         crawler.stats.set_value('scrapfly/api_call_cost', 0)
 
-        scrapfly_client = ScrapflyClient(
-            key=crawler.settings.get('SCRAPFLY_API_KEY'),
-            host=crawler.settings.get('SCRAPFLY_HOST', ScrapflyClient.HOST),
-            verify=crawler.settings.get('SCRAPFLY_SSL_VERIFY', True),
-            debug=crawler.settings.get('SCRAPFLY_DEBUG', False),
-            distributed_mode=crawler.settings.get('SCRAPFLY_DISTRIBUTED_MODE', False),
-            connect_timeout=crawler.settings.get('SCRAPFLY_CONNECT_TIMEOUT', ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
-            read_timeout=crawler.settings.get('SCRAPFLY_READ_TIMEOUT', ScrapflyClient.DEFAULT_READ_TIMEOUT)
-        )
-
-        scrapfly_client.open()
-        spider = cls(*args, scrapfly_client=scrapfly_client, **kwargs)
+        spider = cls(*args, **kwargs)
         spider._set_crawler(crawler)
 
+        if not hasattr(spider, 'scrapfly_client'):
+            spider.scrapfly_client = None
+
+        if spider.scrapfly_client is None:
+            spider.scrapfly_client = ScrapflyClient(
+                key=crawler.settings.get('SCRAPFLY_API_KEY'),
+                host=crawler.settings.get('SCRAPFLY_HOST', ScrapflyClient.HOST),
+                verify=crawler.settings.get('SCRAPFLY_SSL_VERIFY', True),
+                debug=crawler.settings.get('SCRAPFLY_DEBUG', False),
+                distributed_mode=crawler.settings.get('SCRAPFLY_DISTRIBUTED_MODE', False),
+                connect_timeout=crawler.settings.get('SCRAPFLY_CONNECT_TIMEOUT', ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
+                read_timeout=crawler.settings.get('SCRAPFLY_READ_TIMEOUT', ScrapflyClient.DEFAULT_READ_TIMEOUT)
+            )
+
+        spider.scrapfly_client.open()
         return spider
 
 

@@ -18,11 +18,10 @@ from typing import Dict, Optional, Iterable, Union, TextIO
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, \
-    HttpError
+from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError
 from .frozen_dict import FrozenDict
 
-logger.getLogger('scrapfly')
+logger.getLogger(__name__)
 
 _DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -129,6 +128,16 @@ class ScrapeApiResponse:
                 if 'X-Scrapfly-Reject-Doc' in response.headers:
                     api_result['result']['error']['doc_url'] = response.headers['X-Scrapfly-Reject-Doc']
 
+        if isinstance(api_result, str):
+            raise HttpError(
+                request=request,
+                response=response,
+                message='Bad gateway',
+                code=502,
+                http_status_code=502,
+                is_retryable=True
+            )
+
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
@@ -175,8 +184,12 @@ class ScrapeApiResponse:
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
 
-        if isinstance(api_result['config']['headers'], list):
-            api_result['config']['headers'] = {}
+        try:
+            if isinstance(api_result['config']['headers'], list):
+                api_result['config']['headers'] = {}
+        except TypeError:
+            logger.info(api_result)
+            raise
 
         with suppress(KeyError):
             api_result['result']['request_headers'] = CaseInsensitiveDict(api_result['result']['request_headers'])
@@ -245,7 +258,7 @@ class ScrapeApiResponse:
             error = ErrorFactory.create(api_response=self)
 
             if error:
-                if isinstance(error, HttpError):
+                if isinstance(error, UpstreamHttpError):
                     if raise_on_upstream_error is True:
                         raise error
                 else:

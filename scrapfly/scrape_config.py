@@ -4,9 +4,8 @@ from base64 import b64encode
 from os import getpid
 from socket import gethostname
 from threading import currentThread
-from typing import Optional, List, Dict, Iterable, Union
+from typing import Optional, List, Dict, Iterable, Union, Set
 from urllib.parse import urlencode, quote
-
 
 from requests.structures import CaseInsensitiveDict
 
@@ -52,7 +51,7 @@ class ScrapeConfig:
         url: str,
         retry: bool = True,
         method: str = 'GET',
-        country: Optional[str] = 'DE',
+        country: Optional[str] = None,
         render_js: bool = False,
         cache: bool = False,
         cache_clear:bool = False,
@@ -64,7 +63,7 @@ class ScrapeConfig:
         cache_ttl:Optional[int] = None,
         proxy_pool:Optional[str] = None,
         session: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: Optional[Set[str]] = None,
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -77,6 +76,9 @@ class ScrapeConfig:
         session_sticky_proxy:bool = True
     ):
         assert(type(url) is str)
+
+        if isinstance(tags, List):
+            tags = set(tags)
 
         cookies = cookies or {}
         headers = headers or {}
@@ -96,7 +98,7 @@ class ScrapeConfig:
         self.debug = debug
         self.cache_ttl = cache_ttl
         self.proxy_pool = proxy_pool
-        self.tags = tags
+        self.tags = tags or set()
         self.correlation_id = correlation_id
         self.body = body
         self.data = data
@@ -150,9 +152,11 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -> Dict:
         params = {
             'key': self.key if self.key is not None else key,
-            'url': quote(self.url),
-            'country': self.country,
+            'url': quote(self.url)
         }
+
+        if self.country is not None:
+            params['country'] = self.country
 
         for name, value in self.headers.items():
             params['headers[%s]' % name] = value

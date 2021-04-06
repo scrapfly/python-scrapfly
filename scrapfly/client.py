@@ -22,7 +22,7 @@ from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from . import __version__ as version, ScrapeApiResponse
 
-logger.getLogger('scrapfly')
+logger.getLogger(__name__)
 
 NetworkError = (
     ConnectionError,
