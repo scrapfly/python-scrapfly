@@ -34,7 +34,7 @@ import http
 import platform
 import re
 import shutil
-from functools import partial, cached_property
+from functools import partial
 from io import BytesIO
 
 import backoff
@@ -45,6 +45,11 @@ import requests
 import urllib3
 import logging as logger
 
+try:
+    from functools import cached_property
+except ImportError:
+    from .polyfill.cached_property import cached_property
+    
 from .errors import *
 from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig

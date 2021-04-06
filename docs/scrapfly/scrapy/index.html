@@ -263,6 +263,9 @@ def from_crawler(cls, crawler, *args, **kwargs):
         return None
 
     def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+        if isinstance(exception, ResponseNeverReceived):
+            return spider.retry(request, exception, 5)
+
         if not isinstance(exception, ScrapflyError):
             raise exception
 
@@ -304,6 +307,9 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+    if isinstance(exception, ResponseNeverReceived):
+        return spider.retry(request, exception, 5)
+
     if not isinstance(exception, ScrapflyError):
         raise exception
 
