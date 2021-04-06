@@ -46,11 +46,10 @@ from typing import Dict, Optional, Iterable, Union, TextIO
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, \
-    HttpError
+from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError
 from .frozen_dict import FrozenDict
 
-logger.getLogger(&#39;scrapfly&#39;)
+logger.getLogger(__name__)
 
 _DATE_FORMAT = &#39;%Y-%m-%d %H:%M:%S&#39;
 
@@ -157,6 +156,16 @@ class ScrapeApiResponse:
                 if &#39;X-Scrapfly-Reject-Doc&#39; in response.headers:
                     api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
 
+        if isinstance(api_result, str):
+            raise HttpError(
+                request=request,
+                response=response,
+                message=&#39;Bad gateway&#39;,
+                code=502,
+                http_status_code=502,
+                is_retryable=True
+            )
+
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
@@ -203,8 +212,12 @@ class ScrapeApiResponse:
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
 
-        if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
-            api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+        try:
+            if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
+                api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+        except TypeError:
+            logger.info(api_result)
+            raise
 
         with suppress(KeyError):
             api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
@@ -273,7 +286,7 @@ class ScrapeApiResponse:
             error = ErrorFactory.create(api_response=self)
 
             if error:
-                if isinstance(error, HttpError):
+                if isinstance(error, UpstreamHttpError):
                     if raise_on_upstream_error is True:
                         raise error
                 else:
@@ -586,6 +599,16 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                 if &#39;X-Scrapfly-Reject-Doc&#39; in response.headers:
                     api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
 
+        if isinstance(api_result, str):
+            raise HttpError(
+                request=request,
+                response=response,
+                message=&#39;Bad gateway&#39;,
+                code=502,
+                http_status_code=502,
+                is_retryable=True
+            )
+
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
@@ -632,8 +655,12 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
 
-        if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
-            api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+        try:
+            if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
+                api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+        except TypeError:
+            logger.info(api_result)
+            raise
 
         with suppress(KeyError):
             api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
@@ -702,7 +729,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             error = ErrorFactory.create(api_response=self)
 
             if error:
-                if isinstance(error, HttpError):
+                if isinstance(error, UpstreamHttpError):
                     if raise_on_upstream_error is True:
                         raise error
                 else:
@@ -1038,8 +1065,12 @@ def success(self) -&gt; bool:
     if self._is_api_error(api_result=api_result) is True:
         return FrozenDict(api_result)
 
-    if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
-        api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+    try:
+        if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
+            api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+    except TypeError:
+        logger.info(api_result)
+        raise
 
     with suppress(KeyError):
         api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
@@ -1089,7 +1120,7 @@ def success(self) -&gt; bool:
         error = ErrorFactory.create(api_response=self)
 
         if error:
-            if isinstance(error, HttpError):
+            if isinstance(error, UpstreamHttpError):
                 if raise_on_upstream_error is True:
                     raise error
             else:

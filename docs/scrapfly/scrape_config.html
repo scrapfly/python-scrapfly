@@ -32,9 +32,8 @@ from base64 import b64encode
 from os import getpid
 from socket import gethostname
 from threading import currentThread
-from typing import Optional, List, Dict, Iterable, Union
+from typing import Optional, List, Dict, Iterable, Union, Set
 from urllib.parse import urlencode, quote
-
 
 from requests.structures import CaseInsensitiveDict
 
@@ -80,7 +79,7 @@ class ScrapeConfig:
         url: str,
         retry: bool = True,
         method: str = &#39;GET&#39;,
-        country: Optional[str] = &#39;DE&#39;,
+        country: Optional[str] = None,
         render_js: bool = False,
         cache: bool = False,
         cache_clear:bool = False,
@@ -92,7 +91,7 @@ class ScrapeConfig:
         cache_ttl:Optional[int] = None,
         proxy_pool:Optional[str] = None,
         session: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: Optional[Set[str]] = None,
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -105,6 +104,9 @@ class ScrapeConfig:
         session_sticky_proxy:bool = True
     ):
         assert(type(url) is str)
+
+        if isinstance(tags, List):
+            tags = set(tags)
 
         cookies = cookies or {}
         headers = headers or {}
@@ -124,7 +126,7 @@ class ScrapeConfig:
         self.debug = debug
         self.cache_ttl = cache_ttl
         self.proxy_pool = proxy_pool
-        self.tags = tags
+        self.tags = tags or set()
         self.correlation_id = correlation_id
         self.body = body
         self.data = data
@@ -178,9 +180,11 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: quote(self.url),
-            &#39;country&#39;: self.country,
+            &#39;url&#39;: quote(self.url)
         }
+
+        if self.country is not None:
+            params[&#39;country&#39;] = self.country
 
         for name, value in self.headers.items():
             params[&#39;headers[%s]&#39; % name] = value
@@ -296,7 +300,7 @@ class ScrapeConfig:
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], NoneType] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None, session_sticky_proxy: bool = True)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], NoneType] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None, session_sticky_proxy: bool = True)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -341,7 +345,7 @@ class ScrapeConfig:
         url: str,
         retry: bool = True,
         method: str = &#39;GET&#39;,
-        country: Optional[str] = &#39;DE&#39;,
+        country: Optional[str] = None,
         render_js: bool = False,
         cache: bool = False,
         cache_clear:bool = False,
@@ -353,7 +357,7 @@ class ScrapeConfig:
         cache_ttl:Optional[int] = None,
         proxy_pool:Optional[str] = None,
         session: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: Optional[Set[str]] = None,
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -366,6 +370,9 @@ class ScrapeConfig:
         session_sticky_proxy:bool = True
     ):
         assert(type(url) is str)
+
+        if isinstance(tags, List):
+            tags = set(tags)
 
         cookies = cookies or {}
         headers = headers or {}
@@ -385,7 +392,7 @@ class ScrapeConfig:
         self.debug = debug
         self.cache_ttl = cache_ttl
         self.proxy_pool = proxy_pool
-        self.tags = tags
+        self.tags = tags or set()
         self.correlation_id = correlation_id
         self.body = body
         self.data = data
@@ -439,9 +446,11 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: quote(self.url),
-            &#39;country&#39;: self.country,
+            &#39;url&#39;: quote(self.url)
         }
+
+        if self.country is not None:
+            params[&#39;country&#39;] = self.country
 
         for name, value in self.headers.items():
             params[&#39;headers[%s]&#39; % name] = value
@@ -744,9 +753,11 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <pre><code class="python">def to_api_params(self, key:str) -&gt; Dict:
     params = {
         &#39;key&#39;: self.key if self.key is not None else key,
-        &#39;url&#39;: quote(self.url),
-        &#39;country&#39;: self.country,
+        &#39;url&#39;: quote(self.url)
     }
+
+    if self.country is not None:
+        params[&#39;country&#39;] = self.country
 
     for name, value in self.headers.items():
         params[&#39;headers[%s]&#39; % name] = value

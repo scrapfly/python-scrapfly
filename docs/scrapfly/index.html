@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.7.5&#39;
+<pre><code class="python">__version__ = &#39;0.7.6&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -601,6 +601,16 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                 if &#39;X-Scrapfly-Reject-Doc&#39; in response.headers:
                     api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
 
+        if isinstance(api_result, str):
+            raise HttpError(
+                request=request,
+                response=response,
+                message=&#39;Bad gateway&#39;,
+                code=502,
+                http_status_code=502,
+                is_retryable=True
+            )
+
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
@@ -647,8 +657,12 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
 
-        if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
-            api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+        try:
+            if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
+                api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+        except TypeError:
+            logger.info(api_result)
+            raise
 
         with suppress(KeyError):
             api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
@@ -717,7 +731,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             error = ErrorFactory.create(api_response=self)
 
             if error:
-                if isinstance(error, HttpError):
+                if isinstance(error, UpstreamHttpError):
                     if raise_on_upstream_error is True:
                         raise error
                 else:
@@ -1053,8 +1067,12 @@ def success(self) -&gt; bool:
     if self._is_api_error(api_result=api_result) is True:
         return FrozenDict(api_result)
 
-    if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
-        api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+    try:
+        if isinstance(api_result[&#39;config&#39;][&#39;headers&#39;], list):
+            api_result[&#39;config&#39;][&#39;headers&#39;] = {}
+    except TypeError:
+        logger.info(api_result)
+        raise
 
     with suppress(KeyError):
         api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
@@ -1104,7 +1122,7 @@ def success(self) -&gt; bool:
         error = ErrorFactory.create(api_response=self)
 
         if error:
-            if isinstance(error, HttpError):
+            if isinstance(error, UpstreamHttpError):
                 if raise_on_upstream_error is True:
                     raise error
             else:
@@ -1257,7 +1275,7 @@ def success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = 'DE', render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[List[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], NoneType] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None, session_sticky_proxy: bool = True)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], NoneType] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None, session_sticky_proxy: bool = True)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1302,7 +1320,7 @@ def success(self) -&gt; bool:
         url: str,
         retry: bool = True,
         method: str = &#39;GET&#39;,
-        country: Optional[str] = &#39;DE&#39;,
+        country: Optional[str] = None,
         render_js: bool = False,
         cache: bool = False,
         cache_clear:bool = False,
@@ -1314,7 +1332,7 @@ def success(self) -&gt; bool:
         cache_ttl:Optional[int] = None,
         proxy_pool:Optional[str] = None,
         session: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        tags: Optional[Set[str]] = None,
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -1327,6 +1345,9 @@ def success(self) -&gt; bool:
         session_sticky_proxy:bool = True
     ):
         assert(type(url) is str)
+
+        if isinstance(tags, List):
+            tags = set(tags)
 
         cookies = cookies or {}
         headers = headers or {}
@@ -1346,7 +1367,7 @@ def success(self) -&gt; bool:
         self.debug = debug
         self.cache_ttl = cache_ttl
         self.proxy_pool = proxy_pool
-        self.tags = tags
+        self.tags = tags or set()
         self.correlation_id = correlation_id
         self.body = body
         self.data = data
@@ -1400,9 +1421,11 @@ def success(self) -&gt; bool:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: quote(self.url),
-            &#39;country&#39;: self.country,
+            &#39;url&#39;: quote(self.url)
         }
+
+        if self.country is not None:
+            params[&#39;country&#39;] = self.country
 
         for name, value in self.headers.items():
             params[&#39;headers[%s]&#39; % name] = value
@@ -1705,9 +1728,11 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <pre><code class="python">def to_api_params(self, key:str) -&gt; Dict:
     params = {
         &#39;key&#39;: self.key if self.key is not None else key,
-        &#39;url&#39;: quote(self.url),
-        &#39;country&#39;: self.country,
+        &#39;url&#39;: quote(self.url)
     }
+
+    if self.country is not None:
+        params[&#39;country&#39;] = self.country
 
     for name, value in self.headers.items():
         params[&#39;headers[%s]&#39; % name] = value
@@ -2489,7 +2514,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>message: str, code: int, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -2509,6 +2534,19 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
     RESOURCE_WEBHOOK = &#39;WEBHOOK&#39;
     RESOURCE_SESSION = &#39;SESSION&#39;
 
+    RETRYABLE_CODE = [
+        &#39;ERR::SCRAPE::OPERATION_TIMEOUT&#39;,
+        &#39;ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST&#39;,
+        &#39;ERR::PROXY::RESOURCES_SATURATION&#39;,
+        &#39;ERR::PROXY::NOT_REACHABLE&#39;,
+        &#39;ERR::PROXY::NETWORK_DOWN&#39;,
+        &#39;ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED&#39;,
+        &#39;ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED&#39;,
+        &#39;ERR::SESSION::CONCURRENT_ACCESS&#39;,
+        &#39;ERR::ASP::SHIELD_EXPIRED&#39;,
+        &#39;ERR::SCRAPE::NETWORK_ISSUE&#39;
+    ]
+
     KNOWN_HTTP_API_ERROR_CODE = [
         400,
         401,
@@ -2524,8 +2562,8 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         self,
         message: str,
         code: int,
-        resource: str,
         http_status_code: int,
+        resource: Optional[str]=None,
         is_retryable: bool = False,
         retry_delay: Optional[int] = None,
         retry_times: Optional[int] = None,
@@ -2599,6 +2637,10 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_WEBHOOK"><code class="name">var <span class="ident">RESOURCE_WEBHOOK</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyError.RETRYABLE_CODE"><code class="name">var <span class="ident">RETRYABLE_CODE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -2944,6 +2986,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_SESSION" href="#scrapfly.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_THROTTLE" href="#scrapfly.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_WEBHOOK" href="#scrapfly.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+<li><code><a title="scrapfly.ScrapflyError.RETRYABLE_CODE" href="#scrapfly.ScrapflyError.RETRYABLE_CODE">RETRYABLE_CODE</a></code></li>
 </ul>
 </li>
 <li>

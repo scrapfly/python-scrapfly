@@ -27,7 +27,7 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import requests
-import logging as logger
+
 from io import BytesIO
 
 import zlib
@@ -46,8 +46,10 @@ from twisted.web.http_headers import Headers
 from zope.interface import implementer
 
 from . import ScrapflyScrapyRequest, ScrapflySpider, ScrapflyScrapyResponse
+from .. import ScrapeApiResponse
 
-logger.getLogger(&#39;scrapfly&#39;)
+import logging as logger
+logger.getLogger(__name__)
 
 
 class ScrapflyHTTPDownloader:
@@ -55,6 +57,10 @@ class ScrapflyHTTPDownloader:
     def __init__(self, settings, crawler=None):
         self._crawler = crawler
         self.agent = Agent(reactor)
+
+        if settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;) is False:
+            import twisted.internet._sslverify as v
+            v.platformTrust = lambda : None
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -69,8 +75,8 @@ class ScrapflyHTTPDownloader:
         for name, values in twisted_response.headers.getAllRawHeaders():
             headers[name.decode(&#39;utf-8&#39;)] = &#39;; &#39;.join([value.decode(&#39;utf-8&#39;) for value in values])
 
-        defered = Deferred()
-        body_receiver = BodyReceiver(defered)
+        deferred = Deferred()
+        body_receiver = BodyReceiver(deferred)
 
         if &#39;x-scrapfly-api-cost&#39; in headers:
             self._crawler.stats.inc_value(&#39;scrapfly/api_call_cost&#39;, count=int(headers[&#39;x-scrapfly-api-cost&#39;]))
@@ -96,15 +102,21 @@ class ScrapflyHTTPDownloader:
             response.headers.update(headers)
             response.url = request.url
 
-            return ScrapflyScrapyResponse(
-                request=request,
-                scrape_api_response=spider.scrapfly_client._handle_response(response=response, scrape_config=request.scrape_config)
+            request.scrape_config.raise_on_upstream_error = False
+
+            scrapfly_api_response:ScrapeApiResponse = spider.scrapfly_client._handle_response(
+                response=response,
+                scrape_config=request.scrape_config
             )
 
-        defered.addCallback(on_body_downloaded)
+            self._crawler.stats.inc_value(&#39;scrapfly/bandwidth_consumed&#39;, count=scrapfly_api_response.context[&#39;bandwidth_consumed&#39;])
+
+            return ScrapflyScrapyResponse(request=request, scrape_api_response=scrapfly_api_response)
+
+        deferred.addCallback(on_body_downloaded)
         twisted_response.deliverBody(body_receiver)
 
-        return defered
+        return deferred
 
     def download_request(self, request, spider):
         if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):
@@ -144,15 +156,15 @@ class BinaryBody(BytesIO):
 
 class BodyReceiver(Protocol):
 
-    def __init__(self, defered:Deferred):
-        self.defered = defered
+    def __init__(self, deferred:Deferred):
+        self.deferred = deferred
         self.content = BytesIO()
 
     def dataReceived(self, bytes):
         self.content.write(bytes)
 
     def connectionLost(self, reason):
-        self.defered.callback(self.content.getvalue())
+        self.deferred.callback(self.content.getvalue())
 
 
 @implementer(IBodyProducer)
@@ -295,7 +307,7 @@ class BodyProducer(object):
 </dd>
 <dt id="scrapfly.scrapy.downloader.BodyReceiver"><code class="flex name class">
 <span>class <span class="ident">BodyReceiver</span></span>
-<span>(</span><span>defered: twisted.internet.defer.Deferred)</span>
+<span>(</span><span>deferred: twisted.internet.defer.Deferred)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>This is the base class for streaming connection-oriented protocols.</p>
@@ -318,15 +330,15 @@ see the L{twisted.protocols.basic} module for a few of them.</p></div>
 </summary>
 <pre><code class="python">class BodyReceiver(Protocol):
 
-    def __init__(self, defered:Deferred):
-        self.defered = defered
+    def __init__(self, deferred:Deferred):
+        self.deferred = deferred
         self.content = BytesIO()
 
     def dataReceived(self, bytes):
         self.content.write(bytes)
 
     def connectionLost(self, reason):
-        self.defered.callback(self.content.getvalue())</code></pre>
+        self.deferred.callback(self.content.getvalue())</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -349,7 +361,7 @@ The connection has been closed.</p>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def connectionLost(self, reason):
-    self.defered.callback(self.content.getvalue())</code></pre>
+    self.deferred.callback(self.content.getvalue())</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.scrapy.downloader.BodyReceiver.dataReceived"><code class="name flex">
@@ -394,6 +406,10 @@ differing chunk sizes, down to one byte at a time.</p></div>
         self._crawler = crawler
         self.agent = Agent(reactor)
 
+        if settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;) is False:
+            import twisted.internet._sslverify as v
+            v.platformTrust = lambda : None
+
     @classmethod
     def from_crawler(cls, crawler):
         return cls(crawler.settings, crawler)
@@ -407,8 +423,8 @@ differing chunk sizes, down to one byte at a time.</p></div>
         for name, values in twisted_response.headers.getAllRawHeaders():
             headers[name.decode(&#39;utf-8&#39;)] = &#39;; &#39;.join([value.decode(&#39;utf-8&#39;) for value in values])
 
-        defered = Deferred()
-        body_receiver = BodyReceiver(defered)
+        deferred = Deferred()
+        body_receiver = BodyReceiver(deferred)
 
         if &#39;x-scrapfly-api-cost&#39; in headers:
             self._crawler.stats.inc_value(&#39;scrapfly/api_call_cost&#39;, count=int(headers[&#39;x-scrapfly-api-cost&#39;]))
@@ -434,15 +450,21 @@ differing chunk sizes, down to one byte at a time.</p></div>
             response.headers.update(headers)
             response.url = request.url
 
-            return ScrapflyScrapyResponse(
-                request=request,
-                scrape_api_response=spider.scrapfly_client._handle_response(response=response, scrape_config=request.scrape_config)
+            request.scrape_config.raise_on_upstream_error = False
+
+            scrapfly_api_response:ScrapeApiResponse = spider.scrapfly_client._handle_response(
+                response=response,
+                scrape_config=request.scrape_config
             )
 
-        defered.addCallback(on_body_downloaded)
+            self._crawler.stats.inc_value(&#39;scrapfly/bandwidth_consumed&#39;, count=scrapfly_api_response.context[&#39;bandwidth_consumed&#39;])
+
+            return ScrapflyScrapyResponse(request=request, scrape_api_response=scrapfly_api_response)
+
+        deferred.addCallback(on_body_downloaded)
         twisted_response.deliverBody(body_receiver)
 
-        return defered
+        return deferred
 
     def download_request(self, request, spider):
         if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):

@@ -26,26 +26,26 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import uuid
-from os import environ
-from typing import Union, Optional
+<pre><code class="python">from typing import Union, Optional
 
 from scrapy import Spider
-from scrapy.http import Request
+from scrapy.http import Request, Response
 
 from .spider import ScrapflySpider
 from .request import ScrapflyScrapyRequest
 from .response import ScrapflyScrapyResponse
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+from .. import ScrapflyError, HttpError
+
 
 class ScrapflyMiddleware:
+    MAX_API_RETRIES = 20
 
-    run_id:str
-
-    def __init__(self):
-        self.run_id = environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())
-
-    def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+    def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
             return None
 
@@ -53,12 +53,38 @@ class ScrapflyMiddleware:
             raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
 
         if request.scrape_config.tags is None:
-            request.scrape_config.tags = []
+            request.scrape_config.tags = set()
 
-        request.scrape_config.tags.append(spider.name)
-        request.scrape_config.tags.append(self.run_id)
+        request.scrape_config.tags.add(spider.name)
+        request.scrape_config.tags.add(str(spider.run_id))
 
-        return None</code></pre>
+        if request.scrape_config.proxy_pool is None and spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;):
+            request.scrape_config.proxy_pool = spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;)
+
+        return None
+
+    def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+        if not isinstance(exception, ScrapflyError):
+            raise exception
+
+        if isinstance(exception, HttpError):
+            if exception.code in ScrapflyError.RETRYABLE_CODE or exception.http_status_code in [502]:
+                delay = 5
+
+                if &#39;retry-after&#39; in exception.response.headers:
+                    delay = int(exception.response.headers[&#39;retry-after&#39;])
+
+                return spider.retry(request, exception, delay)
+
+        if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
+            return spider.retry(request, exception, 5)
+        elif exception.is_retryable is True:
+            return spider.retry(request, exception, 5)
+
+        raise exception
+
+    def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+        return response</code></pre>
 </details>
 </section>
 <section>
@@ -80,13 +106,9 @@ class ScrapflyMiddleware:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ScrapflyMiddleware:
+    MAX_API_RETRIES = 20
 
-    run_id:str
-
-    def __init__(self):
-        self.run_id = environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())
-
-    def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+    def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
             return None
 
@@ -94,22 +116,78 @@ class ScrapflyMiddleware:
             raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
 
         if request.scrape_config.tags is None:
-            request.scrape_config.tags = []
+            request.scrape_config.tags = set()
 
-        request.scrape_config.tags.append(spider.name)
-        request.scrape_config.tags.append(self.run_id)
+        request.scrape_config.tags.add(spider.name)
+        request.scrape_config.tags.add(str(spider.run_id))
 
-        return None</code></pre>
+        if request.scrape_config.proxy_pool is None and spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;):
+            request.scrape_config.proxy_pool = spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;)
+
+        return None
+
+    def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+        if not isinstance(exception, ScrapflyError):
+            raise exception
+
+        if isinstance(exception, HttpError):
+            if exception.code in ScrapflyError.RETRYABLE_CODE or exception.http_status_code in [502]:
+                delay = 5
+
+                if &#39;retry-after&#39; in exception.response.headers:
+                    delay = int(exception.response.headers[&#39;retry-after&#39;])
+
+                return spider.retry(request, exception, delay)
+
+        if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
+            return spider.retry(request, exception, 5)
+        elif exception.is_retryable is True:
+            return spider.retry(request, exception, 5)
+
+        raise exception
+
+    def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+        return response</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.run_id"><code class="name">var <span class="ident">run_id</span> : str</code></dt>
+<dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.MAX_API_RETRIES"><code class="name">var <span class="ident">MAX_API_RETRIES</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_exception"><code class="name flex">
+<span>def <span class="ident">process_exception</span></span>(<span>self, request, exception: Union[str, Exception], spider: <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+    if not isinstance(exception, ScrapflyError):
+        raise exception
+
+    if isinstance(exception, HttpError):
+        if exception.code in ScrapflyError.RETRYABLE_CODE or exception.http_status_code in [502]:
+            delay = 5
+
+            if &#39;retry-after&#39; in exception.response.headers:
+                delay = int(exception.response.headers[&#39;retry-after&#39;])
+
+            return spider.retry(request, exception, delay)
+
+    if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
+        return spider.retry(request, exception, 5)
+    elif exception.is_retryable is True:
+        return spider.retry(request, exception, 5)
+
+    raise exception</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request"><code class="name flex">
 <span>def <span class="ident">process_request</span></span>(<span>self, request: Union[scrapy.http.request.Request, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>], spider: Union[scrapy.spiders.Spider, <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>]) ‑> Optional[<a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>]</span>
 </code></dt>
@@ -119,7 +197,7 @@ class ScrapflyMiddleware:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+<pre><code class="python">def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
     if not isinstance(request, ScrapflyScrapyRequest):
         return None
 
@@ -127,12 +205,28 @@ class ScrapflyMiddleware:
         raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
 
     if request.scrape_config.tags is None:
-        request.scrape_config.tags = []
+        request.scrape_config.tags = set()
 
-    request.scrape_config.tags.append(spider.name)
-    request.scrape_config.tags.append(self.run_id)
+    request.scrape_config.tags.add(spider.name)
+    request.scrape_config.tags.add(str(spider.run_id))
+
+    if request.scrape_config.proxy_pool is None and spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;):
+        request.scrape_config.proxy_pool = spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;)
 
     return None</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_response"><code class="name flex">
+<span>def <span class="ident">process_response</span></span>(<span>self, request: Union[scrapy.http.request.Request, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>], response: Union[scrapy.http.response.Response, <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>], spider: Union[scrapy.spiders.Spider, <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>]) ‑> Union[<a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+    return response</code></pre>
 </details>
 </dd>
 </dl>
@@ -156,8 +250,10 @@ class ScrapflyMiddleware:
 <li>
 <h4><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware">ScrapflyMiddleware</a></code></h4>
 <ul class="">
+<li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.MAX_API_RETRIES" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.MAX_API_RETRIES">MAX_API_RETRIES</a></code></li>
+<li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_exception" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.process_exception">process_exception</a></code></li>
 <li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request">process_request</a></code></li>
-<li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.run_id" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.run_id">run_id</a></code></li>
+<li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_response" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.process_response">process_response</a></code></li>
 </ul>
 </li>
 </ul>

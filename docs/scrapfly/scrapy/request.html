@@ -26,7 +26,9 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from typing import Dict, Optional, List
+<pre><code class="python">from copy import deepcopy
+from functools import partial
+from typing import Dict, Optional, List
 
 from scrapy import Request
 
@@ -43,28 +45,10 @@ class ScrapflyScrapyRequest(Request):
     # headers:Dict inherited
     # encoding:Dict inherited
 
-    retry:bool
-    proxy_country:str
-    render_js:bool
-    cache:bool
-    cache_clear:bool
-    cache_ttl:Optional[int]
-    ssl:bool
-    dns:bool
-    asp:bool
-    session:Optional[str]
-    debug:bool
-    tags:Optional[List[str]]
-    correlation_id:Optional[str]
-    graphql:Optional[str]
-    js:Optional[str]
-    rendering_wait:Optional[int]
-    screenshots:Optional[Dict]
-
     def __init__(self, scrape_config:ScrapeConfig, meta:Dict={}, *args, **kwargs):
         self.scrape_config = scrape_config
 
-        meta[&#39;scrapfly_scrape_config&#39;] = scrape_config
+        meta[&#39;scrapfly_scrape_config&#39;] = self.scrape_config
 
         super().__init__(
             *args,
@@ -76,23 +60,22 @@ class ScrapflyScrapyRequest(Request):
             **kwargs
         )
 
-        self.retry = scrape_config.retry
-        self.proxy_country = scrape_config.country
-        self.render_js = scrape_config.render_js
-        self.cache = scrape_config.cache
-        self.cache_ttl = scrape_config.cache_ttl
-        self.cache_clear = scrape_config.cache_clear
-        self.ssl = scrape_config.ssl
-        self.dns = scrape_config.dns
-        self.asp = scrape_config.asp
-        self.session = scrape_config.session
-        self.debug = scrape_config.debug
-        self.tags = scrape_config.tags
-        self.correlation_id = scrape_config.correlation_id
-        self.graphql = scrape_config.graphql
-        self.js = scrape_config.js
-        self.rendering_wait = scrape_config.rendering_wait
-        self.screenshots = scrape_config.screenshots</code></pre>
+    def replace(self, *args, **kwargs):
+        for x in [
+            &#39;meta&#39;,
+            &#39;flags&#39;,
+            &#39;encoding&#39;,
+            &#39;priority&#39;,
+            &#39;dont_filter&#39;,
+            &#39;callback&#39;,
+            &#39;errback&#39;,
+            &#39;cb_kwargs&#39;,
+        ]:
+            kwargs.setdefault(x, getattr(self, x))
+            kwargs[&#39;scrape_config&#39;] = deepcopy(self.scrape_config)
+
+        cls = kwargs.pop(&#39;cls&#39;, self.__class__)
+        return cls(*args, **kwargs)</code></pre>
 </details>
 </section>
 <section>
@@ -124,28 +107,10 @@ class ScrapflyScrapyRequest(Request):
     # headers:Dict inherited
     # encoding:Dict inherited
 
-    retry:bool
-    proxy_country:str
-    render_js:bool
-    cache:bool
-    cache_clear:bool
-    cache_ttl:Optional[int]
-    ssl:bool
-    dns:bool
-    asp:bool
-    session:Optional[str]
-    debug:bool
-    tags:Optional[List[str]]
-    correlation_id:Optional[str]
-    graphql:Optional[str]
-    js:Optional[str]
-    rendering_wait:Optional[int]
-    screenshots:Optional[Dict]
-
     def __init__(self, scrape_config:ScrapeConfig, meta:Dict={}, *args, **kwargs):
         self.scrape_config = scrape_config
 
-        meta[&#39;scrapfly_scrape_config&#39;] = scrape_config
+        meta[&#39;scrapfly_scrape_config&#39;] = self.scrape_config
 
         super().__init__(
             *args,
@@ -157,23 +122,22 @@ class ScrapflyScrapyRequest(Request):
             **kwargs
         )
 
-        self.retry = scrape_config.retry
-        self.proxy_country = scrape_config.country
-        self.render_js = scrape_config.render_js
-        self.cache = scrape_config.cache
-        self.cache_ttl = scrape_config.cache_ttl
-        self.cache_clear = scrape_config.cache_clear
-        self.ssl = scrape_config.ssl
-        self.dns = scrape_config.dns
-        self.asp = scrape_config.asp
-        self.session = scrape_config.session
-        self.debug = scrape_config.debug
-        self.tags = scrape_config.tags
-        self.correlation_id = scrape_config.correlation_id
-        self.graphql = scrape_config.graphql
-        self.js = scrape_config.js
-        self.rendering_wait = scrape_config.rendering_wait
-        self.screenshots = scrape_config.screenshots</code></pre>
+    def replace(self, *args, **kwargs):
+        for x in [
+            &#39;meta&#39;,
+            &#39;flags&#39;,
+            &#39;encoding&#39;,
+            &#39;priority&#39;,
+            &#39;dont_filter&#39;,
+            &#39;callback&#39;,
+            &#39;errback&#39;,
+            &#39;cb_kwargs&#39;,
+        ]:
+            kwargs.setdefault(x, getattr(self, x))
+            kwargs[&#39;scrape_config&#39;] = deepcopy(self.scrape_config)
+
+        cls = kwargs.pop(&#39;cls&#39;, self.__class__)
+        return cls(*args, **kwargs)</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -182,77 +146,40 @@ class ScrapflyScrapyRequest(Request):
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.asp"><code class="name">var <span class="ident">asp</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.cache"><code class="name">var <span class="ident">cache</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.cache_clear"><code class="name">var <span class="ident">cache_clear</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : Optional[int]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.correlation_id"><code class="name">var <span class="ident">correlation_id</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.debug"><code class="name">var <span class="ident">debug</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.dns"><code class="name">var <span class="ident">dns</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.graphql"><code class="name">var <span class="ident">graphql</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.js"><code class="name">var <span class="ident">js</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.proxy_country"><code class="name">var <span class="ident">proxy_country</span> : str</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.render_js"><code class="name">var <span class="ident">render_js</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.rendering_wait"><code class="name">var <span class="ident">rendering_wait</span> : Optional[int]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.retry"><code class="name">var <span class="ident">retry</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
 <dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.screenshots"><code class="name">var <span class="ident">screenshots</span> : Optional[Dict]</code></dt>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.replace"><code class="name flex">
+<span>def <span class="ident">replace</span></span>(<span>self, *args, **kwargs)</span>
+</code></dt>
 <dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.session"><code class="name">var <span class="ident">session</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.tags"><code class="name">var <span class="ident">tags</span> : Optional[List[str]]</code></dt>
-<dd>
-<div class="desc"></div>
+<div class="desc"><p>Create a new Request with the same attributes except for those
+given new values.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def replace(self, *args, **kwargs):
+    for x in [
+        &#39;meta&#39;,
+        &#39;flags&#39;,
+        &#39;encoding&#39;,
+        &#39;priority&#39;,
+        &#39;dont_filter&#39;,
+        &#39;callback&#39;,
+        &#39;errback&#39;,
+        &#39;cb_kwargs&#39;,
+    ]:
+        kwargs.setdefault(x, getattr(self, x))
+        kwargs[&#39;scrape_config&#39;] = deepcopy(self.scrape_config)
+
+    cls = kwargs.pop(&#39;cls&#39;, self.__class__)
+    return cls(*args, **kwargs)</code></pre>
+</details>
 </dd>
 </dl>
 </dd>
@@ -274,25 +201,9 @@ class ScrapflyScrapyRequest(Request):
 <ul>
 <li>
 <h4><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></code></h4>
-<ul class="two-column">
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.asp" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.asp">asp</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.cache" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.cache">cache</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.cache_clear" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.cache_clear">cache_clear</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.cache_ttl" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.cache_ttl">cache_ttl</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.correlation_id" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.correlation_id">correlation_id</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.debug" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.debug">debug</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.dns" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.dns">dns</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.graphql" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.graphql">graphql</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.js" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.js">js</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.proxy_country" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.proxy_country">proxy_country</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.render_js" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.render_js">render_js</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.rendering_wait" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.rendering_wait">rendering_wait</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.retry" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.retry">retry</a></code></li>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.replace" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.replace">replace</a></code></li>
 <li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.scrape_config" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.scrape_config">scrape_config</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.screenshots" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.screenshots">screenshots</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.session" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.session">session</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.ssl" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.ssl">ssl</a></code></li>
-<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.tags" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.tags">tags</a></code></li>
 </ul>
 </li>
 </ul>

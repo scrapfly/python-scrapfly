@@ -242,13 +242,9 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ScrapflyMiddleware:
+    MAX_API_RETRIES = 20
 
-    run_id:str
-
-    def __init__(self):
-        self.run_id = environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())
-
-    def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+    def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
             return None
 
@@ -256,22 +252,78 @@ def from_crawler(cls, crawler, *args, **kwargs):
             raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
 
         if request.scrape_config.tags is None:
-            request.scrape_config.tags = []
+            request.scrape_config.tags = set()
 
-        request.scrape_config.tags.append(spider.name)
-        request.scrape_config.tags.append(self.run_id)
+        request.scrape_config.tags.add(spider.name)
+        request.scrape_config.tags.add(str(spider.run_id))
 
-        return None</code></pre>
+        if request.scrape_config.proxy_pool is None and spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;):
+            request.scrape_config.proxy_pool = spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;)
+
+        return None
+
+    def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+        if not isinstance(exception, ScrapflyError):
+            raise exception
+
+        if isinstance(exception, HttpError):
+            if exception.code in ScrapflyError.RETRYABLE_CODE or exception.http_status_code in [502]:
+                delay = 5
+
+                if &#39;retry-after&#39; in exception.response.headers:
+                    delay = int(exception.response.headers[&#39;retry-after&#39;])
+
+                return spider.retry(request, exception, delay)
+
+        if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
+            return spider.retry(request, exception, 5)
+        elif exception.is_retryable is True:
+            return spider.retry(request, exception, 5)
+
+        raise exception
+
+    def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+        return response</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.scrapy.ScrapflyMiddleware.run_id"><code class="name">var <span class="ident">run_id</span> : str</code></dt>
+<dt id="scrapfly.scrapy.ScrapflyMiddleware.MAX_API_RETRIES"><code class="name">var <span class="ident">MAX_API_RETRIES</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="scrapfly.scrapy.ScrapflyMiddleware.process_exception"><code class="name flex">
+<span>def <span class="ident">process_exception</span></span>(<span>self, request, exception: Union[str, Exception], spider: <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+    if not isinstance(exception, ScrapflyError):
+        raise exception
+
+    if isinstance(exception, HttpError):
+        if exception.code in ScrapflyError.RETRYABLE_CODE or exception.http_status_code in [502]:
+            delay = 5
+
+            if &#39;retry-after&#39; in exception.response.headers:
+                delay = int(exception.response.headers[&#39;retry-after&#39;])
+
+            return spider.retry(request, exception, delay)
+
+    if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
+        return spider.retry(request, exception, 5)
+    elif exception.is_retryable is True:
+        return spider.retry(request, exception, 5)
+
+    raise exception</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.process_request"><code class="name flex">
 <span>def <span class="ident">process_request</span></span>(<span>self, request: Union[scrapy.http.request.Request, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>], spider: Union[scrapy.spiders.Spider, <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>]) ‑> Optional[<a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>]</span>
 </code></dt>
@@ -281,7 +333,7 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_request(self, request:Union[Request, ScrapflyScrapyRequest], spider:Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+<pre><code class="python">def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
     if not isinstance(request, ScrapflyScrapyRequest):
         return None
 
@@ -289,12 +341,28 @@ def from_crawler(cls, crawler, *args, **kwargs):
         raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
 
     if request.scrape_config.tags is None:
-        request.scrape_config.tags = []
+        request.scrape_config.tags = set()
 
-    request.scrape_config.tags.append(spider.name)
-    request.scrape_config.tags.append(self.run_id)
+    request.scrape_config.tags.add(spider.name)
+    request.scrape_config.tags.add(str(spider.run_id))
+
+    if request.scrape_config.proxy_pool is None and spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;):
+        request.scrape_config.proxy_pool = spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;)
 
     return None</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.ScrapflyMiddleware.process_response"><code class="name flex">
+<span>def <span class="ident">process_response</span></span>(<span>self, request: Union[scrapy.http.request.Request, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>], response: Union[scrapy.http.response.Response, <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>], spider: Union[scrapy.spiders.Spider, <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>]) ‑> Union[<a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+    return response</code></pre>
 </details>
 </dd>
 </dl>
@@ -319,28 +387,10 @@ def from_crawler(cls, crawler, *args, **kwargs):
     # headers:Dict inherited
     # encoding:Dict inherited
 
-    retry:bool
-    proxy_country:str
-    render_js:bool
-    cache:bool
-    cache_clear:bool
-    cache_ttl:Optional[int]
-    ssl:bool
-    dns:bool
-    asp:bool
-    session:Optional[str]
-    debug:bool
-    tags:Optional[List[str]]
-    correlation_id:Optional[str]
-    graphql:Optional[str]
-    js:Optional[str]
-    rendering_wait:Optional[int]
-    screenshots:Optional[Dict]
-
     def __init__(self, scrape_config:ScrapeConfig, meta:Dict={}, *args, **kwargs):
         self.scrape_config = scrape_config
 
-        meta[&#39;scrapfly_scrape_config&#39;] = scrape_config
+        meta[&#39;scrapfly_scrape_config&#39;] = self.scrape_config
 
         super().__init__(
             *args,
@@ -352,23 +402,22 @@ def from_crawler(cls, crawler, *args, **kwargs):
             **kwargs
         )
 
-        self.retry = scrape_config.retry
-        self.proxy_country = scrape_config.country
-        self.render_js = scrape_config.render_js
-        self.cache = scrape_config.cache
-        self.cache_ttl = scrape_config.cache_ttl
-        self.cache_clear = scrape_config.cache_clear
-        self.ssl = scrape_config.ssl
-        self.dns = scrape_config.dns
-        self.asp = scrape_config.asp
-        self.session = scrape_config.session
-        self.debug = scrape_config.debug
-        self.tags = scrape_config.tags
-        self.correlation_id = scrape_config.correlation_id
-        self.graphql = scrape_config.graphql
-        self.js = scrape_config.js
-        self.rendering_wait = scrape_config.rendering_wait
-        self.screenshots = scrape_config.screenshots</code></pre>
+    def replace(self, *args, **kwargs):
+        for x in [
+            &#39;meta&#39;,
+            &#39;flags&#39;,
+            &#39;encoding&#39;,
+            &#39;priority&#39;,
+            &#39;dont_filter&#39;,
+            &#39;callback&#39;,
+            &#39;errback&#39;,
+            &#39;cb_kwargs&#39;,
+        ]:
+            kwargs.setdefault(x, getattr(self, x))
+            kwargs[&#39;scrape_config&#39;] = deepcopy(self.scrape_config)
+
+        cls = kwargs.pop(&#39;cls&#39;, self.__class__)
+        return cls(*args, **kwargs)</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -377,77 +426,40 @@ def from_crawler(cls, crawler, *args, **kwargs):
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.asp"><code class="name">var <span class="ident">asp</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.cache"><code class="name">var <span class="ident">cache</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.cache_clear"><code class="name">var <span class="ident">cache_clear</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : Optional[int]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.correlation_id"><code class="name">var <span class="ident">correlation_id</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.debug"><code class="name">var <span class="ident">debug</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.dns"><code class="name">var <span class="ident">dns</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.graphql"><code class="name">var <span class="ident">graphql</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.js"><code class="name">var <span class="ident">js</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.proxy_country"><code class="name">var <span class="ident">proxy_country</span> : str</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.render_js"><code class="name">var <span class="ident">render_js</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.rendering_wait"><code class="name">var <span class="ident">rendering_wait</span> : Optional[int]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.retry"><code class="name">var <span class="ident">retry</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyRequest.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.screenshots"><code class="name">var <span class="ident">screenshots</span> : Optional[Dict]</code></dt>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.replace"><code class="name flex">
+<span>def <span class="ident">replace</span></span>(<span>self, *args, **kwargs)</span>
+</code></dt>
 <dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.session"><code class="name">var <span class="ident">session</span> : Optional[str]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.tags"><code class="name">var <span class="ident">tags</span> : Optional[List[str]]</code></dt>
-<dd>
-<div class="desc"></div>
+<div class="desc"><p>Create a new Request with the same attributes except for those
+given new values.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def replace(self, *args, **kwargs):
+    for x in [
+        &#39;meta&#39;,
+        &#39;flags&#39;,
+        &#39;encoding&#39;,
+        &#39;priority&#39;,
+        &#39;dont_filter&#39;,
+        &#39;callback&#39;,
+        &#39;errback&#39;,
+        &#39;cb_kwargs&#39;,
+    ]:
+        kwargs.setdefault(x, getattr(self, x))
+        kwargs[&#39;scrape_config&#39;] = deepcopy(self.scrape_config)
+
+    cls = kwargs.pop(&#39;cls&#39;, self.__class__)
+    return cls(*args, **kwargs)</code></pre>
+</details>
 </dd>
 </dl>
 </dd>
@@ -629,7 +641,7 @@ def from_crawler(cls, crawler, *args, **kwargs):
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider"><code class="flex name class">
 <span>class <span class="ident">ScrapflySpider</span></span>
-<span>(</span><span>scrapfly_client: <a title="scrapfly.client.ScrapflyClient" href="../client.html#scrapfly.client.ScrapflyClient">ScrapflyClient</a>, *args, **kwargs)</span>
+<span>(</span><span>name=None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
@@ -642,6 +654,7 @@ class.</p></div>
 
     scrapfly_client:ScrapflyClient
     account_info:Dict
+    run_id:int
 
     custom_settings:Dict = {
         &#39;DOWNLOADER_MIDDLEWARES&#39;: {
@@ -659,12 +672,12 @@ class.</p></div>
         &#39;DOWNLOAD_HANDLERS_BASE&#39;: {
             &#39;http&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;,
             &#39;https&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;
-        },
+        }
     }
 
-    def __init__(self, scrapfly_client:ScrapflyClient, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.scrapfly_client = scrapfly_client
+    @cached_property
+    def run_id(self):
+        return environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())
 
     def closed(self, reason:str):
         self.scrapfly_client.close()
@@ -675,24 +688,61 @@ class.</p></div>
                 raise RuntimeError(&#39;start_urls must contains ScrapeConfig Object with ScrapflySpider&#39;)
             yield ScrapflyScrapyRequest(scrape_config=scrape_config)
 
+    def retry(self, request:ScrapflyScrapyRequest, reason:Union[str, Exception], delay:Optional[int]=None):
+        logger.info(&#39;==&gt; Retrying request for reason %s&#39; % reason)
+        stats = self.crawler.stats
+        retries = request.meta.get(&#39;retry_times&#39;, 0) + 1
+
+        if retries &gt;= self.custom_settings.get(&#39;SCRAPFLY_MAX_API_RETRIES&#39;, 5):
+            return None
+
+        retryreq = request.replace(dont_filter=True)
+        retryreq.priority += 100
+
+        if retryreq.scrape_config.cache is True:
+            retryreq.scrape_config.cache_clear = True
+
+        retryreq.meta[&#39;retry_times&#39;] = retries
+
+        if isinstance(reason, ScrapflyError):
+            stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
+
+        if isinstance(reason, Exception):
+            reason = global_object_name(reason.__class__)
+
+        logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
+        stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
+
+        if delay is None:
+            deferred = Deferred()
+            deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
+        else:
+            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+
+        return deferred
+
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
         crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
-        scrapfly_client = ScrapflyClient(
-            key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
-            host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
-            verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
-            debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
-            distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
-            connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
-            read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
-        )
-
-        scrapfly_client.open()
-        spider = cls(*args, scrapfly_client=scrapfly_client, **kwargs)
+        spider = cls(*args, **kwargs)
         spider._set_crawler(crawler)
 
+        if not hasattr(spider, &#39;scrapfly_client&#39;):
+            spider.scrapfly_client = None
+
+        if spider.scrapfly_client is None:
+            spider.scrapfly_client = ScrapflyClient(
+                key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
+                host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
+                verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
+                debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
+                distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
+                connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
+                read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
+            )
+
+        spider.scrapfly_client.open()
         return spider</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -734,21 +784,67 @@ class.</p></div>
 def from_crawler(cls, crawler:Crawler, *args, **kwargs):
     crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
-    scrapfly_client = ScrapflyClient(
-        key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
-        host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
-        verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
-        debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
-        distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
-        connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
-        read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
-    )
-
-    scrapfly_client.open()
-    spider = cls(*args, scrapfly_client=scrapfly_client, **kwargs)
+    spider = cls(*args, **kwargs)
     spider._set_crawler(crawler)
 
+    if not hasattr(spider, &#39;scrapfly_client&#39;):
+        spider.scrapfly_client = None
+
+    if spider.scrapfly_client is None:
+        spider.scrapfly_client = ScrapflyClient(
+            key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
+            host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
+            verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
+            debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
+            distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
+            connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
+            read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
+        )
+
+    spider.scrapfly_client.open()
     return spider</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.scrapy.ScrapflySpider.run_id"><code class="name">var <span class="ident">run_id</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def __get__(self, instance, owner=None):
+    if instance is None:
+        return self
+    if self.attrname is None:
+        raise TypeError(
+            &#34;Cannot use cached_property instance without calling __set_name__ on it.&#34;)
+    try:
+        cache = instance.__dict__
+    except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
+        msg = (
+            f&#34;No &#39;__dict__&#39; attribute on {type(instance).__name__!r} &#34;
+            f&#34;instance to cache {self.attrname!r} property.&#34;
+        )
+        raise TypeError(msg) from None
+    val = cache.get(self.attrname, _NOT_FOUND)
+    if val is _NOT_FOUND:
+        with self.lock:
+            # check if another thread filled cache while we awaited lock
+            val = cache.get(self.attrname, _NOT_FOUND)
+            if val is _NOT_FOUND:
+                val = self.func(instance)
+                try:
+                    cache[self.attrname] = val
+                except TypeError:
+                    msg = (
+                        f&#34;The &#39;__dict__&#39; attribute on {type(instance).__name__!r} instance &#34;
+                        f&#34;does not support item assignment for caching {self.attrname!r} property.&#34;
+                    )
+                    raise TypeError(msg) from None
+    return val</code></pre>
 </details>
 </dd>
 </dl>
@@ -765,6 +861,49 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 </summary>
 <pre><code class="python">def closed(self, reason:str):
     self.scrapfly_client.close()</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.ScrapflySpider.retry"><code class="name flex">
+<span>def <span class="ident">retry</span></span>(<span>self, request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>, reason: Union[str, Exception], delay: Optional[int] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def retry(self, request:ScrapflyScrapyRequest, reason:Union[str, Exception], delay:Optional[int]=None):
+    logger.info(&#39;==&gt; Retrying request for reason %s&#39; % reason)
+    stats = self.crawler.stats
+    retries = request.meta.get(&#39;retry_times&#39;, 0) + 1
+
+    if retries &gt;= self.custom_settings.get(&#39;SCRAPFLY_MAX_API_RETRIES&#39;, 5):
+        return None
+
+    retryreq = request.replace(dont_filter=True)
+    retryreq.priority += 100
+
+    if retryreq.scrape_config.cache is True:
+        retryreq.scrape_config.cache_clear = True
+
+    retryreq.meta[&#39;retry_times&#39;] = retries
+
+    if isinstance(reason, ScrapflyError):
+        stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
+
+    if isinstance(reason, Exception):
+        reason = global_object_name(reason.__class__)
+
+    logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
+    stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
+
+    if delay is None:
+        deferred = Deferred()
+        deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
+    else:
+        deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+
+    return deferred</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider.start_requests"><code class="name flex">
@@ -822,31 +961,17 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 <li>
 <h4><code><a title="scrapfly.scrapy.ScrapflyMiddleware" href="#scrapfly.scrapy.ScrapflyMiddleware">ScrapflyMiddleware</a></code></h4>
 <ul class="">
+<li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.MAX_API_RETRIES" href="#scrapfly.scrapy.ScrapflyMiddleware.MAX_API_RETRIES">MAX_API_RETRIES</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.process_exception" href="#scrapfly.scrapy.ScrapflyMiddleware.process_exception">process_exception</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.process_request" href="#scrapfly.scrapy.ScrapflyMiddleware.process_request">process_request</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.run_id" href="#scrapfly.scrapy.ScrapflyMiddleware.run_id">run_id</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.process_response" href="#scrapfly.scrapy.ScrapflyMiddleware.process_response">process_response</a></code></li>
 </ul>
 </li>
 <li>
 <h4><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest" href="#scrapfly.scrapy.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></code></h4>
-<ul class="two-column">
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.asp" href="#scrapfly.scrapy.ScrapflyScrapyRequest.asp">asp</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.cache" href="#scrapfly.scrapy.ScrapflyScrapyRequest.cache">cache</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.cache_clear" href="#scrapfly.scrapy.ScrapflyScrapyRequest.cache_clear">cache_clear</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.cache_ttl" href="#scrapfly.scrapy.ScrapflyScrapyRequest.cache_ttl">cache_ttl</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.correlation_id" href="#scrapfly.scrapy.ScrapflyScrapyRequest.correlation_id">correlation_id</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.debug" href="#scrapfly.scrapy.ScrapflyScrapyRequest.debug">debug</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.dns" href="#scrapfly.scrapy.ScrapflyScrapyRequest.dns">dns</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.graphql" href="#scrapfly.scrapy.ScrapflyScrapyRequest.graphql">graphql</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.js" href="#scrapfly.scrapy.ScrapflyScrapyRequest.js">js</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.proxy_country" href="#scrapfly.scrapy.ScrapflyScrapyRequest.proxy_country">proxy_country</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.render_js" href="#scrapfly.scrapy.ScrapflyScrapyRequest.render_js">render_js</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.rendering_wait" href="#scrapfly.scrapy.ScrapflyScrapyRequest.rendering_wait">rendering_wait</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.retry" href="#scrapfly.scrapy.ScrapflyScrapyRequest.retry">retry</a></code></li>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.replace" href="#scrapfly.scrapy.ScrapflyScrapyRequest.replace">replace</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.scrape_config" href="#scrapfly.scrapy.ScrapflyScrapyRequest.scrape_config">scrape_config</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.screenshots" href="#scrapfly.scrapy.ScrapflyScrapyRequest.screenshots">screenshots</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.session" href="#scrapfly.scrapy.ScrapflyScrapyRequest.session">session</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.ssl" href="#scrapfly.scrapy.ScrapflyScrapyRequest.ssl">ssl</a></code></li>
-<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.tags" href="#scrapfly.scrapy.ScrapflyScrapyRequest.tags">tags</a></code></li>
 </ul>
 </li>
 <li>
@@ -879,6 +1004,8 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.closed" href="#scrapfly.scrapy.ScrapflySpider.closed">closed</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.custom_settings" href="#scrapfly.scrapy.ScrapflySpider.custom_settings">custom_settings</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.from_crawler" href="#scrapfly.scrapy.ScrapflySpider.from_crawler">from_crawler</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflySpider.retry" href="#scrapfly.scrapy.ScrapflySpider.retry">retry</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflySpider.run_id" href="#scrapfly.scrapy.ScrapflySpider.run_id">run_id</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.scrapfly_client" href="#scrapfly.scrapy.ScrapflySpider.scrapfly_client">scrapfly_client</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.start_requests" href="#scrapfly.scrapy.ScrapflySpider.start_requests">start_requests</a></code></li>
 </ul>

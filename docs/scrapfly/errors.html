@@ -42,6 +42,19 @@ class ScrapflyError(BaseException):
     RESOURCE_WEBHOOK = &#39;WEBHOOK&#39;
     RESOURCE_SESSION = &#39;SESSION&#39;
 
+    RETRYABLE_CODE = [
+        &#39;ERR::SCRAPE::OPERATION_TIMEOUT&#39;,
+        &#39;ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST&#39;,
+        &#39;ERR::PROXY::RESOURCES_SATURATION&#39;,
+        &#39;ERR::PROXY::NOT_REACHABLE&#39;,
+        &#39;ERR::PROXY::NETWORK_DOWN&#39;,
+        &#39;ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED&#39;,
+        &#39;ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED&#39;,
+        &#39;ERR::SESSION::CONCURRENT_ACCESS&#39;,
+        &#39;ERR::ASP::SHIELD_EXPIRED&#39;,
+        &#39;ERR::SCRAPE::NETWORK_ISSUE&#39;
+    ]
+
     KNOWN_HTTP_API_ERROR_CODE = [
         400,
         401,
@@ -57,8 +70,8 @@ class ScrapflyError(BaseException):
         self,
         message: str,
         code: int,
-        resource: str,
         http_status_code: int,
+        resource: Optional[str]=None,
         is_retryable: bool = False,
         retry_delay: Optional[int] = None,
         retry_times: Optional[int] = None,
@@ -363,7 +376,7 @@ __all__:Tuple[str, ...] = [
 </dd>
 <dt id="scrapfly.errors.ScrapflyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyError</span></span>
-<span>(</span><span>message: str, code: int, resource: str, http_status_code: int, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>message: str, code: int, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all exceptions</p></div>
@@ -383,6 +396,19 @@ __all__:Tuple[str, ...] = [
     RESOURCE_WEBHOOK = &#39;WEBHOOK&#39;
     RESOURCE_SESSION = &#39;SESSION&#39;
 
+    RETRYABLE_CODE = [
+        &#39;ERR::SCRAPE::OPERATION_TIMEOUT&#39;,
+        &#39;ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST&#39;,
+        &#39;ERR::PROXY::RESOURCES_SATURATION&#39;,
+        &#39;ERR::PROXY::NOT_REACHABLE&#39;,
+        &#39;ERR::PROXY::NETWORK_DOWN&#39;,
+        &#39;ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED&#39;,
+        &#39;ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED&#39;,
+        &#39;ERR::SESSION::CONCURRENT_ACCESS&#39;,
+        &#39;ERR::ASP::SHIELD_EXPIRED&#39;,
+        &#39;ERR::SCRAPE::NETWORK_ISSUE&#39;
+    ]
+
     KNOWN_HTTP_API_ERROR_CODE = [
         400,
         401,
@@ -398,8 +424,8 @@ __all__:Tuple[str, ...] = [
         self,
         message: str,
         code: int,
-        resource: str,
         http_status_code: int,
+        resource: Optional[str]=None,
         is_retryable: bool = False,
         retry_delay: Optional[int] = None,
         retry_times: Optional[int] = None,
@@ -473,6 +499,10 @@ __all__:Tuple[str, ...] = [
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK"><code class="name">var <span class="ident">RESOURCE_WEBHOOK</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.errors.ScrapflyError.RETRYABLE_CODE"><code class="name">var <span class="ident">RETRYABLE_CODE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -683,6 +713,7 @@ __all__:Tuple[str, ...] = [
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RETRYABLE_CODE" href="#scrapfly.errors.ScrapflyError.RETRYABLE_CODE">RETRYABLE_CODE</a></code></li>
 </ul>
 </li>
 <li>
