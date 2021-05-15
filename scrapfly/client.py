@@ -21,7 +21,7 @@ try:
     from functools import cached_property
 except ImportError:
     from .polyfill.cached_property import cached_property
-    
+
 from .errors import *
 from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
