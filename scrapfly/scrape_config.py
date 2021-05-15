@@ -246,21 +246,6 @@ class ScrapeConfig:
 
         return params
 
-    def export(self) -> str:
-        try:
-            from msgpack import dumps as msgpack_dumps
-        except ImportError as e:
-            print('You must install msgpack package - run: pip install "scrapfly-sdk[seepdup] or pip install msgpack')
-            raise
-
-        params = self.to_api_params(key=self.key)
-        del params['key'] # not needed to play in api player
-
-        return base64.b64encode(msgpack_dumps(params)).hex()
-
-    def get_api_player_link(self) -> str:
-        return 'https://scrapfly.io/dashboard/player?config=%s' % self.export()
-
     @staticmethod
     def from_exported_config(config:str) -> 'ScrapeConfig':
         try:
