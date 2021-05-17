@@ -28,6 +28,7 @@
 </summary>
 <pre><code class="python">import base64
 import json
+import logging
 from base64 import b64encode
 from os import getpid
 from socket import gethostname
@@ -71,6 +72,7 @@ class ScrapeConfig:
     graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
+    wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
 
@@ -100,8 +102,9 @@ class ScrapeConfig:
         graphql: Optional[str] = None,
         js: str = None,
         rendering_wait: int = None,
+        wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
-        session_sticky_proxy:bool = True
+        session_sticky_proxy:Optional[bool] = None
     ):
         assert(type(url) is str)
 
@@ -128,6 +131,7 @@ class ScrapeConfig:
         self.proxy_pool = proxy_pool
         self.tags = tags or set()
         self.correlation_id = correlation_id
+        self.wait_for_selector = wait_for_selector
         self.body = body
         self.data = data
         self.graphql = graphql
@@ -192,6 +196,31 @@ class ScrapeConfig:
         if self.render_js is True:
             params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
 
+            if self.wait_for_selector is not None:
+                params[&#39;wait_for_selector&#39;] = self.wait_for_selector
+
+            if self.js:
+                params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+            if self.rendering_wait:
+                params[&#39;rendering_wait&#39;] = self.rendering_wait
+
+            if self.screenshots is not None:
+                for name, element in self.screenshots.items():
+                    params[&#39;screenshots[%s]&#39; % name] = element
+        else:
+            if self.wait_for_selector is not None:
+                logging.warning(&#39;Params &#34;wait_for_selector&#34; is ignored. Works only if render_js is enabled&#39;)
+
+            if self.screenshots:
+                logging.warning(&#39;Params &#34;screenshots&#34; is ignored. Works only if render_js is enabled&#39;)
+
+            if self.js:
+                logging.warning(&#39;Params &#34;js&#34; is ignored. Works only if render_js is enabled&#39;)
+
+            if self.rendering_wait:
+                logging.warning(&#39;Params &#34;rendering_wait&#34; is ignored. Works only if render_js is enabled&#39;)
+
         if self.asp is True:
             params[&#39;asp&#39;] = self._bool_to_http(self.asp)
 
@@ -200,6 +229,18 @@ class ScrapeConfig:
 
         if self.cache is True:
             params[&#39;cache&#39;] = self._bool_to_http(self.cache)
+
+            if self.cache_clear is True:
+                params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
+
+            if self.cache_ttl is not None:
+                params[&#39;cache_ttl&#39;] = self.cache_ttl
+        else:
+            if self.cache_clear is True:
+                logging.warning(&#39;Params &#34;cache_clear&#34; is ignored. Works only if cache is enabled&#39;)
+
+            if self.cache_ttl is not None:
+                logging.warning(&#39;Params &#34;cache_ttl&#34; is ignored. Works only if cache is enabled&#39;)
 
         if self.dns is True:
             params[&#39;dns&#39;] = self._bool_to_http(self.dns)
@@ -213,34 +254,23 @@ class ScrapeConfig:
         if self.correlation_id:
             params[&#39;correlation_id&#39;] = self.correlation_id
 
-        if self.screenshots is not None:
-            for name, element in self.screenshots.items():
-                params[&#39;screenshots[%s]&#39; % name] = element
-
         if self.session:
             params[&#39;session&#39;] = self.session
-            params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
+
+            if self.session_sticky_proxy is True: # false by default
+                params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
+        else:
+            if self.session_sticky_proxy:
+                logging.warning(&#39;Params &#34;session_sticky_proxy&#34; is ignored. Works only if session is enabled&#39;)
 
         if self.debug is True:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
-
-        if self.cache_clear is True:
-            params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
-
-        if self.cache_ttl is not None:
-            params[&#39;cache_ttl&#39;] = self.cache_ttl
 
         if self.graphql:
             params[&#39;graphql_query&#39;] = quote(self.graphql)
 
         if self.proxy_pool is not None:
             params[&#39;proxy_pool&#39;] = self.proxy_pool
-
-        if self.js:
-            params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
-
-        if self.rendering_wait:
-            params[&#39;rendering_wait&#39;] = self.rendering_wait
 
         return params
 
@@ -249,7 +279,7 @@ class ScrapeConfig:
         try:
             from msgpack import loads as msgpack_loads
         except ImportError as e:
-            print(&#39;You must install msgpack package - run: pip install msgpack&#39;)
+            print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[seepdup] or pip install msgpack&#39;)
             raise
 
         data = msgpack_loads(base64.b64decode(config))
@@ -300,7 +330,7 @@ class ScrapeConfig:
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], NoneType] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, screenshots: Optional[Dict] = None, session_sticky_proxy: bool = True)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], NoneType] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -337,6 +367,7 @@ class ScrapeConfig:
     graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
+    wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
 
@@ -366,8 +397,9 @@ class ScrapeConfig:
         graphql: Optional[str] = None,
         js: str = None,
         rendering_wait: int = None,
+        wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
-        session_sticky_proxy:bool = True
+        session_sticky_proxy:Optional[bool] = None
     ):
         assert(type(url) is str)
 
@@ -394,6 +426,7 @@ class ScrapeConfig:
         self.proxy_pool = proxy_pool
         self.tags = tags or set()
         self.correlation_id = correlation_id
+        self.wait_for_selector = wait_for_selector
         self.body = body
         self.data = data
         self.graphql = graphql
@@ -458,6 +491,31 @@ class ScrapeConfig:
         if self.render_js is True:
             params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
 
+            if self.wait_for_selector is not None:
+                params[&#39;wait_for_selector&#39;] = self.wait_for_selector
+
+            if self.js:
+                params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+            if self.rendering_wait:
+                params[&#39;rendering_wait&#39;] = self.rendering_wait
+
+            if self.screenshots is not None:
+                for name, element in self.screenshots.items():
+                    params[&#39;screenshots[%s]&#39; % name] = element
+        else:
+            if self.wait_for_selector is not None:
+                logging.warning(&#39;Params &#34;wait_for_selector&#34; is ignored. Works only if render_js is enabled&#39;)
+
+            if self.screenshots:
+                logging.warning(&#39;Params &#34;screenshots&#34; is ignored. Works only if render_js is enabled&#39;)
+
+            if self.js:
+                logging.warning(&#39;Params &#34;js&#34; is ignored. Works only if render_js is enabled&#39;)
+
+            if self.rendering_wait:
+                logging.warning(&#39;Params &#34;rendering_wait&#34; is ignored. Works only if render_js is enabled&#39;)
+
         if self.asp is True:
             params[&#39;asp&#39;] = self._bool_to_http(self.asp)
 
@@ -466,6 +524,18 @@ class ScrapeConfig:
 
         if self.cache is True:
             params[&#39;cache&#39;] = self._bool_to_http(self.cache)
+
+            if self.cache_clear is True:
+                params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
+
+            if self.cache_ttl is not None:
+                params[&#39;cache_ttl&#39;] = self.cache_ttl
+        else:
+            if self.cache_clear is True:
+                logging.warning(&#39;Params &#34;cache_clear&#34; is ignored. Works only if cache is enabled&#39;)
+
+            if self.cache_ttl is not None:
+                logging.warning(&#39;Params &#34;cache_ttl&#34; is ignored. Works only if cache is enabled&#39;)
 
         if self.dns is True:
             params[&#39;dns&#39;] = self._bool_to_http(self.dns)
@@ -479,34 +549,23 @@ class ScrapeConfig:
         if self.correlation_id:
             params[&#39;correlation_id&#39;] = self.correlation_id
 
-        if self.screenshots is not None:
-            for name, element in self.screenshots.items():
-                params[&#39;screenshots[%s]&#39; % name] = element
-
         if self.session:
             params[&#39;session&#39;] = self.session
-            params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
+
+            if self.session_sticky_proxy is True: # false by default
+                params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
+        else:
+            if self.session_sticky_proxy:
+                logging.warning(&#39;Params &#34;session_sticky_proxy&#34; is ignored. Works only if session is enabled&#39;)
 
         if self.debug is True:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
-
-        if self.cache_clear is True:
-            params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
-
-        if self.cache_ttl is not None:
-            params[&#39;cache_ttl&#39;] = self.cache_ttl
 
         if self.graphql:
             params[&#39;graphql_query&#39;] = quote(self.graphql)
 
         if self.proxy_pool is not None:
             params[&#39;proxy_pool&#39;] = self.proxy_pool
-
-        if self.js:
-            params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
-
-        if self.rendering_wait:
-            params[&#39;rendering_wait&#39;] = self.rendering_wait
 
         return params
 
@@ -515,7 +574,7 @@ class ScrapeConfig:
         try:
             from msgpack import loads as msgpack_loads
         except ImportError as e:
-            print(&#39;You must install msgpack package - run: pip install msgpack&#39;)
+            print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[seepdup] or pip install msgpack&#39;)
             raise
 
         data = msgpack_loads(base64.b64decode(config))
@@ -668,6 +727,10 @@ class ScrapeConfig:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.wait_for_selector"><code class="name">var <span class="ident">wait_for_selector</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 </dl>
 <h3>Static methods</h3>
 <dl>
@@ -685,7 +748,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     try:
         from msgpack import loads as msgpack_loads
     except ImportError as e:
-        print(&#39;You must install msgpack package - run: pip install msgpack&#39;)
+        print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[seepdup] or pip install msgpack&#39;)
         raise
 
     data = msgpack_loads(base64.b64decode(config))
@@ -765,6 +828,31 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     if self.render_js is True:
         params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
 
+        if self.wait_for_selector is not None:
+            params[&#39;wait_for_selector&#39;] = self.wait_for_selector
+
+        if self.js:
+            params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+        if self.rendering_wait:
+            params[&#39;rendering_wait&#39;] = self.rendering_wait
+
+        if self.screenshots is not None:
+            for name, element in self.screenshots.items():
+                params[&#39;screenshots[%s]&#39; % name] = element
+    else:
+        if self.wait_for_selector is not None:
+            logging.warning(&#39;Params &#34;wait_for_selector&#34; is ignored. Works only if render_js is enabled&#39;)
+
+        if self.screenshots:
+            logging.warning(&#39;Params &#34;screenshots&#34; is ignored. Works only if render_js is enabled&#39;)
+
+        if self.js:
+            logging.warning(&#39;Params &#34;js&#34; is ignored. Works only if render_js is enabled&#39;)
+
+        if self.rendering_wait:
+            logging.warning(&#39;Params &#34;rendering_wait&#34; is ignored. Works only if render_js is enabled&#39;)
+
     if self.asp is True:
         params[&#39;asp&#39;] = self._bool_to_http(self.asp)
 
@@ -773,6 +861,18 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
     if self.cache is True:
         params[&#39;cache&#39;] = self._bool_to_http(self.cache)
+
+        if self.cache_clear is True:
+            params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
+
+        if self.cache_ttl is not None:
+            params[&#39;cache_ttl&#39;] = self.cache_ttl
+    else:
+        if self.cache_clear is True:
+            logging.warning(&#39;Params &#34;cache_clear&#34; is ignored. Works only if cache is enabled&#39;)
+
+        if self.cache_ttl is not None:
+            logging.warning(&#39;Params &#34;cache_ttl&#34; is ignored. Works only if cache is enabled&#39;)
 
     if self.dns is True:
         params[&#39;dns&#39;] = self._bool_to_http(self.dns)
@@ -786,34 +886,23 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     if self.correlation_id:
         params[&#39;correlation_id&#39;] = self.correlation_id
 
-    if self.screenshots is not None:
-        for name, element in self.screenshots.items():
-            params[&#39;screenshots[%s]&#39; % name] = element
-
     if self.session:
         params[&#39;session&#39;] = self.session
-        params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
+
+        if self.session_sticky_proxy is True: # false by default
+            params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
+    else:
+        if self.session_sticky_proxy:
+            logging.warning(&#39;Params &#34;session_sticky_proxy&#34; is ignored. Works only if session is enabled&#39;)
 
     if self.debug is True:
         params[&#39;debug&#39;] = self._bool_to_http(self.debug)
-
-    if self.cache_clear is True:
-        params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
-
-    if self.cache_ttl is not None:
-        params[&#39;cache_ttl&#39;] = self.cache_ttl
 
     if self.graphql:
         params[&#39;graphql_query&#39;] = quote(self.graphql)
 
     if self.proxy_pool is not None:
         params[&#39;proxy_pool&#39;] = self.proxy_pool
-
-    if self.js:
-        params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
-
-    if self.rendering_wait:
-        params[&#39;rendering_wait&#39;] = self.rendering_wait
 
     return params</code></pre>
 </details>
@@ -889,6 +978,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.tags" href="#scrapfly.scrape_config.ScrapeConfig.tags">tags</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.to_api_params" href="#scrapfly.scrape_config.ScrapeConfig.to_api_params">to_api_params</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.url" href="#scrapfly.scrape_config.ScrapeConfig.url">url</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.wait_for_selector" href="#scrapfly.scrape_config.ScrapeConfig.wait_for_selector">wait_for_selector</a></code></li>
 </ul>
 </li>
 <li>
