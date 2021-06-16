@@ -3,14 +3,13 @@ from contextlib import suppress
 from dataclasses import dataclass
 from typing import Optional
 from pprint import pprint
+from bs4 import BeautifulSoup
 
 from scrapfly import ScrapeConfig, ScrapflyClient, ScrapeApiResponse
-from bs4 import BeautifulSoup
 
 scrapfly = ScrapflyClient(key='__API_KEY__')
 
 api_response:ScrapeApiResponse = scrapfly.scrape(scrape_config=ScrapeConfig(url='https://news.ycombinator.com/'))
-
 soup = BeautifulSoup(api_response.scrape_result['content'], "html.parser")
 
 @dataclass

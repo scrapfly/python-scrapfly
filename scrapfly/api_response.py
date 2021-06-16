@@ -64,12 +64,14 @@ class ResponseBodyHandler:
         def __init__(self, *args, **kargs):
             JSONDecoder.__init__(self, *args, object_hook=_date_parser, **kargs)
 
-    def __init__(self):
-        try:
-            import brotli
-            self.SUPPORTED_COMPRESSION.insert(0, 'br')
-        except ImportError:
-            pass
+    def __init__(self, brotli:bool=True):
+
+        if brotli is True:
+            try:
+                import brotli
+                self.SUPPORTED_COMPRESSION.insert(0, 'br')
+            except ImportError:
+                pass
 
         self.content_encoding = ', '.join(self.SUPPORTED_COMPRESSION)
 

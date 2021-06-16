@@ -46,12 +46,12 @@ EXTRA_DEPENDENCIES = {
         'isort',
         'readme_renderer',
         'twine',
-        'setuptools >= 39.2.0',
+        'setuptools',
         'wheel',
         'pdoc3'
     ],
     'scrapy': [
-        'scrapy >= 2.4.0'
+        'scrapy>=2.4.0'
     ],
     'parser': [
         'lxml',
@@ -72,7 +72,7 @@ EXTRA_DEPENDENCIES = {
         'brotli',
         'cchardet',
         'msgpack',
-        'scrapy >= 2.4.0'
+        'scrapy>=2.4.0'
     ]
 }
 
