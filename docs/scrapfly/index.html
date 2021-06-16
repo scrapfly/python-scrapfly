@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.8.0&#39;
+<pre><code class="python">__version__ = &#39;0.7.8&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -432,6 +432,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
+<span>(</span><span>brotli: bool = True)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -448,12 +449,14 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
         def __init__(self, *args, **kargs):
             JSONDecoder.__init__(self, *args, object_hook=_date_parser, **kargs)
 
-    def __init__(self):
-        try:
-            import brotli
-            self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
-        except ImportError:
-            pass
+    def __init__(self, brotli:bool=True):
+
+        if brotli is True:
+            try:
+                import brotli
+                self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
+            except ImportError:
+                pass
 
         self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
 
@@ -1880,7 +1883,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 </dd>
 <dt id="scrapfly.ScrapflyClient"><code class="flex name class">
 <span>class <span class="ident">ScrapflyClient</span></span>
-<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, distributed_mode=False, connect_timeout: int = 30, read_timeout: int = 150)</span>
+<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, distributed_mode=False, connect_timeout: int = 30, read_timeout: int = 150, brotli: bool = True)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1902,6 +1905,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     distributed_mode:bool
     connect_timeout:int
     read_timeout:int
+    brotli: bool
 
     def __init__(
         self,
@@ -1912,7 +1916,8 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         max_concurrency:int=1,
         distributed_mode = False,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
-        read_timeout:int = DEFAULT_READ_TIMEOUT
+        read_timeout:int = DEFAULT_READ_TIMEOUT,
+        brotli:bool = True # allow to disable brotli even if lib is present
     ):
         if host[-1] == &#39;/&#39;:  # remove last &#39;/&#39; if exists
             host = host[:-1]
@@ -1925,7 +1930,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         self.read_timeout = read_timeout
         self.max_concurrency = max_concurrency
         self.distributed_mode = distributed_mode
-        self.body_handler = ResponseBodyHandler()
+        self.body_handler = ResponseBodyHandler(brotli=brotli)
         self.async_executor = ThreadPoolExecutor()
         self.http_session = None
         self.ua = &#39;ScrapflySDK/%s (Python %s, %s, %s)&#39; % (
@@ -2056,6 +2061,9 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
         request_data = self._scrape_request(scrape_config=scrape_config)
         response = self._http_handler(**request_data)
+
+        logger.info(response.headers)
+
         return self._handle_response(response=response, scrape_config=scrape_config)
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
@@ -2235,6 +2243,10 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.HOST"><code class="name">var <span class="ident">HOST</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.brotli"><code class="name">var <span class="ident">brotli</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -2471,6 +2483,9 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
     logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
     request_data = self._scrape_request(scrape_config=scrape_config)
     response = self._http_handler(**request_data)
+
+    logger.info(response.headers)
+
     return self._handle_response(response=response, scrape_config=scrape_config)</code></pre>
 </details>
 </dd>
@@ -3020,6 +3035,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapflyClient.HOST" href="#scrapfly.ScrapflyClient.HOST">HOST</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.account" href="#scrapfly.ScrapflyClient.account">account</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.async_scrape" href="#scrapfly.ScrapflyClient.async_scrape">async_scrape</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.brotli" href="#scrapfly.ScrapflyClient.brotli">brotli</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.close" href="#scrapfly.ScrapflyClient.close">close</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.concurrent_scrape" href="#scrapfly.ScrapflyClient.concurrent_scrape">concurrent_scrape</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.connect_timeout" href="#scrapfly.ScrapflyClient.connect_timeout">connect_timeout</a></code></li>

@@ -92,12 +92,14 @@ class ResponseBodyHandler:
         def __init__(self, *args, **kargs):
             JSONDecoder.__init__(self, *args, object_hook=_date_parser, **kargs)
 
-    def __init__(self):
-        try:
-            import brotli
-            self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
-        except ImportError:
-            pass
+    def __init__(self, brotli:bool=True):
+
+        if brotli is True:
+            try:
+                import brotli
+                self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
+            except ImportError:
+                pass
 
         self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
 
@@ -432,6 +434,7 @@ class ScrapeApiResponse:
 <dl>
 <dt id="scrapfly.api_response.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
+<span>(</span><span>brotli: bool = True)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -448,12 +451,14 @@ class ScrapeApiResponse:
         def __init__(self, *args, **kargs):
             JSONDecoder.__init__(self, *args, object_hook=_date_parser, **kargs)
 
-    def __init__(self):
-        try:
-            import brotli
-            self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
-        except ImportError:
-            pass
+    def __init__(self, brotli:bool=True):
+
+        if brotli is True:
+            try:
+                import brotli
+                self.SUPPORTED_COMPRESSION.insert(0, &#39;br&#39;)
+            except ImportError:
+                pass
 
         self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
 
