@@ -285,9 +285,10 @@ class ScrapflyClient:
         if not name.endswith('.jpg'):
             name += '.jpg'
 
-        response = self._http_handler.request(
+        response = self._http_handler(
             method='GET',
-            url=api_response.scrape_result['screenshots']['main']['url']
+            url=api_response.scrape_result['screenshots']['main']['url'],
+            params={'key': self.key}
         )
 
         response.raise_for_status()
