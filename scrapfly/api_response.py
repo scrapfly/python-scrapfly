@@ -262,7 +262,7 @@ class ScrapeApiResponse:
                         http_status_code=self.result['http_code']
                     ) from e
 
-        if self.scrape_success is False:
+        if self.result['result']['status'] == 'DONE' and self.scrape_success is False:
             error = ErrorFactory.create(api_response=self)
 
             if error:

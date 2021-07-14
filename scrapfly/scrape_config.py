@@ -47,6 +47,7 @@ class ScrapeConfig:
     wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
+    webhook:Optional[str]=None
 
     def __init__(
         self,
@@ -76,7 +77,8 @@ class ScrapeConfig:
         rendering_wait: int = None,
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
-        session_sticky_proxy:Optional[bool] = None
+        session_sticky_proxy:Optional[bool] = None,
+        webhook:Optional[str] = None
     ):
         assert(type(url) is str)
 
@@ -97,6 +99,7 @@ class ScrapeConfig:
         self.cache = cache
         self.cache_clear = cache_clear
         self.asp = asp
+        self.webhook = webhook
         self.session = session
         self.debug = debug
         self.cache_ttl = cache_ttl
@@ -164,6 +167,9 @@ class ScrapeConfig:
 
         for name, value in self.headers.items():
             params['headers[%s]' % name] = value
+
+        if self.webhook is not None:
+            params['webhook_name'] = self.webhook
 
         if self.render_js is True:
             params['render_js'] = self._bool_to_http(self.render_js)
