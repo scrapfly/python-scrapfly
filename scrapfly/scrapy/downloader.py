@@ -105,7 +105,7 @@ class ScrapflyHTTPDownloader:
         }
 
         if request_data['method'] in ['POST', 'PUT', 'PATCH']:
-            request_kwargs['bodyProducer'] = BodyProducer(request_data['body'].encode('utf-8'))
+            request_kwargs['bodyProducer'] = BodyProducer(request_data['data'].encode('utf-8'))
 
         d = self.agent.request(**request_kwargs)
         d.addCallback(self._cb_bodydone, request, spider)

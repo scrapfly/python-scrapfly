@@ -28,17 +28,6 @@ class ScrapflyError(BaseException):
         'ERR::SCRAPE::DRIVER_TIMEOUT'
     ]
 
-    KNOWN_HTTP_API_ERROR_CODE = [
-        400,
-        401,
-        404,
-        422,
-        429,
-        500,
-        503,
-        504
-    ]
-
     def __init__(
         self,
         message: str,
