@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.7.10&#39;
+<pre><code class="python">__version__ = &#39;0.7.11&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -2641,17 +2641,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         &#39;ERR::SCRAPE::DRIVER_TIMEOUT&#39;
     ]
 
-    KNOWN_HTTP_API_ERROR_CODE = [
-        400,
-        401,
-        404,
-        422,
-        429,
-        500,
-        503,
-        504
-    ]
-
     def __init__(
         self,
         message: str,
@@ -2699,10 +2688,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.KIND_SCRAPFLY_ERROR"><code class="name">var <span class="ident">KIND_SCRAPFLY_ERROR</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE"><code class="name">var <span class="ident">KNOWN_HTTP_API_ERROR_CODE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -3076,7 +3061,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <ul class="">
 <li><code><a title="scrapfly.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="#scrapfly.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
 <li><code><a title="scrapfly.ScrapflyError.KIND_SCRAPFLY_ERROR" href="#scrapfly.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
-<li><code><a title="scrapfly.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE" href="#scrapfly.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE">KNOWN_HTTP_API_ERROR_CODE</a></code></li>
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_ASP" href="#scrapfly.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_PROXY" href="#scrapfly.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_SCHEDULE" href="#scrapfly.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>

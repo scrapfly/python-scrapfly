@@ -56,17 +56,6 @@ class ScrapflyError(BaseException):
         &#39;ERR::SCRAPE::DRIVER_TIMEOUT&#39;
     ]
 
-    KNOWN_HTTP_API_ERROR_CODE = [
-        400,
-        401,
-        404,
-        422,
-        429,
-        500,
-        503,
-        504
-    ]
-
     def __init__(
         self,
         message: str,
@@ -411,17 +400,6 @@ __all__:Tuple[str, ...] = [
         &#39;ERR::SCRAPE::DRIVER_TIMEOUT&#39;
     ]
 
-    KNOWN_HTTP_API_ERROR_CODE = [
-        400,
-        401,
-        404,
-        422,
-        429,
-        500,
-        503,
-        504
-    ]
-
     def __init__(
         self,
         message: str,
@@ -469,10 +447,6 @@ __all__:Tuple[str, ...] = [
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR"><code class="name">var <span class="ident">KIND_SCRAPFLY_ERROR</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.errors.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE"><code class="name">var <span class="ident">KNOWN_HTTP_API_ERROR_CODE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -707,7 +681,6 @@ __all__:Tuple[str, ...] = [
 <ul class="">
 <li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
 <li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
-<li><code><a title="scrapfly.errors.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE" href="#scrapfly.errors.ScrapflyError.KNOWN_HTTP_API_ERROR_CODE">KNOWN_HTTP_API_ERROR_CODE</a></code></li>
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
