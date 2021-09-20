@@ -106,6 +106,21 @@ class HttpError(ScrapflyError):
         self.response = response
         super().__init__(**kwargs)
 
+    def __str__(self) -&gt; str:
+
+        if isinstance(self, UpstreamHttpError):
+            text = &#34;%s -- %s &#34; % (self.api_response.scrape_result[&#39;status_code&#39;], self.api_response.scrape_result[&#39;reason&#39;])
+        else:
+            text = &#34;%s -- %s &#34; % (self.response.status_code, self.response.reason)
+
+            if isinstance(self, (ApiHttpClientError, ApiHttpServerError)):
+                try:
+                    text += self.response.content.decode(&#39;utf-8&#39;)
+                except UnicodeError:
+                    text += str(self.response.content)
+
+        return text
+
 
 class UpstreamHttpError(HttpError):
     pass
