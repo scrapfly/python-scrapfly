@@ -25,7 +25,7 @@ except ImportError:
 from .errors import *
 from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
-from . import __version__ as version, ScrapeApiResponse
+from . import __version__ as version, ScrapeApiResponse, HttpError, UpstreamHttpError
 
 logger.getLogger(__name__)
 
@@ -132,7 +132,7 @@ class ScrapflyClient:
     def resilient_scrape(
         self,
         scrape_config:ScrapeConfig,
-        retry_on_errors:Optional[Set[Exception]]=None,
+        retry_on_errors:Optional[Iterable[Exception]]=None,
         tries: int = 5,
         delay: int = 20,
     ) -> ScrapeApiResponse:
@@ -207,8 +207,6 @@ class ScrapflyClient:
         request_data = self._scrape_request(scrape_config=scrape_config)
         response = self._http_handler(**request_data)
 
-        logger.info(response.headers)
-
         return self._handle_response(response=response, scrape_config=scrape_config)
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
@@ -234,18 +232,20 @@ class ScrapflyClient:
                     api_response.result['result']['duration'])
                 )
 
+                logger.debug('Log url: %s' % api_response.result['result']['log_url'])
+
             return api_response
-        except UpstreamHttpClientError as e:
+        except UpstreamHttpError as e:
             if scrape_config.method == 'HEAD':
                 logger.warning('<-- %s | %s' % (str(e), e.api_response.response.request.url))
             else:
                 logger.warning('<-- %s | %s' % (str(e), e.api_response.result['result']['url']))
             raise
-        except ApiHttpServerError as e:
-            logger.critical('<-- %s' % str(e))
+        except HttpError as e:
+            logger.critical('<-- %s - %s' % (e.response.status_code, str(e)))
             raise
         except ScrapflyError as e:
-            logger.critical('<-- - %s' % (str(e)))
+            logger.critical('<-- %s' % (str(e)))
             raise
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):

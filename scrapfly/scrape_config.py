@@ -141,12 +141,12 @@ class ScrapeConfig:
                     self.headers['content-type'] = 'application/x-www-form-urlencoded'
                     self.body = urlencode(data)
                 else:
-                    if self.headers['content-type'] == 'application/json':
+                    if self.headers['content-type'].find('application/json') != -1:
                         self.body = json.dumps(data)
-                    elif 'application/x-www-form-urlencoded' == self.headers['content-type']:
+                    elif self.headers['content-type'].find('application/x-www-form-urlencoded') != -1:
                         self.body = urlencode(data)
                     else:
-                        raise ScrapeConfigError('Content Type %s not support, use body parameter to pass pre encoded body according to your content type' % self.headers['content-type'])
+                        raise ScrapeConfigError('Content-Type "%s" not supported, use body parameter to pass pre encoded body according to your content type' % self.headers['content-type'])
             elif self.body is None and self.data is None:
                 self.headers['content-type'] = 'text/plain'
 
