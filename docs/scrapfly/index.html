@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.7.12&#39;
+<pre><code class="python">__version__ = &#39;0.7.13&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -2433,7 +2433,7 @@ def http(self):
 </details>
 </dd>
 <dt id="scrapfly.ScrapflyClient.resilient_scrape"><code class="name flex">
-<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Optional[collections.abc.Iterable[Exception]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Optional[Iterable[Exception]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
 <div class="desc"></div>

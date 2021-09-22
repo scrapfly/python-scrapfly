@@ -26,8 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from collections import Iterable
-from concurrent.futures.thread import ThreadPoolExecutor
+<pre><code class="python">from concurrent.futures.thread import ThreadPoolExecutor
 
 import asyncio
 import http
@@ -40,7 +39,7 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set
+from typing import TextIO, Union, List, Dict, Optional, Set, Iterable
 import requests
 import urllib3
 import logging as logger
@@ -940,7 +939,7 @@ def http(self):
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.resilient_scrape"><code class="name flex">
-<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Optional[collections.abc.Iterable[Exception]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Optional[Iterable[Exception]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
 <div class="desc"></div>
