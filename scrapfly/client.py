@@ -1,4 +1,3 @@
-from collections import Iterable
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import asyncio
@@ -12,7 +11,7 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set
+from typing import TextIO, Union, List, Dict, Optional, Set, Iterable
 import requests
 import urllib3
 import logging as logger
