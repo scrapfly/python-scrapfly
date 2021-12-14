@@ -17,3 +17,6 @@ You can also install extra dependencies
 * [Open API 3 Spec](https://scrapfly.io/docs/openapi#get-/scrape) 
 * [Scrapy Integration](https://scrapfly.io/docs/sdk/scrapy)
 
+## Get Your API Key
+
+You can create a free account on [Scrapfly](https://scrapfly.io/register) to get your API Key.

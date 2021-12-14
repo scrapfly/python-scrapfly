@@ -1,6 +1,6 @@
 install:
 	python -m pip install --user --upgrade setuptools wheel
-	python -m pip install --user --upgrade twine
+	python -m pip install --user --upgrade twine pdoc3
 
 bump:
 	sed -i "1s/.*/__version__ = '$(VERSION)'/" scrapfly/__init__.py

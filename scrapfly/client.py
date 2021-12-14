@@ -74,7 +74,7 @@ class ScrapflyClient:
         self.read_timeout = read_timeout
         self.max_concurrency = max_concurrency
         self.distributed_mode = distributed_mode
-        self.body_handler = ResponseBodyHandler(brotli=brotli)
+        self.body_handler = ResponseBodyHandler(use_brotli=brotli)
         self.async_executor = ThreadPoolExecutor()
         self.http_session = None
         self.ua = 'ScrapflySDK/%s (Python %s, %s, %s)' % (

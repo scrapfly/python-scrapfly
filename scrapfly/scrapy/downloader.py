@@ -59,9 +59,12 @@ class ScrapflyHTTPDownloader:
                     body = zlib.decompress(body, 16+zlib.MAX_WBITS)
                 elif headers['content-encoding'] == 'br':
                     try:
-                        from brotli import brotli
+                        try:
+                            import brotlicffi as brotli
+                        except ImportError:
+                            import brotli
                     except ImportError:
-                        print('You must run pip install scrapfly-sdk[speedups]')
+                        print('You must run pip install scrapfly-sdk[speedups] - brotli is missing - or disable brotli compression')
                         raise
 
                     body = brotli.decompress(body)

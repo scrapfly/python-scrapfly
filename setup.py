@@ -60,21 +60,21 @@ EXTRA_DEPENDENCIES = {
         'extruct'
     ],
     'speedups': [
-        'brotli',
+        "brotlipy; platform_python_implementation == 'CPython'",
+        "brotlicffi; platform_python_implementation != 'CPython'"
         'cchardet',
         'msgpack'
     ],
     'concurrency': [
         'asyncio-pool'
-    ],
-    'all': [
-        'asyncio-pool',
-        'brotli',
-        'cchardet',
-        'msgpack',
-        'scrapy>=2.4.0'
     ]
 }
+
+all_deps = set()
+for env, deps in EXTRA_DEPENDENCIES.items():
+    [all_deps.add(dep) for dep in deps]
+
+EXTRA_DEPENDENCIES['all'] = list(all_deps)
 
 setup(
     name=PACKAGE,

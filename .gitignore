@@ -3,3 +3,4 @@ dist
 scrapfly_sdk.egg-info
 .pypirc
 *.pyc
+venv
