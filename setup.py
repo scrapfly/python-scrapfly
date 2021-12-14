@@ -60,8 +60,7 @@ EXTRA_DEPENDENCIES = {
         'extruct'
     ],
     'speedups': [
-        "brotlipy; platform_python_implementation == 'CPython'",
-        "brotlicffi; platform_python_implementation != 'CPython'"
+        'brotlipy',
         'cchardet',
         'msgpack'
     ],
@@ -72,10 +71,12 @@ EXTRA_DEPENDENCIES = {
 
 all_deps = set()
 for env, deps in EXTRA_DEPENDENCIES.items():
+    if env == 'develop': continue
+
     [all_deps.add(dep) for dep in deps]
 
 EXTRA_DEPENDENCIES['all'] = list(all_deps)
-
+print(EXTRA_DEPENDENCIES)
 setup(
     name=PACKAGE,
     version=version,
