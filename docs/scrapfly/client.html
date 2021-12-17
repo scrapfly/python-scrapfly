@@ -159,22 +159,27 @@ class ScrapflyClient:
     def resilient_scrape(
         self,
         scrape_config:ScrapeConfig,
-        retry_on_errors:Optional[Iterable[Exception]]=None,
+        retry_on_errors:Set[Exception]={ScrapflyError},
+        retry_on_status_code:Optional[List[int]]=None,
         tries: int = 5,
         delay: int = 20,
     ) -&gt; ScrapeApiResponse:
+        assert retry_on_errors is not None, &#39;Retry on error is None&#39;
+        assert isinstance(retry_on_errors, set), &#39;retry_on_errors is not a set()&#39;
 
-        if not isinstance(retry_on_errors, Set) and isinstance(retry_on_errors, Iterable): # keep compat
-            retry_on_errors = set(retry_on_errors)
-
-        retryable_errors = retry_on_errors or {ScrapflyError}
-
-        if retry_on_errors is not None:
-            retryable_errors += retry_on_errors
-
-        @backoff.on_exception(backoff.expo, exception=retryable_errors, max_tries=tries, max_time=delay)
+        @backoff.on_exception(backoff.expo, exception=tuple(retry_on_errors), max_tries=tries, max_time=delay)
         def inner() -&gt; ScrapeApiResponse:
-            return self.scrape(scrape_config=scrape_config)
+
+            try:
+                return self.scrape(scrape_config=scrape_config)
+            except (UpstreamHttpClientError, UpstreamHttpServerError) as e:
+                if retry_on_status_code is not None and e.api_response:
+                    if e.api_response.upstream_status_code in retry_on_status_code:
+                        raise e
+                    else:
+                        return e.api_response
+
+                raise e
 
         return inner()
 
@@ -521,22 +526,27 @@ class ScrapflyClient:
     def resilient_scrape(
         self,
         scrape_config:ScrapeConfig,
-        retry_on_errors:Optional[Iterable[Exception]]=None,
+        retry_on_errors:Set[Exception]={ScrapflyError},
+        retry_on_status_code:Optional[List[int]]=None,
         tries: int = 5,
         delay: int = 20,
     ) -&gt; ScrapeApiResponse:
+        assert retry_on_errors is not None, &#39;Retry on error is None&#39;
+        assert isinstance(retry_on_errors, set), &#39;retry_on_errors is not a set()&#39;
 
-        if not isinstance(retry_on_errors, Set) and isinstance(retry_on_errors, Iterable): # keep compat
-            retry_on_errors = set(retry_on_errors)
-
-        retryable_errors = retry_on_errors or {ScrapflyError}
-
-        if retry_on_errors is not None:
-            retryable_errors += retry_on_errors
-
-        @backoff.on_exception(backoff.expo, exception=retryable_errors, max_tries=tries, max_time=delay)
+        @backoff.on_exception(backoff.expo, exception=tuple(retry_on_errors), max_tries=tries, max_time=delay)
         def inner() -&gt; ScrapeApiResponse:
-            return self.scrape(scrape_config=scrape_config)
+
+            try:
+                return self.scrape(scrape_config=scrape_config)
+            except (UpstreamHttpClientError, UpstreamHttpServerError) as e:
+                if retry_on_status_code is not None and e.api_response:
+                    if e.api_response.upstream_status_code in retry_on_status_code:
+                        raise e
+                    else:
+                        return e.api_response
+
+                raise e
 
         return inner()
 
@@ -939,7 +949,7 @@ def http(self):
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.resilient_scrape"><code class="name flex">
-<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Optional[Iterable[Exception]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Set[Exception] = {&lt;class &#x27;scrapfly.errors.ScrapflyError&#x27;&gt;}, retry_on_status_code: Optional[List[int]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -950,22 +960,27 @@ def http(self):
 <pre><code class="python">def resilient_scrape(
     self,
     scrape_config:ScrapeConfig,
-    retry_on_errors:Optional[Iterable[Exception]]=None,
+    retry_on_errors:Set[Exception]={ScrapflyError},
+    retry_on_status_code:Optional[List[int]]=None,
     tries: int = 5,
     delay: int = 20,
 ) -&gt; ScrapeApiResponse:
+    assert retry_on_errors is not None, &#39;Retry on error is None&#39;
+    assert isinstance(retry_on_errors, set), &#39;retry_on_errors is not a set()&#39;
 
-    if not isinstance(retry_on_errors, Set) and isinstance(retry_on_errors, Iterable): # keep compat
-        retry_on_errors = set(retry_on_errors)
-
-    retryable_errors = retry_on_errors or {ScrapflyError}
-
-    if retry_on_errors is not None:
-        retryable_errors += retry_on_errors
-
-    @backoff.on_exception(backoff.expo, exception=retryable_errors, max_tries=tries, max_time=delay)
+    @backoff.on_exception(backoff.expo, exception=tuple(retry_on_errors), max_tries=tries, max_time=delay)
     def inner() -&gt; ScrapeApiResponse:
-        return self.scrape(scrape_config=scrape_config)
+
+        try:
+            return self.scrape(scrape_config=scrape_config)
+        except (UpstreamHttpClientError, UpstreamHttpServerError) as e:
+            if retry_on_status_code is not None and e.api_response:
+                if e.api_response.upstream_status_code in retry_on_status_code:
+                    raise e
+                else:
+                    return e.api_response
+
+            raise e
 
     return inner()</code></pre>
 </details>

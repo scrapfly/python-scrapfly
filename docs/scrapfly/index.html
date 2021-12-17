@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.7.14&#39;
+<pre><code class="python">__version__ = &#39;0.7.15&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -118,7 +118,7 @@ __all__:Tuple[str, ...] = (
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -130,6 +130,7 @@ __all__:Tuple[str, ...] = (
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 <h3>Subclasses</h3>
@@ -144,7 +145,7 @@ __all__:Tuple[str, ...] = (
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -157,6 +158,7 @@ __all__:Tuple[str, ...] = (
 <li><a title="scrapfly.errors.ApiHttpClientError" href="errors.html#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -398,7 +400,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -428,6 +430,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 <h3>Subclasses</h3>
@@ -673,7 +676,17 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     @property
     def status_code(self) -&gt; int:
+        &#34;&#34;&#34;
+            /!\ This is the status code of our API, not the upstream website
+        &#34;&#34;&#34;
         return self.response.status_code
+
+    @property
+    def upstream_status_code(self) -&gt; Optional[int]:
+        if &#39;status_code&#39; in self.scrape_result:
+            return self.scrape_result[&#39;status_code&#39;]
+
+        return None
 
     @property
     def headers(self) -&gt; CaseInsensitiveDict:
@@ -1052,13 +1065,16 @@ def scrape_success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>/!\ This is the status code of our API, not the upstream website</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
 def status_code(self) -&gt; int:
+    &#34;&#34;&#34;
+        /!\ This is the status code of our API, not the upstream website
+    &#34;&#34;&#34;
     return self.response.status_code</code></pre>
 </details>
 </dd>
@@ -1075,6 +1091,21 @@ def success(self) -&gt; bool:
         /!\ Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
     &#34;&#34;&#34;
     return 200 &gt;= self.response.status_code &lt;= 299</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.upstream_status_code"><code class="name">var <span class="ident">upstream_status_code</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def upstream_status_code(self) -&gt; Optional[int]:
+    if &#39;status_code&#39; in self.scrape_result:
+        return self.scrape_result[&#39;status_code&#39;]
+
+    return None</code></pre>
 </details>
 </dd>
 </dl>
@@ -1898,7 +1929,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1910,6 +1941,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -2019,22 +2051,27 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     def resilient_scrape(
         self,
         scrape_config:ScrapeConfig,
-        retry_on_errors:Optional[Iterable[Exception]]=None,
+        retry_on_errors:Set[Exception]={ScrapflyError},
+        retry_on_status_code:Optional[List[int]]=None,
         tries: int = 5,
         delay: int = 20,
     ) -&gt; ScrapeApiResponse:
+        assert retry_on_errors is not None, &#39;Retry on error is None&#39;
+        assert isinstance(retry_on_errors, set), &#39;retry_on_errors is not a set()&#39;
 
-        if not isinstance(retry_on_errors, Set) and isinstance(retry_on_errors, Iterable): # keep compat
-            retry_on_errors = set(retry_on_errors)
-
-        retryable_errors = retry_on_errors or {ScrapflyError}
-
-        if retry_on_errors is not None:
-            retryable_errors += retry_on_errors
-
-        @backoff.on_exception(backoff.expo, exception=retryable_errors, max_tries=tries, max_time=delay)
+        @backoff.on_exception(backoff.expo, exception=tuple(retry_on_errors), max_tries=tries, max_time=delay)
         def inner() -&gt; ScrapeApiResponse:
-            return self.scrape(scrape_config=scrape_config)
+
+            try:
+                return self.scrape(scrape_config=scrape_config)
+            except (UpstreamHttpClientError, UpstreamHttpServerError) as e:
+                if retry_on_status_code is not None and e.api_response:
+                    if e.api_response.upstream_status_code in retry_on_status_code:
+                        raise e
+                    else:
+                        return e.api_response
+
+                raise e
 
         return inner()
 
@@ -2437,7 +2474,7 @@ def http(self):
 </details>
 </dd>
 <dt id="scrapfly.ScrapflyClient.resilient_scrape"><code class="name flex">
-<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Optional[Iterable[Exception]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Set[Exception] = {&lt;class &#x27;scrapfly.errors.ScrapflyError&#x27;&gt;}, retry_on_status_code: Optional[List[int]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -2448,22 +2485,27 @@ def http(self):
 <pre><code class="python">def resilient_scrape(
     self,
     scrape_config:ScrapeConfig,
-    retry_on_errors:Optional[Iterable[Exception]]=None,
+    retry_on_errors:Set[Exception]={ScrapflyError},
+    retry_on_status_code:Optional[List[int]]=None,
     tries: int = 5,
     delay: int = 20,
 ) -&gt; ScrapeApiResponse:
+    assert retry_on_errors is not None, &#39;Retry on error is None&#39;
+    assert isinstance(retry_on_errors, set), &#39;retry_on_errors is not a set()&#39;
 
-    if not isinstance(retry_on_errors, Set) and isinstance(retry_on_errors, Iterable): # keep compat
-        retry_on_errors = set(retry_on_errors)
-
-    retryable_errors = retry_on_errors or {ScrapflyError}
-
-    if retry_on_errors is not None:
-        retryable_errors += retry_on_errors
-
-    @backoff.on_exception(backoff.expo, exception=retryable_errors, max_tries=tries, max_time=delay)
+    @backoff.on_exception(backoff.expo, exception=tuple(retry_on_errors), max_tries=tries, max_time=delay)
     def inner() -&gt; ScrapeApiResponse:
-        return self.scrape(scrape_config=scrape_config)
+
+        try:
+            return self.scrape(scrape_config=scrape_config)
+        except (UpstreamHttpClientError, UpstreamHttpServerError) as e:
+            if retry_on_status_code is not None and e.api_response:
+                if e.api_response.upstream_status_code in retry_on_status_code:
+                    raise e
+                else:
+                    return e.api_response
+
+            raise e
 
     return inner()</code></pre>
 </details>
@@ -2627,12 +2669,12 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>message: str, code: int, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyError(BaseException):
+<pre><code class="python">class ScrapflyError(Exception):
     KIND_HTTP_BAD_RESPONSE = &#39;HTTP_BAD_RESPONSE&#39;
     KIND_SCRAPFLY_ERROR = &#39;SCRAPFLY_ERROR&#39;
 
@@ -2692,6 +2734,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 <h3>Subclasses</h3>
@@ -2747,7 +2790,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2759,6 +2802,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -2767,7 +2811,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2779,6 +2823,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -2787,7 +2832,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2799,6 +2844,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -2807,7 +2853,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2819,6 +2865,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -2827,7 +2874,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2839,6 +2886,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -2847,7 +2895,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2859,6 +2907,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -2867,7 +2916,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2880,6 +2929,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li>scrapfly.errors.UpstreamHttpError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 <h3>Subclasses</h3>
@@ -2892,7 +2942,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2904,6 +2954,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 <h3>Subclasses</h3>
@@ -2916,7 +2967,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2930,6 +2981,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li>scrapfly.errors.UpstreamHttpError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -3002,6 +3054,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapeApiResponse.status_code" href="#scrapfly.ScrapeApiResponse.status_code">status_code</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.success" href="#scrapfly.ScrapeApiResponse.success">success</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.upstream_result_into_response" href="#scrapfly.ScrapeApiResponse.upstream_result_into_response">upstream_result_into_response</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.upstream_status_code" href="#scrapfly.ScrapeApiResponse.upstream_status_code">upstream_status_code</a></code></li>
 </ul>
 </li>
 <li>

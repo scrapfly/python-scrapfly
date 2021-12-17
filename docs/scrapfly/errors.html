@@ -30,7 +30,7 @@
 from requests import Request, Response
 
 
-class ScrapflyError(BaseException):
+class ScrapflyError(Exception):
     KIND_HTTP_BAD_RESPONSE = &#39;HTTP_BAD_RESPONSE&#39;
     KIND_SCRAPFLY_ERROR = &#39;SCRAPFLY_ERROR&#39;
 
@@ -317,7 +317,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -329,6 +329,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 <h3>Subclasses</h3>
@@ -343,7 +344,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -356,6 +357,7 @@ __all__:Tuple[str, ...] = [
 <li><a title="scrapfly.errors.ApiHttpClientError" href="#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -364,7 +366,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -376,6 +378,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -384,12 +387,12 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>message: str, code: int, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyError(BaseException):
+<pre><code class="python">class ScrapflyError(Exception):
     KIND_HTTP_BAD_RESPONSE = &#39;HTTP_BAD_RESPONSE&#39;
     KIND_SCRAPFLY_ERROR = &#39;SCRAPFLY_ERROR&#39;
 
@@ -449,6 +452,7 @@ __all__:Tuple[str, ...] = [
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 <h3>Subclasses</h3>
@@ -504,7 +508,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -516,6 +520,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -524,7 +529,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -536,6 +541,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -544,7 +550,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -556,6 +562,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -564,7 +571,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -576,6 +583,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -584,7 +592,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -596,6 +604,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -604,7 +613,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -616,6 +625,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
@@ -624,7 +634,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -637,6 +647,7 @@ __all__:Tuple[str, ...] = [
 <li>scrapfly.errors.UpstreamHttpError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 <h3>Subclasses</h3>
@@ -649,7 +660,7 @@ __all__:Tuple[str, ...] = [
 <span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -663,6 +674,7 @@ __all__:Tuple[str, ...] = [
 <li>scrapfly.errors.UpstreamHttpError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
 </dd>

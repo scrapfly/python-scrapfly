@@ -214,7 +214,17 @@ class ScrapeApiResponse:
 
     @property
     def status_code(self) -&gt; int:
+        &#34;&#34;&#34;
+            /!\ This is the status code of our API, not the upstream website
+        &#34;&#34;&#34;
         return self.response.status_code
+
+    @property
+    def upstream_status_code(self) -&gt; Optional[int]:
+        if &#39;status_code&#39; in self.scrape_result:
+            return self.scrape_result[&#39;status_code&#39;]
+
+        return None
 
     @property
     def headers(self) -&gt; CaseInsensitiveDict:
@@ -664,7 +674,17 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     @property
     def status_code(self) -&gt; int:
+        &#34;&#34;&#34;
+            /!\ This is the status code of our API, not the upstream website
+        &#34;&#34;&#34;
         return self.response.status_code
+
+    @property
+    def upstream_status_code(self) -&gt; Optional[int]:
+        if &#39;status_code&#39; in self.scrape_result:
+            return self.scrape_result[&#39;status_code&#39;]
+
+        return None
 
     @property
     def headers(self) -&gt; CaseInsensitiveDict:
@@ -1043,13 +1063,16 @@ def scrape_success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>/!\ This is the status code of our API, not the upstream website</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
 def status_code(self) -&gt; int:
+    &#34;&#34;&#34;
+        /!\ This is the status code of our API, not the upstream website
+    &#34;&#34;&#34;
     return self.response.status_code</code></pre>
 </details>
 </dd>
@@ -1066,6 +1089,21 @@ def success(self) -&gt; bool:
         /!\ Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
     &#34;&#34;&#34;
     return 200 &gt;= self.response.status_code &lt;= 299</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.upstream_status_code"><code class="name">var <span class="ident">upstream_status_code</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def upstream_status_code(self) -&gt; Optional[int]:
+    if &#39;status_code&#39; in self.scrape_result:
+        return self.scrape_result[&#39;status_code&#39;]
+
+    return None</code></pre>
 </details>
 </dd>
 </dl>
@@ -1333,6 +1371,7 @@ def success(self) -&gt; bool:
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.status_code" href="#scrapfly.api_response.ScrapeApiResponse.status_code">status_code</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.success" href="#scrapfly.api_response.ScrapeApiResponse.success">success</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response" href="#scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response">upstream_result_into_response</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.upstream_status_code" href="#scrapfly.api_response.ScrapeApiResponse.upstream_status_code">upstream_status_code</a></code></li>
 </ul>
 </li>
 </ul>
