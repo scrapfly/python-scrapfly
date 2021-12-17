@@ -186,7 +186,17 @@ class ScrapeApiResponse:
 
     @property
     def status_code(self) -> int:
+        """
+            /!\ This is the status code of our API, not the upstream website
+        """
         return self.response.status_code
+
+    @property
+    def upstream_status_code(self) -> Optional[int]:
+        if 'status_code' in self.scrape_result:
+            return self.scrape_result['status_code']
+
+        return None
 
     @property
     def headers(self) -> CaseInsensitiveDict:

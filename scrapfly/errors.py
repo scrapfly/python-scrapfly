@@ -2,7 +2,7 @@ from typing import Optional, Tuple
 from requests import Request, Response
 
 
-class ScrapflyError(BaseException):
+class ScrapflyError(Exception):
     KIND_HTTP_BAD_RESPONSE = 'HTTP_BAD_RESPONSE'
     KIND_SCRAPFLY_ERROR = 'SCRAPFLY_ERROR'
 
