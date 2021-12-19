@@ -231,6 +231,7 @@ class ScrapflyClient:
             return scrape_api_response
         except BaseException as e:
             self.reporter.report(error=e)
+            raise e
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
         try:
