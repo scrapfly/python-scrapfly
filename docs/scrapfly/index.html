@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.7.15&#39;
+<pre><code class="python">__version__ = &#39;0.7.16&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -93,6 +93,10 @@ __all__:Tuple[str, ...] = (
 <div class="desc"></div>
 </dd>
 <dt><code class="name"><a title="scrapfly.polyfill" href="polyfill/index.html">scrapfly.polyfill</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.reporter" href="reporter/index.html">scrapfly.reporter</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -688,6 +692,42 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
         return None
 
+    def prevent_extra_usage(self):
+        if self.remaining_quota == 0:
+            raise ExtraUsageForbidden(
+                message=&#39;All Pre Paid Quota Used&#39;,
+                code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
+                http_status_code=429,
+                is_retryable=False
+            )
+
+    @property
+    def remaining_quota(self) -&gt; Optional[int]:
+        remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -&gt; Optional[int]:
+        cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
+    @property
+    def duration_ms(self) -&gt; Optional[float]:
+        duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
+
+        if duration:
+            duration = float(duration)
+
+        return duration
+
     @property
     def headers(self) -&gt; CaseInsensitiveDict:
         return self.response.headers
@@ -936,6 +976,40 @@ def context(self) -&gt; Dict:
     return self.result[&#39;context&#39;]</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.ScrapeApiResponse.cost"><code class="name">var <span class="ident">cost</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def cost(self) -&gt; Optional[int]:
+    cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
+
+    if cost:
+        cost = int(cost)
+
+    return cost</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.duration_ms"><code class="name">var <span class="ident">duration_ms</span> : Optional[float]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def duration_ms(self) -&gt; Optional[float]:
+    duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
+
+    if duration:
+        duration = float(duration)
+
+    return duration</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.ScrapeApiResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
 <dd>
 <div class="desc"></div>
@@ -959,6 +1033,23 @@ def error(self) -&gt; Optional[Dict]:
 <pre><code class="python">@property
 def headers(self) -&gt; CaseInsensitiveDict:
     return self.response.headers</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.remaining_quota"><code class="name">var <span class="ident">remaining_quota</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def remaining_quota(self) -&gt; Optional[int]:
+    remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+
+    if remaining_scrape:
+        remaining_scrape = int(remaining_scrape)
+
+    return remaining_scrape</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span> : Dict</code></dt>
@@ -1139,6 +1230,25 @@ def upstream_status_code(self) -&gt; Optional[int]:
         api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
 
     return FrozenDict(api_result)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.prevent_extra_usage"><code class="name flex">
+<span>def <span class="ident">prevent_extra_usage</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def prevent_extra_usage(self):
+    if self.remaining_quota == 0:
+        raise ExtraUsageForbidden(
+            message=&#39;All Pre Paid Quota Used&#39;,
+            code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
+            http_status_code=429,
+            is_retryable=False
+        )</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.ScrapeApiResponse.raise_for_result"><code class="name flex">
@@ -1947,7 +2057,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 </dd>
 <dt id="scrapfly.ScrapflyClient"><code class="flex name class">
 <span>class <span class="ident">ScrapflyClient</span></span>
-<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, distributed_mode=False, connect_timeout: int = 30, read_timeout: int = 150, brotli: bool = True)</span>
+<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, distributed_mode=False, connect_timeout: int = 30, read_timeout: int = 150, brotli: bool = True, reporter: Optional[Callable] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1970,6 +2080,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     connect_timeout:int
     read_timeout:int
     brotli: bool
+    reporter:Reporter
 
     def __init__(
         self,
@@ -1981,7 +2092,8 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         distributed_mode = False,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
         read_timeout:int = DEFAULT_READ_TIMEOUT,
-        brotli:bool = True # allow to disable brotli even if lib is present
+        brotli:bool = True, # allow to disable brotli even if lib is present
+        reporter:Optional[Callable]=None
     ):
         if host[-1] == &#39;/&#39;:  # remove last &#39;/&#39; if exists
             host = host[:-1]
@@ -1997,6 +2109,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         self.body_handler = ResponseBodyHandler(use_brotli=brotli)
         self.async_executor = ThreadPoolExecutor()
         self.http_session = None
+
         self.ua = &#39;ScrapflySDK/%s (Python %s, %s, %s)&#39; % (
             version,
             platform.python_version(),
@@ -2009,6 +2122,13 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
         if self.debug is True:
             http.client.HTTPConnection.debuglevel = 5
+
+        if reporter is None:
+            from .reporter import NoopReporter
+
+            reporter = NoopReporter()
+
+        self.reporter = Reporter(reporter)
 
     @cached_property
     def _http_handler(self):
@@ -2127,11 +2247,19 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
     def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
-        logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
-        request_data = self._scrape_request(scrape_config=scrape_config)
-        response = self._http_handler(**request_data)
 
-        return self._handle_response(response=response, scrape_config=scrape_config)
+        try:
+            logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+            request_data = self._scrape_request(scrape_config=scrape_config)
+            response = self._http_handler(**request_data)
+            scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
+
+            self.reporter.report(scrape_api_response=scrape_api_response)
+
+            return scrape_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
+            raise e
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         try:
@@ -2348,6 +2476,10 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.ScrapflyClient.reporter"><code class="name">var <span class="ident">reporter</span> : scrapfly.reporter.Reporter</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.ScrapflyClient.verify"><code class="name">var <span class="ident">verify</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
@@ -2555,11 +2687,19 @@ def http(self):
 </summary>
 <pre><code class="python">@backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
 def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
-    logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
-    request_data = self._scrape_request(scrape_config=scrape_config)
-    response = self._http_handler(**request_data)
 
-    return self._handle_response(response=response, scrape_config=scrape_config)</code></pre>
+    try:
+        logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+        request_data = self._scrape_request(scrape_config=scrape_config)
+        response = self._http_handler(**request_data)
+        scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
+
+        self.reporter.report(scrape_api_response=scrape_api_response)
+
+        return scrape_api_response
+    except BaseException as e:
+        self.reporter.report(error=e)
+        raise e</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.ScrapflyClient.screenshot"><code class="name flex">
@@ -2666,7 +2806,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </dd>
 <dt id="scrapfly.ScrapflyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyError</span></span>
-<span>(</span><span>message: str, code: int, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>message: str, code: str, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -2703,7 +2843,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
     def __init__(
         self,
         message: str,
-        code: int,
+        code: str,
         http_status_code: int,
         resource: Optional[str]=None,
         is_retryable: bool = False,
@@ -2739,6 +2879,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 </ul>
 <h3>Subclasses</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ExtraUsageForbidden</li>
 <li>scrapfly.errors.HttpError</li>
 </ul>
 <h3>Class variables</h3>
@@ -3001,6 +3142,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.errors" href="errors.html">scrapfly.errors</a></code></li>
 <li><code><a title="scrapfly.frozen_dict" href="frozen_dict.html">scrapfly.frozen_dict</a></code></li>
 <li><code><a title="scrapfly.polyfill" href="polyfill/index.html">scrapfly.polyfill</a></code></li>
+<li><code><a title="scrapfly.reporter" href="reporter/index.html">scrapfly.reporter</a></code></li>
 <li><code><a title="scrapfly.scrape_config" href="scrape_config.html">scrapfly.scrape_config</a></code></li>
 <li><code><a title="scrapfly.scrapy" href="scrapy/index.html">scrapfly.scrapy</a></code></li>
 </ul>
@@ -3042,10 +3184,14 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapeApiResponse.config" href="#scrapfly.ScrapeApiResponse.config">config</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.content" href="#scrapfly.ScrapeApiResponse.content">content</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.context" href="#scrapfly.ScrapeApiResponse.context">context</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.cost" href="#scrapfly.ScrapeApiResponse.cost">cost</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.duration_ms" href="#scrapfly.ScrapeApiResponse.duration_ms">duration_ms</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.error" href="#scrapfly.ScrapeApiResponse.error">error</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.handle_api_result" href="#scrapfly.ScrapeApiResponse.handle_api_result">handle_api_result</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.headers" href="#scrapfly.ScrapeApiResponse.headers">headers</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.prevent_extra_usage" href="#scrapfly.ScrapeApiResponse.prevent_extra_usage">prevent_extra_usage</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.raise_for_result" href="#scrapfly.ScrapeApiResponse.raise_for_result">raise_for_result</a></code></li>
+<li><code><a title="scrapfly.ScrapeApiResponse.remaining_quota" href="#scrapfly.ScrapeApiResponse.remaining_quota">remaining_quota</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.scrape_result" href="#scrapfly.ScrapeApiResponse.scrape_result">scrape_result</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.scrape_success" href="#scrapfly.ScrapeApiResponse.scrape_success">scrape_success</a></code></li>
 <li><code><a title="scrapfly.ScrapeApiResponse.selector" href="#scrapfly.ScrapeApiResponse.selector">selector</a></code></li>
@@ -3118,6 +3264,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapflyClient.max_concurrency" href="#scrapfly.ScrapflyClient.max_concurrency">max_concurrency</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.open" href="#scrapfly.ScrapflyClient.open">open</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.read_timeout" href="#scrapfly.ScrapflyClient.read_timeout">read_timeout</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.reporter" href="#scrapfly.ScrapflyClient.reporter">reporter</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.resilient_scrape" href="#scrapfly.ScrapflyClient.resilient_scrape">resilient_scrape</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.save_screenshot" href="#scrapfly.ScrapflyClient.save_screenshot">save_screenshot</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.scrape" href="#scrapfly.ScrapflyClient.scrape">scrape</a></code></li>

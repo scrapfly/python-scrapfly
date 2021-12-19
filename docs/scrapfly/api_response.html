@@ -52,7 +52,7 @@ from typing import Dict, Optional, Iterable, Union, TextIO
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError
+from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, ExtraUsageForbidden
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -225,6 +225,42 @@ class ScrapeApiResponse:
             return self.scrape_result[&#39;status_code&#39;]
 
         return None
+
+    def prevent_extra_usage(self):
+        if self.remaining_quota == 0:
+            raise ExtraUsageForbidden(
+                message=&#39;All Pre Paid Quota Used&#39;,
+                code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
+                http_status_code=429,
+                is_retryable=False
+            )
+
+    @property
+    def remaining_quota(self) -&gt; Optional[int]:
+        remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -&gt; Optional[int]:
+        cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
+    @property
+    def duration_ms(self) -&gt; Optional[float]:
+        duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
+
+        if duration:
+            duration = float(duration)
+
+        return duration
 
     @property
     def headers(self) -&gt; CaseInsensitiveDict:
@@ -686,6 +722,42 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
         return None
 
+    def prevent_extra_usage(self):
+        if self.remaining_quota == 0:
+            raise ExtraUsageForbidden(
+                message=&#39;All Pre Paid Quota Used&#39;,
+                code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
+                http_status_code=429,
+                is_retryable=False
+            )
+
+    @property
+    def remaining_quota(self) -&gt; Optional[int]:
+        remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -&gt; Optional[int]:
+        cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
+    @property
+    def duration_ms(self) -&gt; Optional[float]:
+        duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
+
+        if duration:
+            duration = float(duration)
+
+        return duration
+
     @property
     def headers(self) -&gt; CaseInsensitiveDict:
         return self.response.headers
@@ -934,6 +1006,40 @@ def context(self) -&gt; Dict:
     return self.result[&#39;context&#39;]</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.cost"><code class="name">var <span class="ident">cost</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def cost(self) -&gt; Optional[int]:
+    cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
+
+    if cost:
+        cost = int(cost)
+
+    return cost</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.duration_ms"><code class="name">var <span class="ident">duration_ms</span> : Optional[float]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def duration_ms(self) -&gt; Optional[float]:
+    duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
+
+    if duration:
+        duration = float(duration)
+
+    return duration</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
 <dd>
 <div class="desc"></div>
@@ -957,6 +1063,23 @@ def error(self) -&gt; Optional[Dict]:
 <pre><code class="python">@property
 def headers(self) -&gt; CaseInsensitiveDict:
     return self.response.headers</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.remaining_quota"><code class="name">var <span class="ident">remaining_quota</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def remaining_quota(self) -&gt; Optional[int]:
+    remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+
+    if remaining_scrape:
+        remaining_scrape = int(remaining_scrape)
+
+    return remaining_scrape</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span> : Dict</code></dt>
@@ -1137,6 +1260,25 @@ def upstream_status_code(self) -&gt; Optional[int]:
         api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
 
     return FrozenDict(api_result)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.prevent_extra_usage"><code class="name flex">
+<span>def <span class="ident">prevent_extra_usage</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def prevent_extra_usage(self):
+    if self.remaining_quota == 0:
+        raise ExtraUsageForbidden(
+            message=&#39;All Pre Paid Quota Used&#39;,
+            code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
+            http_status_code=429,
+            is_retryable=False
+        )</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.raise_for_result"><code class="name flex">
@@ -1359,10 +1501,14 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.config" href="#scrapfly.api_response.ScrapeApiResponse.config">config</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.content" href="#scrapfly.api_response.ScrapeApiResponse.content">content</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.context" href="#scrapfly.api_response.ScrapeApiResponse.context">context</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.cost" href="#scrapfly.api_response.ScrapeApiResponse.cost">cost</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.duration_ms" href="#scrapfly.api_response.ScrapeApiResponse.duration_ms">duration_ms</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.error" href="#scrapfly.api_response.ScrapeApiResponse.error">error</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.handle_api_result" href="#scrapfly.api_response.ScrapeApiResponse.handle_api_result">handle_api_result</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.headers" href="#scrapfly.api_response.ScrapeApiResponse.headers">headers</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.prevent_extra_usage" href="#scrapfly.api_response.ScrapeApiResponse.prevent_extra_usage">prevent_extra_usage</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.raise_for_result" href="#scrapfly.api_response.ScrapeApiResponse.raise_for_result">raise_for_result</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.remaining_quota" href="#scrapfly.api_response.ScrapeApiResponse.remaining_quota">remaining_quota</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.scrape_result" href="#scrapfly.api_response.ScrapeApiResponse.scrape_result">scrape_result</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.scrape_success" href="#scrapfly.api_response.ScrapeApiResponse.scrape_success">scrape_success</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.selector" href="#scrapfly.api_response.ScrapeApiResponse.selector">selector</a></code></li>

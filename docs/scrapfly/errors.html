@@ -59,7 +59,7 @@ class ScrapflyError(Exception):
     def __init__(
         self,
         message: str,
-        code: int,
+        code: str,
         http_status_code: int,
         resource: Optional[str]=None,
         is_retryable: bool = False,
@@ -97,6 +97,10 @@ class EncoderError(BaseException):
 
     def __str__(self) -&gt; str:
         return self.content
+
+
+class ExtraUsageForbidden(ScrapflyError):
+    pass
 
 
 class HttpError(ScrapflyError):
@@ -384,7 +388,7 @@ __all__:Tuple[str, ...] = [
 </dd>
 <dt id="scrapfly.errors.ScrapflyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyError</span></span>
-<span>(</span><span>message: str, code: int, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>message: str, code: str, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
@@ -421,7 +425,7 @@ __all__:Tuple[str, ...] = [
     def __init__(
         self,
         message: str,
-        code: int,
+        code: str,
         http_status_code: int,
         resource: Optional[str]=None,
         is_retryable: bool = False,
@@ -457,6 +461,7 @@ __all__:Tuple[str, ...] = [
 </ul>
 <h3>Subclasses</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ExtraUsageForbidden</li>
 <li>scrapfly.errors.HttpError</li>
 </ul>
 <h3>Class variables</h3>

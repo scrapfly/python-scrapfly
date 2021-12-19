@@ -39,10 +39,12 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Iterable
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable
 import requests
 import urllib3
 import logging as logger
+
+from .reporter import Reporter
 
 try:
     from functools import cached_property
@@ -78,6 +80,7 @@ class ScrapflyClient:
     connect_timeout:int
     read_timeout:int
     brotli: bool
+    reporter:Reporter
 
     def __init__(
         self,
@@ -89,7 +92,8 @@ class ScrapflyClient:
         distributed_mode = False,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
         read_timeout:int = DEFAULT_READ_TIMEOUT,
-        brotli:bool = True # allow to disable brotli even if lib is present
+        brotli:bool = True, # allow to disable brotli even if lib is present
+        reporter:Optional[Callable]=None
     ):
         if host[-1] == &#39;/&#39;:  # remove last &#39;/&#39; if exists
             host = host[:-1]
@@ -105,6 +109,7 @@ class ScrapflyClient:
         self.body_handler = ResponseBodyHandler(use_brotli=brotli)
         self.async_executor = ThreadPoolExecutor()
         self.http_session = None
+
         self.ua = &#39;ScrapflySDK/%s (Python %s, %s, %s)&#39; % (
             version,
             platform.python_version(),
@@ -117,6 +122,13 @@ class ScrapflyClient:
 
         if self.debug is True:
             http.client.HTTPConnection.debuglevel = 5
+
+        if reporter is None:
+            from .reporter import NoopReporter
+
+            reporter = NoopReporter()
+
+        self.reporter = Reporter(reporter)
 
     @cached_property
     def _http_handler(self):
@@ -235,11 +247,19 @@ class ScrapflyClient:
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
     def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
-        logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
-        request_data = self._scrape_request(scrape_config=scrape_config)
-        response = self._http_handler(**request_data)
 
-        return self._handle_response(response=response, scrape_config=scrape_config)
+        try:
+            logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+            request_data = self._scrape_request(scrape_config=scrape_config)
+            response = self._http_handler(**request_data)
+            scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
+
+            self.reporter.report(scrape_api_response=scrape_api_response)
+
+            return scrape_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
+            raise e
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         try:
@@ -422,7 +442,7 @@ class ScrapflyClient:
 <dl>
 <dt id="scrapfly.client.ScrapflyClient"><code class="flex name class">
 <span>class <span class="ident">ScrapflyClient</span></span>
-<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, distributed_mode=False, connect_timeout: int = 30, read_timeout: int = 150, brotli: bool = True)</span>
+<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, distributed_mode=False, connect_timeout: int = 30, read_timeout: int = 150, brotli: bool = True, reporter: Optional[Callable] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -445,6 +465,7 @@ class ScrapflyClient:
     connect_timeout:int
     read_timeout:int
     brotli: bool
+    reporter:Reporter
 
     def __init__(
         self,
@@ -456,7 +477,8 @@ class ScrapflyClient:
         distributed_mode = False,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
         read_timeout:int = DEFAULT_READ_TIMEOUT,
-        brotli:bool = True # allow to disable brotli even if lib is present
+        brotli:bool = True, # allow to disable brotli even if lib is present
+        reporter:Optional[Callable]=None
     ):
         if host[-1] == &#39;/&#39;:  # remove last &#39;/&#39; if exists
             host = host[:-1]
@@ -472,6 +494,7 @@ class ScrapflyClient:
         self.body_handler = ResponseBodyHandler(use_brotli=brotli)
         self.async_executor = ThreadPoolExecutor()
         self.http_session = None
+
         self.ua = &#39;ScrapflySDK/%s (Python %s, %s, %s)&#39; % (
             version,
             platform.python_version(),
@@ -484,6 +507,13 @@ class ScrapflyClient:
 
         if self.debug is True:
             http.client.HTTPConnection.debuglevel = 5
+
+        if reporter is None:
+            from .reporter import NoopReporter
+
+            reporter = NoopReporter()
+
+        self.reporter = Reporter(reporter)
 
     @cached_property
     def _http_handler(self):
@@ -602,11 +632,19 @@ class ScrapflyClient:
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
     def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
-        logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
-        request_data = self._scrape_request(scrape_config=scrape_config)
-        response = self._http_handler(**request_data)
 
-        return self._handle_response(response=response, scrape_config=scrape_config)
+        try:
+            logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+            request_data = self._scrape_request(scrape_config=scrape_config)
+            response = self._http_handler(**request_data)
+            scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
+
+            self.reporter.report(scrape_api_response=scrape_api_response)
+
+            return scrape_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
+            raise e
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         try:
@@ -823,6 +861,10 @@ class ScrapflyClient:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.reporter"><code class="name">var <span class="ident">reporter</span> : scrapfly.reporter.Reporter</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.verify"><code class="name">var <span class="ident">verify</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
@@ -1030,11 +1072,19 @@ def http(self):
 </summary>
 <pre><code class="python">@backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
 def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
-    logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
-    request_data = self._scrape_request(scrape_config=scrape_config)
-    response = self._http_handler(**request_data)
 
-    return self._handle_response(response=response, scrape_config=scrape_config)</code></pre>
+    try:
+        logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
+        request_data = self._scrape_request(scrape_config=scrape_config)
+        response = self._http_handler(**request_data)
+        scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
+
+        self.reporter.report(scrape_api_response=scrape_api_response)
+
+        return scrape_api_response
+    except BaseException as e:
+        self.reporter.report(error=e)
+        raise e</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.screenshot"><code class="name flex">
@@ -1175,6 +1225,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.client.ScrapflyClient.max_concurrency" href="#scrapfly.client.ScrapflyClient.max_concurrency">max_concurrency</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.open" href="#scrapfly.client.ScrapflyClient.open">open</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.read_timeout" href="#scrapfly.client.ScrapflyClient.read_timeout">read_timeout</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.reporter" href="#scrapfly.client.ScrapflyClient.reporter">reporter</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.resilient_scrape" href="#scrapfly.client.ScrapflyClient.resilient_scrape">resilient_scrape</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.save_screenshot" href="#scrapfly.client.ScrapflyClient.save_screenshot">save_screenshot</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.scrape" href="#scrapfly.client.ScrapflyClient.scrape">scrape</a></code></li>
