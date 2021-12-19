@@ -24,8 +24,7 @@ from typing import Dict, Optional, Iterable, Union, TextIO
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
-    ScrapflyError
+from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, ExtraUsageForbidden
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -201,7 +200,7 @@ class ScrapeApiResponse:
 
     def prevent_extra_usage(self):
         if self.remaining_quota == 0:
-            raise ScrapflyError(
+            raise ExtraUsageForbidden(
                 message='All Pre Paid Quota Used',
                 code='ERR::ACCOUNT::PREVENT_EXTRA_USAGE',
                 http_status_code=429,

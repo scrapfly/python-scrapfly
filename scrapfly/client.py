@@ -11,7 +11,7 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Coroutine
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable
 import requests
 import urllib3
 import logging as logger
@@ -65,7 +65,7 @@ class ScrapflyClient:
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
         read_timeout:int = DEFAULT_READ_TIMEOUT,
         brotli:bool = True, # allow to disable brotli even if lib is present
-        reporter:Optional[Union[Callable, Coroutine]]=None
+        reporter:Optional[Callable]=None
     ):
         if host[-1] == '/':  # remove last '/' if exists
             host = host[:-1]
@@ -98,7 +98,7 @@ class ScrapflyClient:
         if reporter is None:
             from .reporter import NoopReporter
 
-            reporter = NoopReporter
+            reporter = NoopReporter()
 
         self.reporter = Reporter(reporter)
 

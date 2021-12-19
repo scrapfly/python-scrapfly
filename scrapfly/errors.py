@@ -71,6 +71,10 @@ class EncoderError(BaseException):
         return self.content
 
 
+class ExtraUsageForbidden(ScrapflyError):
+    pass
+
+
 class HttpError(ScrapflyError):
 
     def __init__(self, request:Request, response:Optional[Response]=None, **kwargs):
