@@ -31,7 +31,7 @@ class ScrapflyError(Exception):
     def __init__(
         self,
         message: str,
-        code: int,
+        code: str,
         http_status_code: int,
         resource: Optional[str]=None,
         is_retryable: bool = False,

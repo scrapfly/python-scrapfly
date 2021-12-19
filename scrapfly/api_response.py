@@ -24,7 +24,8 @@ from typing import Dict, Optional, Iterable, Union, TextIO
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError
+from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
+    ScrapflyError
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -197,6 +198,42 @@ class ScrapeApiResponse:
             return self.scrape_result['status_code']
 
         return None
+
+    def prevent_extra_usage(self):
+        if self.remaining_quota == 0:
+            raise ScrapflyError(
+                message='All Pre Paid Quota Used',
+                code='ERR::ACCOUNT::PREVENT_EXTRA_USAGE',
+                http_status_code=429,
+                is_retryable=False
+            )
+
+    @property
+    def remaining_quota(self) -> Optional[int]:
+        remaining_scrape = self.response.headers.get('X-Scrapfly-Remaining-Scrape')
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -> Optional[int]:
+        cost = self.response.headers.get('X-Scrapfly-Api-Cost')
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
+    @property
+    def duration_ms(self) -> Optional[float]:
+        duration = self.response.headers.get('X-Scrapfly-Response-Time')
+
+        if duration:
+            duration = float(duration)
+
+        return duration
 
     @property
     def headers(self) -> CaseInsensitiveDict:

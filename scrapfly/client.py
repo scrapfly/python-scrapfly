@@ -11,10 +11,12 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Iterable
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Coroutine
 import requests
 import urllib3
 import logging as logger
+
+from .reporter import Reporter
 
 try:
     from functools import cached_property
@@ -50,6 +52,7 @@ class ScrapflyClient:
     connect_timeout:int
     read_timeout:int
     brotli: bool
+    reporter:Reporter
 
     def __init__(
         self,
@@ -61,7 +64,8 @@ class ScrapflyClient:
         distributed_mode = False,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
         read_timeout:int = DEFAULT_READ_TIMEOUT,
-        brotli:bool = True # allow to disable brotli even if lib is present
+        brotli:bool = True, # allow to disable brotli even if lib is present
+        reporter:Optional[Union[Callable, Coroutine]]=None
     ):
         if host[-1] == '/':  # remove last '/' if exists
             host = host[:-1]
@@ -77,6 +81,7 @@ class ScrapflyClient:
         self.body_handler = ResponseBodyHandler(use_brotli=brotli)
         self.async_executor = ThreadPoolExecutor()
         self.http_session = None
+
         self.ua = 'ScrapflySDK/%s (Python %s, %s, %s)' % (
             version,
             platform.python_version(),
@@ -89,6 +94,13 @@ class ScrapflyClient:
 
         if self.debug is True:
             http.client.HTTPConnection.debuglevel = 5
+
+        if reporter is None:
+            from .reporter import NoopReporter
+
+            reporter = NoopReporter
+
+        self.reporter = Reporter(reporter)
 
     @cached_property
     def _http_handler(self):
@@ -207,11 +219,18 @@ class ScrapflyClient:
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
     def scrape(self, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
-        logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
-        request_data = self._scrape_request(scrape_config=scrape_config)
-        response = self._http_handler(**request_data)
 
-        return self._handle_response(response=response, scrape_config=scrape_config)
+        try:
+            logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
+            request_data = self._scrape_request(scrape_config=scrape_config)
+            response = self._http_handler(**request_data)
+            scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
+
+            self.reporter.report(scrape_api_response=scrape_api_response)
+
+            return scrape_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
         try:
