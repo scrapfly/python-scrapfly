@@ -44,7 +44,7 @@ from scrapy.spiders import Rule
 from scrapy.utils.python import global_object_name
 from scrapy.utils.spider import iterate_spider_output
 from twisted.internet.defer import Deferred
-from twisted.internet import reactor, task
+from twisted.internet import task
 
 from scrapfly import ScrapflyClient, ScrapeConfig, ScrapflyError
 from . import ScrapflyScrapyRequest, ScrapflyScrapyResponse
@@ -119,6 +119,7 @@ class ScrapflySpider(scrapy.Spider):
             deferred = Deferred()
             deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
         else:
+            from twisted.internet import reactor # prevent reactor already install issue
             deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
         return deferred
@@ -481,6 +482,7 @@ class.</p></div>
             deferred = Deferred()
             deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
         else:
+            from twisted.internet import reactor # prevent reactor already install issue
             deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
         return deferred
@@ -665,6 +667,7 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
         deferred = Deferred()
         deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
     else:
+        from twisted.internet import reactor # prevent reactor already install issue
         deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
     return deferred</code></pre>

@@ -92,7 +92,8 @@ class ScrapflyScrapyRequest(Request):
 <span>(</span><span>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, meta: Dict = {}, *args, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Inherit from this class to a keep a record of live instances</p></div>
+<div class="desc"><p>Represents an HTTP request, which is usually generated in a Spider and
+executed by the Downloader, thus generating a :class:<code>Response</code>.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -157,8 +158,7 @@ class ScrapflyScrapyRequest(Request):
 <span>def <span class="ident">replace</span></span>(<span>self, *args, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create a new Request with the same attributes except for those
-given new values.</p></div>
+<div class="desc"><p>Create a new Request with the same attributes except for those given new values</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>

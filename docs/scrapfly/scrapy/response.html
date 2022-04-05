@@ -74,7 +74,7 @@ class ScrapflyScrapyResponse(TextResponse):
         self.iframes = self.scrape_api_response.scrape_result[&#39;iframes&#39;]
         self.browser_data = self.scrape_api_response.scrape_result[&#39;browser_data&#39;]
         self.error = self.scrape_api_response.scrape_result[&#39;error&#39;]
-        self.ip_address = self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;] if self.scrape_api_response.context[&#39;proxy&#39;] else None
+        self.ip_address = None
 
         if isinstance(self.content, str):
             content = self.content.encode(&#39;utf-8&#39;)
@@ -90,7 +90,7 @@ class ScrapflyScrapyResponse(TextResponse):
             headers=self.scrape_api_response.scrape_result[&#39;response_headers&#39;],
             body=content,
             request=request,
-            ip_address=self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;]
+            ip_address=None
         )
 
     @property
@@ -122,7 +122,8 @@ class ScrapflyScrapyResponse(TextResponse):
 <span>(</span><span>request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>, scrape_api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="../api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Inherit from this class to a keep a record of live instances</p></div>
+<div class="desc"><p>An object that represents an HTTP response, which is usually
+downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -166,7 +167,7 @@ class ScrapflyScrapyResponse(TextResponse):
         self.iframes = self.scrape_api_response.scrape_result[&#39;iframes&#39;]
         self.browser_data = self.scrape_api_response.scrape_result[&#39;browser_data&#39;]
         self.error = self.scrape_api_response.scrape_result[&#39;error&#39;]
-        self.ip_address = self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;] if self.scrape_api_response.context[&#39;proxy&#39;] else None
+        self.ip_address = None
 
         if isinstance(self.content, str):
             content = self.content.encode(&#39;utf-8&#39;)
@@ -182,7 +183,7 @@ class ScrapflyScrapyResponse(TextResponse):
             headers=self.scrape_api_response.scrape_result[&#39;response_headers&#39;],
             body=content,
             request=request,
-            ip_address=self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;]
+            ip_address=None
         )
 
     @property

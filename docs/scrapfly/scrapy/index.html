@@ -378,7 +378,8 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <span>(</span><span>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, meta: Dict = {}, *args, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Inherit from this class to a keep a record of live instances</p></div>
+<div class="desc"><p>Represents an HTTP request, which is usually generated in a Spider and
+executed by the Downloader, thus generating a :class:<code>Response</code>.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -443,8 +444,7 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <span>def <span class="ident">replace</span></span>(<span>self, *args, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create a new Request with the same attributes except for those
-given new values.</p></div>
+<div class="desc"><p>Create a new Request with the same attributes except for those given new values</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -474,7 +474,8 @@ given new values.</p></div>
 <span>(</span><span>request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>, scrape_api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="../api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Inherit from this class to a keep a record of live instances</p></div>
+<div class="desc"><p>An object that represents an HTTP response, which is usually
+downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -518,7 +519,7 @@ given new values.</p></div>
         self.iframes = self.scrape_api_response.scrape_result[&#39;iframes&#39;]
         self.browser_data = self.scrape_api_response.scrape_result[&#39;browser_data&#39;]
         self.error = self.scrape_api_response.scrape_result[&#39;error&#39;]
-        self.ip_address = self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;] if self.scrape_api_response.context[&#39;proxy&#39;] else None
+        self.ip_address = None
 
         if isinstance(self.content, str):
             content = self.content.encode(&#39;utf-8&#39;)
@@ -534,7 +535,7 @@ given new values.</p></div>
             headers=self.scrape_api_response.scrape_result[&#39;response_headers&#39;],
             body=content,
             request=request,
-            ip_address=self.scrape_api_response.context[&#39;proxy&#39;][&#39;ipv4&#39;]
+            ip_address=None
         )
 
     @property
@@ -723,6 +724,7 @@ class.</p></div>
             deferred = Deferred()
             deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
         else:
+            from twisted.internet import reactor # prevent reactor already install issue
             deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
         return deferred
@@ -907,6 +909,7 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
         deferred = Deferred()
         deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
     else:
+        from twisted.internet import reactor # prevent reactor already install issue
         deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
     return deferred</code></pre>
