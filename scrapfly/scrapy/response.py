@@ -46,7 +46,7 @@ class ScrapflyScrapyResponse(TextResponse):
         self.iframes = self.scrape_api_response.scrape_result['iframes']
         self.browser_data = self.scrape_api_response.scrape_result['browser_data']
         self.error = self.scrape_api_response.scrape_result['error']
-        self.ip_address = self.scrape_api_response.context['proxy']['ipv4'] if self.scrape_api_response.context['proxy'] else None
+        self.ip_address = None
 
         if isinstance(self.content, str):
             content = self.content.encode('utf-8')
@@ -62,7 +62,7 @@ class ScrapflyScrapyResponse(TextResponse):
             headers=self.scrape_api_response.scrape_result['response_headers'],
             body=content,
             request=request,
-            ip_address=self.scrape_api_response.context['proxy']['ipv4']
+            ip_address=None
         )
 
     @property
