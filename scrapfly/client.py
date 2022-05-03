@@ -1,3 +1,4 @@
+import warnings
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import asyncio
@@ -61,14 +62,27 @@ class ScrapflyClient:
         verify=True,
         debug: bool = False,
         max_concurrency:int=1,
-        distributed_mode = False,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
         read_timeout:int = DEFAULT_READ_TIMEOUT,
-        brotli:bool = True, # allow to disable brotli even if lib is present
-        reporter:Optional[Callable]=None
+        reporter:Optional[Callable]=None,
+        **kwargs
     ):
         if host[-1] == '/':  # remove last '/' if exists
             host = host[:-1]
+
+        if 'distributed_mode' in kwargs:
+            warnings.warn("distributed mode is deprecated and will be remove the next version -"
+              " user should handle themself the session name based on the concurrency",
+              DeprecationWarning,
+              stacklevel=2
+            )
+
+        if 'brotli' in kwargs:
+            warnings.warn("brotli arg is deprecated and will be remove the next version - "
+                "brotli is disabled by default",
+                DeprecationWarning,
+                stacklevel=2
+            )
 
         self.host = host
         self.key = key
@@ -77,8 +91,7 @@ class ScrapflyClient:
         self.connect_timeout = connect_timeout
         self.read_timeout = read_timeout
         self.max_concurrency = max_concurrency
-        self.distributed_mode = distributed_mode
-        self.body_handler = ResponseBodyHandler(use_brotli=brotli)
+        self.body_handler = ResponseBodyHandler(use_brotli=False)
         self.async_executor = ThreadPoolExecutor()
         self.http_session = None
 
@@ -111,10 +124,6 @@ class ScrapflyClient:
         return self._http_handler
 
     def _scrape_request(self, scrape_config:ScrapeConfig):
-
-        if self.distributed_mode is True and scrape_config.correlation_id is None:
-            scrape_config.generate_distributed_correlation_id()
-
         return {
             'method': scrape_config.method,
             'url': self.host + '/scrape',

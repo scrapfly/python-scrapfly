@@ -1,10 +1,6 @@
 import base64
 import json
 import logging
-from base64 import b64encode
-from os import getpid
-from socket import gethostname
-from threading import currentThread
 from typing import Optional, List, Dict, Iterable, Union, Set
 from urllib.parse import urlencode, quote
 
@@ -153,9 +149,6 @@ class ScrapeConfig:
     def _bool_to_http(self, _bool:bool) -> str:
         return 'true' if _bool is True else 'false'
 
-    def generate_distributed_correlation_id(self):
-        self.correlation_id = abs(hash('-'.join([gethostname(), str(getpid()), str(currentThread().ident)])))
-
     def to_api_params(self, key:str) -> Dict:
         params = {
             'key': self.key if self.key is not None else key,
@@ -178,7 +171,7 @@ class ScrapeConfig:
                 params['wait_for_selector'] = self.wait_for_selector
 
             if self.js:
-                params['js'] = b64encode(self.js.encode('utf-8')).decode('utf-8')
+                params['js'] = base64.urlsafe_b64encode(self.js.encode('utf-8')).decode('utf-8')
 
             if self.rendering_wait:
                 params['rendering_wait'] = self.rendering_wait

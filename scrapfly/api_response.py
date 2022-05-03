@@ -64,8 +64,9 @@ class ResponseBodyHandler:
         def __init__(self, *args, **kargs):
             JSONDecoder.__init__(self, *args, object_hook=_date_parser, **kargs)
 
-    def __init__(self, use_brotli:bool=True):
-
+    # brotli under perform at same gzip level and upper level destroy the cpu so
+    # the trade off do not worth it for most of usage
+    def __init__(self, use_brotli:bool=False):
         if use_brotli is True:
             try:
                 try:
