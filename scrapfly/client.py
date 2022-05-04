@@ -1,4 +1,5 @@
 import warnings
+from asyncio import AbstractEventLoop, Task
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import asyncio
@@ -54,6 +55,8 @@ class ScrapflyClient:
     read_timeout:int
     brotli: bool
     reporter:Reporter
+
+    CONCURRENCY_AUTO = 'auto' # retrieve the allowed concurrency from your account
 
     def __init__(
         self,
@@ -140,7 +143,17 @@ class ScrapflyClient:
         }
 
     def account(self) -> Union[str, Dict]:
-        response = self._http_handler('GET', self.host + '/account', params={'key': self.key})
+        response = self._http_handler(
+            method='GET',
+            url=self.host + '/account',
+            params={'key': self.key},
+            verify=self.verify,
+            headers={
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+        )
 
         response.raise_for_status()
 
@@ -197,34 +210,65 @@ class ScrapflyClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    async def async_scrape(self, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
-        return await asyncio.get_running_loop().run_in_executor(self.async_executor, self.scrape, scrape_config)
+    async def async_scrape(self, scrape_config:ScrapeConfig, loop:Optional[AbstractEventLoop]=None) -> ScrapeApiResponse:
+        if loop is None:
+            loop = asyncio.get_running_loop()
 
-    async def concurrent_scrape(self, scrape_configs:List[ScrapeConfig], concurrency:Optional[int]=None) -> List[ScrapeApiResponse]:
+        return await loop.run_in_executor(self.async_executor, self.scrape, scrape_config)
 
-        try:
-            from asyncio_pool import AioPool
-        except ImportError:
-            print('You must run pip install scrapfly-sdk[concurrency]')
-            raise
-
+    async def concurrent_scrape(self, scrape_configs:List[ScrapeConfig], concurrency:Optional[int]=None):
         if concurrency is None:
             concurrency = self.max_concurrency
+        elif concurrency == self.CONCURRENCY_AUTO:
+            concurrency = self.account()['subscription']['max_concurrency']
 
-        futures = []
+        loop = asyncio.get_running_loop()
+        processing_tasks = []
+        results = []
+        processed_tasks = 0
+        expected_tasks = len(scrape_configs)
 
-        async def call(scrape_config:ScrapeConfig) -> ScrapeApiResponse:
-            return await self.async_scrape(scrape_config=scrape_config)
+        def scrape_done_callback(task:Task):
+            nonlocal processed_tasks
 
-        async with AioPool(size=concurrency) as pool:
-            for index, scrape_config in enumerate(scrape_configs):
-                # handle concurrent session access correctly to prevent 429 session concurrent access
-                if (scrape_config.session is not None or scrape_config.asp is True) and not scrape_config.correlation_id:
-                    scrape_config.correlation_id = 'concurrent_slot_' + str(index)
+            try:
+                if task.cancelled() is True:
+                    return
 
-                futures.append(await pool.spawn(call(scrape_config)))
+                error = task.exception()
 
-        return [future.result() for future in futures]
+                if error is not None:
+                    results.append(error)
+                else:
+                    results.append(task.result())
+            finally:
+                processing_tasks.remove(task)
+                processed_tasks += 1
+
+        while scrape_configs or results or processing_tasks:
+            print("Scrape %d/%d - %d running" % (processed_tasks, expected_tasks, len(processing_tasks)))
+
+            if scrape_configs:
+                if len(processing_tasks) < concurrency:
+                    # @todo handle backpressure
+                    for _ in range(0, concurrency - len(processing_tasks)):
+                        try:
+                            scrape_config = scrape_configs.pop()
+                        except:
+                            break
+
+                        scrape_config.raise_on_upstream_error = False
+                        task = loop.create_task(self.async_scrape(scrape_config=scrape_config, loop=loop))
+                        processing_tasks.append(task)
+                        task.add_done_callback(scrape_done_callback)
+
+            for _ in results:
+                result = results.pop()
+                yield result
+
+            await asyncio.sleep(.5)
+
+        logger.debug("Scrape %d/%d - %d running" % (processed_tasks, expected_tasks, len(processing_tasks)))
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
     def scrape(self, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
@@ -274,11 +318,13 @@ class ScrapflyClient:
             else:
                 logger.warning('<-- %s | %s' % (str(e), e.api_response.result['result']['url']))
             raise
+        except ScrapflyScrapeError as e:
+            logger.critical('<-- %s - %s %s | Doc: %s' % (e.response.status_code, e.http_status_code, e.code, e.documentation_url))
         except HttpError as e:
-            logger.critical('<-- %s - %s' % (e.response.status_code, str(e)))
+            logger.critical('<-- %s - %s | Doc: %s' % (e.response.status_code, str(e), e.documentation_url))
             raise
         except ScrapflyError as e:
-            logger.critical('<-- %s' % (str(e)))
+            logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
             raise
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):

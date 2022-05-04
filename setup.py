@@ -64,9 +64,7 @@ EXTRA_DEPENDENCIES = {
         'cchardet',
         'msgpack'
     ],
-    'concurrency': [
-        'asyncio-pool'
-    ]
+    'concurrency': []
 }
 
 all_deps = set()

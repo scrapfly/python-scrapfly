@@ -82,8 +82,8 @@ class ResponseBodyHandler:
 
         try:  # automatically use msgpack if available https://msgpack.org/
             import msgpack
-            self.accept = 'application/msgpack'
-            self.content_type = 'application/msgpack'
+            self.accept = 'application/msgpack;charset=utf-8'
+            self.content_type = 'application/msgpack;charset=utf-8'
             self.content_loader = partial(msgpack.loads, object_hook=_date_parser, strict_map_key=False)
         except ImportError:
             self.accept = 'application/json;charset=utf-8'
