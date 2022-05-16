@@ -1,20 +1,34 @@
-from typing import Union, Optional
+from typing import Union, Optional, Iterable
 
 from scrapy import Spider
 from scrapy.http import Request, Response
+from scrapy.spidermiddlewares.referer import RefererMiddleware as ScrapyRefererMidleware
 from twisted.web._newclient import ResponseNeverReceived
 
 from .spider import ScrapflySpider
 from .request import ScrapflyScrapyRequest
 from .response import ScrapflyScrapyResponse
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 from .. import ScrapflyError, HttpError
 
 
+# spider middleware
+class ScrapflyRefererMiddleware(ScrapyRefererMidleware):
+
+    def process_spider_output(self, response, result, spider) -> Iterable:
+        if isinstance(response, ScrapflyScrapyResponse) and response.scrape_config.session is not None:
+            return result # bypass - already handled by scrapfly session system
+
+        return ScrapyRefererMidleware.process_spider_output(self, response, result, spider)
+
+    def request_scheduled(self, request, spider):
+        if isinstance(request, ScrapflyScrapyRequest) and request.scrape_config.session is not None:
+            return # bypass - already handled by scrapfly session system
+
+        ScrapyRefererMidleware.request_scheduled(self, request, spider)
+
+
+# downloader middleware
 class ScrapflyMiddleware:
     MAX_API_RETRIES = 20
 

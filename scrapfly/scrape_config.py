@@ -44,6 +44,8 @@ class ScrapeConfig:
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
     webhook:Optional[str]=None
+    timeout:Optional[int]=None # in milliseconds
+    js_scenario: Dict = None
 
     def __init__(
         self,
@@ -74,7 +76,9 @@ class ScrapeConfig:
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         session_sticky_proxy:Optional[bool] = None,
-        webhook:Optional[str] = None
+        webhook:Optional[str] = None,
+        timeout:Optional[int] = None, # in milliseconds
+        js_scenario:Optional[Dict] = None
     ):
         assert(type(url) is str)
 
@@ -113,6 +117,8 @@ class ScrapeConfig:
         self.key = None
         self.dns = dns
         self.ssl = ssl
+        self.js_scenario = js_scenario
+        self.timeout = timeout
 
         if cookies:
             _cookies = []
@@ -164,6 +170,9 @@ class ScrapeConfig:
         if self.webhook is not None:
             params['webhook_name'] = self.webhook
 
+        if self.timeout is not None:
+            params['timeout'] = self.timeout
+
         if self.render_js is True:
             params['render_js'] = self._bool_to_http(self.render_js)
 
@@ -172,6 +181,9 @@ class ScrapeConfig:
 
             if self.js:
                 params['js'] = base64.urlsafe_b64encode(self.js.encode('utf-8')).decode('utf-8')
+
+            if self.js_scenario:
+                params['js_scenario'] = base64.urlsafe_b64encode(json.dumps(self.js_scenario).encode('utf-8')).decode('utf-8')
 
             if self.rendering_wait:
                 params['rendering_wait'] = self.rendering_wait
@@ -185,6 +197,9 @@ class ScrapeConfig:
 
             if self.screenshots:
                 logging.warning('Params "screenshots" is ignored. Works only if render_js is enabled')
+
+            if self.js_scenario:
+                logging.warning('Params "js_scenario" is ignored. Works only if render_js is enabled')
 
             if self.js:
                 logging.warning('Params "js" is ignored. Works only if render_js is enabled')

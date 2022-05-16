@@ -84,8 +84,6 @@ class ScrapflyHTTPDownloader:
                 scrape_config=request.scrape_config
             )
 
-            self._crawler.stats.inc_value('scrapfly/bandwidth_consumed', count=scrapfly_api_response.context['bandwidth_consumed'])
-
             return ScrapflyScrapyResponse(request=request, scrape_api_response=scrapfly_api_response)
 
         deferred.addCallback(on_body_downloaded)

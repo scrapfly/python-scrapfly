@@ -41,11 +41,21 @@ class ScrapflySpider(scrapy.Spider):
             'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': None,
             'scrapy.downloadermiddlewares.redirect.RedirectMiddleware': None,
             'scrapy.downloadermiddlewares.cookies.CookiesMiddleware': None,
-            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': None
+            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': None,
         },
         'DOWNLOAD_HANDLERS_BASE': {
             'http': 'scrapfly.scrapy.downloader.ScrapflyHTTPDownloader',
             'https': 'scrapfly.scrapy.downloader.ScrapflyHTTPDownloader'
+        },
+        'SPIDER_MIDDLEWARES': {
+            'scrapfly.scrapy.middleware.ScrapflyRefererMiddleware': 10,
+            'scrapy.spidermiddlewares.referer.RefererMiddleware': None,
+        },
+        'ITEM_PIPELINES': {
+            'scrapfly.scrapy.pipelines.FilesPipeline': 1,
+            'scrapfly.scrapy.pipelines.ImagesPipeline': 1,
+            'scrapy.pipelines.files.FilesPipeline': None,
+            'scrapy.pipelines.images.ImagesPipeline': None
         }
     }
 

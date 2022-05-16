@@ -9,6 +9,7 @@ import re
 import shutil
 from functools import partial
 from io import BytesIO
+from pprint import pprint
 
 import backoff
 from requests import Session, Response
@@ -43,7 +44,7 @@ class ScrapflyClient:
 
     HOST = 'https://api.scrapfly.io'
     DEFAULT_CONNECT_TIMEOUT = 30
-    DEFAULT_READ_TIMEOUT = 150
+    DEFAULT_READ_TIMEOUT = 160 # 155 real
 
     host:str
     key:str
@@ -321,10 +322,11 @@ class ScrapflyClient:
         except ScrapflyScrapeError as e:
             logger.critical('<-- %s - %s %s | Doc: %s' % (e.response.status_code, e.http_status_code, e.code, e.documentation_url))
         except HttpError as e:
-            logger.critical('<-- %s - %s | Doc: %s' % (e.response.status_code, str(e), e.documentation_url))
+            logger.critical('<-- %s - %s | Doc: %s' % (e.response.status_code, e.response.reason, e.documentation_url))
             raise
         except ScrapflyError as e:
             logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
+            pprint(self.body_handler(e.response.content))
             raise
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
@@ -341,7 +343,7 @@ class ScrapflyClient:
             method='GET',
             url=api_response.scrape_result['screenshots'][name]['url'],
             params={'key': self.key},
-            verify=False
+            verify=self.verify
         )
 
         screenshot_response.raise_for_status()

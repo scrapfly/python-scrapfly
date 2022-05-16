@@ -301,7 +301,8 @@ class ScrapeApiResponse:
                         message= self.result['message'],
                         code='',
                         resource='',
-                        http_status_code=e.response.status_code
+                        http_status_code=e.response.status_code,
+                        documentation_url=self.result.get('links')
                     ) from e
                 else:
                     raise ApiHttpClientError(
@@ -310,7 +311,8 @@ class ScrapeApiResponse:
                         message=self.result['message'],
                         code='',
                         resource='API',
-                        http_status_code=self.result['http_code']
+                        http_status_code=self.result['http_code'],
+                        documentation_url=self.result.get('links')
                     ) from e
 
         if self.result['result']['status'] == 'DONE' and self.scrape_success is False:
