@@ -67,7 +67,7 @@ class ResponseBodyHandler:
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
     def __init__(self, use_brotli:bool=False):
-        if use_brotli is True:
+        if use_brotli is True and 'br' not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
                     import brotlicffi as brotli

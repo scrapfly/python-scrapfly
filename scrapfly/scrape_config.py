@@ -46,6 +46,7 @@ class ScrapeConfig:
     webhook:Optional[str]=None
     timeout:Optional[int]=None # in milliseconds
     js_scenario: Dict = None
+    extract: Dict = None
 
     def __init__(
         self,
@@ -78,7 +79,8 @@ class ScrapeConfig:
         session_sticky_proxy:Optional[bool] = None,
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
-        js_scenario:Optional[Dict] = None
+        js_scenario:Optional[Dict] = None,
+        extract:Optional[Dict] = None
     ):
         assert(type(url) is str)
 
@@ -119,6 +121,7 @@ class ScrapeConfig:
         self.ssl = ssl
         self.js_scenario = js_scenario
         self.timeout = timeout
+        self.extract = extract
 
         if cookies:
             _cookies = []
@@ -172,6 +175,9 @@ class ScrapeConfig:
 
         if self.timeout is not None:
             params['timeout'] = self.timeout
+
+        if self.extract is not None:
+            params['extract'] = base64.urlsafe_b64encode(json.dumps(self.extract).encode('utf-8')).decode('utf-8')
 
         if self.render_js is True:
             params['render_js'] = self._bool_to_http(self.render_js)
