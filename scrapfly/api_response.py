@@ -118,6 +118,7 @@ class ScrapeApiResponse:
             api_result = {
                 'result': {
                     'request_headers': {},
+                    'status': 'DONE',
                     'success': 200 >= self.response.status_code < 300,
                     'response_headers': self.response.headers,
                     'status_code': self.response.status_code,
@@ -129,17 +130,20 @@ class ScrapeApiResponse:
                 'config': self.scrape_config.__dict__
             }
 
-            if 'X-Scrapfly-Reject-Code' in response.headers:
+            if 'X-Scrapfly-Reject-Code' in self.response.headers:
                 api_result['result']['error'] = {
-                    'code': response.headers['X-Scrapfly-Reject-Code'],
-                    'http_code': response.headers['X-Scrapfly-Reject-Http-Code'],
-                    'message': response.headers['X-Scrapfly-Reject-Description'],
-                    'error_id': response.headers['X-Scrapfly-Reject-ID'],
-                    'retryable': True if response.headers['X-Scrapfly-Reject-Retryable'] == 'yes' else False
+                    'code': self.response.headers['X-Scrapfly-Reject-Code'],
+                    'http_code': int(self.response.headers['X-Scrapfly-Reject-Http-Code']),
+                    'message': self.response.headers['X-Scrapfly-Reject-Description'],
+                    'error_id': self.response.headers['X-Scrapfly-Reject-ID'],
+                    'retryable': True if self.response.headers['X-Scrapfly-Reject-Retryable'] == 'yes' else False,
+                    'doc_url': '',
+                    'links': {}
                 }
 
-                if 'X-Scrapfly-Reject-Doc' in response.headers:
-                    api_result['result']['error']['doc_url'] = response.headers['X-Scrapfly-Reject-Doc']
+                if 'X-Scrapfly-Reject-Doc' in self.response.headers:
+                    api_result['result']['error']['doc_url'] = self.response.headers['X-Scrapfly-Reject-Doc']
+                    api_result['result']['error']['links']['Related Docs'] = self.response.headers['X-Scrapfly-Reject-Doc']
 
         if isinstance(api_result, str):
             raise HttpError(
@@ -277,6 +281,18 @@ class ScrapeApiResponse:
             logger.error('You must install scrapfly[scrapy] to enable this feature')
             raise e
 
+    @property
+    def error_message(self) :
+        if self.error:
+            message = "<-- %s | %s - %s." % (self.response.status_code, self.error['code'], self.error['message'])
+
+            if self.error['links']:
+                message += "Checkout the related doc: %s" % list(self.error['links'].values())[0]
+
+            return message
+
+        return '<-- %s - %s %s | Doc: %s' % (self.response.status_code, self.http_status_code, self.code, self.documentation_url)
+
     def _is_api_error(self, api_result: Dict) -> bool:
         if self.scrape_config.method == 'HEAD':
             if 'X-Reject-Reason' in self.response.headers:
@@ -298,7 +314,7 @@ class ScrapeApiResponse:
                     raise ApiHttpServerError(
                         request=e.request,
                         response=e.response,
-                        message= self.result['message'],
+                        message=self.result['message'],
                         code='',
                         resource='',
                         http_status_code=e.response.status_code,

@@ -127,6 +127,8 @@ class ScrapflySpider(scrapy.Spider):
                 read_timeout=crawler.settings.get('SCRAPFLY_READ_TIMEOUT', ScrapflyClient.DEFAULT_READ_TIMEOUT)
             )
 
+            spider.scrapfly_client.version += "+scrapy@%s" % scrapy.__version__
+
         spider.scrapfly_client.open()
         return spider
 

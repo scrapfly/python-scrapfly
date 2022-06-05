@@ -29,7 +29,7 @@ except ImportError:
 from .errors import *
 from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
-from . import __version__ as version, ScrapeApiResponse, HttpError, UpstreamHttpError
+from . import __version__, ScrapeApiResponse, HttpError, UpstreamHttpError
 
 logger.getLogger(__name__)
 
@@ -56,6 +56,7 @@ class ScrapflyClient:
     read_timeout:int
     brotli: bool
     reporter:Reporter
+    version:str
 
     CONCURRENCY_AUTO = 'auto' # retrieve the allowed concurrency from your account
 
@@ -88,6 +89,7 @@ class ScrapflyClient:
                 stacklevel=2
             )
 
+        self.version = __version__
         self.host = host
         self.key = key
         self.verify = verify
@@ -98,13 +100,6 @@ class ScrapflyClient:
         self.body_handler = ResponseBodyHandler(use_brotli=False)
         self.async_executor = ThreadPoolExecutor()
         self.http_session = None
-
-        self.ua = 'ScrapflySDK/%s (Python %s, %s, %s)' % (
-            version,
-            platform.python_version(),
-            platform.uname().system,
-            platform.uname().machine
-        )
 
         if not self.verify and not self.HOST.endswith('.local'):
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -118,6 +113,15 @@ class ScrapflyClient:
             reporter = NoopReporter()
 
         self.reporter = Reporter(reporter)
+
+    @property
+    def ua(self) -> str:
+        return 'ScrapflySDK/%s (Python %s, %s, %s)' % (
+            self.version,
+            platform.python_version(),
+            platform.uname().system,
+            platform.uname().machine
+        )
 
     @cached_property
     def _http_handler(self):
@@ -314,19 +318,22 @@ class ScrapflyClient:
 
             return api_response
         except UpstreamHttpError as e:
-            if scrape_config.method == 'HEAD':
-                logger.warning('<-- %s | %s' % (str(e), e.api_response.response.request.url))
-            else:
-                logger.warning('<-- %s | %s' % (str(e), e.api_response.result['result']['url']))
+            logger.critical(e.api_response.error_message)
             raise
         except ScrapflyScrapeError as e:
-            logger.critical('<-- %s - %s %s | Doc: %s' % (e.response.status_code, e.http_status_code, e.code, e.documentation_url))
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
         except HttpError as e:
-            logger.critical('<-- %s - %s | Doc: %s' % (e.response.status_code, e.response.reason, e.documentation_url))
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
             raise
         except ScrapflyError as e:
             logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
-            pprint(self.body_handler(e.response.content))
             raise
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
