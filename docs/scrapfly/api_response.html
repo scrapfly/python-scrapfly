@@ -92,9 +92,10 @@ class ResponseBodyHandler:
         def __init__(self, *args, **kargs):
             JSONDecoder.__init__(self, *args, object_hook=_date_parser, **kargs)
 
-    def __init__(self, use_brotli:bool=True):
-
-        if use_brotli is True:
+    # brotli under perform at same gzip level and upper level destroy the cpu so
+    # the trade off do not worth it for most of usage
+    def __init__(self, use_brotli:bool=False):
+        if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
                     import brotlicffi as brotli
@@ -109,8 +110,8 @@ class ResponseBodyHandler:
 
         try:  # automatically use msgpack if available https://msgpack.org/
             import msgpack
-            self.accept = &#39;application/msgpack&#39;
-            self.content_type = &#39;application/msgpack&#39;
+            self.accept = &#39;application/msgpack;charset=utf-8&#39;
+            self.content_type = &#39;application/msgpack;charset=utf-8&#39;
             self.content_loader = partial(msgpack.loads, object_hook=_date_parser, strict_map_key=False)
         except ImportError:
             self.accept = &#39;application/json;charset=utf-8&#39;
@@ -145,6 +146,7 @@ class ScrapeApiResponse:
             api_result = {
                 &#39;result&#39;: {
                     &#39;request_headers&#39;: {},
+                    &#39;status&#39;: &#39;DONE&#39;,
                     &#39;success&#39;: 200 &gt;= self.response.status_code &lt; 300,
                     &#39;response_headers&#39;: self.response.headers,
                     &#39;status_code&#39;: self.response.status_code,
@@ -156,17 +158,20 @@ class ScrapeApiResponse:
                 &#39;config&#39;: self.scrape_config.__dict__
             }
 
-            if &#39;X-Scrapfly-Reject-Code&#39; in response.headers:
+            if &#39;X-Scrapfly-Reject-Code&#39; in self.response.headers:
                 api_result[&#39;result&#39;][&#39;error&#39;] = {
-                    &#39;code&#39;: response.headers[&#39;X-Scrapfly-Reject-Code&#39;],
-                    &#39;http_code&#39;: response.headers[&#39;X-Scrapfly-Reject-Http-Code&#39;],
-                    &#39;message&#39;: response.headers[&#39;X-Scrapfly-Reject-Description&#39;],
-                    &#39;error_id&#39;: response.headers[&#39;X-Scrapfly-Reject-ID&#39;],
-                    &#39;retryable&#39;: True if response.headers[&#39;X-Scrapfly-Reject-Retryable&#39;] == &#39;yes&#39; else False
+                    &#39;code&#39;: self.response.headers[&#39;X-Scrapfly-Reject-Code&#39;],
+                    &#39;http_code&#39;: int(self.response.headers[&#39;X-Scrapfly-Reject-Http-Code&#39;]),
+                    &#39;message&#39;: self.response.headers[&#39;X-Scrapfly-Reject-Description&#39;],
+                    &#39;error_id&#39;: self.response.headers[&#39;X-Scrapfly-Reject-ID&#39;],
+                    &#39;retryable&#39;: True if self.response.headers[&#39;X-Scrapfly-Reject-Retryable&#39;] == &#39;yes&#39; else False,
+                    &#39;doc_url&#39;: &#39;&#39;,
+                    &#39;links&#39;: {}
                 }
 
-                if &#39;X-Scrapfly-Reject-Doc&#39; in response.headers:
-                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
+                if &#39;X-Scrapfly-Reject-Doc&#39; in self.response.headers:
+                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = self.response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
+                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;links&#39;][&#39;Related Docs&#39;] = self.response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
 
         if isinstance(api_result, str):
             raise HttpError(
@@ -304,6 +309,18 @@ class ScrapeApiResponse:
             logger.error(&#39;You must install scrapfly[scrapy] to enable this feature&#39;)
             raise e
 
+    @property
+    def error_message(self) :
+        if self.error:
+            message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
+
+            if self.error[&#39;links&#39;]:
+                message += &#34;Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+
+            return message
+
+        return &#39;&lt;-- %s - %s %s | Doc: %s&#39; % (self.response.status_code, self.http_status_code, self.code, self.documentation_url)
+
     def _is_api_error(self, api_result: Dict) -&gt; bool:
         if self.scrape_config.method == &#39;HEAD&#39;:
             if &#39;X-Reject-Reason&#39; in self.response.headers:
@@ -325,10 +342,11 @@ class ScrapeApiResponse:
                     raise ApiHttpServerError(
                         request=e.request,
                         response=e.response,
-                        message= self.result[&#39;message&#39;],
+                        message=self.result[&#39;message&#39;],
                         code=&#39;&#39;,
                         resource=&#39;&#39;,
-                        http_status_code=e.response.status_code
+                        http_status_code=e.response.status_code,
+                        documentation_url=self.result.get(&#39;links&#39;)
                     ) from e
                 else:
                     raise ApiHttpClientError(
@@ -337,7 +355,8 @@ class ScrapeApiResponse:
                         message=self.result[&#39;message&#39;],
                         code=&#39;&#39;,
                         resource=&#39;API&#39;,
-                        http_status_code=self.result[&#39;http_code&#39;]
+                        http_status_code=self.result[&#39;http_code&#39;],
+                        documentation_url=self.result.get(&#39;links&#39;)
                     ) from e
 
         if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
@@ -484,7 +503,7 @@ class ScrapeApiResponse:
 <dl>
 <dt id="scrapfly.api_response.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
-<span>(</span><span>use_brotli: bool = True)</span>
+<span>(</span><span>use_brotli: bool = False)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -501,9 +520,10 @@ class ScrapeApiResponse:
         def __init__(self, *args, **kargs):
             JSONDecoder.__init__(self, *args, object_hook=_date_parser, **kargs)
 
-    def __init__(self, use_brotli:bool=True):
-
-        if use_brotli is True:
+    # brotli under perform at same gzip level and upper level destroy the cpu so
+    # the trade off do not worth it for most of usage
+    def __init__(self, use_brotli:bool=False):
+        if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
                     import brotlicffi as brotli
@@ -518,8 +538,8 @@ class ScrapeApiResponse:
 
         try:  # automatically use msgpack if available https://msgpack.org/
             import msgpack
-            self.accept = &#39;application/msgpack&#39;
-            self.content_type = &#39;application/msgpack&#39;
+            self.accept = &#39;application/msgpack;charset=utf-8&#39;
+            self.content_type = &#39;application/msgpack;charset=utf-8&#39;
             self.content_loader = partial(msgpack.loads, object_hook=_date_parser, strict_map_key=False)
         except ImportError:
             self.accept = &#39;application/json;charset=utf-8&#39;
@@ -641,6 +661,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             api_result = {
                 &#39;result&#39;: {
                     &#39;request_headers&#39;: {},
+                    &#39;status&#39;: &#39;DONE&#39;,
                     &#39;success&#39;: 200 &gt;= self.response.status_code &lt; 300,
                     &#39;response_headers&#39;: self.response.headers,
                     &#39;status_code&#39;: self.response.status_code,
@@ -652,17 +673,20 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                 &#39;config&#39;: self.scrape_config.__dict__
             }
 
-            if &#39;X-Scrapfly-Reject-Code&#39; in response.headers:
+            if &#39;X-Scrapfly-Reject-Code&#39; in self.response.headers:
                 api_result[&#39;result&#39;][&#39;error&#39;] = {
-                    &#39;code&#39;: response.headers[&#39;X-Scrapfly-Reject-Code&#39;],
-                    &#39;http_code&#39;: response.headers[&#39;X-Scrapfly-Reject-Http-Code&#39;],
-                    &#39;message&#39;: response.headers[&#39;X-Scrapfly-Reject-Description&#39;],
-                    &#39;error_id&#39;: response.headers[&#39;X-Scrapfly-Reject-ID&#39;],
-                    &#39;retryable&#39;: True if response.headers[&#39;X-Scrapfly-Reject-Retryable&#39;] == &#39;yes&#39; else False
+                    &#39;code&#39;: self.response.headers[&#39;X-Scrapfly-Reject-Code&#39;],
+                    &#39;http_code&#39;: int(self.response.headers[&#39;X-Scrapfly-Reject-Http-Code&#39;]),
+                    &#39;message&#39;: self.response.headers[&#39;X-Scrapfly-Reject-Description&#39;],
+                    &#39;error_id&#39;: self.response.headers[&#39;X-Scrapfly-Reject-ID&#39;],
+                    &#39;retryable&#39;: True if self.response.headers[&#39;X-Scrapfly-Reject-Retryable&#39;] == &#39;yes&#39; else False,
+                    &#39;doc_url&#39;: &#39;&#39;,
+                    &#39;links&#39;: {}
                 }
 
-                if &#39;X-Scrapfly-Reject-Doc&#39; in response.headers:
-                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
+                if &#39;X-Scrapfly-Reject-Doc&#39; in self.response.headers:
+                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;doc_url&#39;] = self.response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
+                    api_result[&#39;result&#39;][&#39;error&#39;][&#39;links&#39;][&#39;Related Docs&#39;] = self.response.headers[&#39;X-Scrapfly-Reject-Doc&#39;]
 
         if isinstance(api_result, str):
             raise HttpError(
@@ -800,6 +824,18 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             logger.error(&#39;You must install scrapfly[scrapy] to enable this feature&#39;)
             raise e
 
+    @property
+    def error_message(self) :
+        if self.error:
+            message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
+
+            if self.error[&#39;links&#39;]:
+                message += &#34;Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+
+            return message
+
+        return &#39;&lt;-- %s - %s %s | Doc: %s&#39; % (self.response.status_code, self.http_status_code, self.code, self.documentation_url)
+
     def _is_api_error(self, api_result: Dict) -&gt; bool:
         if self.scrape_config.method == &#39;HEAD&#39;:
             if &#39;X-Reject-Reason&#39; in self.response.headers:
@@ -821,10 +857,11 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                     raise ApiHttpServerError(
                         request=e.request,
                         response=e.response,
-                        message= self.result[&#39;message&#39;],
+                        message=self.result[&#39;message&#39;],
                         code=&#39;&#39;,
                         resource=&#39;&#39;,
-                        http_status_code=e.response.status_code
+                        http_status_code=e.response.status_code,
+                        documentation_url=self.result.get(&#39;links&#39;)
                     ) from e
                 else:
                     raise ApiHttpClientError(
@@ -833,7 +870,8 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                         message=self.result[&#39;message&#39;],
                         code=&#39;&#39;,
                         resource=&#39;API&#39;,
-                        http_status_code=self.result[&#39;http_code&#39;]
+                        http_status_code=self.result[&#39;http_code&#39;],
+                        documentation_url=self.result.get(&#39;links&#39;)
                     ) from e
 
         if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
@@ -1051,6 +1089,26 @@ def duration_ms(self) -&gt; Optional[float]:
 def error(self) -&gt; Optional[Dict]:
     if self.scrape_success is False:
         return self.scrape_result[&#39;error&#39;]</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.error_message"><code class="name">var <span class="ident">error_message</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def error_message(self) :
+    if self.error:
+        message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
+
+        if self.error[&#39;links&#39;]:
+            message += &#34;Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+
+        return message
+
+    return &#39;&lt;-- %s - %s %s | Doc: %s&#39; % (self.response.status_code, self.http_status_code, self.code, self.documentation_url)</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.headers"><code class="name">var <span class="ident">headers</span> : requests.structures.CaseInsensitiveDict</code></dt>
@@ -1300,10 +1358,11 @@ def upstream_status_code(self) -&gt; Optional[int]:
                 raise ApiHttpServerError(
                     request=e.request,
                     response=e.response,
-                    message= self.result[&#39;message&#39;],
+                    message=self.result[&#39;message&#39;],
                     code=&#39;&#39;,
                     resource=&#39;&#39;,
-                    http_status_code=e.response.status_code
+                    http_status_code=e.response.status_code,
+                    documentation_url=self.result.get(&#39;links&#39;)
                 ) from e
             else:
                 raise ApiHttpClientError(
@@ -1312,7 +1371,8 @@ def upstream_status_code(self) -&gt; Optional[int]:
                     message=self.result[&#39;message&#39;],
                     code=&#39;&#39;,
                     resource=&#39;API&#39;,
-                    http_status_code=self.result[&#39;http_code&#39;]
+                    http_status_code=self.result[&#39;http_code&#39;],
+                    documentation_url=self.result.get(&#39;links&#39;)
                 ) from e
 
     if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
@@ -1504,6 +1564,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.cost" href="#scrapfly.api_response.ScrapeApiResponse.cost">cost</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.duration_ms" href="#scrapfly.api_response.ScrapeApiResponse.duration_ms">duration_ms</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.error" href="#scrapfly.api_response.ScrapeApiResponse.error">error</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.error_message" href="#scrapfly.api_response.ScrapeApiResponse.error_message">error_message</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.handle_api_result" href="#scrapfly.api_response.ScrapeApiResponse.handle_api_result">handle_api_result</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.headers" href="#scrapfly.api_response.ScrapeApiResponse.headers">headers</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.prevent_extra_usage" href="#scrapfly.api_response.ScrapeApiResponse.prevent_extra_usage">prevent_extra_usage</a></code></li>

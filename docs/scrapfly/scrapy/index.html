@@ -31,13 +31,16 @@ from .request import ScrapflyScrapyRequest
 from .response import ScrapflyScrapyResponse
 from .middleware import ScrapflyMiddleware
 from .spider import ScrapflySpider, ScrapflyCrawlSpider
+from .pipelines import FilesPipeline, ImagesPipeline
 
 __all__:Tuple[str, ...] = (
     &#39;ScrapflyScrapyRequest&#39;,
     &#39;ScrapflyScrapyResponse&#39;,
     &#39;ScrapflyMiddleware&#39;,
     &#39;ScrapflySpider&#39;,
-    &#39;ScrapflyCrawlSpider&#39;
+    &#39;ScrapflyCrawlSpider&#39;,
+    &#39;FilesPipeline&#39;,
+    &#39;ImagesPipeline&#39;
 )</code></pre>
 </details>
 </section>
@@ -49,6 +52,10 @@ __all__:Tuple[str, ...] = (
 <div class="desc"></div>
 </dd>
 <dt><code class="name"><a title="scrapfly.scrapy.middleware" href="middleware.html">scrapfly.scrapy.middleware</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.scrapy.pipelines" href="pipelines.html">scrapfly.scrapy.pipelines</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -73,6 +80,141 @@ __all__:Tuple[str, ...] = (
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
+<dt id="scrapfly.scrapy.FilesPipeline"><code class="flex name class">
+<span>class <span class="ident">FilesPipeline</span></span>
+<span>(</span><span>store_uri, download_func=None, settings=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Abstract pipeline that implement the file downloading</p>
+<p>This pipeline tries to minimize network transfers and file processing,
+doing stat of the files and determining if file is new, up-to-date or
+expired.</p>
+<p><code>new</code> files are those that pipeline never processed and needs to be
+downloaded from supplier site the first time.</p>
+<p><code>uptodate</code> files are the ones that the pipeline processed and are still
+valid files.</p>
+<p><code>expired</code> files are those that pipeline already processed but the last
+modification was made long time ago, so a reprocessing is recommended to
+refresh it in case of change.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class FilesPipeline(ScrapyFilesPipeline):
+    def get_media_requests(self, item, info):
+        scrape_configs = ItemAdapter(item).get(self.files_urls_field, [])
+
+        requests = []
+
+        for config in scrape_configs:
+            if isinstance(config, str): # string link - dummy convert
+                config = scrape_config=ScrapeConfig(url=url)
+
+            if isinstance(config, ScrapeConfig):
+                requests.append(ScrapflyScrapyRequest(scrape_config=config))
+            else:
+                raise ValueError(&#39;FilesPipeline item must ScrapeConfig Object or string url&#39;)
+
+        return requests</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>scrapy.pipelines.files.FilesPipeline</li>
+<li>scrapy.pipelines.media.MediaPipeline</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.FilesPipeline.get_media_requests"><code class="name flex">
+<span>def <span class="ident">get_media_requests</span></span>(<span>self, item, info)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the media requests to download</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_media_requests(self, item, info):
+    scrape_configs = ItemAdapter(item).get(self.files_urls_field, [])
+
+    requests = []
+
+    for config in scrape_configs:
+        if isinstance(config, str): # string link - dummy convert
+            config = scrape_config=ScrapeConfig(url=url)
+
+        if isinstance(config, ScrapeConfig):
+            requests.append(ScrapflyScrapyRequest(scrape_config=config))
+        else:
+            raise ValueError(&#39;FilesPipeline item must ScrapeConfig Object or string url&#39;)
+
+    return requests</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.scrapy.ImagesPipeline"><code class="flex name class">
+<span>class <span class="ident">ImagesPipeline</span></span>
+<span>(</span><span>store_uri, download_func=None, settings=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Abstract pipeline that implement the image thumbnail generation logic</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ImagesPipeline(ScrapyImagesPipeline):
+    def get_media_requests(self, item, info):
+        scrape_configs = ItemAdapter(item).get(self.images_urls_field, [])
+
+        requests = []
+
+        for config in scrape_configs:
+            if isinstance(config, str):  # string link - dummy convert
+                config = scrape_config = ScrapeConfig(url=url)
+
+            if isinstance(config, ScrapeConfig):
+                requests.append(ScrapflyScrapyRequest(scrape_config=config))
+            else:
+                raise ValueError(&#39;ImagesPipeline item must ScrapeConfig Object or string url&#39;)
+
+        return requests</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>scrapy.pipelines.images.ImagesPipeline</li>
+<li>scrapy.pipelines.files.FilesPipeline</li>
+<li>scrapy.pipelines.media.MediaPipeline</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.ImagesPipeline.get_media_requests"><code class="name flex">
+<span>def <span class="ident">get_media_requests</span></span>(<span>self, item, info)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the media requests to download</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_media_requests(self, item, info):
+    scrape_configs = ItemAdapter(item).get(self.images_urls_field, [])
+
+    requests = []
+
+    for config in scrape_configs:
+        if isinstance(config, str):  # string link - dummy convert
+            config = scrape_config = ScrapeConfig(url=url)
+
+        if isinstance(config, ScrapeConfig):
+            requests.append(ScrapflyScrapyRequest(scrape_config=config))
+        else:
+            raise ValueError(&#39;ImagesPipeline item must ScrapeConfig Object or string url&#39;)
+
+    return requests</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
 <dt id="scrapfly.scrapy.ScrapflyCrawlSpider"><code class="flex name class">
 <span>class <span class="ident">ScrapflyCrawlSpider</span></span>
 <span>(</span><span>*a, **kw)</span>
@@ -674,11 +816,21 @@ class.</p></div>
             &#39;scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware&#39;: None,
             &#39;scrapy.downloadermiddlewares.redirect.RedirectMiddleware&#39;: None,
             &#39;scrapy.downloadermiddlewares.cookies.CookiesMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None
+            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None,
         },
         &#39;DOWNLOAD_HANDLERS_BASE&#39;: {
             &#39;http&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;,
             &#39;https&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;
+        },
+        &#39;SPIDER_MIDDLEWARES&#39;: {
+            &#39;scrapfly.scrapy.middleware.ScrapflyRefererMiddleware&#39;: 10,
+            &#39;scrapy.spidermiddlewares.referer.RefererMiddleware&#39;: None,
+        },
+        &#39;ITEM_PIPELINES&#39;: {
+            &#39;scrapfly.scrapy.pipelines.FilesPipeline&#39;: 1,
+            &#39;scrapfly.scrapy.pipelines.ImagesPipeline&#39;: 1,
+            &#39;scrapy.pipelines.files.FilesPipeline&#39;: None,
+            &#39;scrapy.pipelines.images.ImagesPipeline&#39;: None
         }
     }
 
@@ -750,6 +902,8 @@ class.</p></div>
                 read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
             )
 
+            spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
+
         spider.scrapfly_client.open()
         return spider</code></pre>
 </details>
@@ -808,6 +962,8 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
             connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
             read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
         )
+
+        spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
 
     spider.scrapfly_client.open()
     return spider</code></pre>
@@ -951,6 +1107,7 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 <ul>
 <li><code><a title="scrapfly.scrapy.downloader" href="downloader.html">scrapfly.scrapy.downloader</a></code></li>
 <li><code><a title="scrapfly.scrapy.middleware" href="middleware.html">scrapfly.scrapy.middleware</a></code></li>
+<li><code><a title="scrapfly.scrapy.pipelines" href="pipelines.html">scrapfly.scrapy.pipelines</a></code></li>
 <li><code><a title="scrapfly.scrapy.request" href="request.html">scrapfly.scrapy.request</a></code></li>
 <li><code><a title="scrapfly.scrapy.response" href="response.html">scrapfly.scrapy.response</a></code></li>
 <li><code><a title="scrapfly.scrapy.spider" href="spider.html">scrapfly.scrapy.spider</a></code></li>
@@ -958,6 +1115,18 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
+<li>
+<h4><code><a title="scrapfly.scrapy.FilesPipeline" href="#scrapfly.scrapy.FilesPipeline">FilesPipeline</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.FilesPipeline.get_media_requests" href="#scrapfly.scrapy.FilesPipeline.get_media_requests">get_media_requests</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.scrapy.ImagesPipeline" href="#scrapfly.scrapy.ImagesPipeline">ImagesPipeline</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.ImagesPipeline.get_media_requests" href="#scrapfly.scrapy.ImagesPipeline.get_media_requests">get_media_requests</a></code></li>
+</ul>
+</li>
 <li>
 <h4><code><a title="scrapfly.scrapy.ScrapflyCrawlSpider" href="#scrapfly.scrapy.ScrapflyCrawlSpider">ScrapflyCrawlSpider</a></code></h4>
 <ul class="">

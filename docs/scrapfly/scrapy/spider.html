@@ -69,11 +69,21 @@ class ScrapflySpider(scrapy.Spider):
             &#39;scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware&#39;: None,
             &#39;scrapy.downloadermiddlewares.redirect.RedirectMiddleware&#39;: None,
             &#39;scrapy.downloadermiddlewares.cookies.CookiesMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None
+            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None,
         },
         &#39;DOWNLOAD_HANDLERS_BASE&#39;: {
             &#39;http&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;,
             &#39;https&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;
+        },
+        &#39;SPIDER_MIDDLEWARES&#39;: {
+            &#39;scrapfly.scrapy.middleware.ScrapflyRefererMiddleware&#39;: 10,
+            &#39;scrapy.spidermiddlewares.referer.RefererMiddleware&#39;: None,
+        },
+        &#39;ITEM_PIPELINES&#39;: {
+            &#39;scrapfly.scrapy.pipelines.FilesPipeline&#39;: 1,
+            &#39;scrapfly.scrapy.pipelines.ImagesPipeline&#39;: 1,
+            &#39;scrapy.pipelines.files.FilesPipeline&#39;: None,
+            &#39;scrapy.pipelines.images.ImagesPipeline&#39;: None
         }
     }
 
@@ -144,6 +154,8 @@ class ScrapflySpider(scrapy.Spider):
                 connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
                 read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
             )
+
+            spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
 
         spider.scrapfly_client.open()
         return spider
@@ -432,11 +444,21 @@ class.</p></div>
             &#39;scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware&#39;: None,
             &#39;scrapy.downloadermiddlewares.redirect.RedirectMiddleware&#39;: None,
             &#39;scrapy.downloadermiddlewares.cookies.CookiesMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None
+            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None,
         },
         &#39;DOWNLOAD_HANDLERS_BASE&#39;: {
             &#39;http&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;,
             &#39;https&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;
+        },
+        &#39;SPIDER_MIDDLEWARES&#39;: {
+            &#39;scrapfly.scrapy.middleware.ScrapflyRefererMiddleware&#39;: 10,
+            &#39;scrapy.spidermiddlewares.referer.RefererMiddleware&#39;: None,
+        },
+        &#39;ITEM_PIPELINES&#39;: {
+            &#39;scrapfly.scrapy.pipelines.FilesPipeline&#39;: 1,
+            &#39;scrapfly.scrapy.pipelines.ImagesPipeline&#39;: 1,
+            &#39;scrapy.pipelines.files.FilesPipeline&#39;: None,
+            &#39;scrapy.pipelines.images.ImagesPipeline&#39;: None
         }
     }
 
@@ -508,6 +530,8 @@ class.</p></div>
                 read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
             )
 
+            spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
+
         spider.scrapfly_client.open()
         return spider</code></pre>
 </details>
@@ -566,6 +590,8 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
             connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
             read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
         )
+
+        spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
 
     spider.scrapfly_client.open()
     return spider</code></pre>

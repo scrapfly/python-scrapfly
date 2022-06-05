@@ -112,8 +112,6 @@ class ScrapflyHTTPDownloader:
                 scrape_config=request.scrape_config
             )
 
-            self._crawler.stats.inc_value(&#39;scrapfly/bandwidth_consumed&#39;, count=scrapfly_api_response.context[&#39;bandwidth_consumed&#39;])
-
             return ScrapflyScrapyResponse(request=request, scrape_api_response=scrapfly_api_response)
 
         deferred.addCallback(on_body_downloaded)
@@ -462,8 +460,6 @@ differing chunk sizes, down to one byte at a time.</p></div>
                 response=response,
                 scrape_config=request.scrape_config
             )
-
-            self._crawler.stats.inc_value(&#39;scrapfly/bandwidth_consumed&#39;, count=scrapfly_api_response.context[&#39;bandwidth_consumed&#39;])
 
             return ScrapflyScrapyResponse(request=request, scrape_api_response=scrapfly_api_response)
 

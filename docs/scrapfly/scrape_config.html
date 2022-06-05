@@ -29,10 +29,6 @@
 <pre><code class="python">import base64
 import json
 import logging
-from base64 import b64encode
-from os import getpid
-from socket import gethostname
-from threading import currentThread
 from typing import Optional, List, Dict, Iterable, Union, Set
 from urllib.parse import urlencode, quote
 
@@ -76,6 +72,9 @@ class ScrapeConfig:
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
     webhook:Optional[str]=None
+    timeout:Optional[int]=None # in milliseconds
+    js_scenario: Dict = None
+    extract: Dict = None
 
     def __init__(
         self,
@@ -106,7 +105,10 @@ class ScrapeConfig:
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         session_sticky_proxy:Optional[bool] = None,
-        webhook:Optional[str] = None
+        webhook:Optional[str] = None,
+        timeout:Optional[int] = None, # in milliseconds
+        js_scenario:Optional[Dict] = None,
+        extract:Optional[Dict] = None
     ):
         assert(type(url) is str)
 
@@ -145,6 +147,9 @@ class ScrapeConfig:
         self.key = None
         self.dns = dns
         self.ssl = ssl
+        self.js_scenario = js_scenario
+        self.timeout = timeout
+        self.extract = extract
 
         if cookies:
             _cookies = []
@@ -181,9 +186,6 @@ class ScrapeConfig:
     def _bool_to_http(self, _bool:bool) -&gt; str:
         return &#39;true&#39; if _bool is True else &#39;false&#39;
 
-    def generate_distributed_correlation_id(self):
-        self.correlation_id = abs(hash(&#39;-&#39;.join([gethostname(), str(getpid()), str(currentThread().ident)])))
-
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
@@ -199,6 +201,12 @@ class ScrapeConfig:
         if self.webhook is not None:
             params[&#39;webhook_name&#39;] = self.webhook
 
+        if self.timeout is not None:
+            params[&#39;timeout&#39;] = self.timeout
+
+        if self.extract is not None:
+            params[&#39;extract&#39;] = base64.urlsafe_b64encode(json.dumps(self.extract).encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
         if self.render_js is True:
             params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
 
@@ -206,7 +214,10 @@ class ScrapeConfig:
                 params[&#39;wait_for_selector&#39;] = self.wait_for_selector
 
             if self.js:
-                params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+                params[&#39;js&#39;] = base64.urlsafe_b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+            if self.js_scenario:
+                params[&#39;js_scenario&#39;] = base64.urlsafe_b64encode(json.dumps(self.js_scenario).encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
 
             if self.rendering_wait:
                 params[&#39;rendering_wait&#39;] = self.rendering_wait
@@ -220,6 +231,9 @@ class ScrapeConfig:
 
             if self.screenshots:
                 logging.warning(&#39;Params &#34;screenshots&#34; is ignored. Works only if render_js is enabled&#39;)
+
+            if self.js_scenario:
+                logging.warning(&#39;Params &#34;js_scenario&#34; is ignored. Works only if render_js is enabled&#39;)
 
             if self.js:
                 logging.warning(&#39;Params &#34;js&#34; is ignored. Works only if render_js is enabled&#39;)
@@ -336,7 +350,7 @@ class ScrapeConfig:
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[Dict] = None, extract: Optional[Dict] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -377,6 +391,9 @@ class ScrapeConfig:
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
     webhook:Optional[str]=None
+    timeout:Optional[int]=None # in milliseconds
+    js_scenario: Dict = None
+    extract: Dict = None
 
     def __init__(
         self,
@@ -407,7 +424,10 @@ class ScrapeConfig:
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         session_sticky_proxy:Optional[bool] = None,
-        webhook:Optional[str] = None
+        webhook:Optional[str] = None,
+        timeout:Optional[int] = None, # in milliseconds
+        js_scenario:Optional[Dict] = None,
+        extract:Optional[Dict] = None
     ):
         assert(type(url) is str)
 
@@ -446,6 +466,9 @@ class ScrapeConfig:
         self.key = None
         self.dns = dns
         self.ssl = ssl
+        self.js_scenario = js_scenario
+        self.timeout = timeout
+        self.extract = extract
 
         if cookies:
             _cookies = []
@@ -482,9 +505,6 @@ class ScrapeConfig:
     def _bool_to_http(self, _bool:bool) -&gt; str:
         return &#39;true&#39; if _bool is True else &#39;false&#39;
 
-    def generate_distributed_correlation_id(self):
-        self.correlation_id = abs(hash(&#39;-&#39;.join([gethostname(), str(getpid()), str(currentThread().ident)])))
-
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
@@ -500,6 +520,12 @@ class ScrapeConfig:
         if self.webhook is not None:
             params[&#39;webhook_name&#39;] = self.webhook
 
+        if self.timeout is not None:
+            params[&#39;timeout&#39;] = self.timeout
+
+        if self.extract is not None:
+            params[&#39;extract&#39;] = base64.urlsafe_b64encode(json.dumps(self.extract).encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
         if self.render_js is True:
             params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
 
@@ -507,7 +533,10 @@ class ScrapeConfig:
                 params[&#39;wait_for_selector&#39;] = self.wait_for_selector
 
             if self.js:
-                params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+                params[&#39;js&#39;] = base64.urlsafe_b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+            if self.js_scenario:
+                params[&#39;js_scenario&#39;] = base64.urlsafe_b64encode(json.dumps(self.js_scenario).encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
 
             if self.rendering_wait:
                 params[&#39;rendering_wait&#39;] = self.rendering_wait
@@ -521,6 +550,9 @@ class ScrapeConfig:
 
             if self.screenshots:
                 logging.warning(&#39;Params &#34;screenshots&#34; is ignored. Works only if render_js is enabled&#39;)
+
+            if self.js_scenario:
+                logging.warning(&#39;Params &#34;js_scenario&#34; is ignored. Works only if render_js is enabled&#39;)
 
             if self.js:
                 logging.warning(&#39;Params &#34;js&#34; is ignored. Works only if render_js is enabled&#39;)
@@ -679,6 +711,10 @@ class ScrapeConfig:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extract"><code class="name">var <span class="ident">extract</span> : Dict</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.graphql"><code class="name">var <span class="ident">graphql</span> : Optional[str]</code></dt>
 <dd>
 <div class="desc"></div>
@@ -688,6 +724,10 @@ class ScrapeConfig:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.js"><code class="name">var <span class="ident">js</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.js_scenario"><code class="name">var <span class="ident">js_scenario</span> : Dict</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -732,6 +772,10 @@ class ScrapeConfig:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.tags"><code class="name">var <span class="ident">tags</span> : Optional[List[str]]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.timeout"><code class="name">var <span class="ident">timeout</span> : Optional[int]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -807,19 +851,6 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="scrapfly.scrape_config.ScrapeConfig.generate_distributed_correlation_id"><code class="name flex">
-<span>def <span class="ident">generate_distributed_correlation_id</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def generate_distributed_correlation_id(self):
-    self.correlation_id = abs(hash(&#39;-&#39;.join([gethostname(), str(getpid()), str(currentThread().ident)])))</code></pre>
-</details>
-</dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.to_api_params"><code class="name flex">
 <span>def <span class="ident">to_api_params</span></span>(<span>self, key: str) ‑> Dict</span>
 </code></dt>
@@ -844,6 +875,12 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     if self.webhook is not None:
         params[&#39;webhook_name&#39;] = self.webhook
 
+    if self.timeout is not None:
+        params[&#39;timeout&#39;] = self.timeout
+
+    if self.extract is not None:
+        params[&#39;extract&#39;] = base64.urlsafe_b64encode(json.dumps(self.extract).encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
     if self.render_js is True:
         params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
 
@@ -851,7 +888,10 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
             params[&#39;wait_for_selector&#39;] = self.wait_for_selector
 
         if self.js:
-            params[&#39;js&#39;] = b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+            params[&#39;js&#39;] = base64.urlsafe_b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+        if self.js_scenario:
+            params[&#39;js_scenario&#39;] = base64.urlsafe_b64encode(json.dumps(self.js_scenario).encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
 
         if self.rendering_wait:
             params[&#39;rendering_wait&#39;] = self.rendering_wait
@@ -865,6 +905,9 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
         if self.screenshots:
             logging.warning(&#39;Params &#34;screenshots&#34; is ignored. Works only if render_js is enabled&#39;)
+
+        if self.js_scenario:
+            logging.warning(&#39;Params &#34;js_scenario&#34; is ignored. Works only if render_js is enabled&#39;)
 
         if self.js:
             logging.warning(&#39;Params &#34;js&#34; is ignored. Works only if render_js is enabled&#39;)
@@ -979,11 +1022,12 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.data" href="#scrapfly.scrape_config.ScrapeConfig.data">data</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.debug" href="#scrapfly.scrape_config.ScrapeConfig.debug">debug</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.dns" href="#scrapfly.scrape_config.ScrapeConfig.dns">dns</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.extract" href="#scrapfly.scrape_config.ScrapeConfig.extract">extract</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.from_exported_config" href="#scrapfly.scrape_config.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
-<li><code><a title="scrapfly.scrape_config.ScrapeConfig.generate_distributed_correlation_id" href="#scrapfly.scrape_config.ScrapeConfig.generate_distributed_correlation_id">generate_distributed_correlation_id</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.graphql" href="#scrapfly.scrape_config.ScrapeConfig.graphql">graphql</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.headers" href="#scrapfly.scrape_config.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js" href="#scrapfly.scrape_config.ScrapeConfig.js">js</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.js_scenario" href="#scrapfly.scrape_config.ScrapeConfig.js_scenario">js_scenario</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.method" href="#scrapfly.scrape_config.ScrapeConfig.method">method</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.proxy_pool" href="#scrapfly.scrape_config.ScrapeConfig.proxy_pool">proxy_pool</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error" href="#scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
@@ -995,6 +1039,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.session_sticky_proxy" href="#scrapfly.scrape_config.ScrapeConfig.session_sticky_proxy">session_sticky_proxy</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.ssl" href="#scrapfly.scrape_config.ScrapeConfig.ssl">ssl</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.tags" href="#scrapfly.scrape_config.ScrapeConfig.tags">tags</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.timeout" href="#scrapfly.scrape_config.ScrapeConfig.timeout">timeout</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.to_api_params" href="#scrapfly.scrape_config.ScrapeConfig.to_api_params">to_api_params</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.url" href="#scrapfly.scrape_config.ScrapeConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.wait_for_selector" href="#scrapfly.scrape_config.ScrapeConfig.wait_for_selector">wait_for_selector</a></code></li>
