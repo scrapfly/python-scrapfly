@@ -13,8 +13,10 @@ class FilesPipeline(ScrapyFilesPipeline):
         requests = []
 
         for config in scrape_configs:
-            if isinstance(config, str): # string link - dummy convert
-                config = scrape_config=ScrapeConfig(url=url)
+            # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
+            # Auto migrate string url to ScrapeConfig object
+            if isinstance(config, str):
+                config = scrape_config=ScrapeConfig(url=config)
 
             if isinstance(config, ScrapeConfig):
                 requests.append(ScrapflyScrapyRequest(scrape_config=config))
@@ -30,8 +32,10 @@ class ImagesPipeline(ScrapyImagesPipeline):
         requests = []
 
         for config in scrape_configs:
-            if isinstance(config, str):  # string link - dummy convert
-                config = scrape_config = ScrapeConfig(url=url)
+            # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
+            # Auto migrate string url to ScrapeConfig object
+            if isinstance(config, str):
+                config = scrape_config = ScrapeConfig(url=config)
 
             if isinstance(config, ScrapeConfig):
                 requests.append(ScrapflyScrapyRequest(scrape_config=config))

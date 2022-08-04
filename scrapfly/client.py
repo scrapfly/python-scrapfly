@@ -9,7 +9,6 @@ import re
 import shutil
 from functools import partial
 from io import BytesIO
-from pprint import pprint
 
 import backoff
 from requests import Session, Response
