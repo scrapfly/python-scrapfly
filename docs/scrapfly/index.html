@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.8.0&#39;
+<pre><code class="python">__version__ = &#39;0.8.1&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -236,7 +236,7 @@ __all__:Tuple[str, ...] = (
         code = api_response.error[&#39;code&#39;]
 
         if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
-            http_code = api_response.error[&#39;http_code&#39;]
+            http_code = api_response.scrape_result[&#39;status_code&#39;]
 
         if &#39;description&#39; in api_response.error:
             description = api_response.error[&#39;description&#39;]
@@ -333,7 +333,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
     code = api_response.error[&#39;code&#39;]
 
     if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
-        http_code = api_response.error[&#39;http_code&#39;]
+        http_code = api_response.scrape_result[&#39;status_code&#39;]
 
     if &#39;description&#39; in api_response.error:
         description = api_response.error[&#39;description&#39;]

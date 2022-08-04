@@ -227,7 +227,7 @@ class ErrorFactory:
         code = api_response.error[&#39;code&#39;]
 
         if code == &#39;ERR::SCRAPE::BAD_UPSTREAM_RESPONSE&#39;:
-            http_code = api_response.error[&#39;http_code&#39;]
+            http_code = api_response.scrape_result[&#39;status_code&#39;]
 
         if &#39;description&#39; in api_response.error:
             description = api_response.error[&#39;description&#39;]
