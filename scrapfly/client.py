@@ -250,7 +250,7 @@ class ScrapflyClient:
                 processed_tasks += 1
 
         while scrape_configs or results or processing_tasks:
-            print("Scrape %d/%d - %d running" % (processed_tasks, expected_tasks, len(processing_tasks)))
+            logger.info("Scrape %d/%d - %d running" % (processed_tasks, expected_tasks, len(processing_tasks)))
 
             if scrape_configs:
                 if len(processing_tasks) < concurrency:
