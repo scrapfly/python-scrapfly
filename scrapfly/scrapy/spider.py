@@ -1,6 +1,7 @@
 import copy
 import uuid
 import logging
+import collections.abc
 
 try:
     from functools import cached_property
@@ -30,7 +31,8 @@ class ScrapflySpider(scrapy.Spider):
     account_info:Dict
     run_id:int
 
-    custom_settings:Dict = {
+    custom_settings:Dict = {}
+    scrapfly_settings:Dict = {
         'DOWNLOADER_MIDDLEWARES': {
             'scrapfly.scrapy.middleware.ScrapflyMiddleware': 725,
             'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware': None,
@@ -58,6 +60,19 @@ class ScrapflySpider(scrapy.Spider):
             'scrapy.pipelines.images.ImagesPipeline': None
         }
     }
+
+    @classmethod
+    def _merge_settings(cls, d, u):
+        for k, v in u.items():
+            if isinstance(v, collections.abc.Mapping):
+                d[k] = cls._merge_settings(d.get(k, {}), v)
+            else:
+                d[k] = v
+        return d
+
+    @classmethod
+    def update_settings(cls, settings):
+        settings.update(cls._merge_settings(dict(settings), cls.scrapfly_settings), priority='spider')
 
     @cached_property
     def run_id(self):

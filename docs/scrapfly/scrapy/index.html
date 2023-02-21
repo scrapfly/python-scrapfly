@@ -107,8 +107,10 @@ refresh it in case of change.</p></div>
         requests = []
 
         for config in scrape_configs:
-            if isinstance(config, str): # string link - dummy convert
-                config = scrape_config=ScrapeConfig(url=url)
+            # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
+            # Auto migrate string url to ScrapeConfig object
+            if isinstance(config, str):
+                config = scrape_config=ScrapeConfig(url=config)
 
             if isinstance(config, ScrapeConfig):
                 requests.append(ScrapflyScrapyRequest(scrape_config=config))
@@ -139,8 +141,10 @@ refresh it in case of change.</p></div>
     requests = []
 
     for config in scrape_configs:
-        if isinstance(config, str): # string link - dummy convert
-            config = scrape_config=ScrapeConfig(url=url)
+        # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
+        # Auto migrate string url to ScrapeConfig object
+        if isinstance(config, str):
+            config = scrape_config=ScrapeConfig(url=config)
 
         if isinstance(config, ScrapeConfig):
             requests.append(ScrapflyScrapyRequest(scrape_config=config))
@@ -169,8 +173,10 @@ refresh it in case of change.</p></div>
         requests = []
 
         for config in scrape_configs:
-            if isinstance(config, str):  # string link - dummy convert
-                config = scrape_config = ScrapeConfig(url=url)
+            # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
+            # Auto migrate string url to ScrapeConfig object
+            if isinstance(config, str):
+                config = scrape_config = ScrapeConfig(url=config)
 
             if isinstance(config, ScrapeConfig):
                 requests.append(ScrapflyScrapyRequest(scrape_config=config))
@@ -202,8 +208,10 @@ refresh it in case of change.</p></div>
     requests = []
 
     for config in scrape_configs:
-        if isinstance(config, str):  # string link - dummy convert
-            config = scrape_config = ScrapeConfig(url=url)
+        # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
+        # Auto migrate string url to ScrapeConfig object
+        if isinstance(config, str):
+            config = scrape_config = ScrapeConfig(url=config)
 
         if isinstance(config, ScrapeConfig):
             requests.append(ScrapflyScrapyRequest(scrape_config=config))
@@ -805,7 +813,8 @@ class.</p></div>
     account_info:Dict
     run_id:int
 
-    custom_settings:Dict = {
+    custom_settings:Dict = {}
+    scrapfly_settings:Dict = {
         &#39;DOWNLOADER_MIDDLEWARES&#39;: {
             &#39;scrapfly.scrapy.middleware.ScrapflyMiddleware&#39;: 725,
             &#39;scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware&#39;: None,
@@ -833,6 +842,19 @@ class.</p></div>
             &#39;scrapy.pipelines.images.ImagesPipeline&#39;: None
         }
     }
+
+    @classmethod
+    def _merge_settings(cls, d, u):
+        for k, v in u.items():
+            if isinstance(v, collections.abc.Mapping):
+                d[k] = cls._merge_settings(d.get(k, {}), v)
+            else:
+                d[k] = v
+        return d
+
+    @classmethod
+    def update_settings(cls, settings):
+        settings.update(cls._merge_settings(dict(settings), cls.scrapfly_settings), priority=&#39;spider&#39;)
 
     @cached_property
     def run_id(self):
@@ -930,6 +952,10 @@ class.</p></div>
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.scrapy.ScrapflySpider.scrapfly_settings"><code class="name">var <span class="ident">scrapfly_settings</span> : Dict</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 </dl>
 <h3>Static methods</h3>
 <dl>
@@ -967,6 +993,20 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 
     spider.scrapfly_client.open()
     return spider</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.scrapy.ScrapflySpider.update_settings"><code class="name flex">
+<span>def <span class="ident">update_settings</span></span>(<span>settings)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def update_settings(cls, settings):
+    settings.update(cls._merge_settings(dict(settings), cls.scrapfly_settings), priority=&#39;spider&#39;)</code></pre>
 </details>
 </dd>
 </dl>
@@ -1185,7 +1225,9 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.retry" href="#scrapfly.scrapy.ScrapflySpider.retry">retry</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.run_id" href="#scrapfly.scrapy.ScrapflySpider.run_id">run_id</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.scrapfly_client" href="#scrapfly.scrapy.ScrapflySpider.scrapfly_client">scrapfly_client</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflySpider.scrapfly_settings" href="#scrapfly.scrapy.ScrapflySpider.scrapfly_settings">scrapfly_settings</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.start_requests" href="#scrapfly.scrapy.ScrapflySpider.start_requests">start_requests</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflySpider.update_settings" href="#scrapfly.scrapy.ScrapflySpider.update_settings">update_settings</a></code></li>
 </ul>
 </li>
 </ul>

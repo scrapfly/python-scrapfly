@@ -3,7 +3,6 @@ import json
 import logging
 from typing import Optional, List, Dict, Iterable, Union, Set
 from urllib.parse import urlencode, quote
-
 from requests.structures import CaseInsensitiveDict
 
 
@@ -47,6 +46,9 @@ class ScrapeConfig:
     timeout:Optional[int]=None # in milliseconds
     js_scenario: Dict = None
     extract: Dict = None
+    lang:Optional[List[str]] = None
+    os:Optional[str] = None
+    auto_scroll:Optional[bool] = None
 
     def __init__(
         self,
@@ -80,7 +82,10 @@ class ScrapeConfig:
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
         js_scenario:Optional[Dict] = None,
-        extract:Optional[Dict] = None
+        extract:Optional[Dict] = None,
+        os:Optional[str] = None,
+        lang:Optional[List[str]] = None,
+        auto_scroll:Optional[bool] = None
     ):
         assert(type(url) is str)
 
@@ -122,6 +127,9 @@ class ScrapeConfig:
         self.js_scenario = js_scenario
         self.timeout = timeout
         self.extract = extract
+        self.lang = lang
+        self.os = os
+        self.auto_scroll = auto_scroll
 
         if cookies:
             _cookies = []
@@ -197,6 +205,9 @@ class ScrapeConfig:
             if self.screenshots is not None:
                 for name, element in self.screenshots.items():
                     params['screenshots[%s]' % name] = element
+
+            if self.auto_scroll is True:
+                params['auto_scroll'] = self._bool_to_http(self.auto_scroll)
         else:
             if self.wait_for_selector is not None:
                 logging.warning('Params "wait_for_selector" is ignored. Works only if render_js is enabled')
@@ -264,6 +275,12 @@ class ScrapeConfig:
         if self.proxy_pool is not None:
             params['proxy_pool'] = self.proxy_pool
 
+        if self.lang is not None:
+            params['lang'] = ','.join(self.lang)
+
+        if self.os is not None:
+            params['os'] = self.os
+
         return params
 
     @staticmethod
@@ -307,5 +324,6 @@ class ScrapeConfig:
             js=data['js'],
             rendering_wait=data['rendering_wait'],
             screenshots=data['screenshots'] or {},
-            proxy_pool=data['proxy_pool']
+            proxy_pool=data['proxy_pool'],
+            auto_scroll=data['auto_scroll']
         )

@@ -31,7 +31,6 @@ import json
 import logging
 from typing import Optional, List, Dict, Iterable, Union, Set
 from urllib.parse import urlencode, quote
-
 from requests.structures import CaseInsensitiveDict
 
 
@@ -75,6 +74,9 @@ class ScrapeConfig:
     timeout:Optional[int]=None # in milliseconds
     js_scenario: Dict = None
     extract: Dict = None
+    lang:Optional[List[str]] = None
+    os:Optional[str] = None
+    auto_scroll:Optional[bool] = None
 
     def __init__(
         self,
@@ -108,7 +110,10 @@ class ScrapeConfig:
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
         js_scenario:Optional[Dict] = None,
-        extract:Optional[Dict] = None
+        extract:Optional[Dict] = None,
+        os:Optional[str] = None,
+        lang:Optional[List[str]] = None,
+        auto_scroll:Optional[bool] = None
     ):
         assert(type(url) is str)
 
@@ -150,6 +155,9 @@ class ScrapeConfig:
         self.js_scenario = js_scenario
         self.timeout = timeout
         self.extract = extract
+        self.lang = lang
+        self.os = os
+        self.auto_scroll = auto_scroll
 
         if cookies:
             _cookies = []
@@ -225,6 +233,9 @@ class ScrapeConfig:
             if self.screenshots is not None:
                 for name, element in self.screenshots.items():
                     params[&#39;screenshots[%s]&#39; % name] = element
+
+            if self.auto_scroll is True:
+                params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
         else:
             if self.wait_for_selector is not None:
                 logging.warning(&#39;Params &#34;wait_for_selector&#34; is ignored. Works only if render_js is enabled&#39;)
@@ -292,6 +303,12 @@ class ScrapeConfig:
         if self.proxy_pool is not None:
             params[&#39;proxy_pool&#39;] = self.proxy_pool
 
+        if self.lang is not None:
+            params[&#39;lang&#39;] = &#39;,&#39;.join(self.lang)
+
+        if self.os is not None:
+            params[&#39;os&#39;] = self.os
+
         return params
 
     @staticmethod
@@ -335,7 +352,8 @@ class ScrapeConfig:
             js=data[&#39;js&#39;],
             rendering_wait=data[&#39;rendering_wait&#39;],
             screenshots=data[&#39;screenshots&#39;] or {},
-            proxy_pool=data[&#39;proxy_pool&#39;]
+            proxy_pool=data[&#39;proxy_pool&#39;],
+            auto_scroll=data[&#39;auto_scroll&#39;]
         )</code></pre>
 </details>
 </section>
@@ -350,7 +368,7 @@ class ScrapeConfig:
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[Dict] = None, extract: Optional[Dict] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[Dict] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -394,6 +412,9 @@ class ScrapeConfig:
     timeout:Optional[int]=None # in milliseconds
     js_scenario: Dict = None
     extract: Dict = None
+    lang:Optional[List[str]] = None
+    os:Optional[str] = None
+    auto_scroll:Optional[bool] = None
 
     def __init__(
         self,
@@ -427,7 +448,10 @@ class ScrapeConfig:
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
         js_scenario:Optional[Dict] = None,
-        extract:Optional[Dict] = None
+        extract:Optional[Dict] = None,
+        os:Optional[str] = None,
+        lang:Optional[List[str]] = None,
+        auto_scroll:Optional[bool] = None
     ):
         assert(type(url) is str)
 
@@ -469,6 +493,9 @@ class ScrapeConfig:
         self.js_scenario = js_scenario
         self.timeout = timeout
         self.extract = extract
+        self.lang = lang
+        self.os = os
+        self.auto_scroll = auto_scroll
 
         if cookies:
             _cookies = []
@@ -544,6 +571,9 @@ class ScrapeConfig:
             if self.screenshots is not None:
                 for name, element in self.screenshots.items():
                     params[&#39;screenshots[%s]&#39; % name] = element
+
+            if self.auto_scroll is True:
+                params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
         else:
             if self.wait_for_selector is not None:
                 logging.warning(&#39;Params &#34;wait_for_selector&#34; is ignored. Works only if render_js is enabled&#39;)
@@ -611,6 +641,12 @@ class ScrapeConfig:
         if self.proxy_pool is not None:
             params[&#39;proxy_pool&#39;] = self.proxy_pool
 
+        if self.lang is not None:
+            params[&#39;lang&#39;] = &#39;,&#39;.join(self.lang)
+
+        if self.os is not None:
+            params[&#39;os&#39;] = self.os
+
         return params
 
     @staticmethod
@@ -654,7 +690,8 @@ class ScrapeConfig:
             js=data[&#39;js&#39;],
             rendering_wait=data[&#39;rendering_wait&#39;],
             screenshots=data[&#39;screenshots&#39;] or {},
-            proxy_pool=data[&#39;proxy_pool&#39;]
+            proxy_pool=data[&#39;proxy_pool&#39;],
+            auto_scroll=data[&#39;auto_scroll&#39;]
         )</code></pre>
 </details>
 <h3>Class variables</h3>
@@ -668,6 +705,10 @@ class ScrapeConfig:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.asp"><code class="name">var <span class="ident">asp</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.auto_scroll"><code class="name">var <span class="ident">auto_scroll</span> : Optional[bool]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -731,7 +772,15 @@ class ScrapeConfig:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.lang"><code class="name">var <span class="ident">lang</span> : Optional[List[str]]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.method"><code class="name">var <span class="ident">method</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.os"><code class="name">var <span class="ident">os</span> : Optional[str]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -844,7 +893,8 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         js=data[&#39;js&#39;],
         rendering_wait=data[&#39;rendering_wait&#39;],
         screenshots=data[&#39;screenshots&#39;] or {},
-        proxy_pool=data[&#39;proxy_pool&#39;]
+        proxy_pool=data[&#39;proxy_pool&#39;],
+        auto_scroll=data[&#39;auto_scroll&#39;]
     )</code></pre>
 </details>
 </dd>
@@ -899,6 +949,9 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         if self.screenshots is not None:
             for name, element in self.screenshots.items():
                 params[&#39;screenshots[%s]&#39; % name] = element
+
+        if self.auto_scroll is True:
+            params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
     else:
         if self.wait_for_selector is not None:
             logging.warning(&#39;Params &#34;wait_for_selector&#34; is ignored. Works only if render_js is enabled&#39;)
@@ -966,6 +1019,12 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     if self.proxy_pool is not None:
         params[&#39;proxy_pool&#39;] = self.proxy_pool
 
+    if self.lang is not None:
+        params[&#39;lang&#39;] = &#39;,&#39;.join(self.lang)
+
+    if self.os is not None:
+        params[&#39;os&#39;] = self.os
+
     return params</code></pre>
 </details>
 </dd>
@@ -1012,6 +1071,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.PUBLIC_DATACENTER_POOL" href="#scrapfly.scrape_config.ScrapeConfig.PUBLIC_DATACENTER_POOL">PUBLIC_DATACENTER_POOL</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL" href="#scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL">PUBLIC_RESIDENTIAL_POOL</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.asp" href="#scrapfly.scrape_config.ScrapeConfig.asp">asp</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.auto_scroll" href="#scrapfly.scrape_config.ScrapeConfig.auto_scroll">auto_scroll</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.body" href="#scrapfly.scrape_config.ScrapeConfig.body">body</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.cache" href="#scrapfly.scrape_config.ScrapeConfig.cache">cache</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.cache_clear" href="#scrapfly.scrape_config.ScrapeConfig.cache_clear">cache_clear</a></code></li>
@@ -1028,7 +1088,9 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.headers" href="#scrapfly.scrape_config.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js" href="#scrapfly.scrape_config.ScrapeConfig.js">js</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js_scenario" href="#scrapfly.scrape_config.ScrapeConfig.js_scenario">js_scenario</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.lang" href="#scrapfly.scrape_config.ScrapeConfig.lang">lang</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.method" href="#scrapfly.scrape_config.ScrapeConfig.method">method</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.os" href="#scrapfly.scrape_config.ScrapeConfig.os">os</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.proxy_pool" href="#scrapfly.scrape_config.ScrapeConfig.proxy_pool">proxy_pool</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error" href="#scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.render_js" href="#scrapfly.scrape_config.ScrapeConfig.render_js">render_js</a></code></li>
