@@ -36,7 +36,6 @@ class ScrapeConfig:
     body: Optional[str] = None
     data: Optional[Dict] = None
     headers: Optional[CaseInsensitiveDict] = None
-    graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
     wait_for_selector: Optional[str] = None
@@ -73,7 +72,6 @@ class ScrapeConfig:
         body: Optional[str] = None,
         data: Optional[Dict] = None,
         headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
-        graphql: Optional[str] = None,
         js: str = None,
         rendering_wait: int = None,
         wait_for_selector: Optional[str] = None,
@@ -116,7 +114,6 @@ class ScrapeConfig:
         self.wait_for_selector = wait_for_selector
         self.body = body
         self.data = data
-        self.graphql = graphql
         self.js = js
         self.rendering_wait = rendering_wait
         self.raise_on_upstream_error = raise_on_upstream_error
@@ -169,7 +166,7 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -> Dict:
         params = {
             'key': self.key if self.key is not None else key,
-            'url': quote(self.url)
+            'url': self.url
         }
 
         if self.country is not None:
@@ -269,9 +266,6 @@ class ScrapeConfig:
         if self.debug is True:
             params['debug'] = self._bool_to_http(self.debug)
 
-        if self.graphql:
-            params['graphql_query'] = quote(self.graphql)
-
         if self.proxy_pool is not None:
             params['proxy_pool'] = self.proxy_pool
 
@@ -320,7 +314,6 @@ class ScrapeConfig:
             debug=data['debug'],
             correlation_id=data['correlation_id'],
             tags=data['tags'],
-            graphql=data['graphql_query'],
             js=data['js'],
             rendering_wait=data['rendering_wait'],
             screenshots=data['screenshots'] or {},
