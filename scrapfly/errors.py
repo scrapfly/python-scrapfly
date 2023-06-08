@@ -14,20 +14,6 @@ class ScrapflyError(Exception):
     RESOURCE_WEBHOOK = 'WEBHOOK'
     RESOURCE_SESSION = 'SESSION'
 
-    RETRYABLE_CODE = [
-        'ERR::SCRAPE::OPERATION_TIMEOUT',
-        'ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST',
-        'ERR::PROXY::RESOURCES_SATURATION',
-        'ERR::PROXY::NOT_REACHABLE',
-        'ERR::PROXY::UNAVAILABLE',
-        'ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED',
-        'ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED',
-        'ERR::SESSION::CONCURRENT_ACCESS',
-        'ERR::ASP::SHIELD_EXPIRED',
-        'ERR::SCRAPE::NETWORK_ISSUE',
-        'ERR::SCRAPE::DRIVER_TIMEOUT'
-    ]
-
     def __init__(
         self,
         message: str,
@@ -83,7 +69,6 @@ class HttpError(ScrapflyError):
         super().__init__(**kwargs)
 
     def __str__(self) -> str:
-
         if isinstance(self, UpstreamHttpError):
             text = "%s -- %s " % (self.api_response.scrape_result['status_code'], self.api_response.scrape_result['reason'])
         else:

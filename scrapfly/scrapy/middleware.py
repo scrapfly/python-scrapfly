@@ -9,7 +9,7 @@ from .spider import ScrapflySpider
 from .request import ScrapflyScrapyRequest
 from .response import ScrapflyScrapyResponse
 
-from .. import ScrapflyError, HttpError
+from .. import HttpError, ScrapflyError
 
 
 # spider middleware
@@ -51,25 +51,21 @@ class ScrapflyMiddleware:
         return None
 
     def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+        delay = 1
+
         if isinstance(exception, ResponseNeverReceived):
-            return spider.retry(request, exception, 5)
+            return spider.retry(request, exception, delay)
 
-        if not isinstance(exception, ScrapflyError):
-            raise exception
-
-        if isinstance(exception, HttpError):
-            if exception.code in ScrapflyError.RETRYABLE_CODE or exception.http_status_code in [502]:
-                delay = 5
-
-                if 'retry-after' in exception.response.headers:
-                    delay = int(exception.response.headers['retry-after'])
+        if isinstance(exception, ScrapflyError):
+            if exception.is_retryable:
+                if isinstance(exception, HttpError) and exception.response is not None:
+                    if 'retry-after' in exception.response.headers:
+                        delay = int(exception.response.headers['retry-after'])
 
                 return spider.retry(request, exception, delay)
 
-        if spider.settings.get('SCRAPFLY_CUSTOM_RETRY_CODE', False) and exception.code in spider.settings.get('SCRAPFLY_CUSTOM_RETRY_CODE'):
-            return spider.retry(request, exception, 5)
-        elif exception.is_retryable is True:
-            return spider.retry(request, exception, 5)
+            if spider.settings.get('SCRAPFLY_CUSTOM_RETRY_CODE', False) and exception.code in spider.settings.get('SCRAPFLY_CUSTOM_RETRY_CODE'):
+                return spider.retry(request, exception, delay)
 
         raise exception
 
