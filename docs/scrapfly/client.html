@@ -278,7 +278,7 @@ class ScrapflyClient:
                 processed_tasks += 1
 
         while scrape_configs or results or processing_tasks:
-            print(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
+            logger.info(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
 
             if scrape_configs:
                 if len(processing_tasks) &lt; concurrency:
@@ -724,7 +724,7 @@ class ScrapflyClient:
                 processed_tasks += 1
 
         while scrape_configs or results or processing_tasks:
-            print(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
+            logger.info(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
 
             if scrape_configs:
                 if len(processing_tasks) &lt; concurrency:
@@ -1135,7 +1135,7 @@ def ua(self) -&gt; str:
             processed_tasks += 1
 
     while scrape_configs or results or processing_tasks:
-        print(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
+        logger.info(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
 
         if scrape_configs:
             if len(processing_tasks) &lt; concurrency:

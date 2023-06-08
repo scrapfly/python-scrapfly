@@ -42,20 +42,6 @@ class ScrapflyError(Exception):
     RESOURCE_WEBHOOK = &#39;WEBHOOK&#39;
     RESOURCE_SESSION = &#39;SESSION&#39;
 
-    RETRYABLE_CODE = [
-        &#39;ERR::SCRAPE::OPERATION_TIMEOUT&#39;,
-        &#39;ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST&#39;,
-        &#39;ERR::PROXY::RESOURCES_SATURATION&#39;,
-        &#39;ERR::PROXY::NOT_REACHABLE&#39;,
-        &#39;ERR::PROXY::UNAVAILABLE&#39;,
-        &#39;ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED&#39;,
-        &#39;ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED&#39;,
-        &#39;ERR::SESSION::CONCURRENT_ACCESS&#39;,
-        &#39;ERR::ASP::SHIELD_EXPIRED&#39;,
-        &#39;ERR::SCRAPE::NETWORK_ISSUE&#39;,
-        &#39;ERR::SCRAPE::DRIVER_TIMEOUT&#39;
-    ]
-
     def __init__(
         self,
         message: str,
@@ -111,7 +97,6 @@ class HttpError(ScrapflyError):
         super().__init__(**kwargs)
 
     def __str__(self) -&gt; str:
-
         if isinstance(self, UpstreamHttpError):
             text = &#34;%s -- %s &#34; % (self.api_response.scrape_result[&#39;status_code&#39;], self.api_response.scrape_result[&#39;reason&#39;])
         else:
@@ -408,20 +393,6 @@ __all__:Tuple[str, ...] = [
     RESOURCE_WEBHOOK = &#39;WEBHOOK&#39;
     RESOURCE_SESSION = &#39;SESSION&#39;
 
-    RETRYABLE_CODE = [
-        &#39;ERR::SCRAPE::OPERATION_TIMEOUT&#39;,
-        &#39;ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST&#39;,
-        &#39;ERR::PROXY::RESOURCES_SATURATION&#39;,
-        &#39;ERR::PROXY::NOT_REACHABLE&#39;,
-        &#39;ERR::PROXY::UNAVAILABLE&#39;,
-        &#39;ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED&#39;,
-        &#39;ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED&#39;,
-        &#39;ERR::SESSION::CONCURRENT_ACCESS&#39;,
-        &#39;ERR::ASP::SHIELD_EXPIRED&#39;,
-        &#39;ERR::SCRAPE::NETWORK_ISSUE&#39;,
-        &#39;ERR::SCRAPE::DRIVER_TIMEOUT&#39;
-    ]
-
     def __init__(
         self,
         message: str,
@@ -499,10 +470,6 @@ __all__:Tuple[str, ...] = [
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK"><code class="name">var <span class="ident">RESOURCE_WEBHOOK</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.errors.ScrapflyError.RETRYABLE_CODE"><code class="name">var <span class="ident">RETRYABLE_CODE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -720,7 +687,6 @@ __all__:Tuple[str, ...] = [
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
 <li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
-<li><code><a title="scrapfly.errors.ScrapflyError.RETRYABLE_CODE" href="#scrapfly.errors.ScrapflyError.RETRYABLE_CODE">RETRYABLE_CODE</a></code></li>
 </ul>
 </li>
 <li>

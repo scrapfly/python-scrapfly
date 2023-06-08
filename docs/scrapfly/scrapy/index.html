@@ -413,25 +413,21 @@ def from_crawler(cls, crawler, *args, **kwargs):
         return None
 
     def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+        delay = 1
+
         if isinstance(exception, ResponseNeverReceived):
-            return spider.retry(request, exception, 5)
+            return spider.retry(request, exception, delay)
 
-        if not isinstance(exception, ScrapflyError):
-            raise exception
-
-        if isinstance(exception, HttpError):
-            if exception.code in ScrapflyError.RETRYABLE_CODE or exception.http_status_code in [502]:
-                delay = 5
-
-                if &#39;retry-after&#39; in exception.response.headers:
-                    delay = int(exception.response.headers[&#39;retry-after&#39;])
+        if isinstance(exception, ScrapflyError):
+            if exception.is_retryable:
+                if isinstance(exception, HttpError) and exception.response is not None:
+                    if &#39;retry-after&#39; in exception.response.headers:
+                        delay = int(exception.response.headers[&#39;retry-after&#39;])
 
                 return spider.retry(request, exception, delay)
 
-        if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
-            return spider.retry(request, exception, 5)
-        elif exception.is_retryable is True:
-            return spider.retry(request, exception, 5)
+            if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
+                return spider.retry(request, exception, delay)
 
         raise exception
 
@@ -457,25 +453,21 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+    delay = 1
+
     if isinstance(exception, ResponseNeverReceived):
-        return spider.retry(request, exception, 5)
+        return spider.retry(request, exception, delay)
 
-    if not isinstance(exception, ScrapflyError):
-        raise exception
-
-    if isinstance(exception, HttpError):
-        if exception.code in ScrapflyError.RETRYABLE_CODE or exception.http_status_code in [502]:
-            delay = 5
-
-            if &#39;retry-after&#39; in exception.response.headers:
-                delay = int(exception.response.headers[&#39;retry-after&#39;])
+    if isinstance(exception, ScrapflyError):
+        if exception.is_retryable:
+            if isinstance(exception, HttpError) and exception.response is not None:
+                if &#39;retry-after&#39; in exception.response.headers:
+                    delay = int(exception.response.headers[&#39;retry-after&#39;])
 
             return spider.retry(request, exception, delay)
 
-    if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
-        return spider.retry(request, exception, 5)
-    elif exception.is_retryable is True:
-        return spider.retry(request, exception, 5)
+        if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
+            return spider.retry(request, exception, delay)
 
     raise exception</code></pre>
 </details>

@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.8.4&#39;
+<pre><code class="python">__version__ = &#39;0.8.6&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -417,7 +417,6 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
         super().__init__(**kwargs)
 
     def __str__(self) -&gt; str:
-
         if isinstance(self, UpstreamHttpError):
             text = &#34;%s -- %s &#34; % (self.api_response.scrape_result[&#39;status_code&#39;], self.api_response.scrape_result[&#39;reason&#39;])
         else:
@@ -1483,7 +1482,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
 </dd>
 <dt id="scrapfly.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[Dict] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[Dict] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1517,7 +1516,6 @@ def upstream_status_code(self) -&gt; Optional[int]:
     body: Optional[str] = None
     data: Optional[Dict] = None
     headers: Optional[CaseInsensitiveDict] = None
-    graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
     wait_for_selector: Optional[str] = None
@@ -1554,7 +1552,6 @@ def upstream_status_code(self) -&gt; Optional[int]:
         body: Optional[str] = None,
         data: Optional[Dict] = None,
         headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
-        graphql: Optional[str] = None,
         js: str = None,
         rendering_wait: int = None,
         wait_for_selector: Optional[str] = None,
@@ -1597,7 +1594,6 @@ def upstream_status_code(self) -&gt; Optional[int]:
         self.wait_for_selector = wait_for_selector
         self.body = body
         self.data = data
-        self.graphql = graphql
         self.js = js
         self.rendering_wait = rendering_wait
         self.raise_on_upstream_error = raise_on_upstream_error
@@ -1650,7 +1646,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: quote(self.url)
+            &#39;url&#39;: self.url
         }
 
         if self.country is not None:
@@ -1750,9 +1746,6 @@ def upstream_status_code(self) -&gt; Optional[int]:
         if self.debug is True:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
 
-        if self.graphql:
-            params[&#39;graphql_query&#39;] = quote(self.graphql)
-
         if self.proxy_pool is not None:
             params[&#39;proxy_pool&#39;] = self.proxy_pool
 
@@ -1801,7 +1794,6 @@ def upstream_status_code(self) -&gt; Optional[int]:
             debug=data[&#39;debug&#39;],
             correlation_id=data[&#39;correlation_id&#39;],
             tags=data[&#39;tags&#39;],
-            graphql=data[&#39;graphql_query&#39;],
             js=data[&#39;js&#39;],
             rendering_wait=data[&#39;rendering_wait&#39;],
             screenshots=data[&#39;screenshots&#39;] or {},
@@ -1868,10 +1860,6 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.extract"><code class="name">var <span class="ident">extract</span> : Dict</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.ScrapeConfig.graphql"><code class="name">var <span class="ident">graphql</span> : Optional[str]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -2004,7 +1992,6 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         debug=data[&#39;debug&#39;],
         correlation_id=data[&#39;correlation_id&#39;],
         tags=data[&#39;tags&#39;],
-        graphql=data[&#39;graphql_query&#39;],
         js=data[&#39;js&#39;],
         rendering_wait=data[&#39;rendering_wait&#39;],
         screenshots=data[&#39;screenshots&#39;] or {},
@@ -2028,7 +2015,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <pre><code class="python">def to_api_params(self, key:str) -&gt; Dict:
     params = {
         &#39;key&#39;: self.key if self.key is not None else key,
-        &#39;url&#39;: quote(self.url)
+        &#39;url&#39;: self.url
     }
 
     if self.country is not None:
@@ -2127,9 +2114,6 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
     if self.debug is True:
         params[&#39;debug&#39;] = self._bool_to_http(self.debug)
-
-    if self.graphql:
-        params[&#39;graphql_query&#39;] = quote(self.graphql)
 
     if self.proxy_pool is not None:
         params[&#39;proxy_pool&#39;] = self.proxy_pool
@@ -2387,7 +2371,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
                 processed_tasks += 1
 
         while scrape_configs or results or processing_tasks:
-            print(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
+            logger.info(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
 
             if scrape_configs:
                 if len(processing_tasks) &lt; concurrency:
@@ -2798,7 +2782,7 @@ def ua(self) -&gt; str:
             processed_tasks += 1
 
     while scrape_configs or results or processing_tasks:
-        print(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
+        logger.info(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
 
         if scrape_configs:
             if len(processing_tasks) &lt; concurrency:
@@ -3064,20 +3048,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
     RESOURCE_WEBHOOK = &#39;WEBHOOK&#39;
     RESOURCE_SESSION = &#39;SESSION&#39;
 
-    RETRYABLE_CODE = [
-        &#39;ERR::SCRAPE::OPERATION_TIMEOUT&#39;,
-        &#39;ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST&#39;,
-        &#39;ERR::PROXY::RESOURCES_SATURATION&#39;,
-        &#39;ERR::PROXY::NOT_REACHABLE&#39;,
-        &#39;ERR::PROXY::UNAVAILABLE&#39;,
-        &#39;ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED&#39;,
-        &#39;ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED&#39;,
-        &#39;ERR::SESSION::CONCURRENT_ACCESS&#39;,
-        &#39;ERR::ASP::SHIELD_EXPIRED&#39;,
-        &#39;ERR::SCRAPE::NETWORK_ISSUE&#39;,
-        &#39;ERR::SCRAPE::DRIVER_TIMEOUT&#39;
-    ]
-
     def __init__(
         self,
         message: str,
@@ -3155,10 +3125,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_WEBHOOK"><code class="name">var <span class="ident">RESOURCE_WEBHOOK</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.ScrapflyError.RETRYABLE_CODE"><code class="name">var <span class="ident">RETRYABLE_CODE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -3461,7 +3427,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapeConfig.dns" href="#scrapfly.ScrapeConfig.dns">dns</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.extract" href="#scrapfly.ScrapeConfig.extract">extract</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.from_exported_config" href="#scrapfly.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
-<li><code><a title="scrapfly.ScrapeConfig.graphql" href="#scrapfly.ScrapeConfig.graphql">graphql</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.headers" href="#scrapfly.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.js" href="#scrapfly.ScrapeConfig.js">js</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.js_scenario" href="#scrapfly.ScrapeConfig.js_scenario">js_scenario</a></code></li>
@@ -3532,7 +3497,6 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_SESSION" href="#scrapfly.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_THROTTLE" href="#scrapfly.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
 <li><code><a title="scrapfly.ScrapflyError.RESOURCE_WEBHOOK" href="#scrapfly.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
-<li><code><a title="scrapfly.ScrapflyError.RETRYABLE_CODE" href="#scrapfly.ScrapflyError.RETRYABLE_CODE">RETRYABLE_CODE</a></code></li>
 </ul>
 </li>
 <li>

@@ -64,7 +64,6 @@ class ScrapeConfig:
     body: Optional[str] = None
     data: Optional[Dict] = None
     headers: Optional[CaseInsensitiveDict] = None
-    graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
     wait_for_selector: Optional[str] = None
@@ -101,7 +100,6 @@ class ScrapeConfig:
         body: Optional[str] = None,
         data: Optional[Dict] = None,
         headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
-        graphql: Optional[str] = None,
         js: str = None,
         rendering_wait: int = None,
         wait_for_selector: Optional[str] = None,
@@ -144,7 +142,6 @@ class ScrapeConfig:
         self.wait_for_selector = wait_for_selector
         self.body = body
         self.data = data
-        self.graphql = graphql
         self.js = js
         self.rendering_wait = rendering_wait
         self.raise_on_upstream_error = raise_on_upstream_error
@@ -197,7 +194,7 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: quote(self.url)
+            &#39;url&#39;: self.url
         }
 
         if self.country is not None:
@@ -297,9 +294,6 @@ class ScrapeConfig:
         if self.debug is True:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
 
-        if self.graphql:
-            params[&#39;graphql_query&#39;] = quote(self.graphql)
-
         if self.proxy_pool is not None:
             params[&#39;proxy_pool&#39;] = self.proxy_pool
 
@@ -348,7 +342,6 @@ class ScrapeConfig:
             debug=data[&#39;debug&#39;],
             correlation_id=data[&#39;correlation_id&#39;],
             tags=data[&#39;tags&#39;],
-            graphql=data[&#39;graphql_query&#39;],
             js=data[&#39;js&#39;],
             rendering_wait=data[&#39;rendering_wait&#39;],
             screenshots=data[&#39;screenshots&#39;] or {},
@@ -368,7 +361,7 @@ class ScrapeConfig:
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, graphql: Optional[str] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[Dict] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Optional[Set[str]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[Dict] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -402,7 +395,6 @@ class ScrapeConfig:
     body: Optional[str] = None
     data: Optional[Dict] = None
     headers: Optional[CaseInsensitiveDict] = None
-    graphql: Optional[str] = None
     js: str = None
     rendering_wait: int = None
     wait_for_selector: Optional[str] = None
@@ -439,7 +431,6 @@ class ScrapeConfig:
         body: Optional[str] = None,
         data: Optional[Dict] = None,
         headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
-        graphql: Optional[str] = None,
         js: str = None,
         rendering_wait: int = None,
         wait_for_selector: Optional[str] = None,
@@ -482,7 +473,6 @@ class ScrapeConfig:
         self.wait_for_selector = wait_for_selector
         self.body = body
         self.data = data
-        self.graphql = graphql
         self.js = js
         self.rendering_wait = rendering_wait
         self.raise_on_upstream_error = raise_on_upstream_error
@@ -535,7 +525,7 @@ class ScrapeConfig:
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
             &#39;key&#39;: self.key if self.key is not None else key,
-            &#39;url&#39;: quote(self.url)
+            &#39;url&#39;: self.url
         }
 
         if self.country is not None:
@@ -635,9 +625,6 @@ class ScrapeConfig:
         if self.debug is True:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
 
-        if self.graphql:
-            params[&#39;graphql_query&#39;] = quote(self.graphql)
-
         if self.proxy_pool is not None:
             params[&#39;proxy_pool&#39;] = self.proxy_pool
 
@@ -686,7 +673,6 @@ class ScrapeConfig:
             debug=data[&#39;debug&#39;],
             correlation_id=data[&#39;correlation_id&#39;],
             tags=data[&#39;tags&#39;],
-            graphql=data[&#39;graphql_query&#39;],
             js=data[&#39;js&#39;],
             rendering_wait=data[&#39;rendering_wait&#39;],
             screenshots=data[&#39;screenshots&#39;] or {},
@@ -753,10 +739,6 @@ class ScrapeConfig:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.extract"><code class="name">var <span class="ident">extract</span> : Dict</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.graphql"><code class="name">var <span class="ident">graphql</span> : Optional[str]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -889,7 +871,6 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         debug=data[&#39;debug&#39;],
         correlation_id=data[&#39;correlation_id&#39;],
         tags=data[&#39;tags&#39;],
-        graphql=data[&#39;graphql_query&#39;],
         js=data[&#39;js&#39;],
         rendering_wait=data[&#39;rendering_wait&#39;],
         screenshots=data[&#39;screenshots&#39;] or {},
@@ -913,7 +894,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <pre><code class="python">def to_api_params(self, key:str) -&gt; Dict:
     params = {
         &#39;key&#39;: self.key if self.key is not None else key,
-        &#39;url&#39;: quote(self.url)
+        &#39;url&#39;: self.url
     }
 
     if self.country is not None:
@@ -1013,9 +994,6 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     if self.debug is True:
         params[&#39;debug&#39;] = self._bool_to_http(self.debug)
 
-    if self.graphql:
-        params[&#39;graphql_query&#39;] = quote(self.graphql)
-
     if self.proxy_pool is not None:
         params[&#39;proxy_pool&#39;] = self.proxy_pool
 
@@ -1084,7 +1062,6 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.dns" href="#scrapfly.scrape_config.ScrapeConfig.dns">dns</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.extract" href="#scrapfly.scrape_config.ScrapeConfig.extract">extract</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.from_exported_config" href="#scrapfly.scrape_config.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
-<li><code><a title="scrapfly.scrape_config.ScrapeConfig.graphql" href="#scrapfly.scrape_config.ScrapeConfig.graphql">graphql</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.headers" href="#scrapfly.scrape_config.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js" href="#scrapfly.scrape_config.ScrapeConfig.js">js</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js_scenario" href="#scrapfly.scrape_config.ScrapeConfig.js_scenario">js_scenario</a></code></li>
