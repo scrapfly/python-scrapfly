@@ -1,6 +1,9 @@
+init:
+	python -m venv venv
+	source venv/bin/activate
+
 install:
-	python -m pip install --user --upgrade setuptools wheel
-	python -m pip install --user --upgrade twine pdoc3 colorama
+	python -m pip install -e ".[develop,deploy,scrapy]"
 
 bump:
 	sed -i "1s/.*/__version__ = '$(VERSION)'/" scrapfly/__init__.py
@@ -9,7 +12,7 @@ bump:
 	git push
 
 generate-docs:
-	sudo pdoc --html scrapfly --force --output-dir docs
+	pdoc --html scrapfly --force --output-dir docs
 
 release:
 	-rm dist/*
@@ -25,4 +28,4 @@ release:
 
 dev:
 	rm -Rf $(shell python -m site --user-site )/scrapfly*
-	python setup.py develop --user
+	python setup.py develop

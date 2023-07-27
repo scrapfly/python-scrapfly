@@ -50,6 +50,18 @@ EXTRA_DEPENDENCIES = {
         'wheel',
         'pdoc3'
     ],
+    'deploy': [
+        'bumpversion',
+        'isort',
+        'readme_renderer',
+        'twine',
+        'setuptools',
+        'wheel',
+        'pdoc3',
+        'pip',
+        'colorama',
+        'sentry-sdk'
+    ],
     'scrapy': [
         'scrapy>=2.4.0'
     ],
@@ -61,7 +73,6 @@ EXTRA_DEPENDENCIES = {
     ],
     'speedups': [
         'brotlipy',
-        'cchardet',
         'msgpack'
     ],
     'concurrency': []
