@@ -356,7 +356,7 @@ class ScrapeApiResponse:
         response.reason = self.scrape_result['reason']
 
         if self.scrape_result['content']:
-            if isinstance(self.scrape_result['content'], ByteIO):
+            if isinstance(self.scrape_result['content'], BytesIO):
                 response._content = self.scrape_result['content'].getvalue()
             elif isinstance(self.scrape_result['content'], bytes):
                 response._content = self.scrape_result['content']
