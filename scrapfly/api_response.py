@@ -354,7 +354,17 @@ class ScrapeApiResponse:
         response = Response()
         response.status_code = self.scrape_result['status_code']
         response.reason = self.scrape_result['reason']
-        response._content = self.scrape_result['content'].encode('utf-8') if self.scrape_result['content'] else None
+
+        if self.scrape_result['content']:
+            if isinstance(self.scrape_result['content'], ByteIO):
+                response._content = self.scrape_result['content'].getvalue()
+            elif isinstance(self.scrape_result['content'], bytes):
+                response._content = self.scrape_result['content']
+            elif isinstance(self.scrape_result['content'], str):
+                response._content = self.scrape_result['content'].encode('utf-8')
+        else:
+            response._content = None
+        
         response.headers.update(self.scrape_result['response_headers'])
         response.url = self.scrape_result['url']
 
