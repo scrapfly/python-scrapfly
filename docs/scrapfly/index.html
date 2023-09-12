@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.8.8&#39;
+<pre><code class="python">__version__ = &#39;0.8.9&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -847,7 +847,17 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         response = Response()
         response.status_code = self.scrape_result[&#39;status_code&#39;]
         response.reason = self.scrape_result[&#39;reason&#39;]
-        response._content = self.scrape_result[&#39;content&#39;].encode(&#39;utf-8&#39;) if self.scrape_result[&#39;content&#39;] else None
+
+        if self.scrape_result[&#39;content&#39;]:
+            if isinstance(self.scrape_result[&#39;content&#39;], BytesIO):
+                response._content = self.scrape_result[&#39;content&#39;].getvalue()
+            elif isinstance(self.scrape_result[&#39;content&#39;], bytes):
+                response._content = self.scrape_result[&#39;content&#39;]
+            elif isinstance(self.scrape_result[&#39;content&#39;], str):
+                response._content = self.scrape_result[&#39;content&#39;].encode(&#39;utf-8&#39;)
+        else:
+            response._content = None
+        
         response.headers.update(self.scrape_result[&#39;response_headers&#39;])
         response.url = self.scrape_result[&#39;url&#39;]
 
@@ -1421,7 +1431,17 @@ def upstream_status_code(self) -&gt; Optional[int]:
     response = Response()
     response.status_code = self.scrape_result[&#39;status_code&#39;]
     response.reason = self.scrape_result[&#39;reason&#39;]
-    response._content = self.scrape_result[&#39;content&#39;].encode(&#39;utf-8&#39;) if self.scrape_result[&#39;content&#39;] else None
+
+    if self.scrape_result[&#39;content&#39;]:
+        if isinstance(self.scrape_result[&#39;content&#39;], BytesIO):
+            response._content = self.scrape_result[&#39;content&#39;].getvalue()
+        elif isinstance(self.scrape_result[&#39;content&#39;], bytes):
+            response._content = self.scrape_result[&#39;content&#39;]
+        elif isinstance(self.scrape_result[&#39;content&#39;], str):
+            response._content = self.scrape_result[&#39;content&#39;].encode(&#39;utf-8&#39;)
+    else:
+        response._content = None
+    
     response.headers.update(self.scrape_result[&#39;response_headers&#39;])
     response.url = self.scrape_result[&#39;url&#39;]
 
