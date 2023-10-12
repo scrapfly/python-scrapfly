@@ -275,10 +275,10 @@ class ScrapeApiResponse:
     @cached_property
     def selector(self) -> 'Selector':
         try:
-            from scrapy import Selector
+            from parsel import Selector
             return Selector(text=self.content)
         except ImportError as e:
-            logger.error('You must install scrapfly[scrapy] to enable this feature')
+            logger.error('You must install parsel or scrapy package to enable this feature')
             raise e
 
     @property
