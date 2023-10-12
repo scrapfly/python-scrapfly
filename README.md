@@ -9,7 +9,9 @@ You can also install extra dependencies
 * `pip install "scrapfly-sdk[seepdup]"` for performance improvement
 * `pip install "scrapfly-sdk[concurrency]"` for concurrency out of the box (asyncio / thread)
 * `pip install "scrapfly-sdk[scrapy]"` for scrapy integration
-* `pip install "scrapfly-sdk[scrapy]"` Everything!
+* `pip install "scrapfly-sdk[all]"` Everything!
+
+For use of built-in HTML parser (via `ScrapeApiResponse.selector` property) additional requirement of either [parsel](https://pypi.org/project/parsel/) or [scrapy](https://pypi.org/project/Scrapy/) is required.
 
 ## Get Your API Key
 
