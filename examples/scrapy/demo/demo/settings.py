@@ -1,0 +1,5 @@
+SPIDER_MODULES = ['demo.spiders']
+NEWSPIDER_MODULE = 'demo.spiders'
+SCRAPFLY_API_KEY = '__API_KEY__'
+CONCURRENT_REQUESTS = 2
+IMAGES_STORE = "./images"

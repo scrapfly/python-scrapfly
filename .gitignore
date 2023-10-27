@@ -4,3 +4,5 @@ scrapfly_sdk.egg-info
 .pypirc
 *.pyc
 venv
+examples/scrapy/demo/images
+!examples/scrapy/demo/images/.gitkeep

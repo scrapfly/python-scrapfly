@@ -1,3 +1,4 @@
+import base64
 from typing import Optional, Tuple
 from requests import Request, Response
 
@@ -56,6 +57,9 @@ class EncoderError(BaseException):
     def __str__(self) -> str:
         return self.content
 
+    def __repr__(self):
+        return "Invalid payload: %s" % self.content
+
 
 class ExtraUsageForbidden(ScrapflyError):
     pass
@@ -70,15 +74,18 @@ class HttpError(ScrapflyError):
 
     def __str__(self) -> str:
         if isinstance(self, UpstreamHttpError):
-            text = "%s -- %s " % (self.api_response.scrape_result['status_code'], self.api_response.scrape_result['reason'])
+            text = f"Target website responded with {self.api_response.scrape_result['status_code']} - {self.api_response.scrape_result['reason']}"
         else:
-            text = "%s -- %s " % (self.response.status_code, self.response.reason)
+            text = f"{self.response.status_code} - {self.response.reason}"
 
             if isinstance(self, (ApiHttpClientError, ApiHttpServerError)):
                 try:
                     text += self.response.content.decode('utf-8')
                 except UnicodeError:
-                    text += str(self.response.content)
+                    raise EncoderError(content=base64.b64encode(self.response.content).decode('utf-8'))
+            elif isinstance(self, ScraperAPIError):
+                print(self.api_response.error)
+                text += f" | {self.api_response.error['code']} - {self.api_response.error['message']} - {self.api_response.error['links']}"
 
         return text
 
@@ -103,6 +110,10 @@ class BadApiKeyError(ApiHttpClientError):
     pass
 
 
+class PaymentRequired(ApiHttpClientError):
+    pass
+
+
 class TooManyRequest(ApiHttpClientError):
     pass
 
@@ -111,31 +122,35 @@ class ApiHttpServerError(ApiHttpClientError):
     pass
 
 
-class ScrapflyScrapeError(HttpError):
+class ScraperAPIError(HttpError):
     pass
 
 
-class ScrapflyProxyError(HttpError):
+class ScrapflyScrapeError(ScraperAPIError):
     pass
 
 
-class ScrapflyThrottleError(HttpError):
+class ScrapflyProxyError(ScraperAPIError):
     pass
 
 
-class ScrapflyAspError(HttpError):
+class ScrapflyThrottleError(ScraperAPIError):
     pass
 
 
-class ScrapflyScheduleError(HttpError):
+class ScrapflyAspError(ScraperAPIError):
     pass
 
 
-class ScrapflyWebhookError(HttpError):
+class ScrapflyScheduleError(ScraperAPIError):
     pass
 
 
-class ScrapflySessionError(HttpError):
+class ScrapflyWebhookError(ScraperAPIError):
+    pass
+
+
+class ScrapflySessionError(ScraperAPIError):
     pass
 
 
@@ -158,8 +173,10 @@ class ErrorFactory:
     }
 
     # Notable http error has own class for more convenience
+    # Only applicable for generic API error
     HTTP_STATUS_TO_ERROR = {
         401: BadApiKeyError,
+        402: PaymentRequired,
         429: TooManyRequest
     }
 
@@ -226,10 +243,12 @@ class ErrorFactory:
             if http_code >= 500:
                 return ApiHttpServerError(**args)
 
-            if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
+            is_scraper_api_error = resource in ErrorFactory.RESOURCE_TO_ERROR
+
+            if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR and not is_scraper_api_error:
                 return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
 
-            if resource in ErrorFactory.RESOURCE_TO_ERROR:
+            if is_scraper_api_error:
                 return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ApiHttpClientError(**args)

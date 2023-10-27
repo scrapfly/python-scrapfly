@@ -10,14 +10,14 @@ scrapfly_logger.setLevel(logger.DEBUG)
 logger.StreamHandler(stdout)
 
 async def main():
-    results = await scrapfly.concurrent_scrape(scrape_configs=[
-        ScrapeConfig(url='http://httpbin.org/anything', render_js=True),
-        ScrapeConfig(url='http://httpbin.org/anything', render_js=True),
-        ScrapeConfig(url='http://httpbin.org/anything', render_js=True),
-        ScrapeConfig(url='http://httpbin.org/anything', render_js=True)
-    ])
+    scrape_configs = [
+        ScrapeConfig(url='https://httpbin.dev/anything'),
+        ScrapeConfig(url='https://httpbin.dev/anything'),
+        ScrapeConfig(url='https://httpbin.dev/anything'),
+        ScrapeConfig(url='https://httpbin.dev/anything')
+    ]
 
-
-    print(results)
+    async for result in scrapfly.concurrent_scrape(scrape_configs):
+        print(result)
 
 asyncio.run(main())

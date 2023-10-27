@@ -1,3 +1,4 @@
+import base64
 import re
 import logging as logger
 import shutil
@@ -104,7 +105,10 @@ class ResponseBodyHandler:
         try:
             return self.content_loader(content)
         except Exception as e:
-            raise EncoderError(content=content.decode('utf-8')) from e
+            try:
+                raise EncoderError(content=content.decode('utf-8')) from e
+            except UnicodeError:
+                raise EncoderError(content=base64.b64encode(content).decode('utf-8')) from e
 
 
 class ScrapeApiResponse:
@@ -364,7 +368,7 @@ class ScrapeApiResponse:
                 response._content = self.scrape_result['content'].encode('utf-8')
         else:
             response._content = None
-        
+
         response.headers.update(self.scrape_result['response_headers'])
         response.url = self.scrape_result['url']
 

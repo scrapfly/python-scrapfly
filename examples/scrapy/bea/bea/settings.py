@@ -1,4 +1,0 @@
-SPIDER_MODULES = ['bea.spiders']
-NEWSPIDER_MODULE = 'bea.spiders'
-SCRAPFLY_API_KEY = '__API_KEY__'
-CONCURRENT_REQUESTS = 2

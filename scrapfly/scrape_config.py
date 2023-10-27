@@ -2,7 +2,7 @@ import base64
 import json
 import logging
 from typing import Optional, List, Dict, Iterable, Union, Set
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode
 from requests.structures import CaseInsensitiveDict
 
 
@@ -48,6 +48,7 @@ class ScrapeConfig:
     lang:Optional[List[str]] = None
     os:Optional[str] = None
     auto_scroll:Optional[bool] = None
+    cost_budget:Optional[int] = None
 
     def __init__(
         self,
@@ -83,7 +84,8 @@ class ScrapeConfig:
         extract:Optional[Dict] = None,
         os:Optional[str] = None,
         lang:Optional[List[str]] = None,
-        auto_scroll:Optional[bool] = None
+        auto_scroll:Optional[bool] = None,
+        cost_budget:Optional[int] = None
     ):
         assert(type(url) is str)
 
@@ -127,6 +129,7 @@ class ScrapeConfig:
         self.lang = lang
         self.os = os
         self.auto_scroll = auto_scroll
+        self.cost_budget = cost_budget
 
         if cookies:
             _cookies = []
@@ -183,6 +186,9 @@ class ScrapeConfig:
 
         if self.extract is not None:
             params['extract'] = base64.urlsafe_b64encode(json.dumps(self.extract).encode('utf-8')).decode('utf-8')
+
+        if self.cost_budget is not None:
+            params['cost_budget'] = self.cost_budget
 
         if self.render_js is True:
             params['render_js'] = self._bool_to_http(self.render_js)
@@ -318,5 +324,6 @@ class ScrapeConfig:
             rendering_wait=data['rendering_wait'],
             screenshots=data['screenshots'] or {},
             proxy_pool=data['proxy_pool'],
-            auto_scroll=data['auto_scroll']
+            auto_scroll=data['auto_scroll'],
+            cost_budget=data['cost_budget']
         )
