@@ -26,7 +26,8 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from typing import Optional, Tuple
+<pre><code class="python">import base64
+from typing import Optional, Tuple
 from requests import Request, Response
 
 
@@ -84,6 +85,9 @@ class EncoderError(BaseException):
     def __str__(self) -&gt; str:
         return self.content
 
+    def __repr__(self):
+        return &#34;Invalid payload: %s&#34; % self.content
+
 
 class ExtraUsageForbidden(ScrapflyError):
     pass
@@ -98,15 +102,18 @@ class HttpError(ScrapflyError):
 
     def __str__(self) -&gt; str:
         if isinstance(self, UpstreamHttpError):
-            text = &#34;%s -- %s &#34; % (self.api_response.scrape_result[&#39;status_code&#39;], self.api_response.scrape_result[&#39;reason&#39;])
+            text = f&#34;Target website responded with {self.api_response.scrape_result[&#39;status_code&#39;]} - {self.api_response.scrape_result[&#39;reason&#39;]}&#34;
         else:
-            text = &#34;%s -- %s &#34; % (self.response.status_code, self.response.reason)
+            text = f&#34;{self.response.status_code} - {self.response.reason}&#34;
 
             if isinstance(self, (ApiHttpClientError, ApiHttpServerError)):
                 try:
                     text += self.response.content.decode(&#39;utf-8&#39;)
                 except UnicodeError:
-                    text += str(self.response.content)
+                    raise EncoderError(content=base64.b64encode(self.response.content).decode(&#39;utf-8&#39;))
+            elif isinstance(self, ScraperAPIError):
+                print(self.api_response.error)
+                text += f&#34; | {self.api_response.error[&#39;code&#39;]} - {self.api_response.error[&#39;message&#39;]} - {self.api_response.error[&#39;links&#39;]}&#34;
 
         return text
 
@@ -131,6 +138,10 @@ class BadApiKeyError(ApiHttpClientError):
     pass
 
 
+class PaymentRequired(ApiHttpClientError):
+    pass
+
+
 class TooManyRequest(ApiHttpClientError):
     pass
 
@@ -139,31 +150,35 @@ class ApiHttpServerError(ApiHttpClientError):
     pass
 
 
-class ScrapflyScrapeError(HttpError):
+class ScraperAPIError(HttpError):
     pass
 
 
-class ScrapflyProxyError(HttpError):
+class ScrapflyScrapeError(ScraperAPIError):
     pass
 
 
-class ScrapflyThrottleError(HttpError):
+class ScrapflyProxyError(ScraperAPIError):
     pass
 
 
-class ScrapflyAspError(HttpError):
+class ScrapflyThrottleError(ScraperAPIError):
     pass
 
 
-class ScrapflyScheduleError(HttpError):
+class ScrapflyAspError(ScraperAPIError):
     pass
 
 
-class ScrapflyWebhookError(HttpError):
+class ScrapflyScheduleError(ScraperAPIError):
     pass
 
 
-class ScrapflySessionError(HttpError):
+class ScrapflyWebhookError(ScraperAPIError):
+    pass
+
+
+class ScrapflySessionError(ScraperAPIError):
     pass
 
 
@@ -186,8 +201,10 @@ class ErrorFactory:
     }
 
     # Notable http error has own class for more convenience
+    # Only applicable for generic API error
     HTTP_STATUS_TO_ERROR = {
         401: BadApiKeyError,
+        402: PaymentRequired,
         429: TooManyRequest
     }
 
@@ -254,10 +271,12 @@ class ErrorFactory:
             if http_code &gt;= 500:
                 return ApiHttpServerError(**args)
 
-            if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR:
+            is_scraper_api_error = resource in ErrorFactory.RESOURCE_TO_ERROR
+
+            if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR and not is_scraper_api_error:
                 return ErrorFactory.HTTP_STATUS_TO_ERROR[http_code](**args)
 
-            if resource in ErrorFactory.RESOURCE_TO_ERROR:
+            if is_scraper_api_error:
                 return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ApiHttpClientError(**args)
@@ -325,6 +344,7 @@ __all__:Tuple[str, ...] = [
 <ul class="hlist">
 <li><a title="scrapfly.errors.ApiHttpServerError" href="#scrapfly.errors.ApiHttpServerError">ApiHttpServerError</a></li>
 <li>scrapfly.errors.BadApiKeyError</li>
+<li>scrapfly.errors.PaymentRequired</li>
 <li>scrapfly.errors.TooManyRequest</li>
 </ul>
 </dd>
@@ -360,11 +380,12 @@ __all__:Tuple[str, ...] = [
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyAspError(HttpError):
+<pre><code class="python">class ScrapflyAspError(ScraperAPIError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.Exception</li>
@@ -485,11 +506,12 @@ __all__:Tuple[str, ...] = [
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyProxyError(HttpError):
+<pre><code class="python">class ScrapflyProxyError(ScraperAPIError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.Exception</li>
@@ -506,11 +528,12 @@ __all__:Tuple[str, ...] = [
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyScheduleError(HttpError):
+<pre><code class="python">class ScrapflyScheduleError(ScraperAPIError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.Exception</li>
@@ -527,11 +550,12 @@ __all__:Tuple[str, ...] = [
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyScrapeError(HttpError):
+<pre><code class="python">class ScrapflyScrapeError(ScraperAPIError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.Exception</li>
@@ -548,11 +572,12 @@ __all__:Tuple[str, ...] = [
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflySessionError(HttpError):
+<pre><code class="python">class ScrapflySessionError(ScraperAPIError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.Exception</li>
@@ -569,11 +594,12 @@ __all__:Tuple[str, ...] = [
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyThrottleError(HttpError):
+<pre><code class="python">class ScrapflyThrottleError(ScraperAPIError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.Exception</li>
@@ -590,11 +616,12 @@ __all__:Tuple[str, ...] = [
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyWebhookError(HttpError):
+<pre><code class="python">class ScrapflyWebhookError(ScraperAPIError):
     pass</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
 <li>scrapfly.errors.HttpError</li>
 <li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
 <li>builtins.Exception</li>

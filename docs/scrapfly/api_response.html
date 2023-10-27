@@ -26,7 +26,8 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import re
+<pre><code class="python">import base64
+import re
 import logging as logger
 import shutil
 
@@ -132,7 +133,10 @@ class ResponseBodyHandler:
         try:
             return self.content_loader(content)
         except Exception as e:
-            raise EncoderError(content=content.decode(&#39;utf-8&#39;)) from e
+            try:
+                raise EncoderError(content=content.decode(&#39;utf-8&#39;)) from e
+            except UnicodeError:
+                raise EncoderError(content=base64.b64encode(content).decode(&#39;utf-8&#39;)) from e
 
 
 class ScrapeApiResponse:
@@ -303,10 +307,10 @@ class ScrapeApiResponse:
     @cached_property
     def selector(self) -&gt; &#39;Selector&#39;:
         try:
-            from scrapy import Selector
+            from parsel import Selector
             return Selector(text=self.content)
         except ImportError as e:
-            logger.error(&#39;You must install scrapfly[scrapy] to enable this feature&#39;)
+            logger.error(&#39;You must install parsel or scrapy package to enable this feature&#39;)
             raise e
 
     @property
@@ -392,7 +396,7 @@ class ScrapeApiResponse:
                 response._content = self.scrape_result[&#39;content&#39;].encode(&#39;utf-8&#39;)
         else:
             response._content = None
-        
+
         response.headers.update(self.scrape_result[&#39;response_headers&#39;])
         response.url = self.scrape_result[&#39;url&#39;]
 
@@ -570,13 +574,16 @@ class ScrapeApiResponse:
         try:
             return self.content_loader(content)
         except Exception as e:
-            raise EncoderError(content=content.decode(&#39;utf-8&#39;)) from e</code></pre>
+            try:
+                raise EncoderError(content=content.decode(&#39;utf-8&#39;)) from e
+            except UnicodeError:
+                raise EncoderError(content=base64.b64encode(content).decode(&#39;utf-8&#39;)) from e</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.api_response.ResponseBodyHandler.JSONDateTimeDecoder"><code class="name">var <span class="ident">JSONDateTimeDecoder</span></code></dt>
 <dd>
-<div class="desc"><p>Simple JSON <a href="https://json.org">https://json.org</a> decoder</p>
+<div class="desc"><p>Simple JSON <a href="http://json.org">http://json.org</a> decoder</p>
 <p>Performs the following translations in decoding by default:</p>
 <p>+---------------+-------------------+
 | JSON
@@ -828,10 +835,10 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
     @cached_property
     def selector(self) -&gt; &#39;Selector&#39;:
         try:
-            from scrapy import Selector
+            from parsel import Selector
             return Selector(text=self.content)
         except ImportError as e:
-            logger.error(&#39;You must install scrapfly[scrapy] to enable this feature&#39;)
+            logger.error(&#39;You must install parsel or scrapy package to enable this feature&#39;)
             raise e
 
     @property
@@ -917,7 +924,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                 response._content = self.scrape_result[&#39;content&#39;].encode(&#39;utf-8&#39;)
         else:
             response._content = None
-        
+
         response.headers.update(self.scrape_result[&#39;response_headers&#39;])
         response.url = self.scrape_result[&#39;url&#39;]
 
@@ -1501,7 +1508,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
             response._content = self.scrape_result[&#39;content&#39;].encode(&#39;utf-8&#39;)
     else:
         response._content = None
-    
+
     response.headers.update(self.scrape_result[&#39;response_headers&#39;])
     response.url = self.scrape_result[&#39;url&#39;]
 
