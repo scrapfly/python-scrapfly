@@ -1,0 +1,2 @@
+scrapy>=2.11
+pillow>=4.0 # optional, but the example is showing how to use image pipeline

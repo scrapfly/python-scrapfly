@@ -103,14 +103,16 @@ class ScrapflySpider(scrapy.Spider):
 
         retryreq.meta['retry_times'] = retries
 
-        if isinstance(reason, ScrapflyError):
-            stats.inc_value(f'scrapfly/api_retry/{reason.code}')
+        if stats:
+            stats.inc_value('scrapfly/api_retry/count')
+
+            if isinstance(reason, ScrapflyError):
+                stats.inc_value(f'scrapfly/api_retry/{reason.code}')
 
         if isinstance(reason, Exception):
             reason = global_object_name(reason.__class__)
 
         logger.warning(f"Retrying {request} for x{retries - 1}: {reason}", extra={'spider': self})
-        stats.inc_value('scrapfly/api_retry/count')
 
         if delay is None:
             deferred = Deferred()
@@ -123,7 +125,13 @@ class ScrapflySpider(scrapy.Spider):
 
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
-        crawler.stats.set_value('scrapfly/api_call_cost', 0)
+        from . import current_scrapy_version, comparable_version
+
+        if current_scrapy_version >= comparable_version('2.11.0'):
+            crawler._apply_settings()
+
+        if crawler.stats:
+            crawler.stats.set_value('scrapfly/api_call_cost', 0)
 
         spider = cls(*args, **kwargs)
         spider._set_crawler(crawler)
