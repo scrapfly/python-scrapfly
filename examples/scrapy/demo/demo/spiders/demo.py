@@ -64,8 +64,8 @@ class Demo(ScrapflySpider):
             # make sure the url is absolute
             item['image_urls'] = [response.urljoin(response.css('img.product-img::attr(src)').get())]
 
-        item['name'] = response.css('h3.product-title').get()
+        item['name'] = response.css('h3.product-title::text').get()
         item['price'] = response.css('span.product-price::text').get()
-        item['description'] = response.css('p.product-description').get()
+        item['description'] = response.css('p.product-description::text').get()
 
         yield item
