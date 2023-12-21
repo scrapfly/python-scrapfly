@@ -119,7 +119,11 @@ class ScrapflySpider(scrapy.Spider):
             deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
         else:
             from twisted.internet import reactor # prevent reactor already install issue
-            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
+            from . import current_scrapy_version, comparable_version
+            if current_scrapy_version >= comparable_version('2.10.0'):
+                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
+            else:
+                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
         return deferred
 
