@@ -1,4 +1,7 @@
 import base64
+import binascii
+import hashlib
+import hmac
 import re
 import logging as logger
 import shutil
@@ -20,12 +23,13 @@ from json import JSONDecoder, loads
 
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
-from typing import Dict, Optional, Iterable, Union, TextIO
+from typing import Dict, Optional, Iterable, Union, TextIO, Tuple
 
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, ExtraUsageForbidden
+from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
+    ExtraUsageForbidden, WebhookSignatureMissMatch
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -67,7 +71,7 @@ class ResponseBodyHandler:
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli:bool=False):
+    def __init__(self, use_brotli:bool=False, signing_secrets:Optional[Tuple[str]]=None):
         if use_brotli is True and 'br' not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -79,7 +83,16 @@ class ResponseBodyHandler:
             except ImportError:
                 pass
 
-        self.content_encoding = ', '.join(self.SUPPORTED_COMPRESSION)
+        self.content_encoding:str = ', '.join(self.SUPPORTED_COMPRESSION)
+        self._signing_secret:Optional[Tuple[str]] = None
+
+        if signing_secrets:
+            _secrets = set()
+
+            for signing_secret in signing_secrets:
+                _secrets.add(binascii.unhexlify(signing_secret))
+
+            self._signing_secret = tuple(_secrets)
 
         try:  # automatically use msgpack if available https://msgpack.org/
             import msgpack
@@ -100,6 +113,36 @@ class ResponseBodyHandler:
                 return True
 
         return False
+
+    def verify(self, message:bytes, signature:str) -> bool:
+        for signing_secret in self._signing_secret:
+            if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+                return True
+
+        return False
+
+    def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -> Dict:
+        if content_encoding == 'gzip':
+            import gzip
+            content = gzip.decompress(content)
+        elif content_encoding == 'deflate':
+            import zlib
+            content = zlib.decompress(content)
+        elif content_encoding == 'brotli':
+            import brotli
+            content = brotli.decompress(content)
+
+        if self._signing_secret is not None and signature is not None:
+            if not self.verify(content, signature):
+                raise WebhookSignatureMissMatch()
+
+        if content_type.startswith('application/json'):
+            content = loads(content, cls=self.JSONDateTimeDecoder)
+        elif content_type.startswith('application/msgpack'):
+            import msgpack
+            content = msgpack.loads(content, object_hook=_date_parser, strict_map_key=False)
+
+        return content
 
     def __call__(self, content: bytes) -> Union[str, Dict]:
         try:
