@@ -131,27 +131,39 @@ class ScrapflySpider(scrapy.Spider):
 
         retryreq.meta[&#39;retry_times&#39;] = retries
 
-        if isinstance(reason, ScrapflyError):
-            stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
+        if stats:
+            stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
+
+            if isinstance(reason, ScrapflyError):
+                stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
 
         if isinstance(reason, Exception):
             reason = global_object_name(reason.__class__)
 
         logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
-        stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
 
         if delay is None:
             deferred = Deferred()
             deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
         else:
             from twisted.internet import reactor # prevent reactor already install issue
-            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+            from . import current_scrapy_version, comparable_version
+            if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
+                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
+            else:
+                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
         return deferred
 
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
-        crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
+        from . import current_scrapy_version, comparable_version
+
+        if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
+            crawler._apply_settings()
+
+        if crawler.stats:
+            crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
         spider = cls(*args, **kwargs)
         spider._set_crawler(crawler)
@@ -520,27 +532,39 @@ class.</p></div>
 
         retryreq.meta[&#39;retry_times&#39;] = retries
 
-        if isinstance(reason, ScrapflyError):
-            stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
+        if stats:
+            stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
+
+            if isinstance(reason, ScrapflyError):
+                stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
 
         if isinstance(reason, Exception):
             reason = global_object_name(reason.__class__)
 
         logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
-        stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
 
         if delay is None:
             deferred = Deferred()
             deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
         else:
             from twisted.internet import reactor # prevent reactor already install issue
-            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+            from . import current_scrapy_version, comparable_version
+            if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
+                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
+            else:
+                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
         return deferred
 
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
-        crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
+        from . import current_scrapy_version, comparable_version
+
+        if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
+            crawler._apply_settings()
+
+        if crawler.stats:
+            crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
         spider = cls(*args, **kwargs)
         spider._set_crawler(crawler)
@@ -605,7 +629,13 @@ class.</p></div>
 </summary>
 <pre><code class="python">@classmethod
 def from_crawler(cls, crawler:Crawler, *args, **kwargs):
-    crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
+    from . import current_scrapy_version, comparable_version
+
+    if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
+        crawler._apply_settings()
+
+    if crawler.stats:
+        crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
     spider = cls(*args, **kwargs)
     spider._set_crawler(crawler)
@@ -727,21 +757,27 @@ def update_settings(cls, settings):
 
     retryreq.meta[&#39;retry_times&#39;] = retries
 
-    if isinstance(reason, ScrapflyError):
-        stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
+    if stats:
+        stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
+
+        if isinstance(reason, ScrapflyError):
+            stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
 
     if isinstance(reason, Exception):
         reason = global_object_name(reason.__class__)
 
     logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
-    stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
 
     if delay is None:
         deferred = Deferred()
         deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
     else:
         from twisted.internet import reactor # prevent reactor already install issue
-        deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+        from . import current_scrapy_version, comparable_version
+        if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
+            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
+        else:
+            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
     return deferred</code></pre>
 </details>

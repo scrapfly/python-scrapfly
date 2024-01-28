@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.8.10&#39;
+<pre><code class="python">__version__ = &#39;0.8.11&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -105,6 +105,10 @@ __all__:Tuple[str, ...] = (
 <div class="desc"></div>
 </dd>
 <dt><code class="name"><a title="scrapfly.scrapy" href="scrapy/index.html">scrapfly.scrapy</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.webhook" href="webhook.html">scrapfly.webhook</a></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -460,7 +464,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 </dd>
 <dt id="scrapfly.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
-<span>(</span><span>use_brotli: bool = False)</span>
+<span>(</span><span>use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -479,7 +483,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli:bool=False):
+    def __init__(self, use_brotli:bool=False, signing_secrets:Optional[Tuple[str]]=None):
         if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -491,7 +495,16 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
             except ImportError:
                 pass
 
-        self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+        self.content_encoding:str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+        self._signing_secret:Optional[Tuple[str]] = None
+
+        if signing_secrets:
+            _secrets = set()
+
+            for signing_secret in signing_secrets:
+                _secrets.add(binascii.unhexlify(signing_secret))
+
+            self._signing_secret = tuple(_secrets)
 
         try:  # automatically use msgpack if available https://msgpack.org/
             import msgpack
@@ -512,6 +525,36 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
                 return True
 
         return False
+
+    def verify(self, message:bytes, signature:str) -&gt; bool:
+        for signing_secret in self._signing_secret:
+            if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+                return True
+
+        return False
+
+    def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
+        if content_encoding == &#39;gzip&#39;:
+            import gzip
+            content = gzip.decompress(content)
+        elif content_encoding == &#39;deflate&#39;:
+            import zlib
+            content = zlib.decompress(content)
+        elif content_encoding == &#39;brotli&#39;:
+            import brotli
+            content = brotli.decompress(content)
+
+        if self._signing_secret is not None and signature is not None:
+            if not self.verify(content, signature):
+                raise WebhookSignatureMissMatch()
+
+        if content_type.startswith(&#39;application/json&#39;):
+            content = loads(content, cls=self.JSONDateTimeDecoder)
+        elif content_type.startswith(&#39;application/msgpack&#39;):
+            import msgpack
+            content = msgpack.loads(content, object_hook=_date_parser, strict_map_key=False)
+
+        return content
 
     def __call__(self, content: bytes) -&gt; Union[str, Dict]:
         try:
@@ -578,6 +621,39 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="scrapfly.ResponseBodyHandler.read"><code class="name flex">
+<span>def <span class="ident">read</span></span>(<span>self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
+    if content_encoding == &#39;gzip&#39;:
+        import gzip
+        content = gzip.decompress(content)
+    elif content_encoding == &#39;deflate&#39;:
+        import zlib
+        content = zlib.decompress(content)
+    elif content_encoding == &#39;brotli&#39;:
+        import brotli
+        content = brotli.decompress(content)
+
+    if self._signing_secret is not None and signature is not None:
+        if not self.verify(content, signature):
+            raise WebhookSignatureMissMatch()
+
+    if content_type.startswith(&#39;application/json&#39;):
+        content = loads(content, cls=self.JSONDateTimeDecoder)
+    elif content_type.startswith(&#39;application/msgpack&#39;):
+        import msgpack
+        content = msgpack.loads(content, object_hook=_date_parser, strict_map_key=False)
+
+    return content</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.ResponseBodyHandler.support"><code class="name flex">
 <span>def <span class="ident">support</span></span>(<span>self, headers: Dict) ‑> bool</span>
 </code></dt>
@@ -593,6 +669,23 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     for content_type in self.SUPPORTED_CONTENT_TYPES:
         if headers[&#39;content-type&#39;].find(content_type) != -1:
+            return True
+
+    return False</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ResponseBodyHandler.verify"><code class="name flex">
+<span>def <span class="ident">verify</span></span>(<span>self, message: bytes, signature: str) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def verify(self, message:bytes, signature:str) -&gt; bool:
+    for signing_secret in self._signing_secret:
+        if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
             return True
 
     return False</code></pre>
@@ -3401,6 +3494,7 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.reporter" href="reporter/index.html">scrapfly.reporter</a></code></li>
 <li><code><a title="scrapfly.scrape_config" href="scrape_config.html">scrapfly.scrape_config</a></code></li>
 <li><code><a title="scrapfly.scrapy" href="scrapy/index.html">scrapfly.scrapy</a></code></li>
+<li><code><a title="scrapfly.webhook" href="webhook.html">scrapfly.webhook</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
@@ -3431,7 +3525,9 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.ResponseBodyHandler.JSONDateTimeDecoder" href="#scrapfly.ResponseBodyHandler.JSONDateTimeDecoder">JSONDateTimeDecoder</a></code></li>
 <li><code><a title="scrapfly.ResponseBodyHandler.SUPPORTED_COMPRESSION" href="#scrapfly.ResponseBodyHandler.SUPPORTED_COMPRESSION">SUPPORTED_COMPRESSION</a></code></li>
 <li><code><a title="scrapfly.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES" href="#scrapfly.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES">SUPPORTED_CONTENT_TYPES</a></code></li>
+<li><code><a title="scrapfly.ResponseBodyHandler.read" href="#scrapfly.ResponseBodyHandler.read">read</a></code></li>
 <li><code><a title="scrapfly.ResponseBodyHandler.support" href="#scrapfly.ResponseBodyHandler.support">support</a></code></li>
+<li><code><a title="scrapfly.ResponseBodyHandler.verify" href="#scrapfly.ResponseBodyHandler.verify">verify</a></code></li>
 </ul>
 </li>
 <li>
