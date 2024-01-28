@@ -15,6 +15,8 @@ generate-docs:
 	pdoc --html scrapfly --force --output-dir docs
 
 release:
+	git branch | grep \* | cut -d ' ' -f2 | grep master || exit 1
+	git pull origin master
 	-rm dist/*
 	$(MAKE)	generate-docs
 	git add docs/*
