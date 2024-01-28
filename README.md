@@ -13,6 +13,8 @@ You can also install extra dependencies
 
 For use of built-in HTML parser (via `ScrapeApiResponse.selector` property) additional requirement of either [parsel](https://pypi.org/project/parsel/) or [scrapy](https://pypi.org/project/Scrapy/) is required.
 
+For reference of usage or examples, please checkout the folder `/examples` in this repository.
+
 ## Get Your API Key
 
 You can create a free account on [Scrapfly](https://scrapfly.io/register) to get your API Key.
