@@ -27,6 +27,9 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import base64
+import binascii
+import hashlib
+import hmac
 import re
 import logging as logger
 import shutil
@@ -48,12 +51,13 @@ from json import JSONDecoder, loads
 
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
-from typing import Dict, Optional, Iterable, Union, TextIO
+from typing import Dict, Optional, Iterable, Union, TextIO, Tuple
 
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, ExtraUsageForbidden
+from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
+    ExtraUsageForbidden, WebhookSignatureMissMatch
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -95,7 +99,7 @@ class ResponseBodyHandler:
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli:bool=False):
+    def __init__(self, use_brotli:bool=False, signing_secrets:Optional[Tuple[str]]=None):
         if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -107,7 +111,16 @@ class ResponseBodyHandler:
             except ImportError:
                 pass
 
-        self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+        self.content_encoding:str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+        self._signing_secret:Optional[Tuple[str]] = None
+
+        if signing_secrets:
+            _secrets = set()
+
+            for signing_secret in signing_secrets:
+                _secrets.add(binascii.unhexlify(signing_secret))
+
+            self._signing_secret = tuple(_secrets)
 
         try:  # automatically use msgpack if available https://msgpack.org/
             import msgpack
@@ -128,6 +141,36 @@ class ResponseBodyHandler:
                 return True
 
         return False
+
+    def verify(self, message:bytes, signature:str) -&gt; bool:
+        for signing_secret in self._signing_secret:
+            if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+                return True
+
+        return False
+
+    def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
+        if content_encoding == &#39;gzip&#39;:
+            import gzip
+            content = gzip.decompress(content)
+        elif content_encoding == &#39;deflate&#39;:
+            import zlib
+            content = zlib.decompress(content)
+        elif content_encoding == &#39;brotli&#39;:
+            import brotli
+            content = brotli.decompress(content)
+
+        if self._signing_secret is not None and signature is not None:
+            if not self.verify(content, signature):
+                raise WebhookSignatureMissMatch()
+
+        if content_type.startswith(&#39;application/json&#39;):
+            content = loads(content, cls=self.JSONDateTimeDecoder)
+        elif content_type.startswith(&#39;application/msgpack&#39;):
+            import msgpack
+            content = msgpack.loads(content, object_hook=_date_parser, strict_map_key=False)
+
+        return content
 
     def __call__(self, content: bytes) -&gt; Union[str, Dict]:
         try:
@@ -517,7 +560,7 @@ class ScrapeApiResponse:
 <dl>
 <dt id="scrapfly.api_response.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
-<span>(</span><span>use_brotli: bool = False)</span>
+<span>(</span><span>use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -536,7 +579,7 @@ class ScrapeApiResponse:
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli:bool=False):
+    def __init__(self, use_brotli:bool=False, signing_secrets:Optional[Tuple[str]]=None):
         if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -548,7 +591,16 @@ class ScrapeApiResponse:
             except ImportError:
                 pass
 
-        self.content_encoding = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+        self.content_encoding:str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+        self._signing_secret:Optional[Tuple[str]] = None
+
+        if signing_secrets:
+            _secrets = set()
+
+            for signing_secret in signing_secrets:
+                _secrets.add(binascii.unhexlify(signing_secret))
+
+            self._signing_secret = tuple(_secrets)
 
         try:  # automatically use msgpack if available https://msgpack.org/
             import msgpack
@@ -569,6 +621,36 @@ class ScrapeApiResponse:
                 return True
 
         return False
+
+    def verify(self, message:bytes, signature:str) -&gt; bool:
+        for signing_secret in self._signing_secret:
+            if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+                return True
+
+        return False
+
+    def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
+        if content_encoding == &#39;gzip&#39;:
+            import gzip
+            content = gzip.decompress(content)
+        elif content_encoding == &#39;deflate&#39;:
+            import zlib
+            content = zlib.decompress(content)
+        elif content_encoding == &#39;brotli&#39;:
+            import brotli
+            content = brotli.decompress(content)
+
+        if self._signing_secret is not None and signature is not None:
+            if not self.verify(content, signature):
+                raise WebhookSignatureMissMatch()
+
+        if content_type.startswith(&#39;application/json&#39;):
+            content = loads(content, cls=self.JSONDateTimeDecoder)
+        elif content_type.startswith(&#39;application/msgpack&#39;):
+            import msgpack
+            content = msgpack.loads(content, object_hook=_date_parser, strict_map_key=False)
+
+        return content
 
     def __call__(self, content: bytes) -&gt; Union[str, Dict]:
         try:
@@ -635,6 +717,39 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="scrapfly.api_response.ResponseBodyHandler.read"><code class="name flex">
+<span>def <span class="ident">read</span></span>(<span>self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
+    if content_encoding == &#39;gzip&#39;:
+        import gzip
+        content = gzip.decompress(content)
+    elif content_encoding == &#39;deflate&#39;:
+        import zlib
+        content = zlib.decompress(content)
+    elif content_encoding == &#39;brotli&#39;:
+        import brotli
+        content = brotli.decompress(content)
+
+    if self._signing_secret is not None and signature is not None:
+        if not self.verify(content, signature):
+            raise WebhookSignatureMissMatch()
+
+    if content_type.startswith(&#39;application/json&#39;):
+        content = loads(content, cls=self.JSONDateTimeDecoder)
+    elif content_type.startswith(&#39;application/msgpack&#39;):
+        import msgpack
+        content = msgpack.loads(content, object_hook=_date_parser, strict_map_key=False)
+
+    return content</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.api_response.ResponseBodyHandler.support"><code class="name flex">
 <span>def <span class="ident">support</span></span>(<span>self, headers: Dict) ‑> bool</span>
 </code></dt>
@@ -650,6 +765,23 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     for content_type in self.SUPPORTED_CONTENT_TYPES:
         if headers[&#39;content-type&#39;].find(content_type) != -1:
+            return True
+
+    return False</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ResponseBodyHandler.verify"><code class="name flex">
+<span>def <span class="ident">verify</span></span>(<span>self, message: bytes, signature: str) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def verify(self, message:bytes, signature:str) -&gt; bool:
+    for signing_secret in self._signing_secret:
+        if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
             return True
 
     return False</code></pre>
@@ -1589,7 +1721,9 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <li><code><a title="scrapfly.api_response.ResponseBodyHandler.JSONDateTimeDecoder" href="#scrapfly.api_response.ResponseBodyHandler.JSONDateTimeDecoder">JSONDateTimeDecoder</a></code></li>
 <li><code><a title="scrapfly.api_response.ResponseBodyHandler.SUPPORTED_COMPRESSION" href="#scrapfly.api_response.ResponseBodyHandler.SUPPORTED_COMPRESSION">SUPPORTED_COMPRESSION</a></code></li>
 <li><code><a title="scrapfly.api_response.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES" href="#scrapfly.api_response.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES">SUPPORTED_CONTENT_TYPES</a></code></li>
+<li><code><a title="scrapfly.api_response.ResponseBodyHandler.read" href="#scrapfly.api_response.ResponseBodyHandler.read">read</a></code></li>
 <li><code><a title="scrapfly.api_response.ResponseBodyHandler.support" href="#scrapfly.api_response.ResponseBodyHandler.support">support</a></code></li>
+<li><code><a title="scrapfly.api_response.ResponseBodyHandler.verify" href="#scrapfly.api_response.ResponseBodyHandler.verify">verify</a></code></li>
 </ul>
 </li>
 <li>

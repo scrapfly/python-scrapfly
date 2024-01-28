@@ -31,6 +31,14 @@ from typing import Optional, Tuple
 from requests import Request, Response
 
 
+class WebhookError(Exception):
+    pass
+
+
+class WebhookSignatureMissMatch(WebhookError):
+    pass
+
+
 class ScrapflyError(Exception):
     KIND_HTTP_BAD_RESPONSE = &#39;HTTP_BAD_RESPONSE&#39;
     KIND_SCRAPFLY_ERROR = &#39;SCRAPFLY_ERROR&#39;
@@ -128,7 +136,6 @@ class UpstreamHttpClientError(UpstreamHttpError):
 
 class UpstreamHttpServerError(UpstreamHttpClientError):
     pass
-
 
 class ApiHttpClientError(HttpError):
     pass

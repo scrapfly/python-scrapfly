@@ -27,11 +27,29 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">from typing import Tuple
+from functools import cache
+
 from .request import ScrapflyScrapyRequest
 from .response import ScrapflyScrapyResponse
 from .middleware import ScrapflyMiddleware
 from .spider import ScrapflySpider, ScrapflyCrawlSpider
 from .pipelines import FilesPipeline, ImagesPipeline
+
+current_scrapy_version = 0
+
+@cache
+def comparable_version(version: str) -&gt; int:
+    l = [int(x, 10) for x in version.split(&#39;.&#39;)]
+    l.reverse()
+    return sum(x * (10 ** i) for i, x in enumerate(l))
+
+try:
+    from scrapy import __version__
+    current_scrapy_version = comparable_version(__version__)
+except ModuleNotFoundError:
+    # Error handling
+    pass
+
 
 __all__:Tuple[str, ...] = (
     &#39;ScrapflyScrapyRequest&#39;,
@@ -40,7 +58,9 @@ __all__:Tuple[str, ...] = (
     &#39;ScrapflySpider&#39;,
     &#39;ScrapflyCrawlSpider&#39;,
     &#39;FilesPipeline&#39;,
-    &#39;ImagesPipeline&#39;
+    &#39;ImagesPipeline&#39;,
+    &#39;current_scrapy_version&#39;,
+    &#39;comparable_version&#39;
 )</code></pre>
 </details>
 </section>
@@ -76,6 +96,25 @@ __all__:Tuple[str, ...] = (
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="scrapfly.scrapy.comparable_version"><code class="name flex">
+<span>def <span class="ident">comparable_version</span></span>(<span>version: str) ‑> int</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@cache
+def comparable_version(version: str) -&gt; int:
+    l = [int(x, 10) for x in version.split(&#39;.&#39;)]
+    l.reverse()
+    return sum(x * (10 ** i) for i, x in enumerate(l))</code></pre>
+</details>
+</dd>
+</dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
@@ -877,27 +916,39 @@ class.</p></div>
 
         retryreq.meta[&#39;retry_times&#39;] = retries
 
-        if isinstance(reason, ScrapflyError):
-            stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
+        if stats:
+            stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
+
+            if isinstance(reason, ScrapflyError):
+                stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
 
         if isinstance(reason, Exception):
             reason = global_object_name(reason.__class__)
 
         logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
-        stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
 
         if delay is None:
             deferred = Deferred()
             deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
         else:
             from twisted.internet import reactor # prevent reactor already install issue
-            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+            from . import current_scrapy_version, comparable_version
+            if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
+                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
+            else:
+                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
         return deferred
 
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
-        crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
+        from . import current_scrapy_version, comparable_version
+
+        if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
+            crawler._apply_settings()
+
+        if crawler.stats:
+            crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
         spider = cls(*args, **kwargs)
         spider._set_crawler(crawler)
@@ -962,7 +1013,13 @@ class.</p></div>
 </summary>
 <pre><code class="python">@classmethod
 def from_crawler(cls, crawler:Crawler, *args, **kwargs):
-    crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
+    from . import current_scrapy_version, comparable_version
+
+    if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
+        crawler._apply_settings()
+
+    if crawler.stats:
+        crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
 
     spider = cls(*args, **kwargs)
     spider._set_crawler(crawler)
@@ -1084,21 +1141,27 @@ def update_settings(cls, settings):
 
     retryreq.meta[&#39;retry_times&#39;] = retries
 
-    if isinstance(reason, ScrapflyError):
-        stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
+    if stats:
+        stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
+
+        if isinstance(reason, ScrapflyError):
+            stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
 
     if isinstance(reason, Exception):
         reason = global_object_name(reason.__class__)
 
     logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
-    stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
 
     if delay is None:
         deferred = Deferred()
         deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
     else:
         from twisted.internet import reactor # prevent reactor already install issue
-        deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+        from . import current_scrapy_version, comparable_version
+        if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
+            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
+        else:
+            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
 
     return deferred</code></pre>
 </details>
@@ -1143,6 +1206,11 @@ def update_settings(cls, settings):
 <li><code><a title="scrapfly.scrapy.request" href="request.html">scrapfly.scrapy.request</a></code></li>
 <li><code><a title="scrapfly.scrapy.response" href="response.html">scrapfly.scrapy.response</a></code></li>
 <li><code><a title="scrapfly.scrapy.spider" href="spider.html">scrapfly.scrapy.spider</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.comparable_version" href="#scrapfly.scrapy.comparable_version">comparable_version</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
