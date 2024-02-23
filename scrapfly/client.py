@@ -275,7 +275,26 @@ class ScrapflyClient:
         logger.debug("Scrape %d/%d - %d running" % (processed_tasks, expected_tasks, len(processing_tasks)))
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
-    def scrape(self, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
+    def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -> ScrapeApiResponse:
+        """
+        Scrape a website
+        :param scrape_config: ScrapeConfig
+        :param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
+        :return: ScrapeApiResponse
+
+        If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        'error': {
+            'code': 'ERR::ASP::SHIELD_PROTECTION_FAILED',
+            'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds',
+            'retryable': False,
+            'http_code': 422,
+            'links': {
+                'Checkout ASP documentation': 'https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate', 'Related Error Doc': 'https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED'
+            }
+        }
+        """
 
         try:
             logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
@@ -288,6 +307,10 @@ class ScrapflyClient:
             return scrape_api_response
         except BaseException as e:
             self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
             raise e
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -> ScrapeApiResponse:

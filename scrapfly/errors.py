@@ -82,18 +82,15 @@ class HttpError(ScrapflyError):
 
     def __str__(self) -> str:
         if isinstance(self, UpstreamHttpError):
-            text = f"Target website responded with {self.api_response.scrape_result['status_code']} - {self.api_response.scrape_result['reason']}"
-        else:
-            text = f"{self.response.status_code} - {self.response.reason}"
+            return f"Target website responded with {self.api_response.scrape_result['status_code']} - {self.api_response.scrape_result['reason']}"
 
-            if isinstance(self, (ApiHttpClientError, ApiHttpServerError)):
-                try:
-                    text += self.response.content.decode('utf-8')
-                except UnicodeError:
-                    raise EncoderError(content=base64.b64encode(self.response.content).decode('utf-8'))
-            elif isinstance(self, ScraperAPIError):
-                print(self.api_response.error)
-                text += f" | {self.api_response.error['code']} - {self.api_response.error['message']} - {self.api_response.error['links']}"
+        if self.api_response is not None:
+            return self.api_response.error_message
+
+        text = f"{self.response.status_code} - {self.response.reason}"
+
+        if isinstance(self, (ApiHttpClientError, ApiHttpServerError)):
+            text += " - " + self.message
 
         return text
 

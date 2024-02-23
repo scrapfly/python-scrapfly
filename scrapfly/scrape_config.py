@@ -67,7 +67,7 @@ class ScrapeConfig:
         cache_ttl:Optional[int] = None,
         proxy_pool:Optional[str] = None,
         session: Optional[str] = None,
-        tags: Optional[Set[str]] = None,
+        tags: Optional[Union[List[str], Set[str]]] = None,
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -80,7 +80,7 @@ class ScrapeConfig:
         session_sticky_proxy:Optional[bool] = None,
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
-        js_scenario:Optional[Dict] = None,
+        js_scenario:Optional[List] = None,
         extract:Optional[Dict] = None,
         os:Optional[str] = None,
         lang:Optional[List[str]] = None,

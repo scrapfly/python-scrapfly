@@ -205,19 +205,28 @@ class ScrapeApiResponse:
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
-    def scrape_result(self) -> Dict:
-        return self.result['result']
+    def scrape_result(self) -> Optional[Dict]:
+        return self.result.get('result', None)
 
     @property
-    def config(self) -> Dict:
+    def config(self) -> Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         return self.result['config']
 
     @property
-    def context(self) -> Dict:
+    def context(self) -> Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         return self.result['context']
 
     @property
     def content(self) -> str:
+        if self.scrape_result is None:
+            return ''
+
         return self.scrape_result['content']
 
     @property
@@ -229,10 +238,18 @@ class ScrapeApiResponse:
 
     @property
     def scrape_success(self) -> bool:
+        scrape_result = self.scrape_result
+
+        if not scrape_result:
+            return False
+
         return self.scrape_result['success']
 
     @property
     def error(self) -> Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         if self.scrape_success is False:
             return self.scrape_result['error']
 
@@ -245,6 +262,9 @@ class ScrapeApiResponse:
 
     @property
     def upstream_status_code(self) -> Optional[int]:
+        if self.scrape_result is None:
+            return None
+
         if 'status_code' in self.scrape_result:
             return self.scrape_result['status_code']
 
@@ -329,16 +349,21 @@ class ScrapeApiResponse:
             raise e
 
     @property
-    def error_message(self) :
-        if self.error:
+    def error_message(self):
+        if self.error is not None:
             message = "<-- %s | %s - %s." % (self.response.status_code, self.error['code'], self.error['message'])
 
             if self.error['links']:
-                message += "Checkout the related doc: %s" % list(self.error['links'].values())[0]
+                message += " Checkout the related doc: %s" % list(self.error['links'].values())[0]
 
             return message
 
-        return '<-- %s - %s %s | Doc: %s' % (self.response.status_code, self.http_status_code, self.code, self.documentation_url)
+        message = "<-- %s | %s." % (self.response.status_code, self.result['message'])
+
+        if self.result.get('links'):
+            message += " Checkout the related doc: %s" % ", ".join(self.result['links'])
+
+        return message
 
     def _is_api_error(self, api_result: Dict) -> bool:
         if self.scrape_config.method == 'HEAD':
@@ -356,7 +381,7 @@ class ScrapeApiResponse:
         try:
             self.response.raise_for_status()
         except HTTPError as e:
-            if 'http_code' in self.result:
+            if 'error_id' in self.result:
                 if e.response.status_code >= 500:
                     raise ApiHttpServerError(
                         request=e.request,
@@ -365,7 +390,8 @@ class ScrapeApiResponse:
                         code='',
                         resource='',
                         http_status_code=e.response.status_code,
-                        documentation_url=self.result.get('links')
+                        documentation_url=self.result.get('links'),
+                        api_response=self,
                     ) from e
                 else:
                     raise ApiHttpClientError(
@@ -375,9 +401,9 @@ class ScrapeApiResponse:
                         code='',
                         resource='API',
                         http_status_code=self.result['http_code'],
-                        documentation_url=self.result.get('links')
+                        documentation_url=self.result.get('links'),
+                        api_response=self,
                     ) from e
-
         if self.result['result']['status'] == 'DONE' and self.scrape_success is False:
             error = ErrorFactory.create(api_response=self)
 
