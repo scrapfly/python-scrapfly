@@ -111,6 +111,12 @@ class ResponseBodyHandler:
             except ImportError:
                 pass
 
+        try:
+            import zstd
+            self.SUPPORTED_COMPRESSION.append(&#39;zstd&#39;)
+        except ImportError:
+            pass
+
         self.content_encoding:str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret:Optional[Tuple[str]] = None
 
@@ -150,15 +156,18 @@ class ResponseBodyHandler:
         return False
 
     def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
-        if content_encoding == &#39;gzip&#39;:
+        if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
             import gzip
             content = gzip.decompress(content)
         elif content_encoding == &#39;deflate&#39;:
             import zlib
             content = zlib.decompress(content)
-        elif content_encoding == &#39;brotli&#39;:
+        elif content_encoding == &#39;brotli&#39; or content_encoding == &#39;br&#39;:
             import brotli
             content = brotli.decompress(content)
+        elif content_encoding == &#39;zstd&#39;:
+            import zstd
+            content = zstd.decompress(content)
 
         if self._signing_secret is not None and signature is not None:
             if not self.verify(content, signature):
@@ -172,9 +181,20 @@ class ResponseBodyHandler:
 
         return content
 
-    def __call__(self, content: bytes) -&gt; Union[str, Dict]:
+    def __call__(self, content: bytes, content_type:str) -&gt; Union[str, Dict]:
+        content_loader = None
+
+        if content_type.find(&#39;application/json&#39;) != -1:
+            content_loader = partial(loads, cls=self.JSONDateTimeDecoder)
+        elif content_type.find(&#39;application/msgpack&#39;) != -1:
+            import msgpack
+            content_loader = partial(msgpack.loads, object_hook=_date_parser, strict_map_key=False)
+
+        if content_loader is None:
+            raise Exception(&#39;Unsupported content type&#39;)
+
         try:
-            return self.content_loader(content)
+            return content_loader(content)
         except Exception as e:
             try:
                 raise EncoderError(content=content.decode(&#39;utf-8&#39;)) from e
@@ -233,19 +253,28 @@ class ScrapeApiResponse:
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
-    def scrape_result(self) -&gt; Dict:
-        return self.result[&#39;result&#39;]
+    def scrape_result(self) -&gt; Optional[Dict]:
+        return self.result.get(&#39;result&#39;, None)
 
     @property
-    def config(self) -&gt; Dict:
+    def config(self) -&gt; Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         return self.result[&#39;config&#39;]
 
     @property
-    def context(self) -&gt; Dict:
+    def context(self) -&gt; Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         return self.result[&#39;context&#39;]
 
     @property
     def content(self) -&gt; str:
+        if self.scrape_result is None:
+            return &#39;&#39;
+
         return self.scrape_result[&#39;content&#39;]
 
     @property
@@ -257,10 +286,18 @@ class ScrapeApiResponse:
 
     @property
     def scrape_success(self) -&gt; bool:
+        scrape_result = self.scrape_result
+
+        if not scrape_result:
+            return False
+
         return self.scrape_result[&#39;success&#39;]
 
     @property
     def error(self) -&gt; Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         if self.scrape_success is False:
             return self.scrape_result[&#39;error&#39;]
 
@@ -273,6 +310,9 @@ class ScrapeApiResponse:
 
     @property
     def upstream_status_code(self) -&gt; Optional[int]:
+        if self.scrape_result is None:
+            return None
+
         if &#39;status_code&#39; in self.scrape_result:
             return self.scrape_result[&#39;status_code&#39;]
 
@@ -357,16 +397,21 @@ class ScrapeApiResponse:
             raise e
 
     @property
-    def error_message(self) :
-        if self.error:
+    def error_message(self):
+        if self.error is not None:
             message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
 
             if self.error[&#39;links&#39;]:
-                message += &#34;Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+                message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
 
             return message
 
-        return &#39;&lt;-- %s - %s %s | Doc: %s&#39; % (self.response.status_code, self.http_status_code, self.code, self.documentation_url)
+        message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
+
+        if self.result.get(&#39;links&#39;):
+            message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
+
+        return message
 
     def _is_api_error(self, api_result: Dict) -&gt; bool:
         if self.scrape_config.method == &#39;HEAD&#39;:
@@ -384,7 +429,7 @@ class ScrapeApiResponse:
         try:
             self.response.raise_for_status()
         except HTTPError as e:
-            if &#39;http_code&#39; in self.result:
+            if &#39;error_id&#39; in self.result:
                 if e.response.status_code &gt;= 500:
                     raise ApiHttpServerError(
                         request=e.request,
@@ -393,7 +438,8 @@ class ScrapeApiResponse:
                         code=&#39;&#39;,
                         resource=&#39;&#39;,
                         http_status_code=e.response.status_code,
-                        documentation_url=self.result.get(&#39;links&#39;)
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
                     ) from e
                 else:
                     raise ApiHttpClientError(
@@ -403,9 +449,9 @@ class ScrapeApiResponse:
                         code=&#39;&#39;,
                         resource=&#39;API&#39;,
                         http_status_code=self.result[&#39;http_code&#39;],
-                        documentation_url=self.result.get(&#39;links&#39;)
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
                     ) from e
-
         if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
             error = ErrorFactory.create(api_response=self)
 
@@ -591,6 +637,12 @@ class ScrapeApiResponse:
             except ImportError:
                 pass
 
+        try:
+            import zstd
+            self.SUPPORTED_COMPRESSION.append(&#39;zstd&#39;)
+        except ImportError:
+            pass
+
         self.content_encoding:str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret:Optional[Tuple[str]] = None
 
@@ -630,15 +682,18 @@ class ScrapeApiResponse:
         return False
 
     def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
-        if content_encoding == &#39;gzip&#39;:
+        if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
             import gzip
             content = gzip.decompress(content)
         elif content_encoding == &#39;deflate&#39;:
             import zlib
             content = zlib.decompress(content)
-        elif content_encoding == &#39;brotli&#39;:
+        elif content_encoding == &#39;brotli&#39; or content_encoding == &#39;br&#39;:
             import brotli
             content = brotli.decompress(content)
+        elif content_encoding == &#39;zstd&#39;:
+            import zstd
+            content = zstd.decompress(content)
 
         if self._signing_secret is not None and signature is not None:
             if not self.verify(content, signature):
@@ -652,9 +707,20 @@ class ScrapeApiResponse:
 
         return content
 
-    def __call__(self, content: bytes) -&gt; Union[str, Dict]:
+    def __call__(self, content: bytes, content_type:str) -&gt; Union[str, Dict]:
+        content_loader = None
+
+        if content_type.find(&#39;application/json&#39;) != -1:
+            content_loader = partial(loads, cls=self.JSONDateTimeDecoder)
+        elif content_type.find(&#39;application/msgpack&#39;) != -1:
+            import msgpack
+            content_loader = partial(msgpack.loads, object_hook=_date_parser, strict_map_key=False)
+
+        if content_loader is None:
+            raise Exception(&#39;Unsupported content type&#39;)
+
         try:
-            return self.content_loader(content)
+            return content_loader(content)
         except Exception as e:
             try:
                 raise EncoderError(content=content.decode(&#39;utf-8&#39;)) from e
@@ -727,15 +793,18 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
-    if content_encoding == &#39;gzip&#39;:
+    if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
         import gzip
         content = gzip.decompress(content)
     elif content_encoding == &#39;deflate&#39;:
         import zlib
         content = zlib.decompress(content)
-    elif content_encoding == &#39;brotli&#39;:
+    elif content_encoding == &#39;brotli&#39; or content_encoding == &#39;br&#39;:
         import brotli
         content = brotli.decompress(content)
+    elif content_encoding == &#39;zstd&#39;:
+        import zstd
+        content = zstd.decompress(content)
 
     if self._signing_secret is not None and signature is not None:
         if not self.verify(content, signature):
@@ -850,19 +919,28 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         self.result = self.handle_api_result(api_result=api_result)
 
     @property
-    def scrape_result(self) -&gt; Dict:
-        return self.result[&#39;result&#39;]
+    def scrape_result(self) -&gt; Optional[Dict]:
+        return self.result.get(&#39;result&#39;, None)
 
     @property
-    def config(self) -&gt; Dict:
+    def config(self) -&gt; Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         return self.result[&#39;config&#39;]
 
     @property
-    def context(self) -&gt; Dict:
+    def context(self) -&gt; Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         return self.result[&#39;context&#39;]
 
     @property
     def content(self) -&gt; str:
+        if self.scrape_result is None:
+            return &#39;&#39;
+
         return self.scrape_result[&#39;content&#39;]
 
     @property
@@ -874,10 +952,18 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     @property
     def scrape_success(self) -&gt; bool:
+        scrape_result = self.scrape_result
+
+        if not scrape_result:
+            return False
+
         return self.scrape_result[&#39;success&#39;]
 
     @property
     def error(self) -&gt; Optional[Dict]:
+        if self.scrape_result is None:
+            return None
+
         if self.scrape_success is False:
             return self.scrape_result[&#39;error&#39;]
 
@@ -890,6 +976,9 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     @property
     def upstream_status_code(self) -&gt; Optional[int]:
+        if self.scrape_result is None:
+            return None
+
         if &#39;status_code&#39; in self.scrape_result:
             return self.scrape_result[&#39;status_code&#39;]
 
@@ -974,16 +1063,21 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             raise e
 
     @property
-    def error_message(self) :
-        if self.error:
+    def error_message(self):
+        if self.error is not None:
             message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
 
             if self.error[&#39;links&#39;]:
-                message += &#34;Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+                message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
 
             return message
 
-        return &#39;&lt;-- %s - %s %s | Doc: %s&#39; % (self.response.status_code, self.http_status_code, self.code, self.documentation_url)
+        message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
+
+        if self.result.get(&#39;links&#39;):
+            message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
+
+        return message
 
     def _is_api_error(self, api_result: Dict) -&gt; bool:
         if self.scrape_config.method == &#39;HEAD&#39;:
@@ -1001,7 +1095,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         try:
             self.response.raise_for_status()
         except HTTPError as e:
-            if &#39;http_code&#39; in self.result:
+            if &#39;error_id&#39; in self.result:
                 if e.response.status_code &gt;= 500:
                     raise ApiHttpServerError(
                         request=e.request,
@@ -1010,7 +1104,8 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                         code=&#39;&#39;,
                         resource=&#39;&#39;,
                         http_status_code=e.response.status_code,
-                        documentation_url=self.result.get(&#39;links&#39;)
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
                     ) from e
                 else:
                     raise ApiHttpClientError(
@@ -1020,9 +1115,9 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                         code=&#39;&#39;,
                         resource=&#39;API&#39;,
                         http_status_code=self.result[&#39;http_code&#39;],
-                        documentation_url=self.result.get(&#39;links&#39;)
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
                     ) from e
-
         if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
             error = ErrorFactory.create(api_response=self)
 
@@ -1167,7 +1262,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </details>
 <h3>Instance variables</h3>
 <dl>
-<dt id="scrapfly.api_response.ScrapeApiResponse.config"><code class="name">var <span class="ident">config</span> : Dict</code></dt>
+<dt id="scrapfly.api_response.ScrapeApiResponse.config"><code class="name">var <span class="ident">config</span> : Optional[Dict]</code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
@@ -1175,7 +1270,10 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
-def config(self) -&gt; Dict:
+def config(self) -&gt; Optional[Dict]:
+    if self.scrape_result is None:
+        return None
+
     return self.result[&#39;config&#39;]</code></pre>
 </details>
 </dd>
@@ -1188,10 +1286,13 @@ def config(self) -&gt; Dict:
 </summary>
 <pre><code class="python">@property
 def content(self) -&gt; str:
+    if self.scrape_result is None:
+        return &#39;&#39;
+
     return self.scrape_result[&#39;content&#39;]</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.context"><code class="name">var <span class="ident">context</span> : Dict</code></dt>
+<dt id="scrapfly.api_response.ScrapeApiResponse.context"><code class="name">var <span class="ident">context</span> : Optional[Dict]</code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
@@ -1199,7 +1300,10 @@ def content(self) -&gt; str:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
-def context(self) -&gt; Dict:
+def context(self) -&gt; Optional[Dict]:
+    if self.scrape_result is None:
+        return None
+
     return self.result[&#39;context&#39;]</code></pre>
 </details>
 </dd>
@@ -1246,6 +1350,9 @@ def duration_ms(self) -&gt; Optional[float]:
 </summary>
 <pre><code class="python">@property
 def error(self) -&gt; Optional[Dict]:
+    if self.scrape_result is None:
+        return None
+
     if self.scrape_success is False:
         return self.scrape_result[&#39;error&#39;]</code></pre>
 </details>
@@ -1258,16 +1365,21 @@ def error(self) -&gt; Optional[Dict]:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
-def error_message(self) :
-    if self.error:
+def error_message(self):
+    if self.error is not None:
         message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
 
         if self.error[&#39;links&#39;]:
-            message += &#34;Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+            message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
 
         return message
 
-    return &#39;&lt;-- %s - %s %s | Doc: %s&#39; % (self.response.status_code, self.http_status_code, self.code, self.documentation_url)</code></pre>
+    message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
+
+    if self.result.get(&#39;links&#39;):
+        message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
+
+    return message</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.headers"><code class="name">var <span class="ident">headers</span> : requests.structures.CaseInsensitiveDict</code></dt>
@@ -1299,7 +1411,7 @@ def remaining_quota(self) -&gt; Optional[int]:
     return remaining_scrape</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span> : Dict</code></dt>
+<dt id="scrapfly.api_response.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span> : Optional[Dict]</code></dt>
 <dd>
 <div class="desc"></div>
 <details class="source">
@@ -1307,8 +1419,8 @@ def remaining_quota(self) -&gt; Optional[int]:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
-def scrape_result(self) -&gt; Dict:
-    return self.result[&#39;result&#39;]</code></pre>
+def scrape_result(self) -&gt; Optional[Dict]:
+    return self.result.get(&#39;result&#39;, None)</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.scrape_success"><code class="name">var <span class="ident">scrape_success</span> : bool</code></dt>
@@ -1320,6 +1432,11 @@ def scrape_result(self) -&gt; Dict:
 </summary>
 <pre><code class="python">@property
 def scrape_success(self) -&gt; bool:
+    scrape_result = self.scrape_result
+
+    if not scrape_result:
+        return False
+
     return self.scrape_result[&#39;success&#39;]</code></pre>
 </details>
 </dd>
@@ -1440,6 +1557,9 @@ def success(self) -&gt; bool:
 </summary>
 <pre><code class="python">@property
 def upstream_status_code(self) -&gt; Optional[int]:
+    if self.scrape_result is None:
+        return None
+
     if &#39;status_code&#39; in self.scrape_result:
         return self.scrape_result[&#39;status_code&#39;]
 
@@ -1512,7 +1632,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
     try:
         self.response.raise_for_status()
     except HTTPError as e:
-        if &#39;http_code&#39; in self.result:
+        if &#39;error_id&#39; in self.result:
             if e.response.status_code &gt;= 500:
                 raise ApiHttpServerError(
                     request=e.request,
@@ -1521,7 +1641,8 @@ def upstream_status_code(self) -&gt; Optional[int]:
                     code=&#39;&#39;,
                     resource=&#39;&#39;,
                     http_status_code=e.response.status_code,
-                    documentation_url=self.result.get(&#39;links&#39;)
+                    documentation_url=self.result.get(&#39;links&#39;),
+                    api_response=self,
                 ) from e
             else:
                 raise ApiHttpClientError(
@@ -1531,9 +1652,9 @@ def upstream_status_code(self) -&gt; Optional[int]:
                     code=&#39;&#39;,
                     resource=&#39;API&#39;,
                     http_status_code=self.result[&#39;http_code&#39;],
-                    documentation_url=self.result.get(&#39;links&#39;)
+                    documentation_url=self.result.get(&#39;links&#39;),
+                    api_response=self,
                 ) from e
-
     if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
         error = ErrorFactory.create(api_response=self)
 

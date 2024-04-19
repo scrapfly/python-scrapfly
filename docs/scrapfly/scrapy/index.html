@@ -944,6 +944,39 @@ class.</p></div>
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
         from . import current_scrapy_version, comparable_version
 
+        scrapfly_client = ScrapflyClient(
+            key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
+            host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
+            verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
+            debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
+            distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
+            connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
+            read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT),
+        )
+
+        settings_max_concurrency = crawler.settings.get(&#39;CONCURRENT_REQUESTS&#39;, -1)
+
+        account_info = scrapfly_client.account()
+
+        if account_info[&#39;account&#39;][&#39;suspended&#39;] is True:
+            raise RuntimeError(&#39;Your account is suspended, please check your subscription status. Reason: %s&#39; % account_info[&#39;account&#39;][&#39;suspension_reason&#39;])
+
+        max_account_concurrency = account_info[&#39;subscription&#39;][&#39;max_concurrency&#39;]
+        project_concurrency_limit = account_info[&#39;project&#39;][&#39;concurrency_limit&#39;]
+
+        maximum_allowed_concurrency = max_account_concurrency
+
+        if project_concurrency_limit is not None:
+            maximum_allowed_concurrency = project_concurrency_limit
+
+        if settings_max_concurrency == -1:
+            crawler.settings.set(&#39;CONCURRENT_REQUESTS&#39;, maximum_allowed_concurrency, 255)
+            logger.warning(&#39;Concurrent request auto configured to %d&#39; % maximum_allowed_concurrency)
+        else:
+            if settings_max_concurrency &gt; maximum_allowed_concurrency:
+                logger.warning(&#39;==&gt; Your maximum concurrency has been adjusted following your subscription because it\&#39;s missconfigured. Configured: %d, Maximum Allowed: %d&#39; % (settings_max_concurrency, maximum_allowed_concurrency))
+                crawler.settings.set(&#39;CONCURRENT_REQUESTS&#39;, maximum_allowed_concurrency, 255)
+
         if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
             crawler._apply_settings()
 
@@ -952,22 +985,8 @@ class.</p></div>
 
         spider = cls(*args, **kwargs)
         spider._set_crawler(crawler)
-
-        if not hasattr(spider, &#39;scrapfly_client&#39;):
-            spider.scrapfly_client = None
-
-        if spider.scrapfly_client is None:
-            spider.scrapfly_client = ScrapflyClient(
-                key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
-                host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
-                verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
-                debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
-                distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
-                connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
-                read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
-            )
-
-            spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
+        spider.scrapfly_client = scrapfly_client
+        spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
 
         spider.scrapfly_client.open()
         return spider</code></pre>
@@ -1015,6 +1034,39 @@ class.</p></div>
 def from_crawler(cls, crawler:Crawler, *args, **kwargs):
     from . import current_scrapy_version, comparable_version
 
+    scrapfly_client = ScrapflyClient(
+        key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
+        host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
+        verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
+        debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
+        distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
+        connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
+        read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT),
+    )
+
+    settings_max_concurrency = crawler.settings.get(&#39;CONCURRENT_REQUESTS&#39;, -1)
+
+    account_info = scrapfly_client.account()
+
+    if account_info[&#39;account&#39;][&#39;suspended&#39;] is True:
+        raise RuntimeError(&#39;Your account is suspended, please check your subscription status. Reason: %s&#39; % account_info[&#39;account&#39;][&#39;suspension_reason&#39;])
+
+    max_account_concurrency = account_info[&#39;subscription&#39;][&#39;max_concurrency&#39;]
+    project_concurrency_limit = account_info[&#39;project&#39;][&#39;concurrency_limit&#39;]
+
+    maximum_allowed_concurrency = max_account_concurrency
+
+    if project_concurrency_limit is not None:
+        maximum_allowed_concurrency = project_concurrency_limit
+
+    if settings_max_concurrency == -1:
+        crawler.settings.set(&#39;CONCURRENT_REQUESTS&#39;, maximum_allowed_concurrency, 255)
+        logger.warning(&#39;Concurrent request auto configured to %d&#39; % maximum_allowed_concurrency)
+    else:
+        if settings_max_concurrency &gt; maximum_allowed_concurrency:
+            logger.warning(&#39;==&gt; Your maximum concurrency has been adjusted following your subscription because it\&#39;s missconfigured. Configured: %d, Maximum Allowed: %d&#39; % (settings_max_concurrency, maximum_allowed_concurrency))
+            crawler.settings.set(&#39;CONCURRENT_REQUESTS&#39;, maximum_allowed_concurrency, 255)
+
     if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
         crawler._apply_settings()
 
@@ -1023,22 +1075,8 @@ def from_crawler(cls, crawler:Crawler, *args, **kwargs):
 
     spider = cls(*args, **kwargs)
     spider._set_crawler(crawler)
-
-    if not hasattr(spider, &#39;scrapfly_client&#39;):
-        spider.scrapfly_client = None
-
-    if spider.scrapfly_client is None:
-        spider.scrapfly_client = ScrapflyClient(
-            key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
-            host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
-            verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
-            debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
-            distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
-            connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
-            read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT)
-        )
-
-        spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
+    spider.scrapfly_client = scrapfly_client
+    spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
 
     spider.scrapfly_client.open()
     return spider</code></pre>

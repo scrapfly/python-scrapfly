@@ -26,7 +26,8 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import warnings
+<pre><code class="python">import datetime
+import warnings
 from asyncio import AbstractEventLoop, Task
 from concurrent.futures.thread import ThreadPoolExecutor
 
@@ -41,7 +42,7 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Callable
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal
 import requests
 import urllib3
 import logging as logger
@@ -66,6 +67,37 @@ NetworkError = (
     RequestExceptions.ReadTimeout
 )
 
+class ScraperAPI:
+
+    MONITORING_DATA_FORMAT_STRUCTURED = &#39;structured&#39;
+    MONITORING_DATA_FORMAT_PROMETHEUS = &#39;prometheus&#39;
+
+    MONITORING_PERIOD_SUBSCRIPTION = &#39;subscription&#39;
+    MONITORING_PERIOD_LAST_7D = &#39;last7d&#39;
+    MONITORING_PERIOD_LAST_24H = &#39;last24h&#39;
+    MONITORING_PERIOD_LAST_1H = &#39;last1h&#39;
+    MONITORING_PERIOD_LAST_5m = &#39;last5m&#39;
+
+    MONITORING_ACCOUNT_AGGREGATION = &#39;account&#39;
+    MONITORING_PROJECT_AGGREGATION = &#39;project&#39;
+    MONITORING_TARGET_AGGREGATION = &#39;target&#39;
+
+
+# Create custom type hint for possible values of the period parameter
+# in the get_monitoring_target_metrics method
+MonitoringTargetPeriod = Literal[
+    ScraperAPI.MONITORING_PERIOD_SUBSCRIPTION,
+    ScraperAPI.MONITORING_PERIOD_LAST_7D,
+    ScraperAPI.MONITORING_PERIOD_LAST_24H,
+    ScraperAPI.MONITORING_PERIOD_LAST_1H,
+    ScraperAPI.MONITORING_PERIOD_LAST_5m
+]
+
+MonitoringAggregation = Literal[
+    ScraperAPI.MONITORING_ACCOUNT_AGGREGATION,
+    ScraperAPI.MONITORING_PROJECT_AGGREGATION,
+    ScraperAPI.MONITORING_TARGET_AGGREGATION
+]
 
 class ScrapflyClient:
 
@@ -86,6 +118,7 @@ class ScrapflyClient:
     version:str
 
     CONCURRENCY_AUTO = &#39;auto&#39; # retrieve the allowed concurrency from your account
+    DATETIME_FORMAT = &#39;%Y-%m-%d %H:%M:%S&#39;
 
     def __init__(
         self,
@@ -190,9 +223,81 @@ class ScrapflyClient:
         response.raise_for_status()
 
         if self.body_handler.support(response.headers):
-            return self.body_handler(response.content)
+            return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
 
         return response.content.decode(&#39;utf-8&#39;)
+
+    def get_monitoring_metrics(self, format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED, period:Optional[str]=None, aggregation:Optional[List[MonitoringAggregation]]=None):
+        params = {&#39;key&#39;: self.key, &#39;format&#39;: format}
+
+        if period is not None:
+            params[&#39;period&#39;] = period
+
+        if aggregation is not None:
+            params[&#39;aggregation&#39;] = &#39;,&#39;.join(aggregation)
+
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.host + &#39;/scrape/monitoring/metrics&#39;,
+            params=params,
+            verify=self.verify,
+            headers={
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
+
+        return response.content.decode(&#39;utf-8&#39;)
+
+    def get_monitoring_target_metrics(
+            self,
+            domain:str,
+            group_subdomain:bool=False,
+            period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+            start:Optional[datetime.datetime]=None,
+            end:Optional[datetime.datetime]=None,
+    ):
+        params = {
+            &#39;key&#39;: self.key,
+            &#39;domain&#39;: domain,
+            &#39;group_subdomain&#39;: group_subdomain
+        }
+
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError(&#39;You must provide both start and end date&#39;)
+
+        if start is not None and end is not None:
+            params[&#39;start&#39;] = start.strftime(self.DATETIME_FORMAT)
+            params[&#39;end&#39;] = end.strftime(self.DATETIME_FORMAT)
+            period = None
+
+        params[&#39;period&#39;] = period
+
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.host + &#39;/scrape/monitoring/metrics/target&#39;,
+            params=params,
+            verify=self.verify,
+            headers={
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
+
+        return response.content.decode(&#39;utf-8&#39;)
+
 
     def resilient_scrape(
         self,
@@ -303,7 +408,26 @@ class ScrapflyClient:
         logger.debug(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
-    def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
+    def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeApiResponse:
+        &#34;&#34;&#34;
+        Scrape a website
+        :param scrape_config: ScrapeConfig
+        :param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
+        :return: ScrapeApiResponse
+
+        If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        &#39;error&#39;: {
+            &#39;code&#39;: &#39;ERR::ASP::SHIELD_PROTECTION_FAILED&#39;,
+            &#39;message&#39;: &#39;The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds&#39;,
+            &#39;retryable&#39;: False,
+            &#39;http_code&#39;: 422,
+            &#39;links&#39;: {
+                &#39;Checkout ASP documentation&#39;: &#39;https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate&#39;, &#39;Related Error Doc&#39;: &#39;https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED&#39;
+            }
+        }
+        &#34;&#34;&#34;
 
         try:
             logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
@@ -316,6 +440,10 @@ class ScrapflyClient:
             return scrape_api_response
         except BaseException as e:
             self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
             raise e
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
@@ -478,7 +606,7 @@ class ScrapflyClient:
             body = None
         else:
             if self.body_handler.support(headers=response.headers):
-                body = self.body_handler(response.content)
+                body = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
             else:
                 body = response.content.decode(&#39;utf-8&#39;)
 
@@ -503,6 +631,74 @@ class ScrapflyClient:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
+<dt id="scrapfly.client.ScraperAPI"><code class="flex name class">
+<span>class <span class="ident">ScraperAPI</span></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScraperAPI:
+
+    MONITORING_DATA_FORMAT_STRUCTURED = &#39;structured&#39;
+    MONITORING_DATA_FORMAT_PROMETHEUS = &#39;prometheus&#39;
+
+    MONITORING_PERIOD_SUBSCRIPTION = &#39;subscription&#39;
+    MONITORING_PERIOD_LAST_7D = &#39;last7d&#39;
+    MONITORING_PERIOD_LAST_24H = &#39;last24h&#39;
+    MONITORING_PERIOD_LAST_1H = &#39;last1h&#39;
+    MONITORING_PERIOD_LAST_5m = &#39;last5m&#39;
+
+    MONITORING_ACCOUNT_AGGREGATION = &#39;account&#39;
+    MONITORING_PROJECT_AGGREGATION = &#39;project&#39;
+    MONITORING_TARGET_AGGREGATION = &#39;target&#39;</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_ACCOUNT_AGGREGATION"><code class="name">var <span class="ident">MONITORING_ACCOUNT_AGGREGATION</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_DATA_FORMAT_PROMETHEUS"><code class="name">var <span class="ident">MONITORING_DATA_FORMAT_PROMETHEUS</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED"><code class="name">var <span class="ident">MONITORING_DATA_FORMAT_STRUCTURED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_1H"><code class="name">var <span class="ident">MONITORING_PERIOD_LAST_1H</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_24H"><code class="name">var <span class="ident">MONITORING_PERIOD_LAST_24H</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_5m"><code class="name">var <span class="ident">MONITORING_PERIOD_LAST_5m</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_7D"><code class="name">var <span class="ident">MONITORING_PERIOD_LAST_7D</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_PERIOD_SUBSCRIPTION"><code class="name">var <span class="ident">MONITORING_PERIOD_SUBSCRIPTION</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_PROJECT_AGGREGATION"><code class="name">var <span class="ident">MONITORING_PROJECT_AGGREGATION</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScraperAPI.MONITORING_TARGET_AGGREGATION"><code class="name">var <span class="ident">MONITORING_TARGET_AGGREGATION</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient"><code class="flex name class">
 <span>class <span class="ident">ScrapflyClient</span></span>
 <span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, connect_timeout: int = 30, read_timeout: int = 160, reporter: Optional[Callable] = None, **kwargs)</span>
@@ -532,6 +728,7 @@ class ScrapflyClient:
     version:str
 
     CONCURRENCY_AUTO = &#39;auto&#39; # retrieve the allowed concurrency from your account
+    DATETIME_FORMAT = &#39;%Y-%m-%d %H:%M:%S&#39;
 
     def __init__(
         self,
@@ -636,9 +833,81 @@ class ScrapflyClient:
         response.raise_for_status()
 
         if self.body_handler.support(response.headers):
-            return self.body_handler(response.content)
+            return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
 
         return response.content.decode(&#39;utf-8&#39;)
+
+    def get_monitoring_metrics(self, format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED, period:Optional[str]=None, aggregation:Optional[List[MonitoringAggregation]]=None):
+        params = {&#39;key&#39;: self.key, &#39;format&#39;: format}
+
+        if period is not None:
+            params[&#39;period&#39;] = period
+
+        if aggregation is not None:
+            params[&#39;aggregation&#39;] = &#39;,&#39;.join(aggregation)
+
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.host + &#39;/scrape/monitoring/metrics&#39;,
+            params=params,
+            verify=self.verify,
+            headers={
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
+
+        return response.content.decode(&#39;utf-8&#39;)
+
+    def get_monitoring_target_metrics(
+            self,
+            domain:str,
+            group_subdomain:bool=False,
+            period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+            start:Optional[datetime.datetime]=None,
+            end:Optional[datetime.datetime]=None,
+    ):
+        params = {
+            &#39;key&#39;: self.key,
+            &#39;domain&#39;: domain,
+            &#39;group_subdomain&#39;: group_subdomain
+        }
+
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError(&#39;You must provide both start and end date&#39;)
+
+        if start is not None and end is not None:
+            params[&#39;start&#39;] = start.strftime(self.DATETIME_FORMAT)
+            params[&#39;end&#39;] = end.strftime(self.DATETIME_FORMAT)
+            period = None
+
+        params[&#39;period&#39;] = period
+
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.host + &#39;/scrape/monitoring/metrics/target&#39;,
+            params=params,
+            verify=self.verify,
+            headers={
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
+
+        return response.content.decode(&#39;utf-8&#39;)
+
 
     def resilient_scrape(
         self,
@@ -749,7 +1018,26 @@ class ScrapflyClient:
         logger.debug(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
-    def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
+    def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeApiResponse:
+        &#34;&#34;&#34;
+        Scrape a website
+        :param scrape_config: ScrapeConfig
+        :param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
+        :return: ScrapeApiResponse
+
+        If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        &#39;error&#39;: {
+            &#39;code&#39;: &#39;ERR::ASP::SHIELD_PROTECTION_FAILED&#39;,
+            &#39;message&#39;: &#39;The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds&#39;,
+            &#39;retryable&#39;: False,
+            &#39;http_code&#39;: 422,
+            &#39;links&#39;: {
+                &#39;Checkout ASP documentation&#39;: &#39;https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate&#39;, &#39;Related Error Doc&#39;: &#39;https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED&#39;
+            }
+        }
+        &#34;&#34;&#34;
 
         try:
             logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
@@ -762,6 +1050,10 @@ class ScrapflyClient:
             return scrape_api_response
         except BaseException as e:
             self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
             raise e
 
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
@@ -924,7 +1216,7 @@ class ScrapflyClient:
             body = None
         else:
             if self.body_handler.support(headers=response.headers):
-                body = self.body_handler(response.content)
+                body = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
             else:
                 body = response.content.decode(&#39;utf-8&#39;)
 
@@ -942,6 +1234,10 @@ class ScrapflyClient:
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.client.ScrapflyClient.CONCURRENCY_AUTO"><code class="name">var <span class="ident">CONCURRENCY_AUTO</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.DATETIME_FORMAT"><code class="name">var <span class="ident">DATETIME_FORMAT</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -1061,7 +1357,7 @@ def ua(self) -&gt; str:
     response.raise_for_status()
 
     if self.body_handler.support(response.headers):
-        return self.body_handler(response.content)
+        return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
 
     return response.content.decode(&#39;utf-8&#39;)</code></pre>
 </details>
@@ -1160,6 +1456,97 @@ def ua(self) -&gt; str:
     logger.debug(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.get_monitoring_metrics"><code class="name flex">
+<span>def <span class="ident">get_monitoring_metrics</span></span>(<span>self, format: str = 'structured', period: Optional[str] = None, aggregation: Optional[List[Literal['account', 'project', 'target']]] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_monitoring_metrics(self, format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED, period:Optional[str]=None, aggregation:Optional[List[MonitoringAggregation]]=None):
+    params = {&#39;key&#39;: self.key, &#39;format&#39;: format}
+
+    if period is not None:
+        params[&#39;period&#39;] = period
+
+    if aggregation is not None:
+        params[&#39;aggregation&#39;] = &#39;,&#39;.join(aggregation)
+
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.host + &#39;/scrape/monitoring/metrics&#39;,
+        params=params,
+        verify=self.verify,
+        headers={
+            &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+            &#39;accept&#39;: self.body_handler.accept,
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+
+    if self.body_handler.support(response.headers):
+        return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
+
+    return response.content.decode(&#39;utf-8&#39;)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.get_monitoring_target_metrics"><code class="name flex">
+<span>def <span class="ident">get_monitoring_target_metrics</span></span>(<span>self, domain: str, group_subdomain: bool = False, period: Optional[Literal['subscription', 'last7d', 'last24h', 'last1h', 'last5m']] = 'last24h', start: Optional[datetime.datetime] = None, end: Optional[datetime.datetime] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+):
+    params = {
+        &#39;key&#39;: self.key,
+        &#39;domain&#39;: domain,
+        &#39;group_subdomain&#39;: group_subdomain
+    }
+
+    if (start is not None and end is None) or (start is None and end is not None):
+        raise ValueError(&#39;You must provide both start and end date&#39;)
+
+    if start is not None and end is not None:
+        params[&#39;start&#39;] = start.strftime(self.DATETIME_FORMAT)
+        params[&#39;end&#39;] = end.strftime(self.DATETIME_FORMAT)
+        period = None
+
+    params[&#39;period&#39;] = period
+
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.host + &#39;/scrape/monitoring/metrics/target&#39;,
+        params=params,
+        verify=self.verify,
+        headers={
+            &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+            &#39;accept&#39;: self.body_handler.accept,
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+
+    if self.body_handler.support(response.headers):
+        return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
+
+    return response.content.decode(&#39;utf-8&#39;)</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.open"><code class="name flex">
 <span>def <span class="ident">open</span></span>(<span>self)</span>
 </code></dt>
@@ -1252,16 +1639,49 @@ def ua(self) -&gt; str:
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.scrape"><code class="name flex">
-<span>def <span class="ident">scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, no_raise: bool = False) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Scrape a website
+:param scrape_config: ScrapeConfig
+:param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
+:return: ScrapeApiResponse</p>
+<p>If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
+If the error is not none, you will get the following structure for example</p>
+<p>'error': {
+'code': 'ERR::ASP::SHIELD_PROTECTION_FAILED',
+'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds',
+'retryable': False,
+'http_code': 422,
+'links': {
+'Checkout ASP documentation': 'https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate', 'Related Error Doc': 'https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED'
+}
+}</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
-def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
+def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeApiResponse:
+    &#34;&#34;&#34;
+    Scrape a website
+    :param scrape_config: ScrapeConfig
+    :param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
+    :return: ScrapeApiResponse
+
+    If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
+    If the error is not none, you will get the following structure for example
+
+    &#39;error&#39;: {
+        &#39;code&#39;: &#39;ERR::ASP::SHIELD_PROTECTION_FAILED&#39;,
+        &#39;message&#39;: &#39;The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds&#39;,
+        &#39;retryable&#39;: False,
+        &#39;http_code&#39;: 422,
+        &#39;links&#39;: {
+            &#39;Checkout ASP documentation&#39;: &#39;https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate&#39;, &#39;Related Error Doc&#39;: &#39;https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED&#39;
+        }
+    }
+    &#34;&#34;&#34;
 
     try:
         logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
@@ -1274,6 +1694,10 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         return scrape_api_response
     except BaseException as e:
         self.reporter.report(error=e)
+
+        if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+            return e.api_response
+
         raise e</code></pre>
 </details>
 </dd>
@@ -1396,9 +1820,25 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
+<h4><code><a title="scrapfly.client.ScraperAPI" href="#scrapfly.client.ScraperAPI">ScraperAPI</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_ACCOUNT_AGGREGATION" href="#scrapfly.client.ScraperAPI.MONITORING_ACCOUNT_AGGREGATION">MONITORING_ACCOUNT_AGGREGATION</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_DATA_FORMAT_PROMETHEUS" href="#scrapfly.client.ScraperAPI.MONITORING_DATA_FORMAT_PROMETHEUS">MONITORING_DATA_FORMAT_PROMETHEUS</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED" href="#scrapfly.client.ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED">MONITORING_DATA_FORMAT_STRUCTURED</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_1H" href="#scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_1H">MONITORING_PERIOD_LAST_1H</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_24H" href="#scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_24H">MONITORING_PERIOD_LAST_24H</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_5m" href="#scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_5m">MONITORING_PERIOD_LAST_5m</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_7D" href="#scrapfly.client.ScraperAPI.MONITORING_PERIOD_LAST_7D">MONITORING_PERIOD_LAST_7D</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_PERIOD_SUBSCRIPTION" href="#scrapfly.client.ScraperAPI.MONITORING_PERIOD_SUBSCRIPTION">MONITORING_PERIOD_SUBSCRIPTION</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_PROJECT_AGGREGATION" href="#scrapfly.client.ScraperAPI.MONITORING_PROJECT_AGGREGATION">MONITORING_PROJECT_AGGREGATION</a></code></li>
+<li><code><a title="scrapfly.client.ScraperAPI.MONITORING_TARGET_AGGREGATION" href="#scrapfly.client.ScraperAPI.MONITORING_TARGET_AGGREGATION">MONITORING_TARGET_AGGREGATION</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="scrapfly.client.ScrapflyClient" href="#scrapfly.client.ScrapflyClient">ScrapflyClient</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.client.ScrapflyClient.CONCURRENCY_AUTO" href="#scrapfly.client.ScrapflyClient.CONCURRENCY_AUTO">CONCURRENCY_AUTO</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.DATETIME_FORMAT" href="#scrapfly.client.ScrapflyClient.DATETIME_FORMAT">DATETIME_FORMAT</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT">DEFAULT_CONNECT_TIMEOUT</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_READ_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_READ_TIMEOUT">DEFAULT_READ_TIMEOUT</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.HOST" href="#scrapfly.client.ScrapflyClient.HOST">HOST</a></code></li>
@@ -1410,6 +1850,8 @@ def scrape(self, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
 <li><code><a title="scrapfly.client.ScrapflyClient.connect_timeout" href="#scrapfly.client.ScrapflyClient.connect_timeout">connect_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.debug" href="#scrapfly.client.ScrapflyClient.debug">debug</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.distributed_mode" href="#scrapfly.client.ScrapflyClient.distributed_mode">distributed_mode</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.get_monitoring_metrics" href="#scrapfly.client.ScrapflyClient.get_monitoring_metrics">get_monitoring_metrics</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.get_monitoring_target_metrics" href="#scrapfly.client.ScrapflyClient.get_monitoring_target_metrics">get_monitoring_target_metrics</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.host" href="#scrapfly.client.ScrapflyClient.host">host</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.http" href="#scrapfly.client.ScrapflyClient.http">http</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.key" href="#scrapfly.client.ScrapflyClient.key">key</a></code></li>
