@@ -83,6 +83,12 @@ class ResponseBodyHandler:
             except ImportError:
                 pass
 
+        try:
+            import zstd
+            self.SUPPORTED_COMPRESSION.append('zstd')
+        except ImportError:
+            pass
+
         self.content_encoding:str = ', '.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret:Optional[Tuple[str]] = None
 
@@ -122,15 +128,18 @@ class ResponseBodyHandler:
         return False
 
     def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -> Dict:
-        if content_encoding == 'gzip':
+        if content_encoding == 'gzip' or content_encoding == 'gz':
             import gzip
             content = gzip.decompress(content)
         elif content_encoding == 'deflate':
             import zlib
             content = zlib.decompress(content)
-        elif content_encoding == 'brotli':
+        elif content_encoding == 'brotli' or content_encoding == 'br':
             import brotli
             content = brotli.decompress(content)
+        elif content_encoding == 'zstd':
+            import zstd
+            content = zstd.decompress(content)
 
         if self._signing_secret is not None and signature is not None:
             if not self.verify(content, signature):
@@ -144,9 +153,20 @@ class ResponseBodyHandler:
 
         return content
 
-    def __call__(self, content: bytes) -> Union[str, Dict]:
+    def __call__(self, content: bytes, content_type:str) -> Union[str, Dict]:
+        content_loader = None
+
+        if content_type.find('application/json') != -1:
+            content_loader = partial(loads, cls=self.JSONDateTimeDecoder)
+        elif content_type.find('application/msgpack') != -1:
+            import msgpack
+            content_loader = partial(msgpack.loads, object_hook=_date_parser, strict_map_key=False)
+
+        if content_loader is None:
+            raise Exception('Unsupported content type')
+
         try:
-            return self.content_loader(content)
+            return content_loader(content)
         except Exception as e:
             try:
                 raise EncoderError(content=content.decode('utf-8')) from e

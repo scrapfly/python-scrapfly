@@ -1,3 +1,4 @@
+import datetime
 import warnings
 from asyncio import AbstractEventLoop, Task
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -13,7 +14,7 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Callable
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal
 import requests
 import urllib3
 import logging as logger
@@ -38,6 +39,37 @@ NetworkError = (
     RequestExceptions.ReadTimeout
 )
 
+class ScraperAPI:
+
+    MONITORING_DATA_FORMAT_STRUCTURED = 'structured'
+    MONITORING_DATA_FORMAT_PROMETHEUS = 'prometheus'
+
+    MONITORING_PERIOD_SUBSCRIPTION = 'subscription'
+    MONITORING_PERIOD_LAST_7D = 'last7d'
+    MONITORING_PERIOD_LAST_24H = 'last24h'
+    MONITORING_PERIOD_LAST_1H = 'last1h'
+    MONITORING_PERIOD_LAST_5m = 'last5m'
+
+    MONITORING_ACCOUNT_AGGREGATION = 'account'
+    MONITORING_PROJECT_AGGREGATION = 'project'
+    MONITORING_TARGET_AGGREGATION = 'target'
+
+
+# Create custom type hint for possible values of the period parameter
+# in the get_monitoring_target_metrics method
+MonitoringTargetPeriod = Literal[
+    ScraperAPI.MONITORING_PERIOD_SUBSCRIPTION,
+    ScraperAPI.MONITORING_PERIOD_LAST_7D,
+    ScraperAPI.MONITORING_PERIOD_LAST_24H,
+    ScraperAPI.MONITORING_PERIOD_LAST_1H,
+    ScraperAPI.MONITORING_PERIOD_LAST_5m
+]
+
+MonitoringAggregation = Literal[
+    ScraperAPI.MONITORING_ACCOUNT_AGGREGATION,
+    ScraperAPI.MONITORING_PROJECT_AGGREGATION,
+    ScraperAPI.MONITORING_TARGET_AGGREGATION
+]
 
 class ScrapflyClient:
 
@@ -58,6 +90,7 @@ class ScrapflyClient:
     version:str
 
     CONCURRENCY_AUTO = 'auto' # retrieve the allowed concurrency from your account
+    DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
     def __init__(
         self,
@@ -162,9 +195,81 @@ class ScrapflyClient:
         response.raise_for_status()
 
         if self.body_handler.support(response.headers):
-            return self.body_handler(response.content)
+            return self.body_handler(response.content, response.headers['content-type'])
 
         return response.content.decode('utf-8')
+
+    def get_monitoring_metrics(self, format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED, period:Optional[str]=None, aggregation:Optional[List[MonitoringAggregation]]=None):
+        params = {'key': self.key, 'format': format}
+
+        if period is not None:
+            params['period'] = period
+
+        if aggregation is not None:
+            params['aggregation'] = ','.join(aggregation)
+
+        response = self._http_handler(
+            method='GET',
+            url=self.host + '/scrape/monitoring/metrics',
+            params=params,
+            verify=self.verify,
+            headers={
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content, response.headers['content-type'])
+
+        return response.content.decode('utf-8')
+
+    def get_monitoring_target_metrics(
+            self,
+            domain:str,
+            group_subdomain:bool=False,
+            period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+            start:Optional[datetime.datetime]=None,
+            end:Optional[datetime.datetime]=None,
+    ):
+        params = {
+            'key': self.key,
+            'domain': domain,
+            'group_subdomain': group_subdomain
+        }
+
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError('You must provide both start and end date')
+
+        if start is not None and end is not None:
+            params['start'] = start.strftime(self.DATETIME_FORMAT)
+            params['end'] = end.strftime(self.DATETIME_FORMAT)
+            period = None
+
+        params['period'] = period
+
+        response = self._http_handler(
+            method='GET',
+            url=self.host + '/scrape/monitoring/metrics/target',
+            params=params,
+            verify=self.verify,
+            headers={
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content, response.headers['content-type'])
+
+        return response.content.decode('utf-8')
+
 
     def resilient_scrape(
         self,
@@ -473,7 +578,7 @@ class ScrapflyClient:
             body = None
         else:
             if self.body_handler.support(headers=response.headers):
-                body = self.body_handler(response.content)
+                body = self.body_handler(content=response.content, content_type=response.headers['content-type'])
             else:
                 body = response.content.decode('utf-8')
 

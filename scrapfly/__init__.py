@@ -18,7 +18,7 @@ from .errors import UpstreamHttpServerError
 from .errors import ApiHttpClientError
 from .errors import ApiHttpServerError
 from .api_response import ScrapeApiResponse, ResponseBodyHandler
-from .client import ScrapflyClient
+from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
 from .scrape_config import ScrapeConfig
 
 __all__:Tuple[str, ...] = (
@@ -41,5 +41,8 @@ __all__:Tuple[str, ...] = (
     'HttpError',
     'ScrapflyClient',
     'ResponseBodyHandler',
-    'ScrapeConfig'
+    'ScrapeConfig',
+    'ScraperAPI',
+    'MonitoringTargetPeriod',
+    'MonitoringAggregation',
 )
