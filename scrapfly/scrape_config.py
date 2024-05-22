@@ -1,7 +1,7 @@
 import base64
 import json
 import logging
-from typing import Optional, List, Dict, Iterable, Union, Set
+from typing import Optional, List, Dict, Iterable, Union, Set, Literal
 from urllib.parse import urlencode
 from requests.structures import CaseInsensitiveDict
 
@@ -31,6 +31,7 @@ class ScrapeConfig:
     proxy_pool:Optional[str] = None
     session: Optional[str] = None
     tags: Optional[List[str]] = None
+    format: Literal['json', 'text', 'markdown', 'clean_html'] = None # raw(unchanged)
     correlation_id: Optional[str] = None
     cookies: Optional[CaseInsensitiveDict] = None
     body: Optional[str] = None
@@ -41,6 +42,7 @@ class ScrapeConfig:
     wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
+    screenshot_flags: Optional[str]=None
     webhook:Optional[str]=None
     timeout:Optional[int]=None # in milliseconds
     js_scenario: Dict = None
@@ -68,6 +70,7 @@ class ScrapeConfig:
         proxy_pool:Optional[str] = None,
         session: Optional[str] = None,
         tags: Optional[Union[List[str], Set[str]]] = None,
+        format: Literal['json', 'text', 'markdown', 'clean_html'] = None, # raw(unchanged)
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -77,6 +80,7 @@ class ScrapeConfig:
         rendering_wait: int = None,
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
+        screenshot_flags:Optional[str]=None,
         session_sticky_proxy:Optional[bool] = None,
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
@@ -112,6 +116,7 @@ class ScrapeConfig:
         self.cache_ttl = cache_ttl
         self.proxy_pool = proxy_pool
         self.tags = tags or set()
+        self.format = format
         self.correlation_id = correlation_id
         self.wait_for_selector = wait_for_selector
         self.body = body
@@ -120,6 +125,7 @@ class ScrapeConfig:
         self.rendering_wait = rendering_wait
         self.raise_on_upstream_error = raise_on_upstream_error
         self.screenshots = screenshots
+        self.screenshot_flags = screenshot_flags
         self.key = None
         self.dns = dns
         self.ssl = ssl
@@ -209,6 +215,12 @@ class ScrapeConfig:
                 for name, element in self.screenshots.items():
                     params['screenshots[%s]' % name] = element
 
+                if self.screenshot_flags is not None:
+                    params['screenshot_flags'] = self.screenshot_flags
+            else:
+                if self.screenshot_flags is not None:
+                    logging.warning('Params "screenshot_flags" is ignored. Works only if screenshots is enabled')
+
             if self.auto_scroll is True:
                 params['auto_scroll'] = self._bool_to_http(self.auto_scroll)
         else:
@@ -256,6 +268,9 @@ class ScrapeConfig:
 
         if self.tags:
             params['tags'] = ','.join(self.tags)
+
+        if self.format:
+            params['format'] = self.format
 
         if self.correlation_id:
             params['correlation_id'] = self.correlation_id
@@ -320,9 +335,11 @@ class ScrapeConfig:
             debug=data['debug'],
             correlation_id=data['correlation_id'],
             tags=data['tags'],
+            format=data['format'],
             js=data['js'],
             rendering_wait=data['rendering_wait'],
             screenshots=data['screenshots'] or {},
+            screenshot_flags=data['screenshot_flags'],
             proxy_pool=data['proxy_pool'],
             auto_scroll=data['auto_scroll'],
             cost_budget=data['cost_budget']
