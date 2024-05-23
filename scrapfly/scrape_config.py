@@ -1,9 +1,25 @@
 import base64
 import json
 import logging
-from typing import Optional, List, Dict, Iterable, Union, Set, Literal
+from enum import Enum
+from typing import Optional, List, Dict, Iterable, Union, Set
 from urllib.parse import urlencode
 from requests.structures import CaseInsensitiveDict
+
+
+class ScreenshotFlag(Enum):
+    LOAD_IMAGES = "load_images"
+    DARK_MODE = "dark_mode"
+    BLOCK_BANNERS = "block_banners"
+    HIGH_QUALITY = "high_quality"
+    PRINT_MEDIA_FORMAT = "print_media_format"
+
+
+class Format(Enum):
+    JSON = "json"
+    TEXT = "text"
+    MARKDOWN = "markdown"
+    CLEAN_HTML = "clean_html"
 
 
 class ScrapeConfigError(Exception):
@@ -31,7 +47,7 @@ class ScrapeConfig:
     proxy_pool:Optional[str] = None
     session: Optional[str] = None
     tags: Optional[List[str]] = None
-    format: Literal['json', 'text', 'markdown', 'clean_html'] = None # raw(unchanged)
+    format: Optional[Format] = None, # raw(unchanged)
     correlation_id: Optional[str] = None
     cookies: Optional[CaseInsensitiveDict] = None
     body: Optional[str] = None
@@ -42,7 +58,7 @@ class ScrapeConfig:
     wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
-    screenshot_flags: Optional[str]=None
+    screenshot_flags: Optional[List[ScreenshotFlag]] = None,
     webhook:Optional[str]=None
     timeout:Optional[int]=None # in milliseconds
     js_scenario: Dict = None
@@ -70,7 +86,7 @@ class ScrapeConfig:
         proxy_pool:Optional[str] = None,
         session: Optional[str] = None,
         tags: Optional[Union[List[str], Set[str]]] = None,
-        format: Literal['json', 'text', 'markdown', 'clean_html'] = None, # raw(unchanged)
+        format: Optional[Format] = None, # raw(unchanged)
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -80,7 +96,7 @@ class ScrapeConfig:
         rendering_wait: int = None,
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
-        screenshot_flags:Optional[str]=None,
+        screenshot_flags: Optional[List[ScreenshotFlag]] = None,
         session_sticky_proxy:Optional[bool] = None,
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
@@ -215,8 +231,9 @@ class ScrapeConfig:
                 for name, element in self.screenshots.items():
                     params['screenshots[%s]' % name] = element
 
-                if self.screenshot_flags is not None:
-                    params['screenshot_flags'] = self.screenshot_flags
+            if self.screenshot_flags is not None:
+                self.screenshot_flags = [ScreenshotFlag(flag) for flag in self.screenshot_flags]
+                params["screenshot_flags"] = ",".join(flag.value for flag in self.screenshot_flags)
             else:
                 if self.screenshot_flags is not None:
                     logging.warning('Params "screenshot_flags" is ignored. Works only if screenshots is enabled')
@@ -270,7 +287,7 @@ class ScrapeConfig:
             params['tags'] = ','.join(self.tags)
 
         if self.format:
-            params['format'] = self.format
+            params['format'] = Format(self.format).value
 
         if self.correlation_id:
             params['correlation_id'] = self.correlation_id
