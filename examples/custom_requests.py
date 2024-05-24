@@ -5,7 +5,7 @@ scrapfly = ScrapflyClient(key='__API_KEY__')
 print('===== HEAD request =====')
 
 api_response:ScrapeApiResponse = scrapfly.scrape(ScrapeConfig(
-    url='https://httpbin.org/anything',
+    url='https://httpbin.dev/anything',
     method='HEAD'
 ))
 
@@ -14,7 +14,7 @@ print(api_response.result)
 
 print('======== Default Body Url Encode ========')
 api_response:ScrapeApiResponse = scrapfly.scrape(ScrapeConfig(
-    url='https://httpbin.org/anything',
+    url='https://httpbin.dev/anything',
     method='POST',
     data={'hello': 'world'},
     headers={'X-Scrapfly': 'Yes'}
@@ -25,7 +25,7 @@ print(api_response.scrape_result['content'])
 print('======== Json content-type ======== ')
 
 api_response:ScrapeApiResponse = scrapfly.scrape(ScrapeConfig(
-    url='https://httpbin.org/anything',
+    url='https://httpbin.dev/anything',
     method='POST',
     data={'hello': 'world'},
     headers={'X-Scrapfly': 'Yes', 'content-type': 'application/json'}

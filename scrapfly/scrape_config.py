@@ -8,6 +8,15 @@ from requests.structures import CaseInsensitiveDict
 
 
 class ScreenshotFlag(Enum):
+    """
+    Attributes:
+        LOAD_IMAGES: Enable image rendering with the request, add extra usage for the bandwidth consumed.
+        DARK_MODE: Enable dark mode display.
+        BLOCK_BANNERS: Block cookies banners and overlay that cover the screen.
+        HIGH_QUALITY: No compression on the output image.
+        PRINT_MEDIA_FORMAT: Render the page in the print mode.
+    """
+
     LOAD_IMAGES = "load_images"
     DARK_MODE = "dark_mode"
     BLOCK_BANNERS = "block_banners"
@@ -16,6 +25,14 @@ class ScreenshotFlag(Enum):
 
 
 class Format(Enum):
+    """
+    Attributes:
+        JSON: JSON format.
+        TEXT: Text format.
+        MARKDOWN: Markdown format.
+        CLEAN_HTML: Clean HTML format.
+    """
+
     JSON = "json"
     TEXT = "text"
     MARKDOWN = "markdown"

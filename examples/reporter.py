@@ -26,6 +26,6 @@ scrapfly = ScrapflyClient(
     reporter=ChainReporter(my_reporter, PrintReporter())
 )
 
-response:ScrapeApiResponse = scrapfly.scrape(scrape_config=ScrapeConfig(url='http://httpbin.org/status/404'))
+response:ScrapeApiResponse = scrapfly.scrape(scrape_config=ScrapeConfig(url='https://httpbin.dev/status/404'))
 
 print(response)

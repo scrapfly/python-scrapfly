@@ -28,7 +28,7 @@ except ImportError:
 
 from .errors import *
 from .api_response import ResponseBodyHandler
-from .scrape_config import ScrapeConfig
+from .scrape_config import ScrapeConfig, ScreenshotFlag
 from . import __version__, ScrapeApiResponse, HttpError, UpstreamHttpError
 
 logger.getLogger(__name__)
@@ -464,6 +464,12 @@ class ScrapflyClient:
             raise
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+        """
+        Save a screenshot from a scrape result
+        :param api_response: ScrapeApiResponse
+        :param name: str - name of the screenshot given in the scrape config
+        :param path: Optional[str]
+        """
 
         if not api_response.scrape_result['screenshots']:
             raise RuntimeError('Screenshot %s do no exists' % name)
@@ -487,12 +493,19 @@ class ScrapflyClient:
 
         api_response.sink(path=path, name=name, content=screenshot_response.content)
 
-    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -> str:
+    def screenshot(
+            self,
+            url:str,
+            path:Optional[str]=None,
+            name:Optional[str]=None,
+            screenshot_flags:Optional[List[ScreenshotFlag]]=None
+    ) -> str:
         # for advance configuration, take screenshots via scrape method with ScrapeConfig
         api_response = self.scrape(scrape_config=ScrapeConfig(
             url=url,
             render_js=True,
-            screenshots={'main': 'fullpage'}
+            screenshots={'main': 'fullpage'},
+            screenshot_flags=screenshot_flags
         ))
 
         name = name or 'main.jpg'
