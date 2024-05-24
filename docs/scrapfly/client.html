@@ -56,7 +56,7 @@ except ImportError:
 
 from .errors import *
 from .api_response import ResponseBodyHandler
-from .scrape_config import ScrapeConfig
+from .scrape_config import ScrapeConfig, ScreenshotFlag
 from . import __version__, ScrapeApiResponse, HttpError, UpstreamHttpError
 
 logger.getLogger(__name__)
@@ -492,6 +492,12 @@ class ScrapflyClient:
             raise
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+        &#34;&#34;&#34;
+        Save a screenshot from a scrape result
+        :param api_response: ScrapeApiResponse
+        :param name: str - name of the screenshot given in the scrape config
+        :param path: Optional[str]
+        &#34;&#34;&#34;
 
         if not api_response.scrape_result[&#39;screenshots&#39;]:
             raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
@@ -515,12 +521,19 @@ class ScrapflyClient:
 
         api_response.sink(path=path, name=name, content=screenshot_response.content)
 
-    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
+    def screenshot(
+            self,
+            url:str,
+            path:Optional[str]=None,
+            name:Optional[str]=None,
+            screenshot_flags:Optional[List[ScreenshotFlag]]=None
+    ) -&gt; str:
         # for advance configuration, take screenshots via scrape method with ScrapeConfig
         api_response = self.scrape(scrape_config=ScrapeConfig(
             url=url,
             render_js=True,
-            screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+            screenshots={&#39;main&#39;: &#39;fullpage&#39;},
+            screenshot_flags=screenshot_flags
         ))
 
         name = name or &#39;main.jpg&#39;
@@ -1102,6 +1115,12 @@ class ScrapflyClient:
             raise
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+        &#34;&#34;&#34;
+        Save a screenshot from a scrape result
+        :param api_response: ScrapeApiResponse
+        :param name: str - name of the screenshot given in the scrape config
+        :param path: Optional[str]
+        &#34;&#34;&#34;
 
         if not api_response.scrape_result[&#39;screenshots&#39;]:
             raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
@@ -1125,12 +1144,19 @@ class ScrapflyClient:
 
         api_response.sink(path=path, name=name, content=screenshot_response.content)
 
-    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
+    def screenshot(
+            self,
+            url:str,
+            path:Optional[str]=None,
+            name:Optional[str]=None,
+            screenshot_flags:Optional[List[ScreenshotFlag]]=None
+    ) -&gt; str:
         # for advance configuration, take screenshots via scrape method with ScrapeConfig
         api_response = self.scrape(scrape_config=ScrapeConfig(
             url=url,
             render_js=True,
-            screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+            screenshots={&#39;main&#39;: &#39;fullpage&#39;},
+            screenshot_flags=screenshot_flags
         ))
 
         name = name or &#39;main.jpg&#39;
@@ -1608,12 +1634,21 @@ def ua(self) -&gt; str:
 <span>def <span class="ident">save_screenshot</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, name: str, path: Optional[str] = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Save a screenshot from a scrape result
+:param api_response: ScrapeApiResponse
+:param name: str - name of the screenshot given in the scrape config
+:param path: Optional[str]</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+    &#34;&#34;&#34;
+    Save a screenshot from a scrape result
+    :param api_response: ScrapeApiResponse
+    :param name: str - name of the screenshot given in the scrape config
+    :param path: Optional[str]
+    &#34;&#34;&#34;
 
     if not api_response.scrape_result[&#39;screenshots&#39;]:
         raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
@@ -1702,7 +1737,7 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.screenshot"><code class="name flex">
-<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Optional[str] = None, name: Optional[str] = None) ‑> str</span>
+<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Optional[str] = None, name: Optional[str] = None, screenshot_flags: Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]] = None) ‑> str</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1710,12 +1745,19 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
+<pre><code class="python">def screenshot(
+        self,
+        url:str,
+        path:Optional[str]=None,
+        name:Optional[str]=None,
+        screenshot_flags:Optional[List[ScreenshotFlag]]=None
+) -&gt; str:
     # for advance configuration, take screenshots via scrape method with ScrapeConfig
     api_response = self.scrape(scrape_config=ScrapeConfig(
         url=url,
         render_js=True,
-        screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+        screenshots={&#39;main&#39;: &#39;fullpage&#39;},
+        screenshot_flags=screenshot_flags
     ))
 
     name = name or &#39;main.jpg&#39;

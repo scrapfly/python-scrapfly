@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.8.16&#39;
+<pre><code class="python">__version__ = &#39;0.8.17&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -1680,7 +1680,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
 </dd>
 <dt id="scrapfly.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Union[List[str], Set[str], ForwardRef(None)] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[List] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None, cost_budget: Optional[int] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Union[List[str], Set[str], ForwardRef(None)] = None, format: Optional[<a title="scrapfly.scrape_config.Format" href="scrape_config.html#scrapfly.scrape_config.Format">Format</a>] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, screenshot_flags: Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[List] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None, cost_budget: Optional[int] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1709,6 +1709,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
     proxy_pool:Optional[str] = None
     session: Optional[str] = None
     tags: Optional[List[str]] = None
+    format: Optional[Format] = None, # raw(unchanged)
     correlation_id: Optional[str] = None
     cookies: Optional[CaseInsensitiveDict] = None
     body: Optional[str] = None
@@ -1719,6 +1720,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
     wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
+    screenshot_flags: Optional[List[ScreenshotFlag]] = None,
     webhook:Optional[str]=None
     timeout:Optional[int]=None # in milliseconds
     js_scenario: Dict = None
@@ -1746,6 +1748,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
         proxy_pool:Optional[str] = None,
         session: Optional[str] = None,
         tags: Optional[Union[List[str], Set[str]]] = None,
+        format: Optional[Format] = None, # raw(unchanged)
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -1755,6 +1758,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
         rendering_wait: int = None,
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
+        screenshot_flags: Optional[List[ScreenshotFlag]] = None,
         session_sticky_proxy:Optional[bool] = None,
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
@@ -1790,6 +1794,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
         self.cache_ttl = cache_ttl
         self.proxy_pool = proxy_pool
         self.tags = tags or set()
+        self.format = format
         self.correlation_id = correlation_id
         self.wait_for_selector = wait_for_selector
         self.body = body
@@ -1798,6 +1803,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
         self.rendering_wait = rendering_wait
         self.raise_on_upstream_error = raise_on_upstream_error
         self.screenshots = screenshots
+        self.screenshot_flags = screenshot_flags
         self.key = None
         self.dns = dns
         self.ssl = ssl
@@ -1887,6 +1893,13 @@ def upstream_status_code(self) -&gt; Optional[int]:
                 for name, element in self.screenshots.items():
                     params[&#39;screenshots[%s]&#39; % name] = element
 
+            if self.screenshot_flags is not None:
+                self.screenshot_flags = [ScreenshotFlag(flag) for flag in self.screenshot_flags]
+                params[&#34;screenshot_flags&#34;] = &#34;,&#34;.join(flag.value for flag in self.screenshot_flags)
+            else:
+                if self.screenshot_flags is not None:
+                    logging.warning(&#39;Params &#34;screenshot_flags&#34; is ignored. Works only if screenshots is enabled&#39;)
+
             if self.auto_scroll is True:
                 params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
         else:
@@ -1934,6 +1947,9 @@ def upstream_status_code(self) -&gt; Optional[int]:
 
         if self.tags:
             params[&#39;tags&#39;] = &#39;,&#39;.join(self.tags)
+
+        if self.format:
+            params[&#39;format&#39;] = Format(self.format).value
 
         if self.correlation_id:
             params[&#39;correlation_id&#39;] = self.correlation_id
@@ -1998,9 +2014,11 @@ def upstream_status_code(self) -&gt; Optional[int]:
             debug=data[&#39;debug&#39;],
             correlation_id=data[&#39;correlation_id&#39;],
             tags=data[&#39;tags&#39;],
+            format=data[&#39;format&#39;],
             js=data[&#39;js&#39;],
             rendering_wait=data[&#39;rendering_wait&#39;],
             screenshots=data[&#39;screenshots&#39;] or {},
+            screenshot_flags=data[&#39;screenshot_flags&#39;],
             proxy_pool=data[&#39;proxy_pool&#39;],
             auto_scroll=data[&#39;auto_scroll&#39;],
             cost_budget=data[&#39;cost_budget&#39;]
@@ -2072,6 +2090,10 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.ScrapeConfig.format"><code class="name">var <span class="ident">format</span> : Optional[<a title="scrapfly.scrape_config.Format" href="scrape_config.html#scrapfly.scrape_config.Format">Format</a>]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.ScrapeConfig.headers"><code class="name">var <span class="ident">headers</span> : Optional[requests.structures.CaseInsensitiveDict]</code></dt>
 <dd>
 <div class="desc"></div>
@@ -2113,6 +2135,10 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.retry"><code class="name">var <span class="ident">retry</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapeConfig.screenshot_flags"><code class="name">var <span class="ident">screenshot_flags</span> : Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -2201,9 +2227,11 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         debug=data[&#39;debug&#39;],
         correlation_id=data[&#39;correlation_id&#39;],
         tags=data[&#39;tags&#39;],
+        format=data[&#39;format&#39;],
         js=data[&#39;js&#39;],
         rendering_wait=data[&#39;rendering_wait&#39;],
         screenshots=data[&#39;screenshots&#39;] or {},
+        screenshot_flags=data[&#39;screenshot_flags&#39;],
         proxy_pool=data[&#39;proxy_pool&#39;],
         auto_scroll=data[&#39;auto_scroll&#39;],
         cost_budget=data[&#39;cost_budget&#39;]
@@ -2265,6 +2293,13 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
             for name, element in self.screenshots.items():
                 params[&#39;screenshots[%s]&#39; % name] = element
 
+        if self.screenshot_flags is not None:
+            self.screenshot_flags = [ScreenshotFlag(flag) for flag in self.screenshot_flags]
+            params[&#34;screenshot_flags&#34;] = &#34;,&#34;.join(flag.value for flag in self.screenshot_flags)
+        else:
+            if self.screenshot_flags is not None:
+                logging.warning(&#39;Params &#34;screenshot_flags&#34; is ignored. Works only if screenshots is enabled&#39;)
+
         if self.auto_scroll is True:
             params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
     else:
@@ -2312,6 +2347,9 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
     if self.tags:
         params[&#39;tags&#39;] = &#39;,&#39;.join(self.tags)
+
+    if self.format:
+        params[&#39;format&#39;] = Format(self.format).value
 
     if self.correlation_id:
         params[&#39;correlation_id&#39;] = self.correlation_id
@@ -2835,6 +2873,12 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
             raise
 
     def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+        &#34;&#34;&#34;
+        Save a screenshot from a scrape result
+        :param api_response: ScrapeApiResponse
+        :param name: str - name of the screenshot given in the scrape config
+        :param path: Optional[str]
+        &#34;&#34;&#34;
 
         if not api_response.scrape_result[&#39;screenshots&#39;]:
             raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
@@ -2858,12 +2902,19 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
         api_response.sink(path=path, name=name, content=screenshot_response.content)
 
-    def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
+    def screenshot(
+            self,
+            url:str,
+            path:Optional[str]=None,
+            name:Optional[str]=None,
+            screenshot_flags:Optional[List[ScreenshotFlag]]=None
+    ) -&gt; str:
         # for advance configuration, take screenshots via scrape method with ScrapeConfig
         api_response = self.scrape(scrape_config=ScrapeConfig(
             url=url,
             render_js=True,
-            screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+            screenshots={&#39;main&#39;: &#39;fullpage&#39;},
+            screenshot_flags=screenshot_flags
         ))
 
         name = name or &#39;main.jpg&#39;
@@ -3341,12 +3392,21 @@ def ua(self) -&gt; str:
 <span>def <span class="ident">save_screenshot</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, name: str, path: Optional[str] = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Save a screenshot from a scrape result
+:param api_response: ScrapeApiResponse
+:param name: str - name of the screenshot given in the scrape config
+:param path: Optional[str]</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+    &#34;&#34;&#34;
+    Save a screenshot from a scrape result
+    :param api_response: ScrapeApiResponse
+    :param name: str - name of the screenshot given in the scrape config
+    :param path: Optional[str]
+    &#34;&#34;&#34;
 
     if not api_response.scrape_result[&#39;screenshots&#39;]:
         raise RuntimeError(&#39;Screenshot %s do no exists&#39; % name)
@@ -3435,7 +3495,7 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 </details>
 </dd>
 <dt id="scrapfly.ScrapflyClient.screenshot"><code class="name flex">
-<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Optional[str] = None, name: Optional[str] = None) ‑> str</span>
+<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Optional[str] = None, name: Optional[str] = None, screenshot_flags: Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]] = None) ‑> str</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -3443,12 +3503,19 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def screenshot(self, url:str, path:Optional[str]=None, name:Optional[str]=None) -&gt; str:
+<pre><code class="python">def screenshot(
+        self,
+        url:str,
+        path:Optional[str]=None,
+        name:Optional[str]=None,
+        screenshot_flags:Optional[List[ScreenshotFlag]]=None
+) -&gt; str:
     # for advance configuration, take screenshots via scrape method with ScrapeConfig
     api_response = self.scrape(scrape_config=ScrapeConfig(
         url=url,
         render_js=True,
-        screenshots={&#39;main&#39;: &#39;fullpage&#39;}
+        screenshots={&#39;main&#39;: &#39;fullpage&#39;},
+        screenshot_flags=screenshot_flags
     ))
 
     name = name or &#39;main.jpg&#39;
@@ -3946,6 +4013,7 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 <li><code><a title="scrapfly.ScrapeConfig.debug" href="#scrapfly.ScrapeConfig.debug">debug</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.dns" href="#scrapfly.ScrapeConfig.dns">dns</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.extract" href="#scrapfly.ScrapeConfig.extract">extract</a></code></li>
+<li><code><a title="scrapfly.ScrapeConfig.format" href="#scrapfly.ScrapeConfig.format">format</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.from_exported_config" href="#scrapfly.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.headers" href="#scrapfly.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.js" href="#scrapfly.ScrapeConfig.js">js</a></code></li>
@@ -3958,6 +4026,7 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 <li><code><a title="scrapfly.ScrapeConfig.render_js" href="#scrapfly.ScrapeConfig.render_js">render_js</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.rendering_wait" href="#scrapfly.ScrapeConfig.rendering_wait">rendering_wait</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.retry" href="#scrapfly.ScrapeConfig.retry">retry</a></code></li>
+<li><code><a title="scrapfly.ScrapeConfig.screenshot_flags" href="#scrapfly.ScrapeConfig.screenshot_flags">screenshot_flags</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.screenshots" href="#scrapfly.ScrapeConfig.screenshots">screenshots</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.session" href="#scrapfly.ScrapeConfig.session">session</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.session_sticky_proxy" href="#scrapfly.ScrapeConfig.session_sticky_proxy">session_sticky_proxy</a></code></li>
