@@ -166,6 +166,18 @@ class QuotaLimitReached(HttpError):
     pass
 
 
+class ScreenshotAPIError(HttpError):
+    pass
+
+
+class UnableToTakeScreenshotError(ScreenshotAPIError):
+    pass
+
+
+class ScreenshotInvalidContentError(ScreenshotAPIError):
+    pass
+
+
 class ErrorFactory:
     RESOURCE_TO_ERROR = {
         ScrapflyError.RESOURCE_SCRAPE: ScrapflyScrapeError,
@@ -283,5 +295,7 @@ __all__:Tuple[str, ...] = [
     'UpstreamHttpClientError',
     'UpstreamHttpServerError',
     'ApiHttpClientError',
-    'ApiHttpServerError'
+    'ApiHttpServerError',
+    'UnableToTakeScreenshotError',
+    'ScreenshotInvalidContentError'
 ]

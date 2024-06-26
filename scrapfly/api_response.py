@@ -1,3 +1,4 @@
+import json
 import base64
 import binascii
 import hashlib
@@ -28,8 +29,9 @@ from typing import Dict, Optional, Iterable, Union, TextIO, Tuple
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
+from .screenshot_config import ScreenshotConfig
 from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
-    ExtraUsageForbidden, WebhookSignatureMissMatch
+    ExtraUsageForbidden, WebhookSignatureMissMatch, UnableToTakeScreenshotError, ScreenshotInvalidContentError
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -565,3 +567,110 @@ class ScrapeApiResponse:
             shutil.copyfileobj(file_content, f, length=131072)
 
         logger.info('file %s created' % file_path)
+
+
+class ScreenshotApiResponse:
+    def __init__(self, request: Request, response: Response, screenshot_config: ScreenshotConfig, api_result: Optional[bytes] = None):
+        self.request = request
+        self.response = response
+        self.screenshot_config = screenshot_config
+        self.result = self.handle_api_result(api_result)
+
+    @property
+    def screenshot_result(self) -> Optional[Dict]:
+        return self.result.get('result', None)
+    
+    @property
+    def screenshot_success(self) -> bool:
+        screenshot_result = self.screenshot_result
+        if not screenshot_result:
+            return False
+
+        return True
+
+    @property
+    def error_message(self):
+        if self.screenshot_success is False:
+            message = "<-- %s | %s - %s." % (self.result['http_code'], self.result['code'], self.result['message'])
+
+            if self.result['links']:
+                message += " Checkout the related doc: %s" % list(self.result['links'].values())[0]
+
+            return message
+
+        message = "<-- %s | %s." % (self.result['http_code'], self.result['message'])
+
+        if self.result.get('links'):
+            message += " Checkout the related doc: %s" % ", ".join(self.result['links'])
+
+        return message
+
+
+    def raise_for_result(self, raise_on_upstream_error: bool = True):
+        try:
+            self.response.raise_for_status()
+        except HTTPError as e:
+            if 'error_id' in self.result:
+                if e.response.status_code >= 500:
+                    raise ApiHttpServerError(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result['message'],
+                        code='',
+                        resource='',
+                        http_status_code=e.response.status_code,
+                        documentation_url=self.result.get('links'),
+                        api_response=self,
+                    ) from e
+                elif raise_on_upstream_error:
+                    if self.result['code'] == 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT':
+                        raise UnableToTakeScreenshotError(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result['message'],
+                            code='',
+                            resource='API',
+                            http_status_code=self.result['http_code'],
+                            documentation_url=self.result.get('links'),
+                            api_response=self,
+                        ) from e
+                    elif self.result['code'] == 'ERR::SCREENSHOT::INVALID_CONTENT_TYPE':
+                        raise ScreenshotInvalidContentError(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result['message'],
+                            code='',
+                            resource='API',
+                            http_status_code=self.result['http_code'],
+                            documentation_url=self.result.get('links'),
+                            api_response=self,
+                        ) from e
+                    else:
+                        raise ApiHttpClientError(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result['message'],
+                            code='',
+                            resource='API',
+                            http_status_code=self.result['http_code'],
+                            documentation_url=self.result.get('links'),
+                            api_response=self,
+                        ) from e
+
+
+    def handle_api_result(self, api_result: bytes) -> FrozenDict:
+        try:
+            decoded_result = api_result.decode('utf-8')
+            api_result = json.loads(decoded_result)
+            return FrozenDict(api_result)
+        except:
+            format = self.response.headers['Content-Type'].split('/')[-1]
+            if format == "jpeg":
+                format = "jpg" # update as per the format api param
+            screenshot_result = {
+                'binary': api_result,
+                'format': format
+            }
+            return FrozenDict(
+                {'result': screenshot_result}
+            )

@@ -9,6 +9,7 @@ from .errors import ScrapflyScrapeError
 from .errors import ScrapflySessionError
 from .errors import ScrapflyThrottleError
 from .errors import ScrapflyWebhookError
+from .errors import UnableToTakeScreenshotError, ScreenshotInvalidContentError
 from .errors import EncoderError
 from .errors import ErrorFactory
 from .errors import HttpError
@@ -17,9 +18,11 @@ from .errors import UpstreamHttpClientError
 from .errors import UpstreamHttpServerError
 from .errors import ApiHttpClientError
 from .errors import ApiHttpServerError
-from .api_response import ScrapeApiResponse, ResponseBodyHandler
+from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
 from .scrape_config import ScrapeConfig
+from .screenshot_config import ScreenshotConfig
+
 
 __all__:Tuple[str, ...] = (
     'ScrapflyError',
@@ -35,13 +38,17 @@ __all__:Tuple[str, ...] = (
     'UpstreamHttpServerError',
     'ApiHttpClientError',
     'ApiHttpServerError',
+    'UnableToTakeScreenshotError',
+    'ScreenshotInvalidContentError',
     'EncoderError',
     'ScrapeApiResponse',
+    'ScreenshotApiResponse',
     'ErrorFactory',
     'HttpError',
     'ScrapflyClient',
     'ResponseBodyHandler',
     'ScrapeConfig',
+    'ScreenshotConfig',
     'ScraperAPI',
     'MonitoringTargetPeriod',
     'MonitoringAggregation',
