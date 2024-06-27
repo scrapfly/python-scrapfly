@@ -178,6 +178,13 @@ class ScreenshotInvalidContentError(ScreenshotAPIError):
     pass
 
 
+class ScreenshotErrorFactory:
+    error_mapping = {
+        'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT': UnableToTakeScreenshotError,
+        'ERR::SCREENSHOT::INVALID_CONTENT_TYPE': ScreenshotInvalidContentError,
+    }
+
+
 class ErrorFactory:
     RESOURCE_TO_ERROR = {
         ScrapflyError.RESOURCE_SCRAPE: ScrapflyScrapeError,

@@ -1,4 +1,4 @@
-import json
+import msgpack
 import base64
 import binascii
 import hashlib
@@ -30,8 +30,8 @@ from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
-    ExtraUsageForbidden, WebhookSignatureMissMatch, UnableToTakeScreenshotError, ScreenshotInvalidContentError
+from .errors import ErrorFactory, ScreenshotErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
+    ExtraUsageForbidden, WebhookSignatureMissMatch
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -579,7 +579,43 @@ class ScreenshotApiResponse:
     @property
     def screenshot_result(self) -> Optional[Dict]:
         return self.result.get('result', None)
+
+    @property
+    def binary(self) -> Optional[str]:
+        if self.screenshot_result is None:
+            return ''
+        
+        return self.screenshot_result['binary']
     
+    @property
+    def format(self) -> Optional[str]:
+        if self.screenshot_result is None:
+            return ''
+        
+        return self.screenshot_result['format']
+
+    @property
+    def status_code(self) -> int:
+        return self.response.status_code
+
+    @property
+    def remaining_quota(self) -> Optional[int]:
+        remaining_scrape = self.response.headers.get('X-Scrapfly-Remaining-Scrape')
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -> Optional[int]:
+        cost = self.response.headers.get('X-Scrapfly-Api-Cost')
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
     @property
     def screenshot_success(self) -> bool:
         screenshot_result = self.screenshot_result
@@ -589,22 +625,52 @@ class ScreenshotApiResponse:
         return True
 
     @property
-    def error_message(self):
+    def error(self) -> Optional[Dict]:
+        if self.screenshot_result is None:
+            return None
+
         if self.screenshot_success is False:
+            return self.result
+
+    @property
+    def error_message(self):
+        if self.error is not None:
             message = "<-- %s | %s - %s." % (self.result['http_code'], self.result['code'], self.result['message'])
 
             if self.result['links']:
                 message += " Checkout the related doc: %s" % list(self.result['links'].values())[0]
 
             return message
-
-        message = "<-- %s | %s." % (self.result['http_code'], self.result['message'])
+        
+        message = "<-- %s | %s." % (self.response.status_code, self.result['message'])
 
         if self.result.get('links'):
             message += " Checkout the related doc: %s" % ", ".join(self.result['links'])
 
-        return message
+        return message        
 
+    def _is_api_error(self, api_result: Dict) -> bool:
+        if api_result is None:
+            return True
+
+        return 'error_id' in api_result
+
+    def handle_api_result(self, api_result: bytes) -> FrozenDict:
+        try:
+            api_result = msgpack.unpackb(api_result, raw=False)
+            if self._is_api_error(api_result=api_result):
+                return FrozenDict(api_result)
+        except:
+            format = self.response.headers['Content-Type'].split('/')[-1]
+            if format == 'jpeg':
+                format = 'jpg' # update as per the format api param
+            screenshot_result = {
+                    'binary': api_result,
+                    'format': format
+                }
+            return FrozenDict(
+                    {'result': screenshot_result}
+                )
 
     def raise_for_result(self, raise_on_upstream_error: bool = True):
         try:
@@ -623,8 +689,10 @@ class ScreenshotApiResponse:
                         api_response=self,
                     ) from e
                 elif raise_on_upstream_error:
-                    if self.result['code'] == 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT':
-                        raise UnableToTakeScreenshotError(
+                    error_code = self.result.get('code')
+                    exception_class = ScreenshotErrorFactory.error_mapping.get(error_code)
+                    if exception_class:
+                        raise exception_class(
                             request=e.request,
                             response=e.response,
                             message=self.result['message'],
@@ -633,18 +701,7 @@ class ScreenshotApiResponse:
                             http_status_code=self.result['http_code'],
                             documentation_url=self.result.get('links'),
                             api_response=self,
-                        ) from e
-                    elif self.result['code'] == 'ERR::SCREENSHOT::INVALID_CONTENT_TYPE':
-                        raise ScreenshotInvalidContentError(
-                            request=e.request,
-                            response=e.response,
-                            message=self.result['message'],
-                            code='',
-                            resource='API',
-                            http_status_code=self.result['http_code'],
-                            documentation_url=self.result.get('links'),
-                            api_response=self,
-                        ) from e
+                        ) from e                    
                     else:
                         raise ApiHttpClientError(
                             request=e.request,
@@ -656,21 +713,3 @@ class ScreenshotApiResponse:
                             documentation_url=self.result.get('links'),
                             api_response=self,
                         ) from e
-
-
-    def handle_api_result(self, api_result: bytes) -> FrozenDict:
-        try:
-            decoded_result = api_result.decode('utf-8')
-            api_result = json.loads(decoded_result)
-            return FrozenDict(api_result)
-        except:
-            format = self.response.headers['Content-Type'].split('/')[-1]
-            if format == "jpeg":
-                format = "jpg" # update as per the format api param
-            screenshot_result = {
-                'binary': api_result,
-                'format': format
-            }
-            return FrozenDict(
-                {'result': screenshot_result}
-            )

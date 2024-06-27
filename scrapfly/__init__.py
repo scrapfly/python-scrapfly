@@ -9,7 +9,6 @@ from .errors import ScrapflyScrapeError
 from .errors import ScrapflySessionError
 from .errors import ScrapflyThrottleError
 from .errors import ScrapflyWebhookError
-from .errors import UnableToTakeScreenshotError, ScreenshotInvalidContentError
 from .errors import EncoderError
 from .errors import ErrorFactory
 from .errors import HttpError
@@ -38,8 +37,6 @@ __all__:Tuple[str, ...] = (
     'UpstreamHttpServerError',
     'ApiHttpClientError',
     'ApiHttpServerError',
-    'UnableToTakeScreenshotError',
-    'ScreenshotInvalidContentError',
     'EncoderError',
     'ScrapeApiResponse',
     'ScreenshotApiResponse',

@@ -29,9 +29,9 @@ except ImportError:
 
 from .errors import *
 from .api_response import ResponseBodyHandler
-from .scrape_config import ScrapeConfig, ScreenshotFlag
+from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
-from . import __version__, ScrapeApiResponse, HttpError, UpstreamHttpError, ScreenshotApiResponse
+from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, HttpError, UpstreamHttpError
 
 logger.getLogger(__name__)
 
@@ -192,7 +192,7 @@ class ScrapflyClient:
                 'user-agent': self.ua
             },            
             'params': screenshot_config.to_api_params(key=self.key)
-        }    
+        }        
 
     def account(self) -> Union[str, Dict]:
         response = self._http_handler(
@@ -474,7 +474,7 @@ class ScrapflyClient:
                 return e.api_response
 
             raise e
-
+                
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
         try:
             api_response = self._handle_api_response(
@@ -525,12 +525,6 @@ class ScrapflyClient:
         except UpstreamHttpError as e:
             logger.critical(e.api_response.error_message)
             raise
-        except ScrapflyScrapeError as e:
-            if e.api_response is not None:
-                logger.critical(e.api_response.error_message)
-            else:
-                logger.critical(e.message)
-            raise
         except HttpError as e:
             if e.api_response is not None:
                 logger.critical(e.api_response.error_message)
@@ -539,7 +533,7 @@ class ScrapflyClient:
             raise
         except ScrapflyError as e:
             logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
-            raise
+            raise         
 
     def save_screenshot_api(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
         """
