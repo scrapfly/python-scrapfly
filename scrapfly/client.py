@@ -31,7 +31,8 @@ from .errors import *
 from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
-from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, HttpError, UpstreamHttpError
+from .extraction_config import ExtractionConfig
+from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, HttpError, UpstreamHttpError
 
 logger.getLogger(__name__)
 
@@ -193,6 +194,21 @@ class ScrapflyClient:
             },            
             'params': screenshot_config.to_api_params(key=self.key)
         }        
+
+    def _extraction_request(self, extraction_config:ExtractionConfig):
+        return {
+            'method': 'POST',
+            'url': self.host + '/extraction',
+            'data': extraction_config.body,
+            'timeout': (self.connect_timeout, self.read_timeout),
+            'headers': {
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+            'params': extraction_config.to_api_params(key=self.key)
+        }       
+
 
     def account(self) -> Union[str, Dict]:
         response = self._http_handler(
@@ -447,18 +463,17 @@ class ScrapflyClient:
         :param no_raise: bool - if True, do not raise exception on error while the screenshot api response is a ScrapflyError for seamless integration
         :return: str
 
-        # If you use no_raise=True, make sure to check the screenshot_api_response.screenshot_success proprty to ensure screenshot was successful.
-        # If the error is not none, you will get the following structure for example
+        If you use no_raise=True, make sure to check the screenshot_api_response.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
 
-        # 'error': {
-        #     'code': 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT',
-        #     'message': 'For some reason we were unable to take the screenshot',
-        #     'retryable': False,
-        #     'http_code': 422,
-        #     'links': {
-        #         'Checkout the related doc: https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'
-        #     }
-        # }
+        'error': {
+            'code': 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT',
+            'message': 'For some reason we were unable to take the screenshot',
+            'http_code': 422,
+            'links': {
+                'Checkout the related doc: https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'
+            }
+        }
         """
 
         try:
@@ -474,7 +489,48 @@ class ScrapflyClient:
                 return e.api_response
 
             raise e
-                
+
+    async def async_extraction(self, extraction_config:ExtractionConfig, loop:Optional[AbstractEventLoop]=None) -> ExtractionApiResponse:
+        if loop is None:
+            loop = asyncio.get_running_loop()
+
+        return await loop.run_in_executor(self.async_executor, self.extract, extraction_config)
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -> str:
+        """
+        Extract structured data from text content
+        :param extraction_config: ExtractionConfig
+        :param no_raise: bool - if True, do not raise exception on error while the extraction api response is a ScrapflyError for seamless integration
+        :return: str
+
+        If you use no_raise=True, make sure to check the extraction_api_response.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        'error': {
+            'code': 'ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED',
+            'message': 'The content type of the response is not supported for extraction',
+            'http_code': 422,
+            'links': {
+                'Checkout the related doc: https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'
+            }
+        }
+        """
+
+        try:
+            logger.debug('--> %s Extracting data from' % (extraction_config.content_type))
+            request_data = self._extraction_request(extraction_config=extraction_config)
+            response = self._http_handler(**request_data)
+            extraction_api_response = self._handle_extraction_response(response=response, extraction_config=extraction_config)
+            return extraction_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
+            raise e
+
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -> ScrapeApiResponse:
         try:
             api_response = self._handle_api_response(
@@ -534,6 +590,27 @@ class ScrapflyClient:
         except ScrapflyError as e:
             logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
             raise         
+
+    def _handle_extraction_response(self, response:Response, extraction_config:ExtractionConfig) -> ExtractionApiResponse:
+        try:
+            api_response = self._handle_extraction_api_response(
+                response=response,
+                extraction_config=extraction_config,
+                raise_on_upstream_error=extraction_config.raise_on_upstream_error
+            )
+            return api_response
+        except UpstreamHttpError as e:
+            logger.critical(e.api_response.error_message)
+            raise
+        except HttpError as e:
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
+        except ScrapflyError as e:
+            logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
+            raise    
 
     def save_screenshot_api(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
         """
@@ -696,3 +773,22 @@ class ScrapflyClient:
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
 
         return api_response
+
+    def _handle_extraction_api_response(
+        self,
+        response: Response,
+        extraction_config:ExtractionConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -> ExtractionApiResponse:
+        
+        api_response:ExtractionApiResponse = ExtractionApiResponse(
+            response=response,
+            request=response.request,
+            api_result=response.content,
+            extraction_config=extraction_config
+        )
+
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response
+    

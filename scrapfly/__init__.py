@@ -17,10 +17,11 @@ from .errors import UpstreamHttpClientError
 from .errors import UpstreamHttpServerError
 from .errors import ApiHttpClientError
 from .errors import ApiHttpServerError
-from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ResponseBodyHandler
+from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
+from .extraction_config import ExtractionConfig
 
 
 __all__:Tuple[str, ...] = (
@@ -40,12 +41,14 @@ __all__:Tuple[str, ...] = (
     'EncoderError',
     'ScrapeApiResponse',
     'ScreenshotApiResponse',
+    'ExtractionApiResponse',
     'ErrorFactory',
     'HttpError',
     'ScrapflyClient',
     'ResponseBodyHandler',
     'ScrapeConfig',
     'ScreenshotConfig',
+    'ExtractionConfig',
     'ScraperAPI',
     'MonitoringTargetPeriod',
     'MonitoringAggregation',

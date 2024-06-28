@@ -178,10 +178,44 @@ class ScreenshotInvalidContentError(ScreenshotAPIError):
     pass
 
 
+class ExtractionAPIError(HttpError):
+    pass
+
+
+class ExtractionContentTypeError(ExtractionAPIError):
+    pass
+
+
+class ExtractionDataError(ExtractionAPIError):
+    pass
+
+
+class ExtractionNoContent(ExtractionAPIError):
+    pass
+
+
+class ExtractionTimeoutError(ExtractionAPIError):
+    pass
+
+
+class ExtractionCapacityError(ExtractionAPIError):
+    pass
+
+
 class ScreenshotErrorFactory:
     error_mapping = {
         'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT': UnableToTakeScreenshotError,
         'ERR::SCREENSHOT::INVALID_CONTENT_TYPE': ScreenshotInvalidContentError,
+    }
+
+
+class ExtractionErrorFactory:
+    error_mapping = {
+        'ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED': ExtractionContentTypeError,
+        'ERR::EXTRACTION::DATA_ERROR': ExtractionDataError,
+        'ERR::EXTRACTION::NO_CONTENT': ExtractionNoContent,
+        'ERR::EXTRACTION::OPERATION_TIMEOUT': ExtractionTimeoutError,
+        'ERR::EXTRACTION::OUT_OF_CAPACITY': ExtractionCapacityError
     }
 
 
