@@ -623,13 +623,11 @@ class ScrapflyClient:
         if screenshot_api_response.screenshot_success is not True:
             raise RuntimeError('Screenshot was not successful')
 
-        try:
-            screenshot_api_response.screenshot_result["binary"]
-        except KeyError:
+        if not screenshot_api_response.image:
             raise RuntimeError('Screenshot binary does not exist')
 
-        content = screenshot_api_response.screenshot_result["binary"]
-        format = screenshot_api_response.screenshot_result['format']
+        content = screenshot_api_response.image
+        format = screenshot_api_response.metadata['format']
 
         if path:
             os.makedirs(path, exist_ok=True)
@@ -766,10 +764,7 @@ class ScrapflyClient:
         if self.body_handler.support(headers=response.headers):
             body = self.body_handler(content=response.content, content_type=response.headers['content-type'])
         else:
-            format = response.headers['Content-Type'].split('/')[-1]
-            if format == 'jpeg':
-                format = 'jpg' # update as per the format api param      
-            body = {'binary': response.content, 'format': format}
+            body = {'result': response.content}
 
         api_response:ScreenshotApiResponse = ScreenshotApiResponse(
             response=response,

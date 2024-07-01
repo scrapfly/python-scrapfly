@@ -577,22 +577,27 @@ class ScreenshotApiResponse:
         self.result = self.handle_api_result(api_result)
 
     @property
-    def screenshot_result(self) -> Optional[Dict]:
-        return self.result.get('result', None)
+    def image(self) -> Optional[str]:
+        binary = self.result.get('result', None)
+        if binary is None:
+            return ''
+
+        return binary
 
     @property
-    def binary(self) -> Optional[str]:
-        if self.screenshot_result is None:
-            return ''
+    def metadata(self) -> Optional[Dict]:
+        if not self.image:
+            return {}
         
-        return self.screenshot_result['binary']
-    
-    @property
-    def format(self) -> Optional[str]:
-        if self.screenshot_result is None:
-            return ''
-        
-        return self.screenshot_result['format']
+        content_type = self.response.headers.get('content-type')
+        format = content_type[content_type.find('/') + 1:].split(';')[0]
+        format = 'jpg' if format == 'jpeg' else format # update as per the format api param
+
+        return {
+            'format': format,
+            'upstream-status-code': self.response.headers.get('X-Scrapfly-Upstream-Http-Code'),
+            'upstream-url': self.response.headers.get('X-Scrapfly-Upstream-Url')
+        }
 
     @property
     def status_code(self) -> int:
@@ -618,15 +623,14 @@ class ScreenshotApiResponse:
 
     @property
     def screenshot_success(self) -> bool:
-        screenshot_result = self.screenshot_result
-        if not screenshot_result:
+        if not self.image:
             return False
 
         return True
 
     @property
     def error(self) -> Optional[Dict]:
-        if self.screenshot_result is None:
+        if self.image:
             return None
 
         if self.screenshot_success is False:
@@ -634,7 +638,7 @@ class ScreenshotApiResponse:
 
     @property
     def error_message(self):
-        if self.error is not None:
+        if self.error is not None and 'code' in self.result:
             message = "<-- %s | %s - %s." % (self.result['http_code'], self.result['code'], self.result['message'])
 
             if self.result['links']:
@@ -668,10 +672,8 @@ class ScreenshotApiResponse:
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
 
-        return FrozenDict(
-                {'result': api_result}
-            )
-
+        return api_result
+    
     def raise_for_result(self, raise_on_upstream_error: bool = True):
         try:
             self.response.raise_for_status()
@@ -784,7 +786,7 @@ class ExtractionApiResponse:
 
     @property
     def error_message(self):
-        if self.error is not None:
+        if self.error is not None and 'code' in self.result:
             message = "<-- %s | %s - %s." % (self.result['http_code'], self.result['code'], self.result['message'])
 
             if self.result['links']:
@@ -819,7 +821,7 @@ class ExtractionApiResponse:
             return FrozenDict(api_result)
         
         return FrozenDict(
-                {'result': api_result}
+                api_result['']
             )
     
     def raise_for_result(self, raise_on_upstream_error: bool = True):
