@@ -28,7 +28,9 @@ from typing import Dict, Optional, Iterable, Union, TextIO, Tuple
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
+from .screenshot_config import ScreenshotConfig
+from .extraction_config import ExtractionConfig
+from .errors import ErrorFactory, ScreenshotErrorFactory, ExtractionErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
     ExtraUsageForbidden, WebhookSignatureMissMatch
 from .frozen_dict import FrozenDict
 
@@ -565,3 +567,301 @@ class ScrapeApiResponse:
             shutil.copyfileobj(file_content, f, length=131072)
 
         logger.info('file %s created' % file_path)
+
+
+class ScreenshotApiResponse:
+    def __init__(self, request: Request, response: Response, screenshot_config: ScreenshotConfig, api_result: Optional[bytes] = None):
+        self.request = request
+        self.response = response
+        self.screenshot_config = screenshot_config
+        self.result = self.handle_api_result(api_result)
+
+    @property
+    def image(self) -> Optional[str]:
+        binary = self.result.get('result', None)
+        if binary is None:
+            return ''
+
+        return binary
+
+    @property
+    def metadata(self) -> Optional[Dict]:
+        if not self.image:
+            return {}
+        
+        content_type = self.response.headers.get('content-type')
+        format = content_type[content_type.find('/') + 1:].split(';')[0]
+        format = 'jpg' if format == 'jpeg' else format # update as per the format api param
+
+        return {
+            'format': format,
+            'upstream-status-code': self.response.headers.get('X-Scrapfly-Upstream-Http-Code'),
+            'upstream-url': self.response.headers.get('X-Scrapfly-Upstream-Url')
+        }
+
+    @property
+    def status_code(self) -> int:
+        return self.response.status_code
+
+    @property
+    def remaining_quota(self) -> Optional[int]:
+        remaining_scrape = self.response.headers.get('X-Scrapfly-Remaining-Scrape')
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -> Optional[int]:
+        cost = self.response.headers.get('X-Scrapfly-Api-Cost')
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
+    @property
+    def screenshot_success(self) -> bool:
+        if not self.image:
+            return False
+
+        return True
+
+    @property
+    def error(self) -> Optional[Dict]:
+        if self.image:
+            return None
+
+        if self.screenshot_success is False:
+            return self.result
+
+    @property
+    def error_message(self):
+        if self.error is not None and 'code' in self.result:
+            message = "<-- %s | %s - %s." % (self.result['http_code'], self.result['code'], self.result['message'])
+
+            if self.result['links']:
+                message += " Checkout the related doc: %s" % list(self.result['links'].values())[0]
+
+            return message
+        
+        message = "<-- %s | %s." % (self.response.status_code, self.result['message'])
+
+        if self.result.get('links'):
+            message += " Checkout the related doc: %s" % ", ".join(self.result['links'])
+
+        return message        
+
+    def prevent_extra_usage(self):
+        if self.remaining_quota == 0:
+            raise ExtraUsageForbidden(
+                message='All Pre Paid Quota Used',
+                code='ERR::ACCOUNT::PREVENT_EXTRA_USAGE',
+                http_status_code=429,
+                is_retryable=False
+            )
+
+    def _is_api_error(self, api_result: Dict) -> bool:
+        if api_result is None:
+            return True
+
+        return 'error_id' in api_result
+
+    def handle_api_result(self, api_result: bytes) -> FrozenDict:
+        if self._is_api_error(api_result=api_result) is True:
+            return FrozenDict(api_result)
+
+        return api_result
+    
+    def raise_for_result(self, raise_on_upstream_error: bool = True):
+        try:
+            self.response.raise_for_status()
+        except HTTPError as e:
+            if 'error_id' in self.result:
+                if e.response.status_code >= 500:
+                    raise ApiHttpServerError(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result['message'],
+                        code='',
+                        resource='',
+                        http_status_code=e.response.status_code,
+                        documentation_url=self.result.get('links'),
+                        api_response=self,
+                    ) from e
+                elif raise_on_upstream_error:
+                    error_code = self.result.get('code')
+                    exception_class = ScreenshotErrorFactory.error_mapping.get(error_code)
+                    if exception_class:
+                        raise exception_class(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result['message'],
+                            code='',
+                            resource='API',
+                            http_status_code=self.result['http_code'],
+                            documentation_url=self.result.get('links'),
+                            api_response=self,
+                        ) from e                    
+                    else:
+                        raise ApiHttpClientError(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result['message'],
+                            code='',
+                            resource='API',
+                            http_status_code=self.result['http_code'],
+                            documentation_url=self.result.get('links'),
+                            api_response=self,
+                        ) from e
+
+
+class ExtractionApiResponse:
+    def __init__(self, request: Request, response: Response, extraction_config: ExtractionConfig, api_result: Optional[bytes] = None):
+        self.request = request
+        self.response = response
+        self.extraction_config = extraction_config
+        self.result = self.handle_api_result(api_result)
+        
+    @property
+    def extraction_result(self) -> Optional[Dict]:
+        extraction_result = self.result.get('result', None)
+        if not extraction_result: # handle empty extraction responses
+            return {'data': None, 'content_type': None}
+        else:
+            return extraction_result
+
+    @property
+    def data(self) -> Optional[str]:
+        if not self.extraction_result:
+            return ''
+        
+        return self.extraction_result['data']
+    
+    @property
+    def content_type(self) -> Optional[str]:
+        if not self.extraction_result:
+            return ''
+
+        return self.extraction_result['content_type']
+
+    @property
+    def status_code(self) -> int:
+        return self.response.status_code
+
+    @property
+    def remaining_quota(self) -> Optional[int]:
+        remaining_scrape = self.response.headers.get('X-Scrapfly-Remaining-Scrape')
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -> Optional[int]:
+        cost = self.response.headers.get('X-Scrapfly-Api-Cost')
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
+    @property
+    def extraction_success(self) -> bool:
+        extraction_result = self.extraction_result
+        if not extraction_result:
+            return False
+        
+        return True
+
+    @property
+    def error(self) -> Optional[Dict]:
+        if self.extraction_result is None:
+            return None
+
+        if self.extraction_success is False:
+            return self.result
+
+    @property
+    def error_message(self):
+        if self.error is not None and 'code' in self.result:
+            message = "<-- %s | %s - %s." % (self.result['http_code'], self.result['code'], self.result['message'])
+
+            if self.result['links']:
+                message += " Checkout the related doc: %s" % list(self.result['links'].values())[0]
+
+            return message
+        
+        message = "<-- %s | %s." % (self.response.status_code, self.result['message'])
+
+        if self.result.get('links'):
+            message += " Checkout the related doc: %s" % ", ".join(self.result['links'])
+
+        return message        
+
+    def prevent_extra_usage(self):
+        if self.remaining_quota == 0:
+            raise ExtraUsageForbidden(
+                message='All Pre Paid Quota Used',
+                code='ERR::ACCOUNT::PREVENT_EXTRA_USAGE',
+                http_status_code=429,
+                is_retryable=False
+            )
+
+    def _is_api_error(self, api_result: Dict) -> bool:
+        if api_result is None:
+            return True
+
+        return 'error_id' in api_result
+    
+    def handle_api_result(self, api_result: bytes) -> FrozenDict:
+        if self._is_api_error(api_result=api_result) is True:
+            return FrozenDict(api_result)
+        
+        return FrozenDict(
+                api_result['']
+            )
+    
+    def raise_for_result(self, raise_on_upstream_error: bool = True):
+        try:
+            self.response.raise_for_status()
+        except HTTPError as e:
+            if 'error_id' in self.result:
+                if e.response.status_code >= 500:
+                    raise ApiHttpServerError(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result['message'],
+                        code='',
+                        resource='',
+                        http_status_code=e.response.status_code,
+                        documentation_url=self.result.get('links'),
+                        api_response=self,
+                    ) from e
+                elif raise_on_upstream_error:
+                    error_code = self.result.get('code')
+                    exception_class = ScreenshotErrorFactory.error_mapping.get(error_code)
+                    if exception_class:
+                        raise exception_class(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result['message'],
+                            code='',
+                            resource='API',
+                            http_status_code=self.result['http_code'],
+                            documentation_url=self.result.get('links'),
+                            api_response=self,
+                        ) from e                    
+                    else:
+                        raise ApiHttpClientError(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result['message'],
+                            code='',
+                            resource='API',
+                            http_status_code=self.result['http_code'],
+                            documentation_url=self.result.get('links'),
+                            api_response=self,
+                        ) from e
