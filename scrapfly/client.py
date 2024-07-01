@@ -762,11 +762,19 @@ class ScrapflyClient:
         screenshot_config:ScreenshotConfig,
         raise_on_upstream_error: Optional[bool] = True
     ) -> ScreenshotApiResponse:
-        
+
+        if self.body_handler.support(headers=response.headers):
+            body = self.body_handler(content=response.content, content_type=response.headers['content-type'])
+        else:
+            format = response.headers['Content-Type'].split('/')[-1]
+            if format == 'jpeg':
+                format = 'jpg' # update as per the format api param      
+            body = {'binary': response.content, 'format': format}
+
         api_response:ScreenshotApiResponse = ScreenshotApiResponse(
             response=response,
             request=response.request,
-            api_result=response.content,
+            api_result=body,
             screenshot_config=screenshot_config
         )
 
@@ -781,10 +789,15 @@ class ScrapflyClient:
         raise_on_upstream_error: Optional[bool] = True
     ) -> ExtractionApiResponse:
         
+        if self.body_handler.support(headers=response.headers):
+            body = self.body_handler(content=response.content, content_type=response.headers['content-type'])
+        else:
+            body = response.content.decode('utf-8')
+
         api_response:ExtractionApiResponse = ExtractionApiResponse(
             response=response,
             request=response.request,
-            api_result=response.content,
+            api_result=body,
             extraction_config=extraction_config
         )
 

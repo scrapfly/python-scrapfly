@@ -1,4 +1,3 @@
-import msgpack
 import base64
 import binascii
 import hashlib
@@ -666,21 +665,12 @@ class ScreenshotApiResponse:
         return 'error_id' in api_result
 
     def handle_api_result(self, api_result: bytes) -> FrozenDict:
-        try:
-            api_result = msgpack.unpackb(api_result, raw=False)
-            if self._is_api_error(api_result=api_result):
-                return FrozenDict(api_result)
-        except:
-            format = self.response.headers['Content-Type'].split('/')[-1]
-            if format == 'jpeg':
-                format = 'jpg' # update as per the format api param
-            screenshot_result = {
-                    'binary': api_result,
-                    'format': format
-                }
-            return FrozenDict(
-                    {'result': screenshot_result}
-                )
+        if self._is_api_error(api_result=api_result) is True:
+            return FrozenDict(api_result)
+
+        return FrozenDict(
+                {'result': api_result}
+            )
 
     def raise_for_result(self, raise_on_upstream_error: bool = True):
         try:
@@ -825,7 +815,6 @@ class ExtractionApiResponse:
         return 'error_id' in api_result
     
     def handle_api_result(self, api_result: bytes) -> FrozenDict:
-        api_result = msgpack.unpackb(api_result, raw=False)
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
         
