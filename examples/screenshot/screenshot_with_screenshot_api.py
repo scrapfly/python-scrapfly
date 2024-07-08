@@ -23,11 +23,11 @@ screenshot_api_response: ScreenshotApiResponse = scrapfly.screenshot(
 # screenshot metadata
 screenshot_format = screenshot_api_response.metadata
 
-# screenshot format
-screenshot_format = screenshot_api_response.metadata['format']
+# screenshot extension
+screenshot_extension = screenshot_api_response.metadata['extension_name']
 
 # screenshot binary
 screenshot_binary = screenshot_api_response.image
 
 # save the screenshot binary
-scrapfly.save_screenshot_api(screenshot_api_response, "products", path="screenshots")
+scrapfly.save_screenshot(screenshot_api_response, "products", path="screenshots")

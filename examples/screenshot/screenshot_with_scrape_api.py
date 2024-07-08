@@ -19,4 +19,4 @@ api_response:ScrapeApiResponse = scrapfly.scrape(scrape_config=ScrapeConfig(
     ]
 ))
 
-scrapfly.save_screenshot(api_response, name='main')
+scrapfly.save_scrape_screenshot(api_response, name='main')

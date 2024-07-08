@@ -24,7 +24,7 @@ extraction_api_response:ExtractionApiResponse = scrapfly.extract(
 )
 
 # raw API response
-print(extraction_api_response.result)
+print(extraction_api_response.extraction_result)
 {
     'job_uuid': '7a3aa96d-fb0e-4c45-9b01-7c42f295dcac',
     'success': True,
