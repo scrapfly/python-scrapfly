@@ -13,6 +13,7 @@ class ExtractionConfig:
     extraction_template: Optional[Union[Dict, str]] = None
     extraction_prompt: Optional[str] = None
     extraction_model: Optional[str] = None
+    webhook: Optional[str] = None
     raise_on_upstream_error: bool = True
 
     def __init__(
@@ -24,6 +25,7 @@ class ExtractionConfig:
         extraction_template: Optional[Union[Dict, str]] = None,
         extraction_prompt: Optional[str] = None,
         extraction_model: Optional[str] = None,
+        webhook: Optional[str] = None,
         raise_on_upstream_error: bool = True
     ):
         
@@ -35,6 +37,7 @@ class ExtractionConfig:
         self.extraction_template = extraction_template
         self.extraction_prompt = extraction_prompt
         self.extraction_model = extraction_model
+        self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
 
     def to_api_params(self, key:str) -> Dict:
@@ -66,6 +69,9 @@ class ExtractionConfig:
         if self.extraction_model:
             params['extraction_model'] = self.extraction_model
 
+        if self.webhook:
+            params['webhook_name'] = self.webhook
+
         return params
     
     @staticmethod
@@ -85,5 +91,6 @@ class ExtractionConfig:
             charset=data['charset'],
             extraction_template=data['extraction_template'],
             extraction_prompt=data['extraction_prompt'],
-            extraction_model=data['extraction_model']
+            extraction_model=data['extraction_model'],
+            webhook=data['webhook']
         )

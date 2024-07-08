@@ -820,9 +820,7 @@ class ExtractionApiResponse:
         if self._is_api_error(api_result=api_result) is True:
             return FrozenDict(api_result)
         
-        return FrozenDict(
-                api_result['']
-            )
+        return api_result
     
     def raise_for_result(self, raise_on_upstream_error: bool = True):
         try:

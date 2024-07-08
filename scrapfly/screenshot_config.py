@@ -53,6 +53,7 @@ class ScreenshotConfig:
     cache: Optional[bool] = None
     cache_ttl: Optional[bool] = None
     cache_clear: Optional[bool] = None
+    webhook: Optional[str] = None
     raise_on_upstream_error: bool = True
 
     def __init__(
@@ -71,6 +72,7 @@ class ScreenshotConfig:
         cache: Optional[bool] = None,
         cache_ttl: Optional[bool] = None,
         cache_clear: Optional[bool] = None,
+        webhook: Optional[str] = None,
         raise_on_upstream_error: bool = True
     ):
         assert(type(url) is str)
@@ -90,6 +92,7 @@ class ScreenshotConfig:
         self.cache = cache
         self.cache_ttl = cache_ttl
         self.cache_clear = cache_clear
+        self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
 
     def _bool_to_http(self, _bool:bool) -> str:
@@ -148,6 +151,9 @@ class ScreenshotConfig:
             if self.cache_clear is not None:
                 logging.warning('Params "cache_clear" is ignored. Works only if cache is enabled')
 
+        if self.webhook is not None:
+            params['webhook_name'] = self.webhook
+
         return params
 
     @staticmethod
@@ -174,5 +180,6 @@ class ScreenshotConfig:
             js=data['js'],
             cache=data['cache'],
             cache_ttl=data['cache_ttl'],
-            cache_clear=data['cache_clear']
+            cache_clear=data['cache_clear'],
+            webhook=data['webhook']
         )
