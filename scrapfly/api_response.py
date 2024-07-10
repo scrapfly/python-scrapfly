@@ -668,14 +668,14 @@ class ExtractionApiResponse(ApiResponse):
 
     @property
     def data(self) -> Union[Dict, List, str]:  # depends on the LLM prompt
-        if self.error is not None:
+        if self.error is None:
             return self.extraction_result['data']
 
         return None
 
     @property
     def content_type(self) -> Optional[str]:
-        if self.error is not None:
+        if self.error is None:
             return self.extraction_result['content_type']
 
         return None

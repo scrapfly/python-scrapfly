@@ -196,18 +196,23 @@ class ScrapflyClient:
         }        
 
     def _extraction_request(self, extraction_config:ExtractionConfig):
+        headers = {
+                'content-type': extraction_config.content_type,
+                'accept-encoding': self.body_handler.content_encoding,
+                'content-encoding': extraction_config.document_compression_format if extraction_config.document_compression_format else None,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+        }
+        if extraction_config.document_compression_format:
+            headers['content-encoding'] = extraction_config.document_compression_format.value
         return {
             'method': 'POST',
             'url': self.host + '/extraction',
             'data': extraction_config.body,
             'timeout': (self.connect_timeout, self.read_timeout),
-            'headers': {
-                'accept-encoding': self.body_handler.content_encoding,
-                'accept': self.body_handler.accept,
-                'user-agent': self.ua
-            },
+            'headers': headers,
             'params': extraction_config.to_api_params(key=self.key)
-        }       
+        }
 
 
     def account(self) -> Union[str, Dict]:
@@ -612,7 +617,7 @@ class ScrapflyClient:
             logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
             raise    
 
-    def save_screenshot_api(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
+    def save_screenshot(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
         """
         Save a screenshot from a screenshot API response
         :param api_response: ScreenshotApiResponse
@@ -627,13 +632,13 @@ class ScrapflyClient:
             raise RuntimeError('Screenshot binary does not exist')
 
         content = screenshot_api_response.image
-        format = screenshot_api_response.metadata['format']
+        extension_name = screenshot_api_response.metadata['extension_name']
 
         if path:
             os.makedirs(path, exist_ok=True)
-            file_path = os.path.join(path, f'{name}.{format}')
+            file_path = os.path.join(path, f'{name}.{extension_name}')
         else:
-            file_path = f'{name}.{format}'
+            file_path = f'{name}.{extension_name}'
 
         if isinstance(content, bytes):
             content = BytesIO(content)
@@ -641,7 +646,7 @@ class ScrapflyClient:
         with open(file_path, 'wb') as f:
             shutil.copyfileobj(content, f, length=131072)
 
-    def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+    def save_scrape_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
         """
         Save a screenshot from a scrape result
         :param api_response: ScrapeApiResponse

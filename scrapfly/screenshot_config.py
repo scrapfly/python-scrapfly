@@ -2,7 +2,7 @@ import base64
 import logging
 from enum import Enum
 from typing import Optional, List, Dict
-
+from .api_config import BaseApiConfig
 
 class Options(Enum):
     """
@@ -38,7 +38,7 @@ class Format(Enum):
     GIF = "gif"
 
 
-class ScreenshotConfig:
+class ScreenshotConfig(BaseApiConfig):
     url: str
     format: Optional[Format] = None
     capture: Optional[str] = None
@@ -86,7 +86,7 @@ class ScreenshotConfig:
         self.timeout = timeout
         self.rendering_wait = rendering_wait
         self.wait_for_selector = wait_for_selector
-        self.options = options
+        self.options = [Options(flag) for flag in options] if options else None
         self.auto_scroll = auto_scroll
         self.js = js
         self.cache = cache
@@ -95,12 +95,9 @@ class ScreenshotConfig:
         self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
 
-    def _bool_to_http(self, _bool:bool) -> str:
-        return 'true' if _bool is True else 'false'
-
     def to_api_params(self, key:str) -> Dict:
         params = {
-            'key': self.key if self.key is not None else key,
+            'key': self.key or key,
             'url': self.url
         }
 
@@ -126,7 +123,6 @@ class ScreenshotConfig:
             params['wait_for_selector'] = self.wait_for_selector            
 
         if self.options is not None:
-            self.options = [Options(flag) for flag in self.options]
             params["options"] = ",".join(flag.value for flag in self.options)
 
         if self.auto_scroll is not None:
@@ -155,31 +151,3 @@ class ScreenshotConfig:
             params['webhook_name'] = self.webhook
 
         return params
-
-    @staticmethod
-    def from_exported_config(config:str) -> 'ScreenshotConfig':
-        try:
-            from msgpack import loads as msgpack_loads
-        except ImportError as e:
-            print('You must install msgpack package - run: pip install "scrapfly-sdk[seepdup] or pip install msgpack')
-            raise
-
-        data = msgpack_loads(base64.b64decode(config))
-
-        return ScreenshotConfig(
-            url=data['url'],
-            format=data['format'],
-            capture=data['capture'],
-            resolution=data['resolution'],
-            country=data['country'],
-            timeout=data['timeout'],
-            rendering_wait=data['rendering_wait'],
-            wait_for_selector=data['wait_for_selector'],
-            options=data['options'],
-            auto_scroll=data['auto_scroll'],
-            js=data['js'],
-            cache=data['cache'],
-            cache_ttl=data['cache_ttl'],
-            cache_clear=data['cache_clear'],
-            webhook=data['webhook']
-        )

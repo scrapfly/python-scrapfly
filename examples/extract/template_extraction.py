@@ -4,7 +4,7 @@ scrapfly = ScrapflyClient(key='__API_KEY__')
 
 # First, scrape the web page to retrieve its HTML
 api_response:ScrapeApiResponse = scrapfly.scrape(scrape_config=ScrapeConfig(
-    url='https://web-scraping.dev/products',
+    url='https://web-scraping.dev/product/1',
     render_js=True
 ))
 
@@ -74,7 +74,7 @@ extraction_api_response:ExtractionApiResponse = scrapfly.extract(
         body=html, # pass the HTML content
         content_type='text/html', # content data type
         charset='utf-8', # passed content charset, use `auto` if you aren't sure
-        extraction_template=extraction_template # declared template defintion or template name saved on the dashboard
+        epehemeral_template=extraction_template # declared template defintion or template name saved on the dashboard
     )
 )
 

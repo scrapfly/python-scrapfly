@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Optional, List, Dict, Iterable, Union, Set
 from urllib.parse import urlencode
 from requests.structures import CaseInsensitiveDict
-
+from .api_config import BaseApiConfig
 
 class ScreenshotFlag(Enum):
     """
@@ -43,7 +43,7 @@ class ScrapeConfigError(Exception):
     pass
 
 
-class ScrapeConfig:
+class ScrapeConfig(BaseApiConfig):
 
     PUBLIC_DATACENTER_POOL = 'public_datacenter_pool'
     PUBLIC_RESIDENTIAL_POOL = 'public_residential_pool'
@@ -202,12 +202,9 @@ class ScrapeConfig:
             elif self.body is None and self.data is None:
                 self.headers['content-type'] = 'text/plain'
 
-    def _bool_to_http(self, _bool:bool) -> str:
-        return 'true' if _bool is True else 'false'
-
     def to_api_params(self, key:str) -> Dict:
         params = {
-            'key': self.key if self.key is not None else key,
+            'key': self.key or key,
             'url': self.url
         }
 
