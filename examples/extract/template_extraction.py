@@ -74,7 +74,7 @@ extraction_api_response:ExtractionApiResponse = scrapfly.extract(
         body=html, # pass the HTML content
         content_type='text/html', # content data type
         charset='utf-8', # passed content charset, use `auto` if you aren't sure
-        epehemeral_template=extraction_template # declared template defintion or template name saved on the dashboard
+        ephemeral_template=extraction_template # declared template defintion or template name saved on the dashboard
     )
 )
 

@@ -30,7 +30,7 @@ class ExtractionConfig(BaseApiConfig):
     url: Optional[str] = None
     charset: Optional[str] = None
     template: Optional[str] = None  # a saved template name
-    epehemeral_template: Optional[Dict]  # epehemeraly declared json template
+    ephemeral_template: Optional[Dict]  # ephemeraly declared json template
     extraction_prompt: Optional[str] = None
     extraction_model: Optional[str] = None
     is_document_compressed: Optional[bool] = None
@@ -45,7 +45,7 @@ class ExtractionConfig(BaseApiConfig):
         url: Optional[str] = None,
         charset: Optional[str] = None,
         template: Optional[str] = None,  # a saved template name
-        epehemeral_template: Optional[Dict] = None,  # epehemeraly declared json template
+        ephemeral_template: Optional[Dict] = None,  # ephemeraly declared json template
         extraction_prompt: Optional[str] = None,
         extraction_model: Optional[str] = None,
         is_document_compressed: Optional[bool] = None,
@@ -60,7 +60,7 @@ class ExtractionConfig(BaseApiConfig):
         self.url = url
         self.charset = charset
         self.template = template
-        self.epehemeral_template = epehemeral_template
+        self.ephemeral_template = ephemeral_template
         self.extraction_prompt = extraction_prompt
         self.extraction_model = extraction_model
         self.is_document_compressed = is_document_compressed
@@ -94,15 +94,15 @@ class ExtractionConfig(BaseApiConfig):
         if self.charset:
             params['charset'] = self.charset
 
-        if self.template and self.epehemeral_template:
-            raise ExtractionConfigError('You cannot pass both parameters template and epehemeral_template. You must choose')
+        if self.template and self.ephemeral_template:
+            raise ExtractionConfigError('You cannot pass both parameters template and ephemeral_template. You must choose')
 
         if self.template:
             params['extraction_template'] = self.template
 
-        if self.epehemeral_template:
-            self.epehemeral_template = json.dumps(self.epehemeral_template)
-            params['extraction_template'] = 'ephemeral:' + urlsafe_b64encode(self.epehemeral_template.encode('utf-8')).decode('utf-8')
+        if self.ephemeral_template:
+            self.ephemeral_template = json.dumps(self.ephemeral_template)
+            params['extraction_template'] = 'ephemeral:' + urlsafe_b64encode(self.ephemeral_template.encode('utf-8')).decode('utf-8')
 
         if self.extraction_prompt:
             params['extraction_prompt'] = quote_plus(self.extraction_prompt)
