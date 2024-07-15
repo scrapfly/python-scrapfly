@@ -17,11 +17,16 @@ from .errors import UpstreamHttpClientError
 from .errors import UpstreamHttpServerError
 from .errors import ApiHttpClientError
 from .errors import ApiHttpServerError
-from .api_response import ScrapeApiResponse, ResponseBodyHandler
+from .errors import ScreenshotAPIError
+from .errors import ExtractionAPIError
+from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
 from .scrape_config import ScrapeConfig
+from .screenshot_config import ScreenshotConfig
+from .extraction_config import ExtractionConfig
 
-__all__:Tuple[str, ...] = (
+
+__all__: Tuple[str, ...] = (
     'ScrapflyError',
     'ScrapflyAspError',
     'ScrapflyProxyError',
@@ -37,11 +42,17 @@ __all__:Tuple[str, ...] = (
     'ApiHttpServerError',
     'EncoderError',
     'ScrapeApiResponse',
+    'ScreenshotApiResponse',
+    'ExtractionApiResponse',
     'ErrorFactory',
     'HttpError',
     'ScrapflyClient',
     'ResponseBodyHandler',
     'ScrapeConfig',
+    'ScreenshotConfig',
+    'ExtractionConfig',
+    'ScreenshotAPIError',
+    'ExtractionAPIError',
     'ScraperAPI',
     'MonitoringTargetPeriod',
     'MonitoringAggregation',
