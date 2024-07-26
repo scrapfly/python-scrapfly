@@ -39,6 +39,18 @@ class Format(Enum):
     CLEAN_HTML = "clean_html"
 
 
+class FormatOption(Enum):
+    """
+    Attributes:
+        NO_IMAGES: exlude images from `markdown` format
+        NO_LINKS: exlude links from `markdown` format
+    """
+
+    NO_IMAGES = "no_images"
+    NO_LINKS = "no_links"
+
+
+
 class ScrapeConfigError(Exception):
     pass
 
@@ -104,6 +116,7 @@ class ScrapeConfig(BaseApiConfig):
         session: Optional[str] = None,
         tags: Optional[Union[List[str], Set[str]]] = None,
         format: Optional[Format] = None, # raw(unchanged)
+        format_options: Optional[List[FormatOption]] = None, # raw(unchanged)
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -150,6 +163,7 @@ class ScrapeConfig(BaseApiConfig):
         self.proxy_pool = proxy_pool
         self.tags = tags or set()
         self.format = format
+        self.format_options = format_options
         self.correlation_id = correlation_id
         self.wait_for_selector = wait_for_selector
         self.body = body
@@ -302,6 +316,8 @@ class ScrapeConfig(BaseApiConfig):
 
         if self.format:
             params['format'] = Format(self.format).value
+            if self.format_options:
+                params['format'] += ':' + ','.join(FormatOption(option).value for option in self.format_options)
 
         if self.correlation_id:
             params['correlation_id'] = self.correlation_id
