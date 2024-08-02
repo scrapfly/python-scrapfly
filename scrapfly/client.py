@@ -461,7 +461,7 @@ class ScrapflyClient:
         return await loop.run_in_executor(self.async_executor, self.screenshot, screenshot_config)
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
-    def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -> str:
+    def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -> ScreenshotApiResponse:
         """
         Take a screenshot
         :param screenshot_config: ScrapeConfig
@@ -502,7 +502,7 @@ class ScrapflyClient:
         return await loop.run_in_executor(self.async_executor, self.extract, extraction_config)
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
-    def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -> str:
+    def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -> ExtractionApiResponse:
         """
         Extract structured data from text content
         :param extraction_config: ExtractionConfig
