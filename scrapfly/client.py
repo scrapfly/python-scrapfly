@@ -735,34 +735,32 @@ class ScrapflyClient:
 
     def _handle_scrape_large_objects(
         self,
-        body: Dict
+        body: Dict,
+        format: Literal['clob', 'blob']
     ) -> Dict:
-        content_format = body['result']['format']
-        if content_format in ['clob', 'blob']:
+        request_data = {
+            'method': 'GET',
+            'url': body['result']['content'],
+            'verify': self.verify,
+            'timeout': (self.connect_timeout, self.read_timeout),
+            'headers': {
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+            'params': {'key': self.key}
+        }
+        response = self._http_handler(**request_data)
+        if self.body_handler.support(headers=response.headers):
+            content = self.body_handler(content=response.content, content_type=response.headers['content-type'])
+        else:
+            content = response.content.decode('utf-8')
 
-            request_data = {
-                'method': 'GET',
-                'url': body['result']['content'],
-                'verify': self.verify,
-                'timeout': (self.connect_timeout, self.read_timeout),
-                'headers': {
-                    'accept-encoding': self.body_handler.content_encoding,
-                    'accept': self.body_handler.accept,
-                    'user-agent': self.ua
-                },
-                'params': {'key': self.key}
-            }
-            response = self._http_handler(**request_data)
-            if self.body_handler.support(headers=response.headers):
-                content = self.body_handler(content=response.content, content_type=response.headers['content-type'])
-            else:
-                content = response.content.decode('utf-8')
-
-            body['result']['content'] = content
-            if content_format == 'clob':
-                body['result']['format'] = 'text'
-            if content_format == 'blob':
-                body['result']['format'] = 'binary' 
+        body['result']['content'] = content
+        if format == 'clob':
+            body['result']['format'] = 'text'
+        if format == 'blob':
+            body['result']['format'] = 'binary' 
 
         return body
         
@@ -781,7 +779,9 @@ class ScrapflyClient:
             else:
                 body = response.content.decode('utf-8')
 
-        body = self._handle_scrape_large_objects(body=body)
+        content_format = body['result']['format']
+        if content_format in ['clob', 'blob']:
+            body = self._handle_scrape_large_objects(body=body, format=content_format)
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
