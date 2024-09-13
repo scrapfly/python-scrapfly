@@ -15,6 +15,12 @@ For use of built-in HTML parser (via `ScrapeApiResponse.selector` property) addi
 
 For reference of usage or examples, please checkout the folder `/examples` in this repository.
 
+This SDK cover the following Scrapfly API endpoints:
+
+* [Web Scraping API](https://scrapfly.io/docs/onboarding#web-scraping-api)
+* [Extraction API](https://scrapfly.io/docs/onboarding#extraction-api)
+* [Screenshot API](https://scrapfly.io/docs/onboarding#screenshot-api)
+
 ## Integrations  
 
 Scrapfly Python SDKs are integrated with [LlamaIndex](https://www.llamaindex.ai/) and [LangChain](https://www.langchain.com/). Both framework allows training Large Language Models (LLMs) using augmented context.
