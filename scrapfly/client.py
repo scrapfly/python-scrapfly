@@ -16,11 +16,13 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal, Tuple
 import requests
 import urllib3
 import logging as logger
 
+
+from .errors import ContentError
 from .reporter import Reporter
 
 try:
@@ -79,7 +81,11 @@ class ScrapflyClient:
 
     HOST = 'https://api.scrapfly.io'
     DEFAULT_CONNECT_TIMEOUT = 30
-    DEFAULT_READ_TIMEOUT = 160 # 155 real
+    DEFAULT_READ_TIMEOUT = 30
+
+    DEFAULT_WEBSCRAPING_API_READ_TIMEOUT = 160 # 155 real
+    DEFAULT_SCREENSHOT_API_READ_TIMEOUT = 60  # 30 real
+    DEFAULT_EXTRACTION_API_READ_TIMEOUT = 35 # 30 real
 
     host:str
     key:str
@@ -88,10 +94,17 @@ class ScrapflyClient:
     debug:bool
     distributed_mode:bool
     connect_timeout:int
-    read_timeout:int
+    web_scraping_api_read_timeout:int
+    screenshot_api_read_timeout:int
+    extraction_api_read_timeout:int
+    monitoring_api_read_timeout:int
+    default_read_timeout:int
     brotli: bool
     reporter:Reporter
     version:str
+
+    # @deprecated
+    read_timeout:int
 
     CONCURRENCY_AUTO = 'auto' # retrieve the allowed concurrency from your account
     DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -104,7 +117,13 @@ class ScrapflyClient:
         debug: bool = False,
         max_concurrency:int=1,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        web_scraping_api_read_timeout: int = DEFAULT_WEBSCRAPING_API_READ_TIMEOUT,
+        extraction_api_read_timeout: int = DEFAULT_EXTRACTION_API_READ_TIMEOUT,
+        screenshot_api_read_timeout: int = DEFAULT_SCREENSHOT_API_READ_TIMEOUT,
+
+        # @deprecated
         read_timeout:int = DEFAULT_READ_TIMEOUT,
+        default_read_timeout:int = DEFAULT_READ_TIMEOUT,
         reporter:Optional[Callable]=None,
         **kwargs
     ):
@@ -131,7 +150,15 @@ class ScrapflyClient:
         self.verify = verify
         self.debug = debug
         self.connect_timeout = connect_timeout
-        self.read_timeout = read_timeout
+        self.web_scraping_api_read_timeout = web_scraping_api_read_timeout
+        self.screenshot_api_read_timeout = screenshot_api_read_timeout
+        self.extraction_api_read_timeout = extraction_api_read_timeout
+        self.monitoring_api_read_timeout = default_read_timeout
+        self.default_read_timeout = default_read_timeout
+
+        # @deprecated
+        self.read_timeout = default_read_timeout
+
         self.max_concurrency = max_concurrency
         self.body_handler = ResponseBodyHandler(use_brotli=False)
         self.async_executor = ThreadPoolExecutor()
@@ -173,7 +200,7 @@ class ScrapflyClient:
             'url': self.host + '/scrape',
             'data': scrape_config.body,
             'verify': self.verify,
-            'timeout': (self.connect_timeout, self.read_timeout),
+            'timeout': (self.connect_timeout, self.web_scraping_api_read_timeout),
             'headers': {
                 'content-type': scrape_config.headers['content-type'] if scrape_config.method in ['POST', 'PUT', 'PATCH'] else self.body_handler.content_type,
                 'accept-encoding': self.body_handler.content_encoding,
@@ -187,7 +214,7 @@ class ScrapflyClient:
         return {
             'method': 'GET',
             'url': self.host + '/screenshot',
-            'timeout': (self.connect_timeout, self.read_timeout),
+            'timeout': (self.connect_timeout, self.screenshot_api_read_timeout),
             'headers': {
                 'accept-encoding': self.body_handler.content_encoding,
                 'accept': self.body_handler.accept,
@@ -204,13 +231,15 @@ class ScrapflyClient:
                 'accept': self.body_handler.accept,
                 'user-agent': self.ua
         }
+
         if extraction_config.document_compression_format:
             headers['content-encoding'] = extraction_config.document_compression_format.value
+
         return {
             'method': 'POST',
             'url': self.host + '/extraction',
             'data': extraction_config.body,
-            'timeout': (self.connect_timeout, self.read_timeout),
+            'timeout': (self.connect_timeout, self.extraction_api_read_timeout),
             'headers': headers,
             'params': extraction_config.to_api_params(key=self.key)
         }
@@ -249,6 +278,7 @@ class ScrapflyClient:
             method='GET',
             url=self.host + '/scrape/monitoring/metrics',
             params=params,
+            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
             verify=self.verify,
             headers={
                 'accept-encoding': self.body_handler.content_encoding,
@@ -291,6 +321,7 @@ class ScrapflyClient:
         response = self._http_handler(
             method='GET',
             url=self.host + '/scrape/monitoring/metrics/target',
+            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
             params=params,
             verify=self.verify,
             headers={
@@ -339,7 +370,7 @@ class ScrapflyClient:
         if self.http_session is None:
             self.http_session = Session()
             self.http_session.verify = self.verify
-            self.http_session.timeout = (self.connect_timeout, self.read_timeout)
+            self.http_session.timeout = (self.connect_timeout, self.default_read_timeout)
             self.http_session.params['key'] = self.key
             self.http_session.headers['accept-encoding'] = self.body_handler.content_encoding
             self.http_session.headers['accept'] = self.body_handler.accept
@@ -736,22 +767,24 @@ class ScrapflyClient:
 
     def _handle_scrape_large_objects(
         self,
-        body: Dict,
+        callback_url:str,
         format: Literal['clob', 'blob']
-    ) -> Dict:
-        request_data = {
+    ) -> Tuple[Union[BytesIO, str], str]:
+        if format not in ['clob', 'blob']:
+            raise ContentError('Large objects handle can handles format format [blob, clob], given: %s' % format)
+
+        response = self._http_handler(**{
             'method': 'GET',
-            'url': body['result']['content'],
+            'url': callback_url,
             'verify': self.verify,
-            'timeout': (self.connect_timeout, self.read_timeout),
+            'timeout': (self.connect_timeout, self.default_read_timeout),
             'headers': {
                 'accept-encoding': self.body_handler.content_encoding,
                 'accept': self.body_handler.accept,
                 'user-agent': self.ua
             },
             'params': {'key': self.key}
-        }
-        response = self._http_handler(**request_data)
+        })
 
         if self.body_handler.support(headers=response.headers):
             content = self.body_handler(content=response.content, content_type=response.headers['content-type'])
@@ -759,16 +792,10 @@ class ScrapflyClient:
             content = response.content
 
         if format == 'clob':
-            body['result']['format'] = 'text'
-            content = content.decode('utf-8')
-        if format == 'blob':
-            body['result']['format'] = 'binary'
-            content = BytesIO(content)
+            return content.decode('utf-8'), 'text'
 
-        body['result']['content'] = content
+        return BytesIO(content), 'binary'
 
-        return body
-        
     def _handle_api_response(
         self,
         response: Response,
@@ -784,15 +811,12 @@ class ScrapflyClient:
             else:
                 body = response.content.decode('utf-8')
 
-        content_format = body['result']['format']
-        if content_format in ['clob', 'blob']:
-            body = self._handle_scrape_large_objects(body=body, format=content_format)
-
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
             request=response.request,
             api_result=body,
-            scrape_config=scrape_config
+            scrape_config=scrape_config,
+            large_object_handler=self._handle_scrape_large_objects
         )
 
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)

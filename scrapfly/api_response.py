@@ -23,7 +23,7 @@ from json import JSONDecoder, loads
 
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
-from typing import List, Dict, Optional, Iterable, Union, TextIO, Tuple
+from typing import List, Dict, Optional, Iterable, Union, TextIO, Tuple, Callable
 
 from requests.structures import CaseInsensitiveDict
 
@@ -291,9 +291,13 @@ class ApiResponse:
 
 
 class ScrapeApiResponse(ApiResponse):
-    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig, api_result: Optional[Dict] = None):
+    scrape_config:ScrapeConfig
+    large_object_handler:Callable
+
+    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig, api_result: Optional[Dict] = None, large_object_handler:Optional[Callable]=None):
         super().__init__(request, response)
         self.scrape_config = scrape_config
+        self.large_object_handler = large_object_handler
 
         if self.scrape_config.method == 'HEAD':
             api_result = {
@@ -440,8 +444,13 @@ class ScrapeApiResponse(ApiResponse):
             api_result['result']['request_headers'] = CaseInsensitiveDict(api_result['result']['request_headers'])
             api_result['result']['response_headers'] = CaseInsensitiveDict(api_result['result']['response_headers'])
 
-        if api_result['result']['format'] == 'binary' and isinstance(api_result['result']['content'], bytes):
-            api_result['result']['content'] = BytesIO(b64decode(api_result['result']['content']))
+        if self.large_object_handler is not None and api_result['result']['content']:
+            content_format = api_result['result']['format']
+
+            if content_format in ['clob', 'blob']:
+                api_result['result']['content'], api_result['result']['format'] = self.large_object_handler(callback_url=api_result['result']['content'], format=content_format)
+            elif content_format == 'binary' and isinstance(api_result['result']['content'], bytes):
+                api_result['result']['content'] = BytesIO(b64decode(api_result['result']['content']))
 
         return FrozenDict(api_result)
 
