@@ -30,8 +30,9 @@ from requests.structures import CaseInsensitiveDict
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
-from .errors import ErrorFactory, ScreenshotAPIError, ExtractionAPIError, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
-    ExtraUsageForbidden, WebhookSignatureMissMatch
+from .errors import ErrorFactory, ScreenshotAPIError, ExtractionAPIError, EncoderError, ApiHttpClientError, \
+    ApiHttpServerError, UpstreamHttpError, HttpError, \
+    ExtraUsageForbidden, WebhookSignatureMissMatch, ContentError
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -402,6 +403,9 @@ class ScrapeApiResponse(ApiResponse):
 
     @cached_property
     def soup(self) -> 'BeautifulSoup':
+        if self.scrape_result['format'] != 'text':
+            raise ContentError("Unable to cast into beautiful soup, the format of data is binary - must be text content")
+
         try:
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(self.content, "lxml")
@@ -411,6 +415,9 @@ class ScrapeApiResponse(ApiResponse):
 
     @cached_property
     def selector(self) -> 'Selector':
+        if self.scrape_result['format'] != 'text':
+            raise ContentError("Unable to cast into beautiful soup, the format of data is binary - must be text content")
+
         try:
             from parsel import Selector
             return Selector(text=self.content)
@@ -433,7 +440,7 @@ class ScrapeApiResponse(ApiResponse):
             api_result['result']['request_headers'] = CaseInsensitiveDict(api_result['result']['request_headers'])
             api_result['result']['response_headers'] = CaseInsensitiveDict(api_result['result']['response_headers'])
 
-        if api_result['result']['format'] == 'binary' and api_result['result']['content']:
+        if api_result['result']['format'] == 'binary' and isinstance(api_result['result']['content'], bytes):
             api_result['result']['content'] = BytesIO(b64decode(api_result['result']['content']))
 
         return FrozenDict(api_result)

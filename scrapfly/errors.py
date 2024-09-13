@@ -10,6 +10,8 @@ class WebhookError(Exception):
 class WebhookSignatureMissMatch(WebhookError):
     pass
 
+class ContentError(Exception):
+    pass
 
 class ScrapflyError(Exception):
     KIND_HTTP_BAD_RESPONSE = 'HTTP_BAD_RESPONSE'

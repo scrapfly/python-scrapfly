@@ -1,3 +1,4 @@
+import base64
 import os
 import datetime
 import warnings
@@ -751,16 +752,20 @@ class ScrapflyClient:
             'params': {'key': self.key}
         }
         response = self._http_handler(**request_data)
+
         if self.body_handler.support(headers=response.headers):
             content = self.body_handler(content=response.content, content_type=response.headers['content-type'])
         else:
-            content = response.content.decode('utf-8')
+            content = response.content
 
-        body['result']['content'] = content
         if format == 'clob':
             body['result']['format'] = 'text'
+            content = content.decode('utf-8')
         if format == 'blob':
-            body['result']['format'] = 'binary' 
+            body['result']['format'] = 'binary'
+            content = BytesIO(content)
+
+        body['result']['content'] = content
 
         return body
         
