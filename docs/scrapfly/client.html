@@ -26,7 +26,9 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import datetime
+<pre><code class="python">import base64
+import os
+import datetime
 import warnings
 from asyncio import AbstractEventLoop, Task
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -42,11 +44,13 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal, Tuple
 import requests
 import urllib3
 import logging as logger
 
+
+from .errors import ContentError
 from .reporter import Reporter
 
 try:
@@ -56,8 +60,10 @@ except ImportError:
 
 from .errors import *
 from .api_response import ResponseBodyHandler
-from .scrape_config import ScrapeConfig, ScreenshotFlag
-from . import __version__, ScrapeApiResponse, HttpError, UpstreamHttpError
+from .scrape_config import ScrapeConfig
+from .screenshot_config import ScreenshotConfig
+from .extraction_config import ExtractionConfig
+from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, HttpError, UpstreamHttpError
 
 logger.getLogger(__name__)
 
@@ -103,7 +109,11 @@ class ScrapflyClient:
 
     HOST = &#39;https://api.scrapfly.io&#39;
     DEFAULT_CONNECT_TIMEOUT = 30
-    DEFAULT_READ_TIMEOUT = 160 # 155 real
+    DEFAULT_READ_TIMEOUT = 30
+
+    DEFAULT_WEBSCRAPING_API_READ_TIMEOUT = 160 # 155 real
+    DEFAULT_SCREENSHOT_API_READ_TIMEOUT = 60  # 30 real
+    DEFAULT_EXTRACTION_API_READ_TIMEOUT = 35 # 30 real
 
     host:str
     key:str
@@ -112,10 +122,17 @@ class ScrapflyClient:
     debug:bool
     distributed_mode:bool
     connect_timeout:int
-    read_timeout:int
+    web_scraping_api_read_timeout:int
+    screenshot_api_read_timeout:int
+    extraction_api_read_timeout:int
+    monitoring_api_read_timeout:int
+    default_read_timeout:int
     brotli: bool
     reporter:Reporter
     version:str
+
+    # @deprecated
+    read_timeout:int
 
     CONCURRENCY_AUTO = &#39;auto&#39; # retrieve the allowed concurrency from your account
     DATETIME_FORMAT = &#39;%Y-%m-%d %H:%M:%S&#39;
@@ -128,7 +145,13 @@ class ScrapflyClient:
         debug: bool = False,
         max_concurrency:int=1,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        web_scraping_api_read_timeout: int = DEFAULT_WEBSCRAPING_API_READ_TIMEOUT,
+        extraction_api_read_timeout: int = DEFAULT_EXTRACTION_API_READ_TIMEOUT,
+        screenshot_api_read_timeout: int = DEFAULT_SCREENSHOT_API_READ_TIMEOUT,
+
+        # @deprecated
         read_timeout:int = DEFAULT_READ_TIMEOUT,
+        default_read_timeout:int = DEFAULT_READ_TIMEOUT,
         reporter:Optional[Callable]=None,
         **kwargs
     ):
@@ -155,7 +178,15 @@ class ScrapflyClient:
         self.verify = verify
         self.debug = debug
         self.connect_timeout = connect_timeout
-        self.read_timeout = read_timeout
+        self.web_scraping_api_read_timeout = web_scraping_api_read_timeout
+        self.screenshot_api_read_timeout = screenshot_api_read_timeout
+        self.extraction_api_read_timeout = extraction_api_read_timeout
+        self.monitoring_api_read_timeout = default_read_timeout
+        self.default_read_timeout = default_read_timeout
+
+        # @deprecated
+        self.read_timeout = default_read_timeout
+
         self.max_concurrency = max_concurrency
         self.body_handler = ResponseBodyHandler(use_brotli=False)
         self.async_executor = ThreadPoolExecutor()
@@ -197,7 +228,7 @@ class ScrapflyClient:
             &#39;url&#39;: self.host + &#39;/scrape&#39;,
             &#39;data&#39;: scrape_config.body,
             &#39;verify&#39;: self.verify,
-            &#39;timeout&#39;: (self.connect_timeout, self.read_timeout),
+            &#39;timeout&#39;: (self.connect_timeout, self.web_scraping_api_read_timeout),
             &#39;headers&#39;: {
                 &#39;content-type&#39;: scrape_config.headers[&#39;content-type&#39;] if scrape_config.method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] else self.body_handler.content_type,
                 &#39;accept-encoding&#39;: self.body_handler.content_encoding,
@@ -206,6 +237,41 @@ class ScrapflyClient:
             },
             &#39;params&#39;: scrape_config.to_api_params(key=self.key)
         }
+    
+    def _screenshot_request(self, screenshot_config:ScreenshotConfig):
+        return {
+            &#39;method&#39;: &#39;GET&#39;,
+            &#39;url&#39;: self.host + &#39;/screenshot&#39;,
+            &#39;timeout&#39;: (self.connect_timeout, self.screenshot_api_read_timeout),
+            &#39;headers&#39;: {
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },            
+            &#39;params&#39;: screenshot_config.to_api_params(key=self.key)
+        }        
+
+    def _extraction_request(self, extraction_config:ExtractionConfig):
+        headers = {
+                &#39;content-type&#39;: extraction_config.content_type,
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;content-encoding&#39;: extraction_config.document_compression_format if extraction_config.document_compression_format else None,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+        }
+
+        if extraction_config.document_compression_format:
+            headers[&#39;content-encoding&#39;] = extraction_config.document_compression_format.value
+
+        return {
+            &#39;method&#39;: &#39;POST&#39;,
+            &#39;url&#39;: self.host + &#39;/extraction&#39;,
+            &#39;data&#39;: extraction_config.body,
+            &#39;timeout&#39;: (self.connect_timeout, self.extraction_api_read_timeout),
+            &#39;headers&#39;: headers,
+            &#39;params&#39;: extraction_config.to_api_params(key=self.key)
+        }
+
 
     def account(self) -&gt; Union[str, Dict]:
         response = self._http_handler(
@@ -240,6 +306,7 @@ class ScrapflyClient:
             method=&#39;GET&#39;,
             url=self.host + &#39;/scrape/monitoring/metrics&#39;,
             params=params,
+            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
             verify=self.verify,
             headers={
                 &#39;accept-encoding&#39;: self.body_handler.content_encoding,
@@ -282,6 +349,7 @@ class ScrapflyClient:
         response = self._http_handler(
             method=&#39;GET&#39;,
             url=self.host + &#39;/scrape/monitoring/metrics/target&#39;,
+            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
             params=params,
             verify=self.verify,
             headers={
@@ -330,7 +398,7 @@ class ScrapflyClient:
         if self.http_session is None:
             self.http_session = Session()
             self.http_session.verify = self.verify
-            self.http_session.timeout = (self.connect_timeout, self.read_timeout)
+            self.http_session.timeout = (self.connect_timeout, self.default_read_timeout)
             self.http_session.params[&#39;key&#39;] = self.key
             self.http_session.headers[&#39;accept-encoding&#39;] = self.body_handler.content_encoding
             self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
@@ -446,6 +514,88 @@ class ScrapflyClient:
 
             raise e
 
+    async def async_screenshot(self, screenshot_config:ScreenshotConfig, loop:Optional[AbstractEventLoop]=None) -&gt; ScreenshotApiResponse:
+        if loop is None:
+            loop = asyncio.get_running_loop()
+
+        return await loop.run_in_executor(self.async_executor, self.screenshot, screenshot_config)
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&gt; ScreenshotApiResponse:
+        &#34;&#34;&#34;
+        Take a screenshot
+        :param screenshot_config: ScrapeConfig
+        :param no_raise: bool - if True, do not raise exception on error while the screenshot api response is a ScrapflyError for seamless integration
+        :return: str
+
+        If you use no_raise=True, make sure to check the screenshot_api_response.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        &#39;error&#39;: {
+            &#39;code&#39;: &#39;ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT&#39;,
+            &#39;message&#39;: &#39;For some reason we were unable to take the screenshot&#39;,
+            &#39;http_code&#39;: 422,
+            &#39;links&#39;: {
+                &#39;Checkout the related doc: https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT&#39;
+            }
+        }
+        &#34;&#34;&#34;
+
+        try:
+            logger.debug(&#39;--&gt; %s Screenshoting&#39; % (screenshot_config.url))
+            request_data = self._screenshot_request(screenshot_config=screenshot_config)
+            response = self._http_handler(**request_data)
+            screenshot_api_response = self._handle_screenshot_response(response=response, screenshot_config=screenshot_config)
+            return screenshot_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
+            raise e
+
+    async def async_extraction(self, extraction_config:ExtractionConfig, loop:Optional[AbstractEventLoop]=None) -&gt; ExtractionApiResponse:
+        if loop is None:
+            loop = asyncio.get_running_loop()
+
+        return await loop.run_in_executor(self.async_executor, self.extract, extraction_config)
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt; ExtractionApiResponse:
+        &#34;&#34;&#34;
+        Extract structured data from text content
+        :param extraction_config: ExtractionConfig
+        :param no_raise: bool - if True, do not raise exception on error while the extraction api response is a ScrapflyError for seamless integration
+        :return: str
+
+        If you use no_raise=True, make sure to check the extraction_api_response.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        &#39;error&#39;: {
+            &#39;code&#39;: &#39;ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED&#39;,
+            &#39;message&#39;: &#39;The content type of the response is not supported for extraction&#39;,
+            &#39;http_code&#39;: 422,
+            &#39;links&#39;: {
+                &#39;Checkout the related doc: https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED&#39;
+            }
+        }
+        &#34;&#34;&#34;
+
+        try:
+            logger.debug(&#39;--&gt; %s Extracting data from&#39; % (extraction_config.content_type))
+            request_data = self._extraction_request(extraction_config=extraction_config)
+            response = self._http_handler(**request_data)
+            extraction_api_response = self._handle_extraction_response(response=response, extraction_config=extraction_config)
+            return extraction_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
+            raise e
+
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         try:
             api_response = self._handle_api_response(
@@ -475,12 +625,6 @@ class ScrapflyClient:
         except UpstreamHttpError as e:
             logger.critical(e.api_response.error_message)
             raise
-        except ScrapflyScrapeError as e:
-            if e.api_response is not None:
-                logger.critical(e.api_response.error_message)
-            else:
-                logger.critical(e.message)
-            raise
         except HttpError as e:
             if e.api_response is not None:
                 logger.critical(e.api_response.error_message)
@@ -491,7 +635,78 @@ class ScrapflyClient:
             logger.critical(&#39;&lt;-- %s | Docs: %s&#39; % (str(e), e.documentation_url))
             raise
 
-    def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+    def _handle_screenshot_response(self, response:Response, screenshot_config:ScreenshotConfig) -&gt; ScreenshotApiResponse:    
+        try:
+            api_response = self._handle_screenshot_api_response(
+                response=response,
+                screenshot_config=screenshot_config,
+                raise_on_upstream_error=screenshot_config.raise_on_upstream_error
+            )
+            return api_response
+        except UpstreamHttpError as e:
+            logger.critical(e.api_response.error_message)
+            raise
+        except HttpError as e:
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
+        except ScrapflyError as e:
+            logger.critical(&#39;&lt;-- %s | Docs: %s&#39; % (str(e), e.documentation_url))
+            raise         
+
+    def _handle_extraction_response(self, response:Response, extraction_config:ExtractionConfig) -&gt; ExtractionApiResponse:
+        try:
+            api_response = self._handle_extraction_api_response(
+                response=response,
+                extraction_config=extraction_config,
+                raise_on_upstream_error=extraction_config.raise_on_upstream_error
+            )
+            return api_response
+        except UpstreamHttpError as e:
+            logger.critical(e.api_response.error_message)
+            raise
+        except HttpError as e:
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
+        except ScrapflyError as e:
+            logger.critical(&#39;&lt;-- %s | Docs: %s&#39; % (str(e), e.documentation_url))
+            raise    
+
+    def save_screenshot(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
+        &#34;&#34;&#34;
+        Save a screenshot from a screenshot API response
+        :param api_response: ScreenshotApiResponse
+        :param name: str - name of the screenshot to save as
+        :param path: Optional[str]
+        &#34;&#34;&#34;
+
+        if screenshot_api_response.screenshot_success is not True:
+            raise RuntimeError(&#39;Screenshot was not successful&#39;)
+
+        if not screenshot_api_response.image:
+            raise RuntimeError(&#39;Screenshot binary does not exist&#39;)
+
+        content = screenshot_api_response.image
+        extension_name = screenshot_api_response.metadata[&#39;extension_name&#39;]
+
+        if path:
+            os.makedirs(path, exist_ok=True)
+            file_path = os.path.join(path, f&#39;{name}.{extension_name}&#39;)
+        else:
+            file_path = f&#39;{name}.{extension_name}&#39;
+
+        if isinstance(content, bytes):
+            content = BytesIO(content)
+
+        with open(file_path, &#39;wb&#39;) as f:
+            shutil.copyfileobj(content, f, length=131072)
+
+    def save_scrape_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
         &#34;&#34;&#34;
         Save a screenshot from a scrape result
         :param api_response: ScrapeApiResponse
@@ -520,36 +735,6 @@ class ScrapflyClient:
             name += &#39;.jpg&#39;
 
         api_response.sink(path=path, name=name, content=screenshot_response.content)
-
-    def screenshot(
-            self,
-            url:str,
-            path:Optional[str]=None,
-            name:Optional[str]=None,
-            screenshot_flags:Optional[List[ScreenshotFlag]]=None
-    ) -&gt; str:
-        # for advance configuration, take screenshots via scrape method with ScrapeConfig
-        api_response = self.scrape(scrape_config=ScrapeConfig(
-            url=url,
-            render_js=True,
-            screenshots={&#39;main&#39;: &#39;fullpage&#39;},
-            screenshot_flags=screenshot_flags
-        ))
-
-        name = name or &#39;main.jpg&#39;
-
-        if not name.endswith(&#39;.jpg&#39;):
-            name += &#39;.jpg&#39;
-
-        response = self._http_handler(
-            method=&#39;GET&#39;,
-            url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;],
-            params={&#39;key&#39;: self.key}
-        )
-
-        response.raise_for_status()
-
-        return self.sink(api_response, path=path, name=name, content=response.content)
 
     def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None) -&gt; str:
         scrape_result = api_response.result[&#39;result&#39;]
@@ -608,6 +793,37 @@ class ScrapflyClient:
         logger.info(&#39;file %s created&#39; % file_path)
         return file_path
 
+    def _handle_scrape_large_objects(
+        self,
+        callback_url:str,
+        format: Literal[&#39;clob&#39;, &#39;blob&#39;]
+    ) -&gt; Tuple[Union[BytesIO, str], str]:
+        if format not in [&#39;clob&#39;, &#39;blob&#39;]:
+            raise ContentError(&#39;Large objects handle can handles format format [blob, clob], given: %s&#39; % format)
+
+        response = self._http_handler(**{
+            &#39;method&#39;: &#39;GET&#39;,
+            &#39;url&#39;: callback_url,
+            &#39;verify&#39;: self.verify,
+            &#39;timeout&#39;: (self.connect_timeout, self.default_read_timeout),
+            &#39;headers&#39;: {
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+            &#39;params&#39;: {&#39;key&#39;: self.key}
+        })
+
+        if self.body_handler.support(headers=response.headers):
+            content = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
+        else:
+            content = response.content
+
+        if format == &#39;clob&#39;:
+            return content.decode(&#39;utf-8&#39;), &#39;text&#39;
+
+        return BytesIO(content), &#39;binary&#39;
+
     def _handle_api_response(
         self,
         response: Response,
@@ -627,12 +843,60 @@ class ScrapflyClient:
             response=response,
             request=response.request,
             api_result=body,
-            scrape_config=scrape_config
+            scrape_config=scrape_config,
+            large_object_handler=self._handle_scrape_large_objects
         )
 
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
 
-        return api_response</code></pre>
+        return api_response
+
+    def _handle_screenshot_api_response(
+        self,
+        response: Response,
+        screenshot_config:ScreenshotConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -&gt; ScreenshotApiResponse:
+
+        if self.body_handler.support(headers=response.headers):
+            body = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
+        else:
+            body = {&#39;result&#39;: response.content}
+
+        api_response:ScreenshotApiResponse = ScreenshotApiResponse(
+            response=response,
+            request=response.request,
+            api_result=body,
+            screenshot_config=screenshot_config
+        )
+
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response
+
+    def _handle_extraction_api_response(
+        self,
+        response: Response,
+        extraction_config:ExtractionConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -&gt; ExtractionApiResponse:
+        
+        if self.body_handler.support(headers=response.headers):
+            body = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
+        else:
+            body = response.content.decode(&#39;utf-8&#39;)
+
+        api_response:ExtractionApiResponse = ExtractionApiResponse(
+            response=response,
+            request=response.request,
+            api_result=body,
+            extraction_config=extraction_config
+        )
+
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response
+    </code></pre>
 </details>
 </section>
 <section>
@@ -714,7 +978,7 @@ class ScrapflyClient:
 </dd>
 <dt id="scrapfly.client.ScrapflyClient"><code class="flex name class">
 <span>class <span class="ident">ScrapflyClient</span></span>
-<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, connect_timeout: int = 30, read_timeout: int = 160, reporter: Optional[Callable] = None, **kwargs)</span>
+<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, connect_timeout: int = 30, web_scraping_api_read_timeout: int = 160, extraction_api_read_timeout: int = 35, screenshot_api_read_timeout: int = 60, read_timeout: int = 30, default_read_timeout: int = 30, reporter: Optional[Callable] = None, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -726,7 +990,11 @@ class ScrapflyClient:
 
     HOST = &#39;https://api.scrapfly.io&#39;
     DEFAULT_CONNECT_TIMEOUT = 30
-    DEFAULT_READ_TIMEOUT = 160 # 155 real
+    DEFAULT_READ_TIMEOUT = 30
+
+    DEFAULT_WEBSCRAPING_API_READ_TIMEOUT = 160 # 155 real
+    DEFAULT_SCREENSHOT_API_READ_TIMEOUT = 60  # 30 real
+    DEFAULT_EXTRACTION_API_READ_TIMEOUT = 35 # 30 real
 
     host:str
     key:str
@@ -735,10 +1003,17 @@ class ScrapflyClient:
     debug:bool
     distributed_mode:bool
     connect_timeout:int
-    read_timeout:int
+    web_scraping_api_read_timeout:int
+    screenshot_api_read_timeout:int
+    extraction_api_read_timeout:int
+    monitoring_api_read_timeout:int
+    default_read_timeout:int
     brotli: bool
     reporter:Reporter
     version:str
+
+    # @deprecated
+    read_timeout:int
 
     CONCURRENCY_AUTO = &#39;auto&#39; # retrieve the allowed concurrency from your account
     DATETIME_FORMAT = &#39;%Y-%m-%d %H:%M:%S&#39;
@@ -751,7 +1026,13 @@ class ScrapflyClient:
         debug: bool = False,
         max_concurrency:int=1,
         connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        web_scraping_api_read_timeout: int = DEFAULT_WEBSCRAPING_API_READ_TIMEOUT,
+        extraction_api_read_timeout: int = DEFAULT_EXTRACTION_API_READ_TIMEOUT,
+        screenshot_api_read_timeout: int = DEFAULT_SCREENSHOT_API_READ_TIMEOUT,
+
+        # @deprecated
         read_timeout:int = DEFAULT_READ_TIMEOUT,
+        default_read_timeout:int = DEFAULT_READ_TIMEOUT,
         reporter:Optional[Callable]=None,
         **kwargs
     ):
@@ -778,7 +1059,15 @@ class ScrapflyClient:
         self.verify = verify
         self.debug = debug
         self.connect_timeout = connect_timeout
-        self.read_timeout = read_timeout
+        self.web_scraping_api_read_timeout = web_scraping_api_read_timeout
+        self.screenshot_api_read_timeout = screenshot_api_read_timeout
+        self.extraction_api_read_timeout = extraction_api_read_timeout
+        self.monitoring_api_read_timeout = default_read_timeout
+        self.default_read_timeout = default_read_timeout
+
+        # @deprecated
+        self.read_timeout = default_read_timeout
+
         self.max_concurrency = max_concurrency
         self.body_handler = ResponseBodyHandler(use_brotli=False)
         self.async_executor = ThreadPoolExecutor()
@@ -820,7 +1109,7 @@ class ScrapflyClient:
             &#39;url&#39;: self.host + &#39;/scrape&#39;,
             &#39;data&#39;: scrape_config.body,
             &#39;verify&#39;: self.verify,
-            &#39;timeout&#39;: (self.connect_timeout, self.read_timeout),
+            &#39;timeout&#39;: (self.connect_timeout, self.web_scraping_api_read_timeout),
             &#39;headers&#39;: {
                 &#39;content-type&#39;: scrape_config.headers[&#39;content-type&#39;] if scrape_config.method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] else self.body_handler.content_type,
                 &#39;accept-encoding&#39;: self.body_handler.content_encoding,
@@ -829,6 +1118,41 @@ class ScrapflyClient:
             },
             &#39;params&#39;: scrape_config.to_api_params(key=self.key)
         }
+    
+    def _screenshot_request(self, screenshot_config:ScreenshotConfig):
+        return {
+            &#39;method&#39;: &#39;GET&#39;,
+            &#39;url&#39;: self.host + &#39;/screenshot&#39;,
+            &#39;timeout&#39;: (self.connect_timeout, self.screenshot_api_read_timeout),
+            &#39;headers&#39;: {
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },            
+            &#39;params&#39;: screenshot_config.to_api_params(key=self.key)
+        }        
+
+    def _extraction_request(self, extraction_config:ExtractionConfig):
+        headers = {
+                &#39;content-type&#39;: extraction_config.content_type,
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;content-encoding&#39;: extraction_config.document_compression_format if extraction_config.document_compression_format else None,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+        }
+
+        if extraction_config.document_compression_format:
+            headers[&#39;content-encoding&#39;] = extraction_config.document_compression_format.value
+
+        return {
+            &#39;method&#39;: &#39;POST&#39;,
+            &#39;url&#39;: self.host + &#39;/extraction&#39;,
+            &#39;data&#39;: extraction_config.body,
+            &#39;timeout&#39;: (self.connect_timeout, self.extraction_api_read_timeout),
+            &#39;headers&#39;: headers,
+            &#39;params&#39;: extraction_config.to_api_params(key=self.key)
+        }
+
 
     def account(self) -&gt; Union[str, Dict]:
         response = self._http_handler(
@@ -863,6 +1187,7 @@ class ScrapflyClient:
             method=&#39;GET&#39;,
             url=self.host + &#39;/scrape/monitoring/metrics&#39;,
             params=params,
+            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
             verify=self.verify,
             headers={
                 &#39;accept-encoding&#39;: self.body_handler.content_encoding,
@@ -905,6 +1230,7 @@ class ScrapflyClient:
         response = self._http_handler(
             method=&#39;GET&#39;,
             url=self.host + &#39;/scrape/monitoring/metrics/target&#39;,
+            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
             params=params,
             verify=self.verify,
             headers={
@@ -953,7 +1279,7 @@ class ScrapflyClient:
         if self.http_session is None:
             self.http_session = Session()
             self.http_session.verify = self.verify
-            self.http_session.timeout = (self.connect_timeout, self.read_timeout)
+            self.http_session.timeout = (self.connect_timeout, self.default_read_timeout)
             self.http_session.params[&#39;key&#39;] = self.key
             self.http_session.headers[&#39;accept-encoding&#39;] = self.body_handler.content_encoding
             self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
@@ -1069,6 +1395,88 @@ class ScrapflyClient:
 
             raise e
 
+    async def async_screenshot(self, screenshot_config:ScreenshotConfig, loop:Optional[AbstractEventLoop]=None) -&gt; ScreenshotApiResponse:
+        if loop is None:
+            loop = asyncio.get_running_loop()
+
+        return await loop.run_in_executor(self.async_executor, self.screenshot, screenshot_config)
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&gt; ScreenshotApiResponse:
+        &#34;&#34;&#34;
+        Take a screenshot
+        :param screenshot_config: ScrapeConfig
+        :param no_raise: bool - if True, do not raise exception on error while the screenshot api response is a ScrapflyError for seamless integration
+        :return: str
+
+        If you use no_raise=True, make sure to check the screenshot_api_response.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        &#39;error&#39;: {
+            &#39;code&#39;: &#39;ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT&#39;,
+            &#39;message&#39;: &#39;For some reason we were unable to take the screenshot&#39;,
+            &#39;http_code&#39;: 422,
+            &#39;links&#39;: {
+                &#39;Checkout the related doc: https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT&#39;
+            }
+        }
+        &#34;&#34;&#34;
+
+        try:
+            logger.debug(&#39;--&gt; %s Screenshoting&#39; % (screenshot_config.url))
+            request_data = self._screenshot_request(screenshot_config=screenshot_config)
+            response = self._http_handler(**request_data)
+            screenshot_api_response = self._handle_screenshot_response(response=response, screenshot_config=screenshot_config)
+            return screenshot_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
+            raise e
+
+    async def async_extraction(self, extraction_config:ExtractionConfig, loop:Optional[AbstractEventLoop]=None) -&gt; ExtractionApiResponse:
+        if loop is None:
+            loop = asyncio.get_running_loop()
+
+        return await loop.run_in_executor(self.async_executor, self.extract, extraction_config)
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt; ExtractionApiResponse:
+        &#34;&#34;&#34;
+        Extract structured data from text content
+        :param extraction_config: ExtractionConfig
+        :param no_raise: bool - if True, do not raise exception on error while the extraction api response is a ScrapflyError for seamless integration
+        :return: str
+
+        If you use no_raise=True, make sure to check the extraction_api_response.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        &#39;error&#39;: {
+            &#39;code&#39;: &#39;ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED&#39;,
+            &#39;message&#39;: &#39;The content type of the response is not supported for extraction&#39;,
+            &#39;http_code&#39;: 422,
+            &#39;links&#39;: {
+                &#39;Checkout the related doc: https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED&#39;
+            }
+        }
+        &#34;&#34;&#34;
+
+        try:
+            logger.debug(&#39;--&gt; %s Extracting data from&#39; % (extraction_config.content_type))
+            request_data = self._extraction_request(extraction_config=extraction_config)
+            response = self._http_handler(**request_data)
+            extraction_api_response = self._handle_extraction_response(response=response, extraction_config=extraction_config)
+            return extraction_api_response
+        except BaseException as e:
+            self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
+            raise e
+
     def _handle_response(self, response:Response, scrape_config:ScrapeConfig) -&gt; ScrapeApiResponse:
         try:
             api_response = self._handle_api_response(
@@ -1098,12 +1506,6 @@ class ScrapflyClient:
         except UpstreamHttpError as e:
             logger.critical(e.api_response.error_message)
             raise
-        except ScrapflyScrapeError as e:
-            if e.api_response is not None:
-                logger.critical(e.api_response.error_message)
-            else:
-                logger.critical(e.message)
-            raise
         except HttpError as e:
             if e.api_response is not None:
                 logger.critical(e.api_response.error_message)
@@ -1114,7 +1516,78 @@ class ScrapflyClient:
             logger.critical(&#39;&lt;-- %s | Docs: %s&#39; % (str(e), e.documentation_url))
             raise
 
-    def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+    def _handle_screenshot_response(self, response:Response, screenshot_config:ScreenshotConfig) -&gt; ScreenshotApiResponse:    
+        try:
+            api_response = self._handle_screenshot_api_response(
+                response=response,
+                screenshot_config=screenshot_config,
+                raise_on_upstream_error=screenshot_config.raise_on_upstream_error
+            )
+            return api_response
+        except UpstreamHttpError as e:
+            logger.critical(e.api_response.error_message)
+            raise
+        except HttpError as e:
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
+        except ScrapflyError as e:
+            logger.critical(&#39;&lt;-- %s | Docs: %s&#39; % (str(e), e.documentation_url))
+            raise         
+
+    def _handle_extraction_response(self, response:Response, extraction_config:ExtractionConfig) -&gt; ExtractionApiResponse:
+        try:
+            api_response = self._handle_extraction_api_response(
+                response=response,
+                extraction_config=extraction_config,
+                raise_on_upstream_error=extraction_config.raise_on_upstream_error
+            )
+            return api_response
+        except UpstreamHttpError as e:
+            logger.critical(e.api_response.error_message)
+            raise
+        except HttpError as e:
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
+        except ScrapflyError as e:
+            logger.critical(&#39;&lt;-- %s | Docs: %s&#39; % (str(e), e.documentation_url))
+            raise    
+
+    def save_screenshot(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
+        &#34;&#34;&#34;
+        Save a screenshot from a screenshot API response
+        :param api_response: ScreenshotApiResponse
+        :param name: str - name of the screenshot to save as
+        :param path: Optional[str]
+        &#34;&#34;&#34;
+
+        if screenshot_api_response.screenshot_success is not True:
+            raise RuntimeError(&#39;Screenshot was not successful&#39;)
+
+        if not screenshot_api_response.image:
+            raise RuntimeError(&#39;Screenshot binary does not exist&#39;)
+
+        content = screenshot_api_response.image
+        extension_name = screenshot_api_response.metadata[&#39;extension_name&#39;]
+
+        if path:
+            os.makedirs(path, exist_ok=True)
+            file_path = os.path.join(path, f&#39;{name}.{extension_name}&#39;)
+        else:
+            file_path = f&#39;{name}.{extension_name}&#39;
+
+        if isinstance(content, bytes):
+            content = BytesIO(content)
+
+        with open(file_path, &#39;wb&#39;) as f:
+            shutil.copyfileobj(content, f, length=131072)
+
+    def save_scrape_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
         &#34;&#34;&#34;
         Save a screenshot from a scrape result
         :param api_response: ScrapeApiResponse
@@ -1143,36 +1616,6 @@ class ScrapflyClient:
             name += &#39;.jpg&#39;
 
         api_response.sink(path=path, name=name, content=screenshot_response.content)
-
-    def screenshot(
-            self,
-            url:str,
-            path:Optional[str]=None,
-            name:Optional[str]=None,
-            screenshot_flags:Optional[List[ScreenshotFlag]]=None
-    ) -&gt; str:
-        # for advance configuration, take screenshots via scrape method with ScrapeConfig
-        api_response = self.scrape(scrape_config=ScrapeConfig(
-            url=url,
-            render_js=True,
-            screenshots={&#39;main&#39;: &#39;fullpage&#39;},
-            screenshot_flags=screenshot_flags
-        ))
-
-        name = name or &#39;main.jpg&#39;
-
-        if not name.endswith(&#39;.jpg&#39;):
-            name += &#39;.jpg&#39;
-
-        response = self._http_handler(
-            method=&#39;GET&#39;,
-            url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;],
-            params={&#39;key&#39;: self.key}
-        )
-
-        response.raise_for_status()
-
-        return self.sink(api_response, path=path, name=name, content=response.content)
 
     def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None) -&gt; str:
         scrape_result = api_response.result[&#39;result&#39;]
@@ -1231,6 +1674,37 @@ class ScrapflyClient:
         logger.info(&#39;file %s created&#39; % file_path)
         return file_path
 
+    def _handle_scrape_large_objects(
+        self,
+        callback_url:str,
+        format: Literal[&#39;clob&#39;, &#39;blob&#39;]
+    ) -&gt; Tuple[Union[BytesIO, str], str]:
+        if format not in [&#39;clob&#39;, &#39;blob&#39;]:
+            raise ContentError(&#39;Large objects handle can handles format format [blob, clob], given: %s&#39; % format)
+
+        response = self._http_handler(**{
+            &#39;method&#39;: &#39;GET&#39;,
+            &#39;url&#39;: callback_url,
+            &#39;verify&#39;: self.verify,
+            &#39;timeout&#39;: (self.connect_timeout, self.default_read_timeout),
+            &#39;headers&#39;: {
+                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
+                &#39;accept&#39;: self.body_handler.accept,
+                &#39;user-agent&#39;: self.ua
+            },
+            &#39;params&#39;: {&#39;key&#39;: self.key}
+        })
+
+        if self.body_handler.support(headers=response.headers):
+            content = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
+        else:
+            content = response.content
+
+        if format == &#39;clob&#39;:
+            return content.decode(&#39;utf-8&#39;), &#39;text&#39;
+
+        return BytesIO(content), &#39;binary&#39;
+
     def _handle_api_response(
         self,
         response: Response,
@@ -1250,7 +1724,54 @@ class ScrapflyClient:
             response=response,
             request=response.request,
             api_result=body,
-            scrape_config=scrape_config
+            scrape_config=scrape_config,
+            large_object_handler=self._handle_scrape_large_objects
+        )
+
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response
+
+    def _handle_screenshot_api_response(
+        self,
+        response: Response,
+        screenshot_config:ScreenshotConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -&gt; ScreenshotApiResponse:
+
+        if self.body_handler.support(headers=response.headers):
+            body = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
+        else:
+            body = {&#39;result&#39;: response.content}
+
+        api_response:ScreenshotApiResponse = ScreenshotApiResponse(
+            response=response,
+            request=response.request,
+            api_result=body,
+            screenshot_config=screenshot_config
+        )
+
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response
+
+    def _handle_extraction_api_response(
+        self,
+        response: Response,
+        extraction_config:ExtractionConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -&gt; ExtractionApiResponse:
+        
+        if self.body_handler.support(headers=response.headers):
+            body = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
+        else:
+            body = response.content.decode(&#39;utf-8&#39;)
+
+        api_response:ExtractionApiResponse = ExtractionApiResponse(
+            response=response,
+            request=response.request,
+            api_result=body,
+            extraction_config=extraction_config
         )
 
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
@@ -1271,7 +1792,19 @@ class ScrapflyClient:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.DEFAULT_EXTRACTION_API_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_EXTRACTION_API_READ_TIMEOUT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.DEFAULT_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_READ_TIMEOUT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.DEFAULT_SCREENSHOT_API_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_SCREENSHOT_API_READ_TIMEOUT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.DEFAULT_WEBSCRAPING_API_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_WEBSCRAPING_API_READ_TIMEOUT</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -1291,7 +1824,15 @@ class ScrapflyClient:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.default_read_timeout"><code class="name">var <span class="ident">default_read_timeout</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.distributed_mode"><code class="name">var <span class="ident">distributed_mode</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.extraction_api_read_timeout"><code class="name">var <span class="ident">extraction_api_read_timeout</span> : int</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -1307,6 +1848,10 @@ class ScrapflyClient:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.monitoring_api_read_timeout"><code class="name">var <span class="ident">monitoring_api_read_timeout</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.read_timeout"><code class="name">var <span class="ident">read_timeout</span> : int</code></dt>
 <dd>
 <div class="desc"></div>
@@ -1315,11 +1860,19 @@ class ScrapflyClient:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.screenshot_api_read_timeout"><code class="name">var <span class="ident">screenshot_api_read_timeout</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.verify"><code class="name">var <span class="ident">verify</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.version"><code class="name">var <span class="ident">version</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.web_scraping_api_read_timeout"><code class="name">var <span class="ident">web_scraping_api_read_timeout</span> : int</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -1388,6 +1941,22 @@ def ua(self) -&gt; str:
     return response.content.decode(&#39;utf-8&#39;)</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.async_extraction"><code class="name flex">
+<span>async def <span class="ident">async_extraction</span></span>(<span>self, extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>, loop: Optional[asyncio.events.AbstractEventLoop] = None) ‑> <a title="scrapfly.api_response.ExtractionApiResponse" href="api_response.html#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def async_extraction(self, extraction_config:ExtractionConfig, loop:Optional[AbstractEventLoop]=None) -&gt; ExtractionApiResponse:
+    if loop is None:
+        loop = asyncio.get_running_loop()
+
+    return await loop.run_in_executor(self.async_executor, self.extract, extraction_config)</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.async_scrape"><code class="name flex">
 <span>async def <span class="ident">async_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, loop: Optional[asyncio.events.AbstractEventLoop] = None) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
@@ -1402,6 +1971,22 @@ def ua(self) -&gt; str:
         loop = asyncio.get_running_loop()
 
     return await loop.run_in_executor(self.async_executor, self.scrape, scrape_config)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.async_screenshot"><code class="name flex">
+<span>async def <span class="ident">async_screenshot</span></span>(<span>self, screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>, loop: Optional[asyncio.events.AbstractEventLoop] = None) ‑> <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def async_screenshot(self, screenshot_config:ScreenshotConfig, loop:Optional[AbstractEventLoop]=None) -&gt; ScreenshotApiResponse:
+    if loop is None:
+        loop = asyncio.get_running_loop()
+
+    return await loop.run_in_executor(self.async_executor, self.screenshot, screenshot_config)</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.close"><code class="name flex">
@@ -1482,6 +2067,64 @@ def ua(self) -&gt; str:
     logger.debug(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.extract"><code class="name flex">
+<span>def <span class="ident">extract</span></span>(<span>self, extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>, no_raise: bool = False) ‑> <a title="scrapfly.api_response.ExtractionApiResponse" href="api_response.html#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Extract structured data from text content
+:param extraction_config: ExtractionConfig
+:param no_raise: bool - if True, do not raise exception on error while the extraction api response is a ScrapflyError for seamless integration
+:return: str</p>
+<p>If you use no_raise=True, make sure to check the extraction_api_response.error attribute to handle the error.
+If the error is not none, you will get the following structure for example</p>
+<p>'error': {
+'code': 'ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED',
+'message': 'The content type of the response is not supported for extraction',
+'http_code': 422,
+'links': {
+'Checkout the related doc: <a href="https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'">https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'</a>
+}
+}</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt; ExtractionApiResponse:
+    &#34;&#34;&#34;
+    Extract structured data from text content
+    :param extraction_config: ExtractionConfig
+    :param no_raise: bool - if True, do not raise exception on error while the extraction api response is a ScrapflyError for seamless integration
+    :return: str
+
+    If you use no_raise=True, make sure to check the extraction_api_response.error attribute to handle the error.
+    If the error is not none, you will get the following structure for example
+
+    &#39;error&#39;: {
+        &#39;code&#39;: &#39;ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED&#39;,
+        &#39;message&#39;: &#39;The content type of the response is not supported for extraction&#39;,
+        &#39;http_code&#39;: 422,
+        &#39;links&#39;: {
+            &#39;Checkout the related doc: https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED&#39;
+        }
+    }
+    &#34;&#34;&#34;
+
+    try:
+        logger.debug(&#39;--&gt; %s Extracting data from&#39; % (extraction_config.content_type))
+        request_data = self._extraction_request(extraction_config=extraction_config)
+        response = self._http_handler(**request_data)
+        extraction_api_response = self._handle_extraction_response(response=response, extraction_config=extraction_config)
+        return extraction_api_response
+    except BaseException as e:
+        self.reporter.report(error=e)
+
+        if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+            return e.api_response
+
+        raise e</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.get_monitoring_metrics"><code class="name flex">
 <span>def <span class="ident">get_monitoring_metrics</span></span>(<span>self, format: str = 'structured', period: Optional[str] = None, aggregation: Optional[List[Literal['account', 'project', 'target']]] = None)</span>
 </code></dt>
@@ -1504,6 +2147,7 @@ def ua(self) -&gt; str:
         method=&#39;GET&#39;,
         url=self.host + &#39;/scrape/monitoring/metrics&#39;,
         params=params,
+        timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
         verify=self.verify,
         headers={
             &#39;accept-encoding&#39;: self.body_handler.content_encoding,
@@ -1556,6 +2200,7 @@ def ua(self) -&gt; str:
     response = self._http_handler(
         method=&#39;GET&#39;,
         url=self.host + &#39;/scrape/monitoring/metrics/target&#39;,
+        timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
         params=params,
         verify=self.verify,
         headers={
@@ -1586,7 +2231,7 @@ def ua(self) -&gt; str:
     if self.http_session is None:
         self.http_session = Session()
         self.http_session.verify = self.verify
-        self.http_session.timeout = (self.connect_timeout, self.read_timeout)
+        self.http_session.timeout = (self.connect_timeout, self.default_read_timeout)
         self.http_session.params[&#39;key&#39;] = self.key
         self.http_session.headers[&#39;accept-encoding&#39;] = self.body_handler.content_encoding
         self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
@@ -1630,8 +2275,8 @@ def ua(self) -&gt; str:
     return inner()</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.client.ScrapflyClient.save_screenshot"><code class="name flex">
-<span>def <span class="ident">save_screenshot</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, name: str, path: Optional[str] = None)</span>
+<dt id="scrapfly.client.ScrapflyClient.save_scrape_screenshot"><code class="name flex">
+<span>def <span class="ident">save_scrape_screenshot</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, name: str, path: Optional[str] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Save a screenshot from a scrape result
@@ -1642,7 +2287,7 @@ def ua(self) -&gt; str:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def save_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+<pre><code class="python">def save_scrape_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
     &#34;&#34;&#34;
     Save a screenshot from a scrape result
     :param api_response: ScrapeApiResponse
@@ -1671,6 +2316,48 @@ def ua(self) -&gt; str:
         name += &#39;.jpg&#39;
 
     api_response.sink(path=path, name=name, content=screenshot_response.content)</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.save_screenshot"><code class="name flex">
+<span>def <span class="ident">save_screenshot</span></span>(<span>self, screenshot_api_response: <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a>, name: str, path: Optional[str] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Save a screenshot from a screenshot API response
+:param api_response: ScreenshotApiResponse
+:param name: str - name of the screenshot to save as
+:param path: Optional[str]</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save_screenshot(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
+    &#34;&#34;&#34;
+    Save a screenshot from a screenshot API response
+    :param api_response: ScreenshotApiResponse
+    :param name: str - name of the screenshot to save as
+    :param path: Optional[str]
+    &#34;&#34;&#34;
+
+    if screenshot_api_response.screenshot_success is not True:
+        raise RuntimeError(&#39;Screenshot was not successful&#39;)
+
+    if not screenshot_api_response.image:
+        raise RuntimeError(&#39;Screenshot binary does not exist&#39;)
+
+    content = screenshot_api_response.image
+    extension_name = screenshot_api_response.metadata[&#39;extension_name&#39;]
+
+    if path:
+        os.makedirs(path, exist_ok=True)
+        file_path = os.path.join(path, f&#39;{name}.{extension_name}&#39;)
+    else:
+        file_path = f&#39;{name}.{extension_name}&#39;
+
+    if isinstance(content, bytes):
+        content = BytesIO(content)
+
+    with open(file_path, &#39;wb&#39;) as f:
+        shutil.copyfileobj(content, f, length=131072)</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.scrape"><code class="name flex">
@@ -1737,43 +2424,61 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.screenshot"><code class="name flex">
-<span>def <span class="ident">screenshot</span></span>(<span>self, url: str, path: Optional[str] = None, name: Optional[str] = None, screenshot_flags: Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]] = None) ‑> str</span>
+<span>def <span class="ident">screenshot</span></span>(<span>self, screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>, no_raise: bool = False) ‑> <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Take a screenshot
+:param screenshot_config: ScrapeConfig
+:param no_raise: bool - if True, do not raise exception on error while the screenshot api response is a ScrapflyError for seamless integration
+:return: str</p>
+<p>If you use no_raise=True, make sure to check the screenshot_api_response.error attribute to handle the error.
+If the error is not none, you will get the following structure for example</p>
+<p>'error': {
+'code': 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT',
+'message': 'For some reason we were unable to take the screenshot',
+'http_code': 422,
+'links': {
+'Checkout the related doc: <a href="https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'">https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'</a>
+}
+}</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def screenshot(
-        self,
-        url:str,
-        path:Optional[str]=None,
-        name:Optional[str]=None,
-        screenshot_flags:Optional[List[ScreenshotFlag]]=None
-) -&gt; str:
-    # for advance configuration, take screenshots via scrape method with ScrapeConfig
-    api_response = self.scrape(scrape_config=ScrapeConfig(
-        url=url,
-        render_js=True,
-        screenshots={&#39;main&#39;: &#39;fullpage&#39;},
-        screenshot_flags=screenshot_flags
-    ))
+<pre><code class="python">@backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&gt; ScreenshotApiResponse:
+    &#34;&#34;&#34;
+    Take a screenshot
+    :param screenshot_config: ScrapeConfig
+    :param no_raise: bool - if True, do not raise exception on error while the screenshot api response is a ScrapflyError for seamless integration
+    :return: str
 
-    name = name or &#39;main.jpg&#39;
+    If you use no_raise=True, make sure to check the screenshot_api_response.error attribute to handle the error.
+    If the error is not none, you will get the following structure for example
 
-    if not name.endswith(&#39;.jpg&#39;):
-        name += &#39;.jpg&#39;
+    &#39;error&#39;: {
+        &#39;code&#39;: &#39;ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT&#39;,
+        &#39;message&#39;: &#39;For some reason we were unable to take the screenshot&#39;,
+        &#39;http_code&#39;: 422,
+        &#39;links&#39;: {
+            &#39;Checkout the related doc: https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT&#39;
+        }
+    }
+    &#34;&#34;&#34;
 
-    response = self._http_handler(
-        method=&#39;GET&#39;,
-        url=api_response.scrape_result[&#39;screenshots&#39;][&#39;main&#39;][&#39;url&#39;],
-        params={&#39;key&#39;: self.key}
-    )
+    try:
+        logger.debug(&#39;--&gt; %s Screenshoting&#39; % (screenshot_config.url))
+        request_data = self._screenshot_request(screenshot_config=screenshot_config)
+        response = self._http_handler(**request_data)
+        screenshot_api_response = self._handle_screenshot_response(response=response, screenshot_config=screenshot_config)
+        return screenshot_api_response
+    except BaseException as e:
+        self.reporter.report(error=e)
 
-    response.raise_for_status()
+        if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+            return e.api_response
 
-    return self.sink(api_response, path=path, name=name, content=response.content)</code></pre>
+        raise e</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.sink"><code class="name flex">
@@ -1882,33 +2587,45 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 <li><code><a title="scrapfly.client.ScrapflyClient.CONCURRENCY_AUTO" href="#scrapfly.client.ScrapflyClient.CONCURRENCY_AUTO">CONCURRENCY_AUTO</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.DATETIME_FORMAT" href="#scrapfly.client.ScrapflyClient.DATETIME_FORMAT">DATETIME_FORMAT</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT">DEFAULT_CONNECT_TIMEOUT</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_EXTRACTION_API_READ_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_EXTRACTION_API_READ_TIMEOUT">DEFAULT_EXTRACTION_API_READ_TIMEOUT</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_READ_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_READ_TIMEOUT">DEFAULT_READ_TIMEOUT</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_SCREENSHOT_API_READ_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_SCREENSHOT_API_READ_TIMEOUT">DEFAULT_SCREENSHOT_API_READ_TIMEOUT</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_WEBSCRAPING_API_READ_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_WEBSCRAPING_API_READ_TIMEOUT">DEFAULT_WEBSCRAPING_API_READ_TIMEOUT</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.HOST" href="#scrapfly.client.ScrapflyClient.HOST">HOST</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.account" href="#scrapfly.client.ScrapflyClient.account">account</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.async_extraction" href="#scrapfly.client.ScrapflyClient.async_extraction">async_extraction</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.async_scrape" href="#scrapfly.client.ScrapflyClient.async_scrape">async_scrape</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.async_screenshot" href="#scrapfly.client.ScrapflyClient.async_screenshot">async_screenshot</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.brotli" href="#scrapfly.client.ScrapflyClient.brotli">brotli</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.close" href="#scrapfly.client.ScrapflyClient.close">close</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.concurrent_scrape" href="#scrapfly.client.ScrapflyClient.concurrent_scrape">concurrent_scrape</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.connect_timeout" href="#scrapfly.client.ScrapflyClient.connect_timeout">connect_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.debug" href="#scrapfly.client.ScrapflyClient.debug">debug</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.default_read_timeout" href="#scrapfly.client.ScrapflyClient.default_read_timeout">default_read_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.distributed_mode" href="#scrapfly.client.ScrapflyClient.distributed_mode">distributed_mode</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.extract" href="#scrapfly.client.ScrapflyClient.extract">extract</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.extraction_api_read_timeout" href="#scrapfly.client.ScrapflyClient.extraction_api_read_timeout">extraction_api_read_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.get_monitoring_metrics" href="#scrapfly.client.ScrapflyClient.get_monitoring_metrics">get_monitoring_metrics</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.get_monitoring_target_metrics" href="#scrapfly.client.ScrapflyClient.get_monitoring_target_metrics">get_monitoring_target_metrics</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.host" href="#scrapfly.client.ScrapflyClient.host">host</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.http" href="#scrapfly.client.ScrapflyClient.http">http</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.key" href="#scrapfly.client.ScrapflyClient.key">key</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.max_concurrency" href="#scrapfly.client.ScrapflyClient.max_concurrency">max_concurrency</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.monitoring_api_read_timeout" href="#scrapfly.client.ScrapflyClient.monitoring_api_read_timeout">monitoring_api_read_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.open" href="#scrapfly.client.ScrapflyClient.open">open</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.read_timeout" href="#scrapfly.client.ScrapflyClient.read_timeout">read_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.reporter" href="#scrapfly.client.ScrapflyClient.reporter">reporter</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.resilient_scrape" href="#scrapfly.client.ScrapflyClient.resilient_scrape">resilient_scrape</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.save_scrape_screenshot" href="#scrapfly.client.ScrapflyClient.save_scrape_screenshot">save_scrape_screenshot</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.save_screenshot" href="#scrapfly.client.ScrapflyClient.save_screenshot">save_screenshot</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.scrape" href="#scrapfly.client.ScrapflyClient.scrape">scrape</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.screenshot" href="#scrapfly.client.ScrapflyClient.screenshot">screenshot</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.screenshot_api_read_timeout" href="#scrapfly.client.ScrapflyClient.screenshot_api_read_timeout">screenshot_api_read_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.sink" href="#scrapfly.client.ScrapflyClient.sink">sink</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.ua" href="#scrapfly.client.ScrapflyClient.ua">ua</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.verify" href="#scrapfly.client.ScrapflyClient.verify">verify</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.version" href="#scrapfly.client.ScrapflyClient.version">version</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.web_scraping_api_read_timeout" href="#scrapfly.client.ScrapflyClient.web_scraping_api_read_timeout">web_scraping_api_read_timeout</a></code></li>
 </ul>
 </li>
 </ul>

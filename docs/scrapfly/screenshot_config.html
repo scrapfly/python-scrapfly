@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>scrapfly.screenshot_config API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.screenshot_config</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import base64
+import logging
+from enum import Enum
+from typing import Optional, List, Dict
+from .api_config import BaseApiConfig
+
+class Options(Enum):
+    &#34;&#34;&#34;
+    Options to customize the screenshot behavior
+
+    Attributes:
+        LOAD_IMAGES: Enable image rendering with the request, add extra usage for the bandwidth consumed.
+        DARK_MODE: Enable dark mode display.
+        BLOCK_BANNERS: Block cookies banners and overlay that cover the screen.
+        PRINT_MEDIA_FORMAT: Render the page in the print mode.
+    &#34;&#34;&#34;
+
+    LOAD_IMAGES = &#34;load_images&#34;
+    DARK_MODE = &#34;dark_mode&#34;
+    BLOCK_BANNERS = &#34;block_banners&#34;
+    PRINT_MEDIA_FORMAT = &#34;print_media_format&#34;
+
+
+class Format(Enum):
+    &#34;&#34;&#34;
+    Format of the screenshot image.
+
+    Attributes:
+        JPG: JPG format.
+        PNG: PNG format.
+        WEBP: WEBP format.
+        GIF: GIF format.
+    &#34;&#34;&#34;
+
+    JPG = &#34;jpg&#34;
+    PNG = &#34;png&#34;
+    WEBP = &#34;webp&#34;
+    GIF = &#34;gif&#34;
+
+
+class ScreenshotConfig(BaseApiConfig):
+    url: str
+    format: Optional[Format] = None
+    capture: Optional[str] = None
+    resolution: Optional[str] = None
+    country: Optional[str] = None
+    timeout: Optional[int] = None # in milliseconds
+    rendering_wait: Optional[int] = None # in milliseconds
+    wait_for_selector: Optional[str] = None
+    options: Optional[List[Options]] = None
+    auto_scroll: Optional[bool] = None
+    js: Optional[str] = None
+    cache: Optional[bool] = None
+    cache_ttl: Optional[bool] = None
+    cache_clear: Optional[bool] = None
+    webhook: Optional[str] = None
+    raise_on_upstream_error: bool = True
+
+    def __init__(
+        self,
+        url: str,
+        format: Optional[Format] = None,
+        capture: Optional[str] = None,
+        resolution: Optional[str] = None,
+        country: Optional[str] = None,
+        timeout: Optional[int] = None, # in milliseconds
+        rendering_wait: Optional[int] = None, # in milliseconds
+        wait_for_selector: Optional[str] = None,
+        options: Optional[List[Options]] = None,
+        auto_scroll: Optional[bool] = None,
+        js: Optional[str] = None,
+        cache: Optional[bool] = None,
+        cache_ttl: Optional[bool] = None,
+        cache_clear: Optional[bool] = None,
+        webhook: Optional[str] = None,
+        raise_on_upstream_error: bool = True
+    ):
+        assert(type(url) is str)
+
+        self.url = url
+        self.key = None
+        self.format = format
+        self.capture = capture
+        self.resolution = resolution
+        self.country = country
+        self.timeout = timeout
+        self.rendering_wait = rendering_wait
+        self.wait_for_selector = wait_for_selector
+        self.options = [Options(flag) for flag in options] if options else None
+        self.auto_scroll = auto_scroll
+        self.js = js
+        self.cache = cache
+        self.cache_ttl = cache_ttl
+        self.cache_clear = cache_clear
+        self.webhook = webhook
+        self.raise_on_upstream_error = raise_on_upstream_error
+
+    def to_api_params(self, key:str) -&gt; Dict:
+        params = {
+            &#39;key&#39;: self.key or key,
+            &#39;url&#39;: self.url
+        }
+
+        if self.format:
+            params[&#39;format&#39;] = Format(self.format).value
+
+        if self.capture:
+            params[&#39;capture&#39;] = self.capture
+
+        if self.resolution:
+            params[&#39;resolution&#39;] = self.resolution
+
+        if self.country is not None:
+            params[&#39;country&#39;] = self.country
+
+        if self.timeout is not None:
+            params[&#39;timeout&#39;] = self.timeout
+
+        if self.rendering_wait is not None:
+            params[&#39;rendering_wait&#39;] = self.rendering_wait
+
+        if self.wait_for_selector is not None:
+            params[&#39;wait_for_selector&#39;] = self.wait_for_selector            
+
+        if self.options is not None:
+            params[&#34;options&#34;] = &#34;,&#34;.join(flag.value for flag in self.options)
+
+        if self.auto_scroll is not None:
+            params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
+
+        if self.js:
+            params[&#39;js&#39;] = base64.urlsafe_b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+        if self.cache is not None:
+            params[&#39;cache&#39;] = self._bool_to_http(self.cache)
+            
+            if self.cache_ttl is not None:
+                params[&#39;cache_ttl&#39;] = self._bool_to_http(self.cache_ttl)
+
+            if self.cache_clear is not None:
+                params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
+
+        else:
+            if self.cache_ttl is not None:
+                logging.warning(&#39;Params &#34;cache_ttl&#34; is ignored. Works only if cache is enabled&#39;)
+
+            if self.cache_clear is not None:
+                logging.warning(&#39;Params &#34;cache_clear&#34; is ignored. Works only if cache is enabled&#39;)
+
+        if self.webhook is not None:
+            params[&#39;webhook_name&#39;] = self.webhook
+
+        return params</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.screenshot_config.Format"><code class="flex name class">
+<span>class <span class="ident">Format</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Format of the screenshot image.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>JPG</code></strong></dt>
+<dd>JPG format.</dd>
+<dt><strong><code>PNG</code></strong></dt>
+<dd>PNG format.</dd>
+<dt><strong><code>WEBP</code></strong></dt>
+<dd>WEBP format.</dd>
+<dt><strong><code>GIF</code></strong></dt>
+<dd>GIF format.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Format(Enum):
+    &#34;&#34;&#34;
+    Format of the screenshot image.
+
+    Attributes:
+        JPG: JPG format.
+        PNG: PNG format.
+        WEBP: WEBP format.
+        GIF: GIF format.
+    &#34;&#34;&#34;
+
+    JPG = &#34;jpg&#34;
+    PNG = &#34;png&#34;
+    WEBP = &#34;webp&#34;
+    GIF = &#34;gif&#34;</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.screenshot_config.Format.GIF"><code class="name">var <span class="ident">GIF</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.Format.JPG"><code class="name">var <span class="ident">JPG</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.Format.PNG"><code class="name">var <span class="ident">PNG</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.Format.WEBP"><code class="name">var <span class="ident">WEBP</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.screenshot_config.Options"><code class="flex name class">
+<span>class <span class="ident">Options</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Options to customize the screenshot behavior</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>LOAD_IMAGES</code></strong></dt>
+<dd>Enable image rendering with the request, add extra usage for the bandwidth consumed.</dd>
+<dt><strong><code>DARK_MODE</code></strong></dt>
+<dd>Enable dark mode display.</dd>
+<dt><strong><code>BLOCK_BANNERS</code></strong></dt>
+<dd>Block cookies banners and overlay that cover the screen.</dd>
+<dt><strong><code>PRINT_MEDIA_FORMAT</code></strong></dt>
+<dd>Render the page in the print mode.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Options(Enum):
+    &#34;&#34;&#34;
+    Options to customize the screenshot behavior
+
+    Attributes:
+        LOAD_IMAGES: Enable image rendering with the request, add extra usage for the bandwidth consumed.
+        DARK_MODE: Enable dark mode display.
+        BLOCK_BANNERS: Block cookies banners and overlay that cover the screen.
+        PRINT_MEDIA_FORMAT: Render the page in the print mode.
+    &#34;&#34;&#34;
+
+    LOAD_IMAGES = &#34;load_images&#34;
+    DARK_MODE = &#34;dark_mode&#34;
+    BLOCK_BANNERS = &#34;block_banners&#34;
+    PRINT_MEDIA_FORMAT = &#34;print_media_format&#34;</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.screenshot_config.Options.BLOCK_BANNERS"><code class="name">var <span class="ident">BLOCK_BANNERS</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.Options.DARK_MODE"><code class="name">var <span class="ident">DARK_MODE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.Options.LOAD_IMAGES"><code class="name">var <span class="ident">LOAD_IMAGES</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.Options.PRINT_MEDIA_FORMAT"><code class="name">var <span class="ident">PRINT_MEDIA_FORMAT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig"><code class="flex name class">
+<span>class <span class="ident">ScreenshotConfig</span></span>
+<span>(</span><span>url: str, format: Optional[<a title="scrapfly.screenshot_config.Format" href="#scrapfly.screenshot_config.Format">Format</a>] = None, capture: Optional[str] = None, resolution: Optional[str] = None, country: Optional[str] = None, timeout: Optional[int] = None, rendering_wait: Optional[int] = None, wait_for_selector: Optional[str] = None, options: Optional[List[<a title="scrapfly.screenshot_config.Options" href="#scrapfly.screenshot_config.Options">Options</a>]] = None, auto_scroll: Optional[bool] = None, js: Optional[str] = None, cache: Optional[bool] = None, cache_ttl: Optional[bool] = None, cache_clear: Optional[bool] = None, webhook: Optional[str] = None, raise_on_upstream_error: bool = True)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScreenshotConfig(BaseApiConfig):
+    url: str
+    format: Optional[Format] = None
+    capture: Optional[str] = None
+    resolution: Optional[str] = None
+    country: Optional[str] = None
+    timeout: Optional[int] = None # in milliseconds
+    rendering_wait: Optional[int] = None # in milliseconds
+    wait_for_selector: Optional[str] = None
+    options: Optional[List[Options]] = None
+    auto_scroll: Optional[bool] = None
+    js: Optional[str] = None
+    cache: Optional[bool] = None
+    cache_ttl: Optional[bool] = None
+    cache_clear: Optional[bool] = None
+    webhook: Optional[str] = None
+    raise_on_upstream_error: bool = True
+
+    def __init__(
+        self,
+        url: str,
+        format: Optional[Format] = None,
+        capture: Optional[str] = None,
+        resolution: Optional[str] = None,
+        country: Optional[str] = None,
+        timeout: Optional[int] = None, # in milliseconds
+        rendering_wait: Optional[int] = None, # in milliseconds
+        wait_for_selector: Optional[str] = None,
+        options: Optional[List[Options]] = None,
+        auto_scroll: Optional[bool] = None,
+        js: Optional[str] = None,
+        cache: Optional[bool] = None,
+        cache_ttl: Optional[bool] = None,
+        cache_clear: Optional[bool] = None,
+        webhook: Optional[str] = None,
+        raise_on_upstream_error: bool = True
+    ):
+        assert(type(url) is str)
+
+        self.url = url
+        self.key = None
+        self.format = format
+        self.capture = capture
+        self.resolution = resolution
+        self.country = country
+        self.timeout = timeout
+        self.rendering_wait = rendering_wait
+        self.wait_for_selector = wait_for_selector
+        self.options = [Options(flag) for flag in options] if options else None
+        self.auto_scroll = auto_scroll
+        self.js = js
+        self.cache = cache
+        self.cache_ttl = cache_ttl
+        self.cache_clear = cache_clear
+        self.webhook = webhook
+        self.raise_on_upstream_error = raise_on_upstream_error
+
+    def to_api_params(self, key:str) -&gt; Dict:
+        params = {
+            &#39;key&#39;: self.key or key,
+            &#39;url&#39;: self.url
+        }
+
+        if self.format:
+            params[&#39;format&#39;] = Format(self.format).value
+
+        if self.capture:
+            params[&#39;capture&#39;] = self.capture
+
+        if self.resolution:
+            params[&#39;resolution&#39;] = self.resolution
+
+        if self.country is not None:
+            params[&#39;country&#39;] = self.country
+
+        if self.timeout is not None:
+            params[&#39;timeout&#39;] = self.timeout
+
+        if self.rendering_wait is not None:
+            params[&#39;rendering_wait&#39;] = self.rendering_wait
+
+        if self.wait_for_selector is not None:
+            params[&#39;wait_for_selector&#39;] = self.wait_for_selector            
+
+        if self.options is not None:
+            params[&#34;options&#34;] = &#34;,&#34;.join(flag.value for flag in self.options)
+
+        if self.auto_scroll is not None:
+            params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
+
+        if self.js:
+            params[&#39;js&#39;] = base64.urlsafe_b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+        if self.cache is not None:
+            params[&#39;cache&#39;] = self._bool_to_http(self.cache)
+            
+            if self.cache_ttl is not None:
+                params[&#39;cache_ttl&#39;] = self._bool_to_http(self.cache_ttl)
+
+            if self.cache_clear is not None:
+                params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
+
+        else:
+            if self.cache_ttl is not None:
+                logging.warning(&#39;Params &#34;cache_ttl&#34; is ignored. Works only if cache is enabled&#39;)
+
+            if self.cache_clear is not None:
+                logging.warning(&#39;Params &#34;cache_clear&#34; is ignored. Works only if cache is enabled&#39;)
+
+        if self.webhook is not None:
+            params[&#39;webhook_name&#39;] = self.webhook
+
+        return params</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.api_config.BaseApiConfig" href="api_config.html#scrapfly.api_config.BaseApiConfig">BaseApiConfig</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.auto_scroll"><code class="name">var <span class="ident">auto_scroll</span> : Optional[bool]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.cache"><code class="name">var <span class="ident">cache</span> : Optional[bool]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.cache_clear"><code class="name">var <span class="ident">cache_clear</span> : Optional[bool]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : Optional[bool]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.capture"><code class="name">var <span class="ident">capture</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.country"><code class="name">var <span class="ident">country</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.format"><code class="name">var <span class="ident">format</span> : Optional[<a title="scrapfly.screenshot_config.Format" href="#scrapfly.screenshot_config.Format">Format</a>]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.js"><code class="name">var <span class="ident">js</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.options"><code class="name">var <span class="ident">options</span> : Optional[List[<a title="scrapfly.screenshot_config.Options" href="#scrapfly.screenshot_config.Options">Options</a>]]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.raise_on_upstream_error"><code class="name">var <span class="ident">raise_on_upstream_error</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.rendering_wait"><code class="name">var <span class="ident">rendering_wait</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.resolution"><code class="name">var <span class="ident">resolution</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.timeout"><code class="name">var <span class="ident">timeout</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.wait_for_selector"><code class="name">var <span class="ident">wait_for_selector</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.webhook"><code class="name">var <span class="ident">webhook</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.to_api_params"><code class="name flex">
+<span>def <span class="ident">to_api_params</span></span>(<span>self, key: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_api_params(self, key:str) -&gt; Dict:
+    params = {
+        &#39;key&#39;: self.key or key,
+        &#39;url&#39;: self.url
+    }
+
+    if self.format:
+        params[&#39;format&#39;] = Format(self.format).value
+
+    if self.capture:
+        params[&#39;capture&#39;] = self.capture
+
+    if self.resolution:
+        params[&#39;resolution&#39;] = self.resolution
+
+    if self.country is not None:
+        params[&#39;country&#39;] = self.country
+
+    if self.timeout is not None:
+        params[&#39;timeout&#39;] = self.timeout
+
+    if self.rendering_wait is not None:
+        params[&#39;rendering_wait&#39;] = self.rendering_wait
+
+    if self.wait_for_selector is not None:
+        params[&#39;wait_for_selector&#39;] = self.wait_for_selector            
+
+    if self.options is not None:
+        params[&#34;options&#34;] = &#34;,&#34;.join(flag.value for flag in self.options)
+
+    if self.auto_scroll is not None:
+        params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
+
+    if self.js:
+        params[&#39;js&#39;] = base64.urlsafe_b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+    if self.cache is not None:
+        params[&#39;cache&#39;] = self._bool_to_http(self.cache)
+        
+        if self.cache_ttl is not None:
+            params[&#39;cache_ttl&#39;] = self._bool_to_http(self.cache_ttl)
+
+        if self.cache_clear is not None:
+            params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
+
+    else:
+        if self.cache_ttl is not None:
+            logging.warning(&#39;Params &#34;cache_ttl&#34; is ignored. Works only if cache is enabled&#39;)
+
+        if self.cache_clear is not None:
+            logging.warning(&#39;Params &#34;cache_clear&#34; is ignored. Works only if cache is enabled&#39;)
+
+    if self.webhook is not None:
+        params[&#39;webhook_name&#39;] = self.webhook
+
+    return params</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly" href="index.html">scrapfly</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.screenshot_config.Format" href="#scrapfly.screenshot_config.Format">Format</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.screenshot_config.Format.GIF" href="#scrapfly.screenshot_config.Format.GIF">GIF</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.Format.JPG" href="#scrapfly.screenshot_config.Format.JPG">JPG</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.Format.PNG" href="#scrapfly.screenshot_config.Format.PNG">PNG</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.Format.WEBP" href="#scrapfly.screenshot_config.Format.WEBP">WEBP</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.screenshot_config.Options" href="#scrapfly.screenshot_config.Options">Options</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.screenshot_config.Options.BLOCK_BANNERS" href="#scrapfly.screenshot_config.Options.BLOCK_BANNERS">BLOCK_BANNERS</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.Options.DARK_MODE" href="#scrapfly.screenshot_config.Options.DARK_MODE">DARK_MODE</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.Options.LOAD_IMAGES" href="#scrapfly.screenshot_config.Options.LOAD_IMAGES">LOAD_IMAGES</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.Options.PRINT_MEDIA_FORMAT" href="#scrapfly.screenshot_config.Options.PRINT_MEDIA_FORMAT">PRINT_MEDIA_FORMAT</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.screenshot_config.ScreenshotConfig" href="#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.auto_scroll" href="#scrapfly.screenshot_config.ScreenshotConfig.auto_scroll">auto_scroll</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.cache" href="#scrapfly.screenshot_config.ScreenshotConfig.cache">cache</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.cache_clear" href="#scrapfly.screenshot_config.ScreenshotConfig.cache_clear">cache_clear</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.cache_ttl" href="#scrapfly.screenshot_config.ScreenshotConfig.cache_ttl">cache_ttl</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.capture" href="#scrapfly.screenshot_config.ScreenshotConfig.capture">capture</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.country" href="#scrapfly.screenshot_config.ScreenshotConfig.country">country</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.format" href="#scrapfly.screenshot_config.ScreenshotConfig.format">format</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.js" href="#scrapfly.screenshot_config.ScreenshotConfig.js">js</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.options" href="#scrapfly.screenshot_config.ScreenshotConfig.options">options</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.raise_on_upstream_error" href="#scrapfly.screenshot_config.ScreenshotConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.rendering_wait" href="#scrapfly.screenshot_config.ScreenshotConfig.rendering_wait">rendering_wait</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.resolution" href="#scrapfly.screenshot_config.ScreenshotConfig.resolution">resolution</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.timeout" href="#scrapfly.screenshot_config.ScreenshotConfig.timeout">timeout</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.to_api_params" href="#scrapfly.screenshot_config.ScreenshotConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.url" href="#scrapfly.screenshot_config.ScreenshotConfig.url">url</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.wait_for_selector" href="#scrapfly.screenshot_config.ScreenshotConfig.wait_for_selector">wait_for_selector</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.webhook" href="#scrapfly.screenshot_config.ScreenshotConfig.webhook">webhook</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

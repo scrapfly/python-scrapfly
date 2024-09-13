@@ -38,6 +38,8 @@ class WebhookError(Exception):
 class WebhookSignatureMissMatch(WebhookError):
     pass
 
+class ContentError(Exception):
+    pass
 
 class ScrapflyError(Exception):
     KIND_HTTP_BAD_RESPONSE = &#39;HTTP_BAD_RESPONSE&#39;
@@ -194,6 +196,14 @@ class QuotaLimitReached(HttpError):
     pass
 
 
+class ScreenshotAPIError(HttpError):
+    pass
+
+
+class ExtractionAPIError(HttpError):
+    pass
+
+
 class ErrorFactory:
     RESOURCE_TO_ERROR = {
         ScrapflyError.RESOURCE_SCRAPE: ScrapflyScrapeError,
@@ -311,7 +321,7 @@ __all__:Tuple[str, ...] = [
     &#39;UpstreamHttpClientError&#39;,
     &#39;UpstreamHttpServerError&#39;,
     &#39;ApiHttpClientError&#39;,
-    &#39;ApiHttpServerError&#39;
+    &#39;ApiHttpServerError&#39;,
 ]</code></pre>
 </details>
 </section>

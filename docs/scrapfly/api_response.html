@@ -51,13 +51,16 @@ from json import JSONDecoder, loads
 
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
-from typing import Dict, Optional, Iterable, Union, TextIO, Tuple
+from typing import List, Dict, Optional, Iterable, Union, TextIO, Tuple, Callable
 
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
-from .errors import ErrorFactory, EncoderError, ApiHttpClientError, ApiHttpServerError, UpstreamHttpError, HttpError, \
-    ExtraUsageForbidden, WebhookSignatureMissMatch
+from .screenshot_config import ScreenshotConfig
+from .extraction_config import ExtractionConfig
+from .errors import ErrorFactory, ScreenshotAPIError, ExtractionAPIError, EncoderError, ApiHttpClientError, \
+    ApiHttpServerError, UpstreamHttpError, HttpError, \
+    ExtraUsageForbidden, WebhookSignatureMissMatch, ContentError
 from .frozen_dict import FrozenDict
 
 logger.getLogger(__name__)
@@ -99,7 +102,7 @@ class ResponseBodyHandler:
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli:bool=False, signing_secrets:Optional[Tuple[str]]=None):
+    def __init__(self, use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None):
         if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -117,8 +120,8 @@ class ResponseBodyHandler:
         except ImportError:
             pass
 
-        self.content_encoding:str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
-        self._signing_secret:Optional[Tuple[str]] = None
+        self.content_encoding: str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+        self._signing_secret: Optional[Tuple[str]] = None
 
         if signing_secrets:
             _secrets = set()
@@ -138,7 +141,7 @@ class ResponseBodyHandler:
             self.content_type = &#39;application/json;charset=utf-8&#39;
             self.content_loader = partial(loads, cls=self.JSONDateTimeDecoder)
 
-    def support(self, headers:Dict) -&gt; bool:
+    def support(self, headers: Dict) -&gt; bool:
         if &#39;content-type&#39; not in headers:
             return False
 
@@ -148,14 +151,14 @@ class ResponseBodyHandler:
 
         return False
 
-    def verify(self, message:bytes, signature:str) -&gt; bool:
+    def verify(self, message: bytes, signature: str) -&gt; bool:
         for signing_secret in self._signing_secret:
             if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
                 return True
 
         return False
 
-    def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
+    def read(self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) -&gt; Dict:
         if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
             import gzip
             content = gzip.decompress(content)
@@ -181,7 +184,7 @@ class ResponseBodyHandler:
 
         return content
 
-    def __call__(self, content: bytes, content_type:str) -&gt; Union[str, Dict]:
+    def __call__(self, content: bytes, content_type: str) -&gt; Union[str, Dict]:
         content_loader = None
 
         if content_type.find(&#39;application/json&#39;) != -1:
@@ -202,12 +205,127 @@ class ResponseBodyHandler:
                 raise EncoderError(content=base64.b64encode(content).decode(&#39;utf-8&#39;)) from e
 
 
-class ScrapeApiResponse:
-
-    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig, api_result: Optional[Dict] = None):
+class ApiResponse:
+    def __init__(self, request: Request, response: Response):
         self.request = request
         self.response = response
+
+    @property
+    def headers(self) -&gt; CaseInsensitiveDict:
+        return self.response.headers
+
+    @property
+    def status_code(self) -&gt; int:
+        &#34;&#34;&#34;
+            /!\ This is the status code of our API, not the upstream website
+        &#34;&#34;&#34;
+        return self.response.status_code
+
+    @property
+    def remaining_quota(self) -&gt; Optional[int]:
+        remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -&gt; Optional[int]:
+        cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
+    @property
+    def duration_ms(self) -&gt; Optional[float]:
+        duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
+
+        if duration:
+            duration = float(duration)
+
+        return duration
+
+    @property
+    def error_message(self):
+        if self.error is not None:
+            message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
+
+            if self.error[&#39;links&#39;]:
+                message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+
+            return message
+
+        message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
+
+        if self.result.get(&#39;links&#39;):
+            message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
+
+        return message
+
+    def prevent_extra_usage(self):
+        if self.remaining_quota == 0:
+            raise ExtraUsageForbidden(
+                message=&#39;All Pre Paid Quota Used&#39;,
+                code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
+                http_status_code=429,
+                is_retryable=False
+            )
+
+    def raise_for_result(
+        self, raise_on_upstream_error: bool, error_class: Union[ApiHttpClientError, ScreenshotAPIError, ExtractionAPIError]
+    ):
+        try:
+            self.response.raise_for_status()
+        except HTTPError as e:
+            if &#39;error_id&#39; in self.result:
+                if e.response.status_code &gt;= 500:
+                    raise ApiHttpServerError(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result[&#39;message&#39;],
+                        code=&#39;&#39;,
+                        resource=&#39;&#39;,
+                        http_status_code=e.response.status_code,
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
+                    ) from e
+                # respect raise_on_upstream_error with screenshot and extraction only
+                elif error_class in (ScreenshotAPIError, ExtractionAPIError):
+                    if raise_on_upstream_error:
+                        raise error_class(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result[&#39;message&#39;],
+                            code=&#39;&#39;,
+                            resource=&#39;API&#39;,
+                            http_status_code=self.result[&#39;http_code&#39;],
+                            documentation_url=self.result.get(&#39;links&#39;),
+                            api_response=self,
+                        ) from e
+                else:
+                    raise error_class(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result[&#39;message&#39;],
+                        code=&#39;&#39;,
+                        resource=&#39;API&#39;,
+                        http_status_code=self.result[&#39;http_code&#39;],
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
+                    ) from e
+
+
+class ScrapeApiResponse(ApiResponse):
+    scrape_config:ScrapeConfig
+    large_object_handler:Callable
+
+    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig, api_result: Optional[Dict] = None, large_object_handler:Optional[Callable]=None):
+        super().__init__(request, response)
         self.scrape_config = scrape_config
+        self.large_object_handler = large_object_handler
 
         if self.scrape_config.method == &#39;HEAD&#39;:
             api_result = {
@@ -251,6 +369,10 @@ class ScrapeApiResponse:
             )
 
         self.result = self.handle_api_result(api_result=api_result)
+
+    @property
+    def scrape_result(self) -&gt; Optional[Dict]:
+        return self.result.get(&#39;result&#39;, None)
 
     @property
     def scrape_result(self) -&gt; Optional[Dict]:
@@ -302,13 +424,6 @@ class ScrapeApiResponse:
             return self.scrape_result[&#39;error&#39;]
 
     @property
-    def status_code(self) -&gt; int:
-        &#34;&#34;&#34;
-            /!\ This is the status code of our API, not the upstream website
-        &#34;&#34;&#34;
-        return self.response.status_code
-
-    @property
     def upstream_status_code(self) -&gt; Optional[int]:
         if self.scrape_result is None:
             return None
@@ -318,45 +433,29 @@ class ScrapeApiResponse:
 
         return None
 
-    def prevent_extra_usage(self):
-        if self.remaining_quota == 0:
-            raise ExtraUsageForbidden(
-                message=&#39;All Pre Paid Quota Used&#39;,
-                code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
-                http_status_code=429,
-                is_retryable=False
-            )
+    @cached_property
+    def soup(self) -&gt; &#39;BeautifulSoup&#39;:
+        if self.scrape_result[&#39;format&#39;] != &#39;text&#39;:
+            raise ContentError(&#34;Unable to cast into beautiful soup, the format of data is binary - must be text content&#34;)
 
-    @property
-    def remaining_quota(self) -&gt; Optional[int]:
-        remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(self.content, &#34;lxml&#34;)
+            return soup
+        except ImportError as e:
+            logger.error(&#39;You must install scrapfly[parser] to enable this feature&#39;)
 
-        if remaining_scrape:
-            remaining_scrape = int(remaining_scrape)
+    @cached_property
+    def selector(self) -&gt; &#39;Selector&#39;:
+        if self.scrape_result[&#39;format&#39;] != &#39;text&#39;:
+            raise ContentError(&#34;Unable to cast into beautiful soup, the format of data is binary - must be text content&#34;)
 
-        return remaining_scrape
-
-    @property
-    def cost(self) -&gt; Optional[int]:
-        cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
-
-        if cost:
-            cost = int(cost)
-
-        return cost
-
-    @property
-    def duration_ms(self) -&gt; Optional[float]:
-        duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
-
-        if duration:
-            duration = float(duration)
-
-        return duration
-
-    @property
-    def headers(self) -&gt; CaseInsensitiveDict:
-        return self.response.headers
+        try:
+            from parsel import Selector
+            return Selector(text=self.content)
+        except ImportError as e:
+            logger.error(&#39;You must install parsel or scrapy package to enable this feature&#39;)
+            raise e
 
     def handle_api_result(self, api_result: Dict) -&gt; Optional[FrozenDict]:
         if self._is_api_error(api_result=api_result) is True:
@@ -373,45 +472,15 @@ class ScrapeApiResponse:
             api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
             api_result[&#39;result&#39;][&#39;response_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;response_headers&#39;])
 
-        if api_result[&#39;result&#39;][&#39;format&#39;] == &#39;binary&#39; and api_result[&#39;result&#39;][&#39;content&#39;]:
-            api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+        if self.large_object_handler is not None and api_result[&#39;result&#39;][&#39;content&#39;]:
+            content_format = api_result[&#39;result&#39;][&#39;format&#39;]
+
+            if content_format in [&#39;clob&#39;, &#39;blob&#39;]:
+                api_result[&#39;result&#39;][&#39;content&#39;], api_result[&#39;result&#39;][&#39;format&#39;] = self.large_object_handler(callback_url=api_result[&#39;result&#39;][&#39;content&#39;], format=content_format)
+            elif content_format == &#39;binary&#39; and isinstance(api_result[&#39;result&#39;][&#39;content&#39;], bytes):
+                api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
 
         return FrozenDict(api_result)
-
-    @cached_property
-    def soup(self) -&gt; &#39;BeautifulSoup&#39;:
-        try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(self.content, &#34;lxml&#34;)
-            return soup
-        except ImportError as e:
-            logger.error(&#39;You must install scrapfly[parser] to enable this feature&#39;)
-
-    @cached_property
-    def selector(self) -&gt; &#39;Selector&#39;:
-        try:
-            from parsel import Selector
-            return Selector(text=self.content)
-        except ImportError as e:
-            logger.error(&#39;You must install parsel or scrapy package to enable this feature&#39;)
-            raise e
-
-    @property
-    def error_message(self):
-        if self.error is not None:
-            message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
-
-            if self.error[&#39;links&#39;]:
-                message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
-
-            return message
-
-        message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
-
-        if self.result.get(&#39;links&#39;):
-            message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
-
-        return message
 
     def _is_api_error(self, api_result: Dict) -&gt; bool:
         if self.scrape_config.method == &#39;HEAD&#39;:
@@ -423,44 +492,6 @@ class ScrapeApiResponse:
             return True
 
         return &#39;error_id&#39; in api_result
-
-    def raise_for_result(self, raise_on_upstream_error: bool = True):
-
-        try:
-            self.response.raise_for_status()
-        except HTTPError as e:
-            if &#39;error_id&#39; in self.result:
-                if e.response.status_code &gt;= 500:
-                    raise ApiHttpServerError(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result[&#39;message&#39;],
-                        code=&#39;&#39;,
-                        resource=&#39;&#39;,
-                        http_status_code=e.response.status_code,
-                        documentation_url=self.result.get(&#39;links&#39;),
-                        api_response=self,
-                    ) from e
-                else:
-                    raise ApiHttpClientError(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result[&#39;message&#39;],
-                        code=&#39;&#39;,
-                        resource=&#39;API&#39;,
-                        http_status_code=self.result[&#39;http_code&#39;],
-                        documentation_url=self.result.get(&#39;links&#39;),
-                        api_response=self,
-                    ) from e
-        if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
-            error = ErrorFactory.create(api_response=self)
-
-            if error:
-                if isinstance(error, UpstreamHttpError):
-                    if raise_on_upstream_error is True:
-                        raise error
-                else:
-                    raise error
 
     def upstream_result_into_response(self, _class=Response) -&gt; Optional[Response]:
         if _class != Response:
@@ -541,7 +572,7 @@ class ScrapeApiResponse:
 
         return response
 
-    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content:Optional[Union[str, bytes]]=None):
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content: Optional[Union[str, bytes]] = None):
         file_content = content or self.scrape_result[&#39;content&#39;]
         file_path = None
         file_extension = None
@@ -592,7 +623,136 @@ class ScrapeApiResponse:
         with file as f:
             shutil.copyfileobj(file_content, f, length=131072)
 
-        logger.info(&#39;file %s created&#39; % file_path)</code></pre>
+        logger.info(&#39;file %s created&#39; % file_path)
+
+    def raise_for_result(self, raise_on_upstream_error=True, error_class=ApiHttpClientError):
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+        if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
+            error = ErrorFactory.create(api_response=self)
+            if error:
+                if isinstance(error, UpstreamHttpError):
+                    if raise_on_upstream_error is True:
+                        raise error
+                else:
+                    raise error
+
+
+class ScreenshotApiResponse(ApiResponse):
+    def __init__(self, request: Request, response: Response, screenshot_config: ScreenshotConfig, api_result: Optional[bytes] = None):
+        super().__init__(request, response)
+        self.screenshot_config = screenshot_config
+        self.result = self.handle_api_result(api_result)
+
+    @property
+    def image(self) -&gt; Optional[str]:
+        binary = self.result.get(&#39;result&#39;, None)
+        if binary is None:
+            return &#39;&#39;
+
+        return binary
+
+    @property
+    def metadata(self) -&gt; Optional[Dict]:
+        if not self.image:
+            return {}
+
+        content_type = self.response.headers.get(&#39;content-type&#39;)
+        extension_name = content_type[content_type.find(&#39;/&#39;) + 1:].split(&#39;;&#39;)[0]
+
+        return {
+            &#39;extension_name&#39;: extension_name,
+            &#39;upstream-status-code&#39;: self.response.headers.get(&#39;X-Scrapfly-Upstream-Http-Code&#39;),
+            &#39;upstream-url&#39;: self.response.headers.get(&#39;X-Scrapfly-Upstream-Url&#39;)
+        }
+
+    @property
+    def screenshot_success(self) -&gt; bool:
+        if not self.image:
+            return False
+
+        return True
+
+    @property
+    def error(self) -&gt; Optional[Dict]:
+        if self.image:
+            return None
+
+        if self.screenshot_success is False:
+            return self.result
+
+    def _is_api_error(self, api_result: Dict) -&gt; bool:
+        if api_result is None:
+            return True
+
+        return &#39;error_id&#39; in api_result
+
+    def handle_api_result(self, api_result: bytes) -&gt; FrozenDict:
+        if self._is_api_error(api_result=api_result) is True:
+            return FrozenDict(api_result)
+
+        return api_result
+
+    def raise_for_result(self, raise_on_upstream_error=True, error_class=ScreenshotAPIError):
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+
+
+class ExtractionApiResponse(ApiResponse):
+    def __init__(self, request: Request, response: Response, extraction_config: ExtractionConfig, api_result: Optional[bytes] = None):
+        super().__init__(request, response)
+        self.extraction_config = extraction_config
+        self.result = self.handle_api_result(api_result)
+
+    @property
+    def extraction_result(self) -&gt; Optional[Dict]:
+        extraction_result = self.result.get(&#39;result&#39;, None)
+        if not extraction_result:  # handle empty extraction responses
+            return {&#39;data&#39;: None, &#39;content_type&#39;: None}
+        else:
+            return extraction_result
+
+    @property
+    def data(self) -&gt; Union[Dict, List, str]:  # depends on the LLM prompt
+        if self.error is None:
+            return self.extraction_result[&#39;data&#39;]
+
+        return None
+
+    @property
+    def content_type(self) -&gt; Optional[str]:
+        if self.error is None:
+            return self.extraction_result[&#39;content_type&#39;]
+
+        return None
+
+    @property
+    def extraction_success(self) -&gt; bool:
+        extraction_result = self.extraction_result
+        if extraction_result is None or extraction_result[&#39;data&#39;] is None:
+            return False
+
+        return True
+
+    @property
+    def error(self) -&gt; Optional[Dict]:
+        if self.extraction_result is None:
+            return self.result
+
+        return None
+
+    def _is_api_error(self, api_result: Dict) -&gt; bool:
+        if api_result is None:
+            return True
+
+        return &#39;error_id&#39; in api_result
+
+    def handle_api_result(self, api_result: bytes) -&gt; FrozenDict:
+        if self._is_api_error(api_result=api_result) is True:
+            return FrozenDict(api_result)
+
+        return FrozenDict({&#39;result&#39;: api_result})
+
+    def raise_for_result(self, raise_on_upstream_error=True, error_class=ExtractionAPIError):
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
 </details>
 </section>
 <section>
@@ -604,6 +764,509 @@ class ScrapeApiResponse:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
+<dt id="scrapfly.api_response.ApiResponse"><code class="flex name class">
+<span>class <span class="ident">ApiResponse</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ApiResponse:
+    def __init__(self, request: Request, response: Response):
+        self.request = request
+        self.response = response
+
+    @property
+    def headers(self) -&gt; CaseInsensitiveDict:
+        return self.response.headers
+
+    @property
+    def status_code(self) -&gt; int:
+        &#34;&#34;&#34;
+            /!\ This is the status code of our API, not the upstream website
+        &#34;&#34;&#34;
+        return self.response.status_code
+
+    @property
+    def remaining_quota(self) -&gt; Optional[int]:
+        remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+
+        if remaining_scrape:
+            remaining_scrape = int(remaining_scrape)
+
+        return remaining_scrape
+
+    @property
+    def cost(self) -&gt; Optional[int]:
+        cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
+
+        if cost:
+            cost = int(cost)
+
+        return cost
+
+    @property
+    def duration_ms(self) -&gt; Optional[float]:
+        duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
+
+        if duration:
+            duration = float(duration)
+
+        return duration
+
+    @property
+    def error_message(self):
+        if self.error is not None:
+            message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
+
+            if self.error[&#39;links&#39;]:
+                message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+
+            return message
+
+        message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
+
+        if self.result.get(&#39;links&#39;):
+            message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
+
+        return message
+
+    def prevent_extra_usage(self):
+        if self.remaining_quota == 0:
+            raise ExtraUsageForbidden(
+                message=&#39;All Pre Paid Quota Used&#39;,
+                code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
+                http_status_code=429,
+                is_retryable=False
+            )
+
+    def raise_for_result(
+        self, raise_on_upstream_error: bool, error_class: Union[ApiHttpClientError, ScreenshotAPIError, ExtractionAPIError]
+    ):
+        try:
+            self.response.raise_for_status()
+        except HTTPError as e:
+            if &#39;error_id&#39; in self.result:
+                if e.response.status_code &gt;= 500:
+                    raise ApiHttpServerError(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result[&#39;message&#39;],
+                        code=&#39;&#39;,
+                        resource=&#39;&#39;,
+                        http_status_code=e.response.status_code,
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
+                    ) from e
+                # respect raise_on_upstream_error with screenshot and extraction only
+                elif error_class in (ScreenshotAPIError, ExtractionAPIError):
+                    if raise_on_upstream_error:
+                        raise error_class(
+                            request=e.request,
+                            response=e.response,
+                            message=self.result[&#39;message&#39;],
+                            code=&#39;&#39;,
+                            resource=&#39;API&#39;,
+                            http_status_code=self.result[&#39;http_code&#39;],
+                            documentation_url=self.result.get(&#39;links&#39;),
+                            api_response=self,
+                        ) from e
+                else:
+                    raise error_class(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result[&#39;message&#39;],
+                        code=&#39;&#39;,
+                        resource=&#39;API&#39;,
+                        http_status_code=self.result[&#39;http_code&#39;],
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
+                    ) from e</code></pre>
+</details>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.api_response.ExtractionApiResponse" href="#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></li>
+<li><a title="scrapfly.api_response.ScrapeApiResponse" href="#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></li>
+<li><a title="scrapfly.api_response.ScreenshotApiResponse" href="#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.api_response.ApiResponse.cost"><code class="name">var <span class="ident">cost</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def cost(self) -&gt; Optional[int]:
+    cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
+
+    if cost:
+        cost = int(cost)
+
+    return cost</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ApiResponse.duration_ms"><code class="name">var <span class="ident">duration_ms</span> : Optional[float]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def duration_ms(self) -&gt; Optional[float]:
+    duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
+
+    if duration:
+        duration = float(duration)
+
+    return duration</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ApiResponse.error_message"><code class="name">var <span class="ident">error_message</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def error_message(self):
+    if self.error is not None:
+        message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
+
+        if self.error[&#39;links&#39;]:
+            message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
+
+        return message
+
+    message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
+
+    if self.result.get(&#39;links&#39;):
+        message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
+
+    return message</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ApiResponse.headers"><code class="name">var <span class="ident">headers</span> : requests.structures.CaseInsensitiveDict</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def headers(self) -&gt; CaseInsensitiveDict:
+    return self.response.headers</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ApiResponse.remaining_quota"><code class="name">var <span class="ident">remaining_quota</span> : Optional[int]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def remaining_quota(self) -&gt; Optional[int]:
+    remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+
+    if remaining_scrape:
+        remaining_scrape = int(remaining_scrape)
+
+    return remaining_scrape</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : int</code></dt>
+<dd>
+<div class="desc"><p>/!\ This is the status code of our API, not the upstream website</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def status_code(self) -&gt; int:
+    &#34;&#34;&#34;
+        /!\ This is the status code of our API, not the upstream website
+    &#34;&#34;&#34;
+    return self.response.status_code</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.api_response.ApiResponse.prevent_extra_usage"><code class="name flex">
+<span>def <span class="ident">prevent_extra_usage</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def prevent_extra_usage(self):
+    if self.remaining_quota == 0:
+        raise ExtraUsageForbidden(
+            message=&#39;All Pre Paid Quota Used&#39;,
+            code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
+            http_status_code=429,
+            is_retryable=False
+        )</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ApiResponse.raise_for_result"><code class="name flex">
+<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error: bool, error_class: Union[<a title="scrapfly.errors.ApiHttpClientError" href="errors.html#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a>, scrapfly.errors.ScreenshotAPIError, scrapfly.errors.ExtractionAPIError])</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def raise_for_result(
+    self, raise_on_upstream_error: bool, error_class: Union[ApiHttpClientError, ScreenshotAPIError, ExtractionAPIError]
+):
+    try:
+        self.response.raise_for_status()
+    except HTTPError as e:
+        if &#39;error_id&#39; in self.result:
+            if e.response.status_code &gt;= 500:
+                raise ApiHttpServerError(
+                    request=e.request,
+                    response=e.response,
+                    message=self.result[&#39;message&#39;],
+                    code=&#39;&#39;,
+                    resource=&#39;&#39;,
+                    http_status_code=e.response.status_code,
+                    documentation_url=self.result.get(&#39;links&#39;),
+                    api_response=self,
+                ) from e
+            # respect raise_on_upstream_error with screenshot and extraction only
+            elif error_class in (ScreenshotAPIError, ExtractionAPIError):
+                if raise_on_upstream_error:
+                    raise error_class(
+                        request=e.request,
+                        response=e.response,
+                        message=self.result[&#39;message&#39;],
+                        code=&#39;&#39;,
+                        resource=&#39;API&#39;,
+                        http_status_code=self.result[&#39;http_code&#39;],
+                        documentation_url=self.result.get(&#39;links&#39;),
+                        api_response=self,
+                    ) from e
+            else:
+                raise error_class(
+                    request=e.request,
+                    response=e.response,
+                    message=self.result[&#39;message&#39;],
+                    code=&#39;&#39;,
+                    resource=&#39;API&#39;,
+                    http_status_code=self.result[&#39;http_code&#39;],
+                    documentation_url=self.result.get(&#39;links&#39;),
+                    api_response=self,
+                ) from e</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.api_response.ExtractionApiResponse"><code class="flex name class">
+<span>class <span class="ident">ExtractionApiResponse</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>, api_result: Optional[bytes] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ExtractionApiResponse(ApiResponse):
+    def __init__(self, request: Request, response: Response, extraction_config: ExtractionConfig, api_result: Optional[bytes] = None):
+        super().__init__(request, response)
+        self.extraction_config = extraction_config
+        self.result = self.handle_api_result(api_result)
+
+    @property
+    def extraction_result(self) -&gt; Optional[Dict]:
+        extraction_result = self.result.get(&#39;result&#39;, None)
+        if not extraction_result:  # handle empty extraction responses
+            return {&#39;data&#39;: None, &#39;content_type&#39;: None}
+        else:
+            return extraction_result
+
+    @property
+    def data(self) -&gt; Union[Dict, List, str]:  # depends on the LLM prompt
+        if self.error is None:
+            return self.extraction_result[&#39;data&#39;]
+
+        return None
+
+    @property
+    def content_type(self) -&gt; Optional[str]:
+        if self.error is None:
+            return self.extraction_result[&#39;content_type&#39;]
+
+        return None
+
+    @property
+    def extraction_success(self) -&gt; bool:
+        extraction_result = self.extraction_result
+        if extraction_result is None or extraction_result[&#39;data&#39;] is None:
+            return False
+
+        return True
+
+    @property
+    def error(self) -&gt; Optional[Dict]:
+        if self.extraction_result is None:
+            return self.result
+
+        return None
+
+    def _is_api_error(self, api_result: Dict) -&gt; bool:
+        if api_result is None:
+            return True
+
+        return &#39;error_id&#39; in api_result
+
+    def handle_api_result(self, api_result: bytes) -&gt; FrozenDict:
+        if self._is_api_error(api_result=api_result) is True:
+            return FrozenDict(api_result)
+
+        return FrozenDict({&#39;result&#39;: api_result})
+
+    def raise_for_result(self, raise_on_upstream_error=True, error_class=ExtractionAPIError):
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.api_response.ExtractionApiResponse.content_type"><code class="name">var <span class="ident">content_type</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def content_type(self) -&gt; Optional[str]:
+    if self.error is None:
+        return self.extraction_result[&#39;content_type&#39;]
+
+    return None</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ExtractionApiResponse.data"><code class="name">var <span class="ident">data</span> : Union[Dict, List, str]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def data(self) -&gt; Union[Dict, List, str]:  # depends on the LLM prompt
+    if self.error is None:
+        return self.extraction_result[&#39;data&#39;]
+
+    return None</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ExtractionApiResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def error(self) -&gt; Optional[Dict]:
+    if self.extraction_result is None:
+        return self.result
+
+    return None</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ExtractionApiResponse.extraction_result"><code class="name">var <span class="ident">extraction_result</span> : Optional[Dict]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def extraction_result(self) -&gt; Optional[Dict]:
+    extraction_result = self.result.get(&#39;result&#39;, None)
+    if not extraction_result:  # handle empty extraction responses
+        return {&#39;data&#39;: None, &#39;content_type&#39;: None}
+    else:
+        return extraction_result</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ExtractionApiResponse.extraction_success"><code class="name">var <span class="ident">extraction_success</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def extraction_success(self) -&gt; bool:
+    extraction_result = self.extraction_result
+    if extraction_result is None or extraction_result[&#39;data&#39;] is None:
+        return False
+
+    return True</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.api_response.ExtractionApiResponse.handle_api_result"><code class="name flex">
+<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: bytes) ‑> <a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def handle_api_result(self, api_result: bytes) -&gt; FrozenDict:
+    if self._is_api_error(api_result=api_result) is True:
+        return FrozenDict(api_result)
+
+    return FrozenDict({&#39;result&#39;: api_result})</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ExtractionApiResponse.raise_for_result"><code class="name flex">
+<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error=True, error_class=scrapfly.errors.ExtractionAPIError)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def raise_for_result(self, raise_on_upstream_error=True, error_class=ExtractionAPIError):
+    super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.api_response.ApiResponse.status_code" href="#scrapfly.api_response.ApiResponse.status_code">status_code</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
 <dt id="scrapfly.api_response.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
 <span>(</span><span>use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None)</span>
@@ -625,7 +1288,7 @@ class ScrapeApiResponse:
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli:bool=False, signing_secrets:Optional[Tuple[str]]=None):
+    def __init__(self, use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None):
         if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -643,8 +1306,8 @@ class ScrapeApiResponse:
         except ImportError:
             pass
 
-        self.content_encoding:str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
-        self._signing_secret:Optional[Tuple[str]] = None
+        self.content_encoding: str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
+        self._signing_secret: Optional[Tuple[str]] = None
 
         if signing_secrets:
             _secrets = set()
@@ -664,7 +1327,7 @@ class ScrapeApiResponse:
             self.content_type = &#39;application/json;charset=utf-8&#39;
             self.content_loader = partial(loads, cls=self.JSONDateTimeDecoder)
 
-    def support(self, headers:Dict) -&gt; bool:
+    def support(self, headers: Dict) -&gt; bool:
         if &#39;content-type&#39; not in headers:
             return False
 
@@ -674,14 +1337,14 @@ class ScrapeApiResponse:
 
         return False
 
-    def verify(self, message:bytes, signature:str) -&gt; bool:
+    def verify(self, message: bytes, signature: str) -&gt; bool:
         for signing_secret in self._signing_secret:
             if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
                 return True
 
         return False
 
-    def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
+    def read(self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) -&gt; Dict:
         if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
             import gzip
             content = gzip.decompress(content)
@@ -707,7 +1370,7 @@ class ScrapeApiResponse:
 
         return content
 
-    def __call__(self, content: bytes, content_type:str) -&gt; Union[str, Dict]:
+    def __call__(self, content: bytes, content_type: str) -&gt; Union[str, Dict]:
         content_loader = None
 
         if content_type.find(&#39;application/json&#39;) != -1:
@@ -792,7 +1455,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def read(self, content: bytes, content_encoding:str, content_type:str, signature:Optional[str]) -&gt; Dict:
+<pre><code class="python">def read(self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) -&gt; Dict:
     if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
         import gzip
         content = gzip.decompress(content)
@@ -828,7 +1491,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def support(self, headers:Dict) -&gt; bool:
+<pre><code class="python">def support(self, headers: Dict) -&gt; bool:
     if &#39;content-type&#39; not in headers:
         return False
 
@@ -848,7 +1511,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def verify(self, message:bytes, signature:str) -&gt; bool:
+<pre><code class="python">def verify(self, message: bytes, signature: str) -&gt; bool:
     for signing_secret in self._signing_secret:
         if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
             return True
@@ -860,7 +1523,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse"><code class="flex name class">
 <span>class <span class="ident">ScrapeApiResponse</span></span>
-<span>(</span><span>request: requests.models.Request, response: requests.models.Response, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, api_result: Optional[Dict] = None)</span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, api_result: Optional[Dict] = None, large_object_handler: Optional[Callable] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -868,12 +1531,14 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapeApiResponse:
+<pre><code class="python">class ScrapeApiResponse(ApiResponse):
+    scrape_config:ScrapeConfig
+    large_object_handler:Callable
 
-    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig, api_result: Optional[Dict] = None):
-        self.request = request
-        self.response = response
+    def __init__(self, request: Request, response: Response, scrape_config: ScrapeConfig, api_result: Optional[Dict] = None, large_object_handler:Optional[Callable]=None):
+        super().__init__(request, response)
         self.scrape_config = scrape_config
+        self.large_object_handler = large_object_handler
 
         if self.scrape_config.method == &#39;HEAD&#39;:
             api_result = {
@@ -917,6 +1582,10 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             )
 
         self.result = self.handle_api_result(api_result=api_result)
+
+    @property
+    def scrape_result(self) -&gt; Optional[Dict]:
+        return self.result.get(&#39;result&#39;, None)
 
     @property
     def scrape_result(self) -&gt; Optional[Dict]:
@@ -968,13 +1637,6 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             return self.scrape_result[&#39;error&#39;]
 
     @property
-    def status_code(self) -&gt; int:
-        &#34;&#34;&#34;
-            /!\ This is the status code of our API, not the upstream website
-        &#34;&#34;&#34;
-        return self.response.status_code
-
-    @property
     def upstream_status_code(self) -&gt; Optional[int]:
         if self.scrape_result is None:
             return None
@@ -984,45 +1646,29 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
         return None
 
-    def prevent_extra_usage(self):
-        if self.remaining_quota == 0:
-            raise ExtraUsageForbidden(
-                message=&#39;All Pre Paid Quota Used&#39;,
-                code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
-                http_status_code=429,
-                is_retryable=False
-            )
+    @cached_property
+    def soup(self) -&gt; &#39;BeautifulSoup&#39;:
+        if self.scrape_result[&#39;format&#39;] != &#39;text&#39;:
+            raise ContentError(&#34;Unable to cast into beautiful soup, the format of data is binary - must be text content&#34;)
 
-    @property
-    def remaining_quota(self) -&gt; Optional[int]:
-        remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(self.content, &#34;lxml&#34;)
+            return soup
+        except ImportError as e:
+            logger.error(&#39;You must install scrapfly[parser] to enable this feature&#39;)
 
-        if remaining_scrape:
-            remaining_scrape = int(remaining_scrape)
+    @cached_property
+    def selector(self) -&gt; &#39;Selector&#39;:
+        if self.scrape_result[&#39;format&#39;] != &#39;text&#39;:
+            raise ContentError(&#34;Unable to cast into beautiful soup, the format of data is binary - must be text content&#34;)
 
-        return remaining_scrape
-
-    @property
-    def cost(self) -&gt; Optional[int]:
-        cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
-
-        if cost:
-            cost = int(cost)
-
-        return cost
-
-    @property
-    def duration_ms(self) -&gt; Optional[float]:
-        duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
-
-        if duration:
-            duration = float(duration)
-
-        return duration
-
-    @property
-    def headers(self) -&gt; CaseInsensitiveDict:
-        return self.response.headers
+        try:
+            from parsel import Selector
+            return Selector(text=self.content)
+        except ImportError as e:
+            logger.error(&#39;You must install parsel or scrapy package to enable this feature&#39;)
+            raise e
 
     def handle_api_result(self, api_result: Dict) -&gt; Optional[FrozenDict]:
         if self._is_api_error(api_result=api_result) is True:
@@ -1039,45 +1685,15 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
             api_result[&#39;result&#39;][&#39;response_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;response_headers&#39;])
 
-        if api_result[&#39;result&#39;][&#39;format&#39;] == &#39;binary&#39; and api_result[&#39;result&#39;][&#39;content&#39;]:
-            api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+        if self.large_object_handler is not None and api_result[&#39;result&#39;][&#39;content&#39;]:
+            content_format = api_result[&#39;result&#39;][&#39;format&#39;]
+
+            if content_format in [&#39;clob&#39;, &#39;blob&#39;]:
+                api_result[&#39;result&#39;][&#39;content&#39;], api_result[&#39;result&#39;][&#39;format&#39;] = self.large_object_handler(callback_url=api_result[&#39;result&#39;][&#39;content&#39;], format=content_format)
+            elif content_format == &#39;binary&#39; and isinstance(api_result[&#39;result&#39;][&#39;content&#39;], bytes):
+                api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
 
         return FrozenDict(api_result)
-
-    @cached_property
-    def soup(self) -&gt; &#39;BeautifulSoup&#39;:
-        try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(self.content, &#34;lxml&#34;)
-            return soup
-        except ImportError as e:
-            logger.error(&#39;You must install scrapfly[parser] to enable this feature&#39;)
-
-    @cached_property
-    def selector(self) -&gt; &#39;Selector&#39;:
-        try:
-            from parsel import Selector
-            return Selector(text=self.content)
-        except ImportError as e:
-            logger.error(&#39;You must install parsel or scrapy package to enable this feature&#39;)
-            raise e
-
-    @property
-    def error_message(self):
-        if self.error is not None:
-            message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
-
-            if self.error[&#39;links&#39;]:
-                message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
-
-            return message
-
-        message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
-
-        if self.result.get(&#39;links&#39;):
-            message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
-
-        return message
 
     def _is_api_error(self, api_result: Dict) -&gt; bool:
         if self.scrape_config.method == &#39;HEAD&#39;:
@@ -1089,44 +1705,6 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             return True
 
         return &#39;error_id&#39; in api_result
-
-    def raise_for_result(self, raise_on_upstream_error: bool = True):
-
-        try:
-            self.response.raise_for_status()
-        except HTTPError as e:
-            if &#39;error_id&#39; in self.result:
-                if e.response.status_code &gt;= 500:
-                    raise ApiHttpServerError(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result[&#39;message&#39;],
-                        code=&#39;&#39;,
-                        resource=&#39;&#39;,
-                        http_status_code=e.response.status_code,
-                        documentation_url=self.result.get(&#39;links&#39;),
-                        api_response=self,
-                    ) from e
-                else:
-                    raise ApiHttpClientError(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result[&#39;message&#39;],
-                        code=&#39;&#39;,
-                        resource=&#39;API&#39;,
-                        http_status_code=self.result[&#39;http_code&#39;],
-                        documentation_url=self.result.get(&#39;links&#39;),
-                        api_response=self,
-                    ) from e
-        if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
-            error = ErrorFactory.create(api_response=self)
-
-            if error:
-                if isinstance(error, UpstreamHttpError):
-                    if raise_on_upstream_error is True:
-                        raise error
-                else:
-                    raise error
 
     def upstream_result_into_response(self, _class=Response) -&gt; Optional[Response]:
         if _class != Response:
@@ -1207,7 +1785,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
         return response
 
-    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content:Optional[Union[str, bytes]]=None):
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content: Optional[Union[str, bytes]] = None):
         file_content = content or self.scrape_result[&#39;content&#39;]
         file_path = None
         file_extension = None
@@ -1258,8 +1836,34 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         with file as f:
             shutil.copyfileobj(file_content, f, length=131072)
 
-        logger.info(&#39;file %s created&#39; % file_path)</code></pre>
+        logger.info(&#39;file %s created&#39; % file_path)
+
+    def raise_for_result(self, raise_on_upstream_error=True, error_class=ApiHttpClientError):
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+        if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
+            error = ErrorFactory.create(api_response=self)
+            if error:
+                if isinstance(error, UpstreamHttpError):
+                    if raise_on_upstream_error is True:
+                        raise error
+                else:
+                    raise error</code></pre>
 </details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.api_response.ScrapeApiResponse.large_object_handler"><code class="name">var <span class="ident">large_object_handler</span> : Callable</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.api_response.ScrapeApiResponse.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 <h3>Instance variables</h3>
 <dl>
 <dt id="scrapfly.api_response.ScrapeApiResponse.config"><code class="name">var <span class="ident">config</span> : Optional[Dict]</code></dt>
@@ -1307,40 +1911,6 @@ def context(self) -&gt; Optional[Dict]:
     return self.result[&#39;context&#39;]</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.cost"><code class="name">var <span class="ident">cost</span> : Optional[int]</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@property
-def cost(self) -&gt; Optional[int]:
-    cost = self.response.headers.get(&#39;X-Scrapfly-Api-Cost&#39;)
-
-    if cost:
-        cost = int(cost)
-
-    return cost</code></pre>
-</details>
-</dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.duration_ms"><code class="name">var <span class="ident">duration_ms</span> : Optional[float]</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@property
-def duration_ms(self) -&gt; Optional[float]:
-    duration = self.response.headers.get(&#39;X-Scrapfly-Response-Time&#39;)
-
-    if duration:
-        duration = float(duration)
-
-    return duration</code></pre>
-</details>
-</dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
 <dd>
 <div class="desc"></div>
@@ -1355,60 +1925,6 @@ def error(self) -&gt; Optional[Dict]:
 
     if self.scrape_success is False:
         return self.scrape_result[&#39;error&#39;]</code></pre>
-</details>
-</dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.error_message"><code class="name">var <span class="ident">error_message</span></code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@property
-def error_message(self):
-    if self.error is not None:
-        message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
-
-        if self.error[&#39;links&#39;]:
-            message += &#34; Checkout the related doc: %s&#34; % list(self.error[&#39;links&#39;].values())[0]
-
-        return message
-
-    message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
-
-    if self.result.get(&#39;links&#39;):
-        message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(self.result[&#39;links&#39;])
-
-    return message</code></pre>
-</details>
-</dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.headers"><code class="name">var <span class="ident">headers</span> : requests.structures.CaseInsensitiveDict</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@property
-def headers(self) -&gt; CaseInsensitiveDict:
-    return self.response.headers</code></pre>
-</details>
-</dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.remaining_quota"><code class="name">var <span class="ident">remaining_quota</span> : Optional[int]</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@property
-def remaining_quota(self) -&gt; Optional[int]:
-    remaining_scrape = self.response.headers.get(&#39;X-Scrapfly-Remaining-Scrape&#39;)
-
-    if remaining_scrape:
-        remaining_scrape = int(remaining_scrape)
-
-    return remaining_scrape</code></pre>
 </details>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span> : Optional[Dict]</code></dt>
@@ -1518,21 +2034,6 @@ def scrape_success(self) -&gt; bool:
     return val</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.status_code"><code class="name">var <span class="ident">status_code</span> : int</code></dt>
-<dd>
-<div class="desc"><p>/!\ This is the status code of our API, not the upstream website</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@property
-def status_code(self) -&gt; int:
-    &#34;&#34;&#34;
-        /!\ This is the status code of our API, not the upstream website
-    &#34;&#34;&#34;
-    return self.response.status_code</code></pre>
-</details>
-</dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.success"><code class="name">var <span class="ident">success</span> : bool</code></dt>
 <dd>
 <div class="desc"><p>/!\ Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code</p></div>
@@ -1593,33 +2094,19 @@ def upstream_status_code(self) -&gt; Optional[int]:
         api_result[&#39;result&#39;][&#39;request_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;request_headers&#39;])
         api_result[&#39;result&#39;][&#39;response_headers&#39;] = CaseInsensitiveDict(api_result[&#39;result&#39;][&#39;response_headers&#39;])
 
-    if api_result[&#39;result&#39;][&#39;format&#39;] == &#39;binary&#39; and api_result[&#39;result&#39;][&#39;content&#39;]:
-        api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+    if self.large_object_handler is not None and api_result[&#39;result&#39;][&#39;content&#39;]:
+        content_format = api_result[&#39;result&#39;][&#39;format&#39;]
+
+        if content_format in [&#39;clob&#39;, &#39;blob&#39;]:
+            api_result[&#39;result&#39;][&#39;content&#39;], api_result[&#39;result&#39;][&#39;format&#39;] = self.large_object_handler(callback_url=api_result[&#39;result&#39;][&#39;content&#39;], format=content_format)
+        elif content_format == &#39;binary&#39; and isinstance(api_result[&#39;result&#39;][&#39;content&#39;], bytes):
+            api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
 
     return FrozenDict(api_result)</code></pre>
 </details>
 </dd>
-<dt id="scrapfly.api_response.ScrapeApiResponse.prevent_extra_usage"><code class="name flex">
-<span>def <span class="ident">prevent_extra_usage</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def prevent_extra_usage(self):
-    if self.remaining_quota == 0:
-        raise ExtraUsageForbidden(
-            message=&#39;All Pre Paid Quota Used&#39;,
-            code=&#39;ERR::ACCOUNT::PREVENT_EXTRA_USAGE&#39;,
-            http_status_code=429,
-            is_retryable=False
-        )</code></pre>
-</details>
-</dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.raise_for_result"><code class="name flex">
-<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error: bool = True)</span>
+<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error=True, error_class=scrapfly.errors.ApiHttpClientError)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1627,37 +2114,10 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def raise_for_result(self, raise_on_upstream_error: bool = True):
-
-    try:
-        self.response.raise_for_status()
-    except HTTPError as e:
-        if &#39;error_id&#39; in self.result:
-            if e.response.status_code &gt;= 500:
-                raise ApiHttpServerError(
-                    request=e.request,
-                    response=e.response,
-                    message=self.result[&#39;message&#39;],
-                    code=&#39;&#39;,
-                    resource=&#39;&#39;,
-                    http_status_code=e.response.status_code,
-                    documentation_url=self.result.get(&#39;links&#39;),
-                    api_response=self,
-                ) from e
-            else:
-                raise ApiHttpClientError(
-                    request=e.request,
-                    response=e.response,
-                    message=self.result[&#39;message&#39;],
-                    code=&#39;&#39;,
-                    resource=&#39;API&#39;,
-                    http_status_code=self.result[&#39;http_code&#39;],
-                    documentation_url=self.result.get(&#39;links&#39;),
-                    api_response=self,
-                ) from e
+<pre><code class="python">def raise_for_result(self, raise_on_upstream_error=True, error_class=ApiHttpClientError):
+    super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
     if self.result[&#39;result&#39;][&#39;status&#39;] == &#39;DONE&#39; and self.scrape_success is False:
         error = ErrorFactory.create(api_response=self)
-
         if error:
             if isinstance(error, UpstreamHttpError):
                 if raise_on_upstream_error is True:
@@ -1675,7 +2135,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content:Optional[Union[str, bytes]]=None):
+<pre><code class="python">def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None, content: Optional[Union[str, bytes]] = None):
     file_content = content or self.scrape_result[&#39;content&#39;]
     file_path = None
     file_extension = None
@@ -1819,6 +2279,199 @@ def upstream_status_code(self) -&gt; Optional[int]:
 </details>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.api_response.ApiResponse.status_code" href="#scrapfly.api_response.ApiResponse.status_code">status_code</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="scrapfly.api_response.ScreenshotApiResponse"><code class="flex name class">
+<span>class <span class="ident">ScreenshotApiResponse</span></span>
+<span>(</span><span>request: requests.models.Request, response: requests.models.Response, screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>, api_result: Optional[bytes] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScreenshotApiResponse(ApiResponse):
+    def __init__(self, request: Request, response: Response, screenshot_config: ScreenshotConfig, api_result: Optional[bytes] = None):
+        super().__init__(request, response)
+        self.screenshot_config = screenshot_config
+        self.result = self.handle_api_result(api_result)
+
+    @property
+    def image(self) -&gt; Optional[str]:
+        binary = self.result.get(&#39;result&#39;, None)
+        if binary is None:
+            return &#39;&#39;
+
+        return binary
+
+    @property
+    def metadata(self) -&gt; Optional[Dict]:
+        if not self.image:
+            return {}
+
+        content_type = self.response.headers.get(&#39;content-type&#39;)
+        extension_name = content_type[content_type.find(&#39;/&#39;) + 1:].split(&#39;;&#39;)[0]
+
+        return {
+            &#39;extension_name&#39;: extension_name,
+            &#39;upstream-status-code&#39;: self.response.headers.get(&#39;X-Scrapfly-Upstream-Http-Code&#39;),
+            &#39;upstream-url&#39;: self.response.headers.get(&#39;X-Scrapfly-Upstream-Url&#39;)
+        }
+
+    @property
+    def screenshot_success(self) -&gt; bool:
+        if not self.image:
+            return False
+
+        return True
+
+    @property
+    def error(self) -&gt; Optional[Dict]:
+        if self.image:
+            return None
+
+        if self.screenshot_success is False:
+            return self.result
+
+    def _is_api_error(self, api_result: Dict) -&gt; bool:
+        if api_result is None:
+            return True
+
+        return &#39;error_id&#39; in api_result
+
+    def handle_api_result(self, api_result: bytes) -&gt; FrozenDict:
+        if self._is_api_error(api_result=api_result) is True:
+            return FrozenDict(api_result)
+
+        return api_result
+
+    def raise_for_result(self, raise_on_upstream_error=True, error_class=ScreenshotAPIError):
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.api_response.ScreenshotApiResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def error(self) -&gt; Optional[Dict]:
+    if self.image:
+        return None
+
+    if self.screenshot_success is False:
+        return self.result</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScreenshotApiResponse.image"><code class="name">var <span class="ident">image</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def image(self) -&gt; Optional[str]:
+    binary = self.result.get(&#39;result&#39;, None)
+    if binary is None:
+        return &#39;&#39;
+
+    return binary</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScreenshotApiResponse.metadata"><code class="name">var <span class="ident">metadata</span> : Optional[Dict]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def metadata(self) -&gt; Optional[Dict]:
+    if not self.image:
+        return {}
+
+    content_type = self.response.headers.get(&#39;content-type&#39;)
+    extension_name = content_type[content_type.find(&#39;/&#39;) + 1:].split(&#39;;&#39;)[0]
+
+    return {
+        &#39;extension_name&#39;: extension_name,
+        &#39;upstream-status-code&#39;: self.response.headers.get(&#39;X-Scrapfly-Upstream-Http-Code&#39;),
+        &#39;upstream-url&#39;: self.response.headers.get(&#39;X-Scrapfly-Upstream-Url&#39;)
+    }</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScreenshotApiResponse.screenshot_success"><code class="name">var <span class="ident">screenshot_success</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def screenshot_success(self) -&gt; bool:
+    if not self.image:
+        return False
+
+    return True</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.api_response.ScreenshotApiResponse.handle_api_result"><code class="name flex">
+<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: bytes) ‑> <a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def handle_api_result(self, api_result: bytes) -&gt; FrozenDict:
+    if self._is_api_error(api_result=api_result) is True:
+        return FrozenDict(api_result)
+
+    return api_result</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.api_response.ScreenshotApiResponse.raise_for_result"><code class="name flex">
+<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error=True, error_class=scrapfly.errors.ScreenshotAPIError)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def raise_for_result(self, raise_on_upstream_error=True, error_class=ScreenshotAPIError):
+    super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.api_response.ApiResponse.status_code" href="#scrapfly.api_response.ApiResponse.status_code">status_code</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 </dl>
 </section>
@@ -1837,6 +2490,31 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
+<h4><code><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.api_response.ApiResponse.cost" href="#scrapfly.api_response.ApiResponse.cost">cost</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.duration_ms" href="#scrapfly.api_response.ApiResponse.duration_ms">duration_ms</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.error_message" href="#scrapfly.api_response.ApiResponse.error_message">error_message</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.headers" href="#scrapfly.api_response.ApiResponse.headers">headers</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.prevent_extra_usage" href="#scrapfly.api_response.ApiResponse.prevent_extra_usage">prevent_extra_usage</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.raise_for_result" href="#scrapfly.api_response.ApiResponse.raise_for_result">raise_for_result</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.remaining_quota" href="#scrapfly.api_response.ApiResponse.remaining_quota">remaining_quota</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.status_code" href="#scrapfly.api_response.ApiResponse.status_code">status_code</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.api_response.ExtractionApiResponse" href="#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.api_response.ExtractionApiResponse.content_type" href="#scrapfly.api_response.ExtractionApiResponse.content_type">content_type</a></code></li>
+<li><code><a title="scrapfly.api_response.ExtractionApiResponse.data" href="#scrapfly.api_response.ExtractionApiResponse.data">data</a></code></li>
+<li><code><a title="scrapfly.api_response.ExtractionApiResponse.error" href="#scrapfly.api_response.ExtractionApiResponse.error">error</a></code></li>
+<li><code><a title="scrapfly.api_response.ExtractionApiResponse.extraction_result" href="#scrapfly.api_response.ExtractionApiResponse.extraction_result">extraction_result</a></code></li>
+<li><code><a title="scrapfly.api_response.ExtractionApiResponse.extraction_success" href="#scrapfly.api_response.ExtractionApiResponse.extraction_success">extraction_success</a></code></li>
+<li><code><a title="scrapfly.api_response.ExtractionApiResponse.handle_api_result" href="#scrapfly.api_response.ExtractionApiResponse.handle_api_result">handle_api_result</a></code></li>
+<li><code><a title="scrapfly.api_response.ExtractionApiResponse.raise_for_result" href="#scrapfly.api_response.ExtractionApiResponse.raise_for_result">raise_for_result</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="scrapfly.api_response.ResponseBodyHandler" href="#scrapfly.api_response.ResponseBodyHandler">ResponseBodyHandler</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.api_response.ResponseBodyHandler.JSONDateTimeDecoder" href="#scrapfly.api_response.ResponseBodyHandler.JSONDateTimeDecoder">JSONDateTimeDecoder</a></code></li>
@@ -1853,24 +2531,30 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.config" href="#scrapfly.api_response.ScrapeApiResponse.config">config</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.content" href="#scrapfly.api_response.ScrapeApiResponse.content">content</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.context" href="#scrapfly.api_response.ScrapeApiResponse.context">context</a></code></li>
-<li><code><a title="scrapfly.api_response.ScrapeApiResponse.cost" href="#scrapfly.api_response.ScrapeApiResponse.cost">cost</a></code></li>
-<li><code><a title="scrapfly.api_response.ScrapeApiResponse.duration_ms" href="#scrapfly.api_response.ScrapeApiResponse.duration_ms">duration_ms</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.error" href="#scrapfly.api_response.ScrapeApiResponse.error">error</a></code></li>
-<li><code><a title="scrapfly.api_response.ScrapeApiResponse.error_message" href="#scrapfly.api_response.ScrapeApiResponse.error_message">error_message</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.handle_api_result" href="#scrapfly.api_response.ScrapeApiResponse.handle_api_result">handle_api_result</a></code></li>
-<li><code><a title="scrapfly.api_response.ScrapeApiResponse.headers" href="#scrapfly.api_response.ScrapeApiResponse.headers">headers</a></code></li>
-<li><code><a title="scrapfly.api_response.ScrapeApiResponse.prevent_extra_usage" href="#scrapfly.api_response.ScrapeApiResponse.prevent_extra_usage">prevent_extra_usage</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.large_object_handler" href="#scrapfly.api_response.ScrapeApiResponse.large_object_handler">large_object_handler</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.raise_for_result" href="#scrapfly.api_response.ScrapeApiResponse.raise_for_result">raise_for_result</a></code></li>
-<li><code><a title="scrapfly.api_response.ScrapeApiResponse.remaining_quota" href="#scrapfly.api_response.ScrapeApiResponse.remaining_quota">remaining_quota</a></code></li>
+<li><code><a title="scrapfly.api_response.ScrapeApiResponse.scrape_config" href="#scrapfly.api_response.ScrapeApiResponse.scrape_config">scrape_config</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.scrape_result" href="#scrapfly.api_response.ScrapeApiResponse.scrape_result">scrape_result</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.scrape_success" href="#scrapfly.api_response.ScrapeApiResponse.scrape_success">scrape_success</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.selector" href="#scrapfly.api_response.ScrapeApiResponse.selector">selector</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.sink" href="#scrapfly.api_response.ScrapeApiResponse.sink">sink</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.soup" href="#scrapfly.api_response.ScrapeApiResponse.soup">soup</a></code></li>
-<li><code><a title="scrapfly.api_response.ScrapeApiResponse.status_code" href="#scrapfly.api_response.ScrapeApiResponse.status_code">status_code</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.success" href="#scrapfly.api_response.ScrapeApiResponse.success">success</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response" href="#scrapfly.api_response.ScrapeApiResponse.upstream_result_into_response">upstream_result_into_response</a></code></li>
 <li><code><a title="scrapfly.api_response.ScrapeApiResponse.upstream_status_code" href="#scrapfly.api_response.ScrapeApiResponse.upstream_status_code">upstream_status_code</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.api_response.ScreenshotApiResponse" href="#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.api_response.ScreenshotApiResponse.error" href="#scrapfly.api_response.ScreenshotApiResponse.error">error</a></code></li>
+<li><code><a title="scrapfly.api_response.ScreenshotApiResponse.handle_api_result" href="#scrapfly.api_response.ScreenshotApiResponse.handle_api_result">handle_api_result</a></code></li>
+<li><code><a title="scrapfly.api_response.ScreenshotApiResponse.image" href="#scrapfly.api_response.ScreenshotApiResponse.image">image</a></code></li>
+<li><code><a title="scrapfly.api_response.ScreenshotApiResponse.metadata" href="#scrapfly.api_response.ScreenshotApiResponse.metadata">metadata</a></code></li>
+<li><code><a title="scrapfly.api_response.ScreenshotApiResponse.raise_for_result" href="#scrapfly.api_response.ScreenshotApiResponse.raise_for_result">raise_for_result</a></code></li>
+<li><code><a title="scrapfly.api_response.ScreenshotApiResponse.screenshot_success" href="#scrapfly.api_response.ScreenshotApiResponse.screenshot_success">screenshot_success</a></code></li>
 </ul>
 </li>
 </ul>
