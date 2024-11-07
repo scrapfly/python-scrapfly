@@ -2,9 +2,11 @@ import base64
 import json
 import logging
 from enum import Enum
+from urllib.parse import urlencode, quote_plus
+from base64 import urlsafe_b64encode
 from typing import Optional, List, Dict, Iterable, Union, Set
-from urllib.parse import urlencode
 from requests.structures import CaseInsensitiveDict
+
 from .api_config import BaseApiConfig
 
 class ScreenshotFlag(Enum):
@@ -48,6 +50,7 @@ class FormatOption(Enum):
 
     NO_IMAGES = "no_images"
     NO_LINKS = "no_links"
+    ONLY_CONTENT = "only_content"
 
 
 
@@ -77,6 +80,11 @@ class ScrapeConfig(BaseApiConfig):
     session: Optional[str] = None
     tags: Optional[List[str]] = None
     format: Optional[Format] = None, # raw(unchanged)
+    format_options: Optional[List[FormatOption]] 
+    extraction_template: Optional[str] = None  # a saved template name
+    extraction_ephemeral_template: Optional[Dict]  # ephemeraly declared json template
+    extraction_prompt: Optional[str] = None
+    extraction_model: Optional[str] = None    
     correlation_id: Optional[str] = None
     cookies: Optional[CaseInsensitiveDict] = None
     body: Optional[str] = None
@@ -117,6 +125,10 @@ class ScrapeConfig(BaseApiConfig):
         tags: Optional[Union[List[str], Set[str]]] = None,
         format: Optional[Format] = None, # raw(unchanged)
         format_options: Optional[List[FormatOption]] = None, # raw(unchanged)
+        extraction_template: Optional[str] = None,  # a saved template name
+        extraction_ephemeral_template: Optional[Dict] = None,  # ephemeraly declared json template
+        extraction_prompt: Optional[str] = None,
+        extraction_model: Optional[str] = None,        
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -164,6 +176,10 @@ class ScrapeConfig(BaseApiConfig):
         self.tags = tags or set()
         self.format = format
         self.format_options = format_options
+        self.extraction_template = extraction_template
+        self.extraction_ephemeral_template = extraction_ephemeral_template
+        self.extraction_prompt = extraction_prompt
+        self.extraction_model = extraction_model        
         self.correlation_id = correlation_id
         self.wait_for_selector = wait_for_selector
         self.body = body
@@ -318,6 +334,22 @@ class ScrapeConfig(BaseApiConfig):
             params['format'] = Format(self.format).value
             if self.format_options:
                 params['format'] += ':' + ','.join(FormatOption(option).value for option in self.format_options)
+
+        if self.extraction_template and self.extraction_ephemeral_template:
+            raise ScrapeConfigError('You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose')
+
+        if self.extraction_template:
+            params['extraction_template'] = self.extraction_template
+
+        if self.extraction_ephemeral_template:
+            self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
+            params['extraction_template'] = 'ephemeral:' + urlsafe_b64encode(self.extraction_ephemeral_template.encode('utf-8')).decode('utf-8')
+
+        if self.extraction_prompt:
+            params['extraction_prompt'] = quote_plus(self.extraction_prompt)
+
+        if self.extraction_model:
+            params['extraction_model'] = self.extraction_model
 
         if self.correlation_id:
             params['correlation_id'] = self.correlation_id
