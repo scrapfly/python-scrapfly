@@ -1,4 +1,5 @@
 import json
+import warnings
 from enum import Enum
 from typing import Optional, Dict
 from urllib.parse import quote_plus
@@ -38,6 +39,10 @@ class ExtractionConfig(BaseApiConfig):
     webhook: Optional[str] = None
     raise_on_upstream_error: bool = True
 
+    # deprecated options
+    template: Optional[str] = None
+    ephemeral_template: Optional[Dict] = None
+
     def __init__(
         self,
         body: str,
@@ -51,8 +56,24 @@ class ExtractionConfig(BaseApiConfig):
         is_document_compressed: Optional[bool] = None,
         document_compression_format: Optional[CompressionFormat] = None,
         webhook: Optional[str] = None,
-        raise_on_upstream_error: bool = True
+        raise_on_upstream_error: bool = True,
+
+        # deprecated options
+        template: Optional[str] = None,
+        ephemeral_template: Optional[Dict] = None     
     ):
+        if template:
+            print("WARNGING")
+            warnings.warn(
+                "Deprecation warning: 'template' is deprecated. Use 'extraction_template' instead."
+            )
+            extraction_template = template
+
+        if ephemeral_template:
+            warnings.warn(
+                "Deprecation warning: 'ephemeral_template' is deprecated. Use 'extraction_ephemeral_template' instead."
+            )
+            extraction_ephemeral_template = ephemeral_template
 
         self.key = None
         self.body = body
@@ -80,7 +101,7 @@ class ExtractionConfig(BaseApiConfig):
                 else:
                     raise ExtractionConfigError(
                         f'Auto compression for {self.document_compression_format.value} format is not available. You can manually compress to {self.document_compression_format.value} or choose the gzip format for auto compression.'
-                    )                    
+                    )
 
     def to_api_params(self, key: str) -> Dict:
         params = {
