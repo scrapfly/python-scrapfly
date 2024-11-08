@@ -30,9 +30,11 @@
 import json
 import logging
 from enum import Enum
+from urllib.parse import urlencode, quote_plus
+from base64 import urlsafe_b64encode
 from typing import Optional, List, Dict, Iterable, Union, Set
-from urllib.parse import urlencode
 from requests.structures import CaseInsensitiveDict
+
 from .api_config import BaseApiConfig
 
 class ScreenshotFlag(Enum):
@@ -76,6 +78,7 @@ class FormatOption(Enum):
 
     NO_IMAGES = &#34;no_images&#34;
     NO_LINKS = &#34;no_links&#34;
+    ONLY_CONTENT = &#34;only_content&#34;
 
 
 
@@ -105,6 +108,11 @@ class ScrapeConfig(BaseApiConfig):
     session: Optional[str] = None
     tags: Optional[List[str]] = None
     format: Optional[Format] = None, # raw(unchanged)
+    format_options: Optional[List[FormatOption]] 
+    extraction_template: Optional[str] = None  # a saved template name
+    extraction_ephemeral_template: Optional[Dict]  # ephemeraly declared json template
+    extraction_prompt: Optional[str] = None
+    extraction_model: Optional[str] = None    
     correlation_id: Optional[str] = None
     cookies: Optional[CaseInsensitiveDict] = None
     body: Optional[str] = None
@@ -145,6 +153,10 @@ class ScrapeConfig(BaseApiConfig):
         tags: Optional[Union[List[str], Set[str]]] = None,
         format: Optional[Format] = None, # raw(unchanged)
         format_options: Optional[List[FormatOption]] = None, # raw(unchanged)
+        extraction_template: Optional[str] = None,  # a saved template name
+        extraction_ephemeral_template: Optional[Dict] = None,  # ephemeraly declared json template
+        extraction_prompt: Optional[str] = None,
+        extraction_model: Optional[str] = None,        
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -192,6 +204,10 @@ class ScrapeConfig(BaseApiConfig):
         self.tags = tags or set()
         self.format = format
         self.format_options = format_options
+        self.extraction_template = extraction_template
+        self.extraction_ephemeral_template = extraction_ephemeral_template
+        self.extraction_prompt = extraction_prompt
+        self.extraction_model = extraction_model        
         self.correlation_id = correlation_id
         self.wait_for_selector = wait_for_selector
         self.body = body
@@ -346,6 +362,22 @@ class ScrapeConfig(BaseApiConfig):
             params[&#39;format&#39;] = Format(self.format).value
             if self.format_options:
                 params[&#39;format&#39;] += &#39;:&#39; + &#39;,&#39;.join(FormatOption(option).value for option in self.format_options)
+
+        if self.extraction_template and self.extraction_ephemeral_template:
+            raise ScrapeConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
+
+        if self.extraction_template:
+            params[&#39;extraction_template&#39;] = self.extraction_template
+
+        if self.extraction_ephemeral_template:
+            self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
+            params[&#39;extraction_template&#39;] = &#39;ephemeral:&#39; + urlsafe_b64encode(self.extraction_ephemeral_template.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+        if self.extraction_prompt:
+            params[&#39;extraction_prompt&#39;] = quote_plus(self.extraction_prompt)
+
+        if self.extraction_model:
+            params[&#39;extraction_model&#39;] = self.extraction_model
 
         if self.correlation_id:
             params[&#39;correlation_id&#39;] = self.correlation_id
@@ -512,7 +544,8 @@ class ScrapeConfig(BaseApiConfig):
     &#34;&#34;&#34;
 
     NO_IMAGES = &#34;no_images&#34;
-    NO_LINKS = &#34;no_links&#34;</code></pre>
+    NO_LINKS = &#34;no_links&#34;
+    ONLY_CONTENT = &#34;only_content&#34;</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -528,11 +561,15 @@ class ScrapeConfig(BaseApiConfig):
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.scrape_config.FormatOption.ONLY_CONTENT"><code class="name">var <span class="ident">ONLY_CONTENT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 </dl>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Union[List[str], Set[str], ForwardRef(None)] = None, format: Optional[<a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a>] = None, format_options: Optional[List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>]] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, screenshot_flags: Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[List] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None, cost_budget: Optional[int] = None)</span>
+<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Union[List[str], Set[str], ForwardRef(None)] = None, format: Optional[<a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a>] = None, format_options: Optional[List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>]] = None, extraction_template: Optional[str] = None, extraction_ephemeral_template: Optional[Dict] = None, extraction_prompt: Optional[str] = None, extraction_model: Optional[str] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, screenshot_flags: Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[List] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None, cost_budget: Optional[int] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -562,6 +599,11 @@ class ScrapeConfig(BaseApiConfig):
     session: Optional[str] = None
     tags: Optional[List[str]] = None
     format: Optional[Format] = None, # raw(unchanged)
+    format_options: Optional[List[FormatOption]] 
+    extraction_template: Optional[str] = None  # a saved template name
+    extraction_ephemeral_template: Optional[Dict]  # ephemeraly declared json template
+    extraction_prompt: Optional[str] = None
+    extraction_model: Optional[str] = None    
     correlation_id: Optional[str] = None
     cookies: Optional[CaseInsensitiveDict] = None
     body: Optional[str] = None
@@ -602,6 +644,10 @@ class ScrapeConfig(BaseApiConfig):
         tags: Optional[Union[List[str], Set[str]]] = None,
         format: Optional[Format] = None, # raw(unchanged)
         format_options: Optional[List[FormatOption]] = None, # raw(unchanged)
+        extraction_template: Optional[str] = None,  # a saved template name
+        extraction_ephemeral_template: Optional[Dict] = None,  # ephemeraly declared json template
+        extraction_prompt: Optional[str] = None,
+        extraction_model: Optional[str] = None,        
         correlation_id: Optional[str] = None,
         cookies: Optional[CaseInsensitiveDict] = None,
         body: Optional[str] = None,
@@ -649,6 +695,10 @@ class ScrapeConfig(BaseApiConfig):
         self.tags = tags or set()
         self.format = format
         self.format_options = format_options
+        self.extraction_template = extraction_template
+        self.extraction_ephemeral_template = extraction_ephemeral_template
+        self.extraction_prompt = extraction_prompt
+        self.extraction_model = extraction_model        
         self.correlation_id = correlation_id
         self.wait_for_selector = wait_for_selector
         self.body = body
@@ -804,6 +854,22 @@ class ScrapeConfig(BaseApiConfig):
             if self.format_options:
                 params[&#39;format&#39;] += &#39;:&#39; + &#39;,&#39;.join(FormatOption(option).value for option in self.format_options)
 
+        if self.extraction_template and self.extraction_ephemeral_template:
+            raise ScrapeConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
+
+        if self.extraction_template:
+            params[&#39;extraction_template&#39;] = self.extraction_template
+
+        if self.extraction_ephemeral_template:
+            self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
+            params[&#39;extraction_template&#39;] = &#39;ephemeral:&#39; + urlsafe_b64encode(self.extraction_ephemeral_template.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+        if self.extraction_prompt:
+            params[&#39;extraction_prompt&#39;] = quote_plus(self.extraction_prompt)
+
+        if self.extraction_model:
+            params[&#39;extraction_model&#39;] = self.extraction_model
+
         if self.correlation_id:
             params[&#39;correlation_id&#39;] = self.correlation_id
 
@@ -947,7 +1013,27 @@ class ScrapeConfig(BaseApiConfig):
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_ephemeral_template"><code class="name">var <span class="ident">extraction_ephemeral_template</span> : Optional[Dict]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_model"><code class="name">var <span class="ident">extraction_model</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_prompt"><code class="name">var <span class="ident">extraction_prompt</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_template"><code class="name">var <span class="ident">extraction_template</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.format"><code class="name">var <span class="ident">format</span> : Optional[<a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a>]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.format_options"><code class="name">var <span class="ident">format_options</span> : Optional[List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>]]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -1210,6 +1296,22 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         if self.format_options:
             params[&#39;format&#39;] += &#39;:&#39; + &#39;,&#39;.join(FormatOption(option).value for option in self.format_options)
 
+    if self.extraction_template and self.extraction_ephemeral_template:
+        raise ScrapeConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
+
+    if self.extraction_template:
+        params[&#39;extraction_template&#39;] = self.extraction_template
+
+    if self.extraction_ephemeral_template:
+        self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
+        params[&#39;extraction_template&#39;] = &#39;ephemeral:&#39; + urlsafe_b64encode(self.extraction_ephemeral_template.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+
+    if self.extraction_prompt:
+        params[&#39;extraction_prompt&#39;] = quote_plus(self.extraction_prompt)
+
+    if self.extraction_model:
+        params[&#39;extraction_model&#39;] = self.extraction_model
+
     if self.correlation_id:
         params[&#39;correlation_id&#39;] = self.correlation_id
 
@@ -1354,6 +1456,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <ul class="">
 <li><code><a title="scrapfly.scrape_config.FormatOption.NO_IMAGES" href="#scrapfly.scrape_config.FormatOption.NO_IMAGES">NO_IMAGES</a></code></li>
 <li><code><a title="scrapfly.scrape_config.FormatOption.NO_LINKS" href="#scrapfly.scrape_config.FormatOption.NO_LINKS">NO_LINKS</a></code></li>
+<li><code><a title="scrapfly.scrape_config.FormatOption.ONLY_CONTENT" href="#scrapfly.scrape_config.FormatOption.ONLY_CONTENT">ONLY_CONTENT</a></code></li>
 </ul>
 </li>
 <li>
@@ -1375,7 +1478,12 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.debug" href="#scrapfly.scrape_config.ScrapeConfig.debug">debug</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.dns" href="#scrapfly.scrape_config.ScrapeConfig.dns">dns</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.extract" href="#scrapfly.scrape_config.ScrapeConfig.extract">extract</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.extraction_ephemeral_template" href="#scrapfly.scrape_config.ScrapeConfig.extraction_ephemeral_template">extraction_ephemeral_template</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.extraction_model" href="#scrapfly.scrape_config.ScrapeConfig.extraction_model">extraction_model</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.extraction_prompt" href="#scrapfly.scrape_config.ScrapeConfig.extraction_prompt">extraction_prompt</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.extraction_template" href="#scrapfly.scrape_config.ScrapeConfig.extraction_template">extraction_template</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.format" href="#scrapfly.scrape_config.ScrapeConfig.format">format</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.format_options" href="#scrapfly.scrape_config.ScrapeConfig.format_options">format_options</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.from_exported_config" href="#scrapfly.scrape_config.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.headers" href="#scrapfly.scrape_config.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js" href="#scrapfly.scrape_config.ScrapeConfig.js">js</a></code></li>
