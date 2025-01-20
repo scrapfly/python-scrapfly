@@ -754,7 +754,10 @@ class ScrapflyClient:
             file = open(file_path, 'wb')
 
         if isinstance(file_content, str):
-            file_content = BytesIO(file_content.encode('utf-8'))
+            try:
+                file_content = BytesIO(base64.b64decode(file_content, validate=True))
+            except (base64.binascii.Error, ValueError):
+                file_content = BytesIO(file_content.encode('utf-8'))
         elif isinstance(file_content, bytes):
             file_content = BytesIO(file_content)
 
