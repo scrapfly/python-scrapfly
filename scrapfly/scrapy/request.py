@@ -32,6 +32,23 @@ class ScrapflyScrapyRequest(Request):
             **kwargs
         )
 
+    def to_dict(self, spider=None):
+        """
+        Override to_dict to handle serialization with scrape_config.
+        The spider argument is ignored to maintain compatibility with Scrapy.
+        """
+        d = super().to_dict()  # Call the parent class's to_dict
+        d['scrape_config'] = self.scrape_config
+        return d
+
+    @classmethod
+    def from_dict(cls, d):
+        """
+        Override from_dict to handle deserialization of scrape_config.
+        """
+        scrape_config = d.pop('scrape_config', None)
+        return cls(scrape_config=scrape_config, **d)
+
     def replace(self, *args, **kwargs):
         for x in [
             'meta',
