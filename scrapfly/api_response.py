@@ -449,8 +449,13 @@ class ScrapeApiResponse(ApiResponse):
 
             if content_format in ['clob', 'blob']:
                 api_result['result']['content'], api_result['result']['format'] = self.large_object_handler(callback_url=api_result['result']['content'], format=content_format)
-            elif content_format == 'binary' and isinstance(api_result['result']['content'], bytes):
-                api_result['result']['content'] = BytesIO(b64decode(api_result['result']['content']))
+            elif content_format == 'binary':
+                base64_payload = api_result['result']['content']
+
+                if isinstance(base64_payload, bytes):
+                    base64_payload = base64_payload.decode('utf-8')
+
+                api_result['result']['content'] = BytesIO(b64decode(base64_payload))
 
         return FrozenDict(api_result)
 
