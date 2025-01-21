@@ -95,12 +95,15 @@ class ExtractionConfig(BaseApiConfig):
                     'When declaring compression format, your must declare the is_document_compressed parameter to compress the document or skip it.'
                 )
             if self.is_document_compressed is False:
-                if self.document_compression_format == CompressionFormat.GZIP:
+                compression_foramt = CompressionFormat(self.document_compression_format).value if self.document_compression_format else None
+
+                if compression_foramt == CompressionFormat.GZIP.value:
                     import gzip
                     self.body = gzip.compress(bytes(self.body, 'utf-8'))
                 else:
                     raise ExtractionConfigError(
-                        f'Auto compression for {self.document_compression_format.value} format is not available. You can manually compress to {self.document_compression_format.value} or choose the gzip format for auto compression.'
+                        f'Auto compression for {compression_foramt} format is not available. '
+                        f'You can manually compress to {compression_foramt} or choose the gzip format for auto compression.'
                     )
 
     def to_api_params(self, key: str) -> Dict:
@@ -135,3 +138,68 @@ class ExtractionConfig(BaseApiConfig):
             params['webhook_name'] = self.webhook
 
         return params
+
+    def to_dict(self) -> Dict:
+        """
+        Export the ExtractionConfig instance to a plain dictionary.
+        """
+        if self.is_document_compressed is False and self.document_compression_format:
+                compression_foramt = CompressionFormat(self.document_compression_format).value if self.document_compression_format else None
+
+                if compression_foramt == CompressionFormat.GZIP.value:
+                    import gzip
+                    self.body = gzip.decompress(self.body).decode('utf-8')
+                else:
+                    raise ExtractionConfigError(
+                        f'Auto decompression for {compression_foramt} format is not available. '
+                        f'You can manually decompress to {compression_foramt} or choose the gzip format for auto decompression.'
+                    )
+
+        return {
+            'body': self.body,
+            'content_type': self.content_type,
+            'url': self.url,
+            'charset': self.charset,
+            'extraction_template': self.extraction_template,
+            'extraction_ephemeral_template': self.extraction_ephemeral_template,
+            'extraction_prompt': self.extraction_prompt,
+            'extraction_model': self.extraction_model,
+            'is_document_compressed': self.is_document_compressed,
+            'document_compression_format': CompressionFormat(self.document_compression_format).value if self.document_compression_format else None,
+            'webhook': self.webhook,
+            'raise_on_upstream_error': self.raise_on_upstream_error,
+        }
+    
+    @staticmethod
+    def from_dict(extraction_config_dict: Dict) -> 'ExtractionConfig':
+        """Create an ExtractionConfig instance from a dictionary."""
+        body = extraction_config_dict.get('body', None)
+        content_type = extraction_config_dict.get('content_type', None)
+        url = extraction_config_dict.get('url', None)
+        charset = extraction_config_dict.get('charset', None)
+        extraction_template = extraction_config_dict.get('extraction_template', None)
+        extraction_ephemeral_template = extraction_config_dict.get('extraction_ephemeral_template', None)
+        extraction_prompt = extraction_config_dict.get('extraction_prompt', None)
+        extraction_model = extraction_config_dict.get('extraction_model', None)
+        is_document_compressed = extraction_config_dict.get('is_document_compressed', None)
+
+        document_compression_format = extraction_config_dict.get('document_compression_format', None)
+        document_compression_format = CompressionFormat(document_compression_format).value if document_compression_format else None
+        
+        webhook = extraction_config_dict.get('webhook', None)
+        raise_on_upstream_error = extraction_config_dict.get('raise_on_upstream_error', True)
+
+        return ExtractionConfig(
+            body=body,
+            content_type=content_type,
+            url=url,
+            charset=charset,
+            extraction_template=extraction_template,
+            extraction_ephemeral_template=extraction_ephemeral_template,
+            extraction_prompt=extraction_prompt,
+            extraction_model=extraction_model,
+            is_document_compressed=is_document_compressed,
+            document_compression_format=document_compression_format,
+            webhook=webhook,
+            raise_on_upstream_error=raise_on_upstream_error
+        )

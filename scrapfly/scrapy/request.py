@@ -1,8 +1,7 @@
 from copy import deepcopy
-from functools import partial
-from typing import Dict, Optional, List
+from typing import Dict
 
-from scrapy import Request
+from scrapy import Request, Spider
 
 from .. import ScrapeConfig
 
@@ -32,6 +31,17 @@ class ScrapflyScrapyRequest(Request):
             **kwargs
         )
 
+    def to_dict(self, spider: Spider):
+        print('self', self)
+        return super().to_dict(spider=spider)
+
+    @classmethod
+    def from_dict(cls, data):
+        scrape_config_data = data['meta']['scrapfly_scrape_config'].to_dict()
+        scrape_config = ScrapeConfig.from_dict(scrape_config_data)
+        request = cls(scrape_config=scrape_config)
+        return request
+    
     def replace(self, *args, **kwargs):
         for x in [
             'meta',
