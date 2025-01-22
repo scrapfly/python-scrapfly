@@ -158,7 +158,7 @@ class ScreenshotConfig(BaseApiConfig):
         """
         return {
             'url': self.url,
-            'format': self.format.value if isinstance(self.format, Enum) else self.format,
+            'format': Format(self.format).value if self.format else None,
             'capture': self.capture,
             'resolution': self.resolution,
             'country': self.country,

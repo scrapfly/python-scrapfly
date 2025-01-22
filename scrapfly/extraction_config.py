@@ -184,7 +184,7 @@ class ExtractionConfig(BaseApiConfig):
         is_document_compressed = extraction_config_dict.get('is_document_compressed', None)
 
         document_compression_format = extraction_config_dict.get('document_compression_format', None)
-        document_compression_format = CompressionFormat(document_compression_format).value if document_compression_format else None
+        document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
         
         webhook = extraction_config_dict.get('webhook', None)
         raise_on_upstream_error = extraction_config_dict.get('raise_on_upstream_error', True)
