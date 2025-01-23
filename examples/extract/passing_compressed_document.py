@@ -22,8 +22,8 @@ extraction_api_response:ExtractionApiResponse = scrapfly.extract(
         is_document_compressed=False, # specify that the sent document is not compressed to compress it
         document_compression_format=CompressionFormat.GZIP # specify that compression format
         # If both is_document_compressed and document_compression_format are ignored, the raw HTML sould be sent
-        # If is_document_compressed is set to false and CompressionFormat set to GZIP, the SDK will automatically compress the document to gzip
-        # is_document_compressed is set to false and CompressionFormat set to ZSTD or DEFLATE, the document passed to ExtractionConfig must be manually compressed        
+        # If is_document_compressed is set to false and CompressionFormat is set, the SDK will automatically compress the document to the specified format
+        # is_document_compressed is set to false and CompressionFormat set to ZSTD or DEFLATE, the document passed to ExtractionConfig must be manually compressed
     )
 )
 

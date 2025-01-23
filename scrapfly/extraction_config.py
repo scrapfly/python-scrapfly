@@ -14,6 +14,7 @@ class CompressionFormat(Enum):
     Attributes:
         GZIP: gzip format.
         ZSTD: zstd format.
+        DEFLATE: deflate format.
     """
 
     GZIP = "gzip"
@@ -99,12 +100,22 @@ class ExtractionConfig(BaseApiConfig):
 
                 if compression_foramt == CompressionFormat.GZIP.value:
                     import gzip
-                    self.body = gzip.compress(bytes(self.body, 'utf-8'))
-                else:
-                    raise ExtractionConfigError(
-                        f'Auto compression for {compression_foramt} format is not available. '
-                        f'You can manually compress to {compression_foramt} or choose the gzip format for auto compression.'
-                    )
+                    self.body = gzip.compress(self.body.encode('utf-8'))
+
+                elif compression_foramt == CompressionFormat.ZSTD.value:
+                    try:
+                        import zstandard as zstd
+                    except ImportError:
+                        raise ExtractionConfigError(
+                            f'zstandard is not installed. You must run pip install zstandard'
+                            f' to auto compress into zstd or use compression formats.'
+                        )
+                    self.body = zstd.compress(self.body.encode('utf-8'))
+                
+                elif compression_foramt == CompressionFormat.DEFLATE.value:
+                    import zlib
+                    compressor = zlib.compressobj(wbits=-zlib.MAX_WBITS) # raw deflate compression
+                    self.body = compressor.compress(self.body.encode('utf-8')) + compressor.flush()
 
     def to_api_params(self, key: str) -> Dict:
         params = {
@@ -149,11 +160,16 @@ class ExtractionConfig(BaseApiConfig):
                 if compression_foramt == CompressionFormat.GZIP.value:
                     import gzip
                     self.body = gzip.decompress(self.body).decode('utf-8')
-                else:
-                    raise ExtractionConfigError(
-                        f'Auto decompression for {compression_foramt} format is not available. '
-                        f'You can manually decompress to {compression_foramt} or choose the gzip format for auto decompression.'
-                    )
+                    
+                elif compression_foramt == CompressionFormat.ZSTD.value:
+                    import zstandard as zstd
+                    self.body = zstd.decompress(self.body).decode('utf-8')
+
+                elif compression_foramt == CompressionFormat.DEFLATE.value:
+                    import zlib
+                    decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
+                    self.body = decompressor.decompress(self.body) + decompressor.flush()
+                    self.body = self.body.decode('utf-8')
 
         return {
             'body': self.body,
