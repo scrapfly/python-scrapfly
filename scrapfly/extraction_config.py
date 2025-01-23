@@ -90,21 +90,19 @@ class ExtractionConfig(BaseApiConfig):
         self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
 
-        if self.document_compression_format is not None:
-            
-            if self.is_document_compressed is None:
-                compression_foramt = detect_compression_format(self.body)
-                
-                if compression_foramt == 'unknown':
-                    self.is_document_compressed = False
+        if isinstance(body, bytes) or document_compression_format:
+            compression_format = detect_compression_format(body)
 
-                else:
-                    if compression_foramt != self.document_compression_format.value:
-                        raise ExtractionConfigError(
-                            f'The detected compression format `{compression_foramt}` does not match declared format `{self.document_compression_format.value}`. '
-                            f'You must pass the compression format or disable compression.'
-                        )                    
-                    self.is_document_compressed = True
+            if compression_format is not None:
+                self.is_document_compressed = True
+
+                if self.document_compression_format and compression_format != self.document_compression_format.value:
+                    raise ExtractionConfigError(
+                        f'The detected compression format `{compression_format}` does not match declared format `{self.document_compression_format.value}`. '
+                        f'You must pass the compression format or disable compression.'
+                    )
+                
+                self.document_compression_format = CompressionFormat(compression_format)
 
             if self.is_document_compressed is False:
                 compression_foramt = CompressionFormat(self.document_compression_format).value if self.document_compression_format else None
@@ -168,27 +166,29 @@ class ExtractionConfig(BaseApiConfig):
         """
         Export the ExtractionConfig instance to a plain dictionary.
         """
-        if self.is_document_compressed is False and self.document_compression_format:
+
+        if self.is_document_compressed is True:
                 compression_foramt = CompressionFormat(self.document_compression_format).value if self.document_compression_format else None
 
                 if compression_foramt == CompressionFormat.GZIP.value:
                     import gzip
-                    body = gzip.decompress(self.body)
+                    self.body = gzip.decompress(self.body)
                     
                 elif compression_foramt == CompressionFormat.ZSTD.value:
                     import zstandard as zstd
-                    body = zstd.decompress(self.body)
+                    self.body = zstd.decompress(self.body)
 
                 elif compression_foramt == CompressionFormat.DEFLATE.value:
                     import zlib
                     decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
-                    body = decompressor.decompress(self.body) + decompressor.flush()
+                    self.body = decompressor.decompress(self.body) + decompressor.flush()
 
-                if isinstance(self.body, str) and compression_foramt:
-                    body = self.body.decode('utf-8')
+                if isinstance(self.body, bytes):
+                    self.body = self.body.decode('utf-8')
+                    self.is_document_compressed = False
 
         return {
-            'body': body, # don't alter the already compressed body
+            'body': self.body,
             'content_type': self.content_type,
             'url': self.url,
             'charset': self.charset,
@@ -275,4 +275,4 @@ def detect_compression_format(data):
         if data[1] in (0x01, 0x5E, 0x9C, 0xDA):
             return 'deflate'
 
-    return 'unknown'
+    return None
