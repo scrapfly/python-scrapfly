@@ -86,7 +86,7 @@ class ExtractionConfig(BaseApiConfig):
         self.extraction_prompt = extraction_prompt
         self.extraction_model = extraction_model
         self.is_document_compressed = is_document_compressed
-        self.document_compression_format = document_compression_format
+        self.document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
         self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
 
@@ -96,25 +96,28 @@ class ExtractionConfig(BaseApiConfig):
             if compression_format is not None:
                 self.is_document_compressed = True
 
-                if self.document_compression_format and compression_format != self.document_compression_format.value:
+                if self.document_compression_format and compression_format != self.document_compression_format:
                     raise ExtractionConfigError(
-                        f'The detected compression format `{compression_format}` does not match declared format `{self.document_compression_format.value}`. '
+                        f'The detected compression format `{compression_format}` does not match declared format `{self.document_compression_format}`. '
                         f'You must pass the compression format or disable compression.'
                     )
                 
-                self.document_compression_format = CompressionFormat(compression_format)
+                self.document_compression_format = compression_format
+            
+            else:
+                self.is_document_compressed = False
 
             if self.is_document_compressed is False:
-                compression_foramt = CompressionFormat(self.document_compression_format).value if self.document_compression_format else None
+                compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
                 
                 if isinstance(self.body, str) and compression_foramt:
                     self.body = self.body.encode('utf-8')
 
-                if compression_foramt == CompressionFormat.GZIP.value:
+                if compression_foramt == CompressionFormat.GZIP:
                     import gzip
                     self.body = gzip.compress(self.body)
 
-                elif compression_foramt == CompressionFormat.ZSTD.value:
+                elif compression_foramt == CompressionFormat.ZSTD:
                     try:
                         import zstandard as zstd
                     except ImportError:
@@ -124,7 +127,7 @@ class ExtractionConfig(BaseApiConfig):
                         )
                     self.body = zstd.compress(self.body)
                 
-                elif compression_foramt == CompressionFormat.DEFLATE.value:
+                elif compression_foramt == CompressionFormat.DEFLATE:
                     import zlib
                     compressor = zlib.compressobj(wbits=-zlib.MAX_WBITS) # raw deflate compression
                     self.body = compressor.compress(self.body) + compressor.flush()
@@ -168,17 +171,17 @@ class ExtractionConfig(BaseApiConfig):
         """
 
         if self.is_document_compressed is True:
-                compression_foramt = CompressionFormat(self.document_compression_format).value if self.document_compression_format else None
+                compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
 
-                if compression_foramt == CompressionFormat.GZIP.value:
+                if compression_foramt == CompressionFormat.GZIP:
                     import gzip
                     self.body = gzip.decompress(self.body)
                     
-                elif compression_foramt == CompressionFormat.ZSTD.value:
+                elif compression_foramt == CompressionFormat.ZSTD:
                     import zstandard as zstd
                     self.body = zstd.decompress(self.body)
 
-                elif compression_foramt == CompressionFormat.DEFLATE.value:
+                elif compression_foramt == CompressionFormat.DEFLATE:
                     import zlib
                     decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
                     self.body = decompressor.decompress(self.body) + decompressor.flush()
@@ -237,7 +240,7 @@ class ExtractionConfig(BaseApiConfig):
         )
 
 
-def detect_compression_format(data):
+def detect_compression_format(data) -> Optional[CompressionFormat]:
     """
     Detects the compression type of the given data.
 
@@ -249,11 +252,11 @@ def detect_compression_format(data):
     """
 
     if len(data) < 2:
-        return 'unknown'
+        return None
 
     # gzip 
     if data[0] == 0x1f and data[1] == 0x8b:
-        return 'gzip'
+        return CompressionFormat.GZIP
 
     # zstd
     zstd_magic_numbers = [
@@ -268,11 +271,11 @@ def detect_compression_format(data):
     ]
     for magic in zstd_magic_numbers:
         if data[:len(magic)] == magic:
-            return 'zstd'
+            return CompressionFormat.ZSTD
 
     # deflate
     if data[0] == 0x78:
         if data[1] in (0x01, 0x5E, 0x9C, 0xDA):
-            return 'deflate'
+            return CompressionFormat.DEFLATE
 
     return None
