@@ -27,8 +27,7 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">from copy import deepcopy
-from functools import partial
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 
 from scrapy import Request
 
@@ -60,6 +59,18 @@ class ScrapflyScrapyRequest(Request):
             **kwargs
         )
 
+    def to_dict(self, *, spider: Optional[&#34;scrapy.Spider&#34;] = None) -&gt; dict:
+        if spider is None:
+            raise ValueError(&#34;The &#39;spider&#39; argument is required to serialize the request.&#34;)
+        return super().to_dict(spider=spider)
+
+    @classmethod
+    def from_dict(cls, data):
+        scrape_config_data = data[&#39;meta&#39;][&#39;scrapfly_scrape_config&#39;].to_dict()
+        scrape_config = ScrapeConfig.from_dict(scrape_config_data)
+        request = cls(scrape_config=scrape_config)
+        return request
+    
     def replace(self, *args, **kwargs):
         for x in [
             &#39;meta&#39;,
@@ -123,6 +134,18 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
             **kwargs
         )
 
+    def to_dict(self, *, spider: Optional[&#34;scrapy.Spider&#34;] = None) -&gt; dict:
+        if spider is None:
+            raise ValueError(&#34;The &#39;spider&#39; argument is required to serialize the request.&#34;)
+        return super().to_dict(spider=spider)
+
+    @classmethod
+    def from_dict(cls, data):
+        scrape_config_data = data[&#39;meta&#39;][&#39;scrapfly_scrape_config&#39;].to_dict()
+        scrape_config = ScrapeConfig.from_dict(scrape_config_data)
+        request = cls(scrape_config=scrape_config)
+        return request
+    
     def replace(self, *args, **kwargs):
         for x in [
             &#39;meta&#39;,
@@ -150,6 +173,26 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
 <dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
 <dd>
 <div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def from_dict(cls, data):
+    scrape_config_data = data[&#39;meta&#39;][&#39;scrapfly_scrape_config&#39;].to_dict()
+    scrape_config = ScrapeConfig.from_dict(scrape_config_data)
+    request = cls(scrape_config=scrape_config)
+    return request</code></pre>
+</details>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -181,6 +224,24 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
     return cls(*args, **kwargs)</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self, *, spider: Optional[ForwardRef('scrapy.Spider')] = None) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return a dictionary containing the Request's data.</p>
+<p>Use :func:<code>~scrapy.utils.request.request_from_dict</code> to convert back into a :class:<code>~scrapy.Request</code> object.</p>
+<p>If a spider is given, this method will try to find out the name of the spider methods used as callback
+and errback and include them in the output dict, raising an exception if they cannot be found.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self, *, spider: Optional[&#34;scrapy.Spider&#34;] = None) -&gt; dict:
+    if spider is None:
+        raise ValueError(&#34;The &#39;spider&#39; argument is required to serialize the request.&#34;)
+    return super().to_dict(spider=spider)</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 </dl>
@@ -202,8 +263,10 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
 <li>
 <h4><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></code></h4>
 <ul class="">
+<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.from_dict" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.replace" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.replace">replace</a></code></li>
 <li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.scrape_config" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.scrape_config">scrape_config</a></code></li>
+<li><code><a title="scrapfly.scrapy.request.ScrapflyScrapyRequest.to_dict" href="#scrapfly.scrapy.request.ScrapflyScrapyRequest.to_dict">to_dict</a></code></li>
 </ul>
 </li>
 </ul>

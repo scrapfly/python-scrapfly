@@ -178,7 +178,75 @@ class ScreenshotConfig(BaseApiConfig):
         if self.webhook is not None:
             params[&#39;webhook_name&#39;] = self.webhook
 
-        return params</code></pre>
+        return params
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ScreenshotConfig instance to a plain dictionary.
+        &#34;&#34;&#34;
+        return {
+            &#39;url&#39;: self.url,
+            &#39;format&#39;: Format(self.format).value if self.format else None,
+            &#39;capture&#39;: self.capture,
+            &#39;resolution&#39;: self.resolution,
+            &#39;country&#39;: self.country,
+            &#39;timeout&#39;: self.timeout,
+            &#39;rendering_wait&#39;: self.rendering_wait,
+            &#39;wait_for_selector&#39;: self.wait_for_selector,
+            &#39;options&#39;: [Options(option).value for option in self.options] if self.options else None,
+            &#39;auto_scroll&#39;: self.auto_scroll,
+            &#39;js&#39;: self.js,
+            &#39;cache&#39;: self.cache,
+            &#39;cache_ttl&#39;: self.cache_ttl,
+            &#39;cache_clear&#39;: self.cache_clear,
+            &#39;webhook&#39;: self.webhook,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error
+        }
+    
+    @staticmethod
+    def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
+        &#34;&#34;&#34;Create a ScreenshotConfig instance from a dictionary.&#34;&#34;&#34;
+        url = screenshot_config_dict.get(&#39;url&#39;, None)
+
+        format = screenshot_config_dict.get(&#39;format&#39;, None)
+        format = Format(format) if format else None
+
+        capture = screenshot_config_dict.get(&#39;capture&#39;, None)
+        resolution = screenshot_config_dict.get(&#39;resolution&#39;, None)
+        country = screenshot_config_dict.get(&#39;country&#39;, None)
+        timeout = screenshot_config_dict.get(&#39;timeout&#39;, None)
+        rendering_wait = screenshot_config_dict.get(&#39;rendering_wait&#39;, None)
+        wait_for_selector = screenshot_config_dict.get(&#39;wait_for_selector&#39;, None)
+
+        options = screenshot_config_dict.get(&#39;options&#39;, None)
+        options = [Options(option) for option in options] if options else None
+
+        auto_scroll = screenshot_config_dict.get(&#39;auto_scroll&#39;, None)
+        js = screenshot_config_dict.get(&#39;js&#39;, None)
+        cache = screenshot_config_dict.get(&#39;cache&#39;, None)
+        cache_ttl = screenshot_config_dict.get(&#39;cache_ttl&#39;, None)
+        cache_clear = screenshot_config_dict.get(&#39;cache_clear&#39;, None)
+        webhook = screenshot_config_dict.get(&#39;webhook&#39;, None)
+        raise_on_upstream_error = screenshot_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+        return ScreenshotConfig(
+            url=url,
+            format=format,
+            capture=capture,
+            resolution=resolution,
+            country=country,
+            timeout=timeout,
+            rendering_wait=rendering_wait,
+            wait_for_selector=wait_for_selector,
+            options=options,
+            auto_scroll=auto_scroll,
+            js=js,
+            cache=cache,
+            cache_ttl=cache_ttl,
+            cache_clear=cache_clear,
+            webhook=webhook,
+            raise_on_upstream_error=raise_on_upstream_error
+        )</code></pre>
 </details>
 </section>
 <section>
@@ -434,7 +502,75 @@ class ScreenshotConfig(BaseApiConfig):
         if self.webhook is not None:
             params[&#39;webhook_name&#39;] = self.webhook
 
-        return params</code></pre>
+        return params
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ScreenshotConfig instance to a plain dictionary.
+        &#34;&#34;&#34;
+        return {
+            &#39;url&#39;: self.url,
+            &#39;format&#39;: Format(self.format).value if self.format else None,
+            &#39;capture&#39;: self.capture,
+            &#39;resolution&#39;: self.resolution,
+            &#39;country&#39;: self.country,
+            &#39;timeout&#39;: self.timeout,
+            &#39;rendering_wait&#39;: self.rendering_wait,
+            &#39;wait_for_selector&#39;: self.wait_for_selector,
+            &#39;options&#39;: [Options(option).value for option in self.options] if self.options else None,
+            &#39;auto_scroll&#39;: self.auto_scroll,
+            &#39;js&#39;: self.js,
+            &#39;cache&#39;: self.cache,
+            &#39;cache_ttl&#39;: self.cache_ttl,
+            &#39;cache_clear&#39;: self.cache_clear,
+            &#39;webhook&#39;: self.webhook,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error
+        }
+    
+    @staticmethod
+    def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
+        &#34;&#34;&#34;Create a ScreenshotConfig instance from a dictionary.&#34;&#34;&#34;
+        url = screenshot_config_dict.get(&#39;url&#39;, None)
+
+        format = screenshot_config_dict.get(&#39;format&#39;, None)
+        format = Format(format) if format else None
+
+        capture = screenshot_config_dict.get(&#39;capture&#39;, None)
+        resolution = screenshot_config_dict.get(&#39;resolution&#39;, None)
+        country = screenshot_config_dict.get(&#39;country&#39;, None)
+        timeout = screenshot_config_dict.get(&#39;timeout&#39;, None)
+        rendering_wait = screenshot_config_dict.get(&#39;rendering_wait&#39;, None)
+        wait_for_selector = screenshot_config_dict.get(&#39;wait_for_selector&#39;, None)
+
+        options = screenshot_config_dict.get(&#39;options&#39;, None)
+        options = [Options(option) for option in options] if options else None
+
+        auto_scroll = screenshot_config_dict.get(&#39;auto_scroll&#39;, None)
+        js = screenshot_config_dict.get(&#39;js&#39;, None)
+        cache = screenshot_config_dict.get(&#39;cache&#39;, None)
+        cache_ttl = screenshot_config_dict.get(&#39;cache_ttl&#39;, None)
+        cache_clear = screenshot_config_dict.get(&#39;cache_clear&#39;, None)
+        webhook = screenshot_config_dict.get(&#39;webhook&#39;, None)
+        raise_on_upstream_error = screenshot_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+        return ScreenshotConfig(
+            url=url,
+            format=format,
+            capture=capture,
+            resolution=resolution,
+            country=country,
+            timeout=timeout,
+            rendering_wait=rendering_wait,
+            wait_for_selector=wait_for_selector,
+            options=options,
+            auto_scroll=auto_scroll,
+            js=js,
+            cache=cache,
+            cache_ttl=cache_ttl,
+            cache_clear=cache_clear,
+            webhook=webhook,
+            raise_on_upstream_error=raise_on_upstream_error
+        )</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -507,6 +643,64 @@ class ScreenshotConfig(BaseApiConfig):
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>screenshot_config_dict: Dict) ‑> <a title="scrapfly.screenshot_config.ScreenshotConfig" href="#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a ScreenshotConfig instance from a dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
+    &#34;&#34;&#34;Create a ScreenshotConfig instance from a dictionary.&#34;&#34;&#34;
+    url = screenshot_config_dict.get(&#39;url&#39;, None)
+
+    format = screenshot_config_dict.get(&#39;format&#39;, None)
+    format = Format(format) if format else None
+
+    capture = screenshot_config_dict.get(&#39;capture&#39;, None)
+    resolution = screenshot_config_dict.get(&#39;resolution&#39;, None)
+    country = screenshot_config_dict.get(&#39;country&#39;, None)
+    timeout = screenshot_config_dict.get(&#39;timeout&#39;, None)
+    rendering_wait = screenshot_config_dict.get(&#39;rendering_wait&#39;, None)
+    wait_for_selector = screenshot_config_dict.get(&#39;wait_for_selector&#39;, None)
+
+    options = screenshot_config_dict.get(&#39;options&#39;, None)
+    options = [Options(option) for option in options] if options else None
+
+    auto_scroll = screenshot_config_dict.get(&#39;auto_scroll&#39;, None)
+    js = screenshot_config_dict.get(&#39;js&#39;, None)
+    cache = screenshot_config_dict.get(&#39;cache&#39;, None)
+    cache_ttl = screenshot_config_dict.get(&#39;cache_ttl&#39;, None)
+    cache_clear = screenshot_config_dict.get(&#39;cache_clear&#39;, None)
+    webhook = screenshot_config_dict.get(&#39;webhook&#39;, None)
+    raise_on_upstream_error = screenshot_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+    return ScreenshotConfig(
+        url=url,
+        format=format,
+        capture=capture,
+        resolution=resolution,
+        country=country,
+        timeout=timeout,
+        rendering_wait=rendering_wait,
+        wait_for_selector=wait_for_selector,
+        options=options,
+        auto_scroll=auto_scroll,
+        js=js,
+        cache=cache,
+        cache_ttl=cache_ttl,
+        cache_clear=cache_clear,
+        webhook=webhook,
+        raise_on_upstream_error=raise_on_upstream_error
+    )</code></pre>
+</details>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.screenshot_config.ScreenshotConfig.to_api_params"><code class="name flex">
@@ -576,6 +770,39 @@ class ScreenshotConfig(BaseApiConfig):
     return params</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Export the ScreenshotConfig instance to a plain dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    Export the ScreenshotConfig instance to a plain dictionary.
+    &#34;&#34;&#34;
+    return {
+        &#39;url&#39;: self.url,
+        &#39;format&#39;: Format(self.format).value if self.format else None,
+        &#39;capture&#39;: self.capture,
+        &#39;resolution&#39;: self.resolution,
+        &#39;country&#39;: self.country,
+        &#39;timeout&#39;: self.timeout,
+        &#39;rendering_wait&#39;: self.rendering_wait,
+        &#39;wait_for_selector&#39;: self.wait_for_selector,
+        &#39;options&#39;: [Options(option).value for option in self.options] if self.options else None,
+        &#39;auto_scroll&#39;: self.auto_scroll,
+        &#39;js&#39;: self.js,
+        &#39;cache&#39;: self.cache,
+        &#39;cache_ttl&#39;: self.cache_ttl,
+        &#39;cache_clear&#39;: self.cache_clear,
+        &#39;webhook&#39;: self.webhook,
+        &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error
+    }</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 </dl>
@@ -622,6 +849,7 @@ class ScreenshotConfig(BaseApiConfig):
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.capture" href="#scrapfly.screenshot_config.ScreenshotConfig.capture">capture</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.country" href="#scrapfly.screenshot_config.ScreenshotConfig.country">country</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.format" href="#scrapfly.screenshot_config.ScreenshotConfig.format">format</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.from_dict" href="#scrapfly.screenshot_config.ScreenshotConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.js" href="#scrapfly.screenshot_config.ScreenshotConfig.js">js</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.options" href="#scrapfly.screenshot_config.ScreenshotConfig.options">options</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.raise_on_upstream_error" href="#scrapfly.screenshot_config.ScreenshotConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
@@ -629,6 +857,7 @@ class ScreenshotConfig(BaseApiConfig):
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.resolution" href="#scrapfly.screenshot_config.ScreenshotConfig.resolution">resolution</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.timeout" href="#scrapfly.screenshot_config.ScreenshotConfig.timeout">timeout</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.to_api_params" href="#scrapfly.screenshot_config.ScreenshotConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.to_dict" href="#scrapfly.screenshot_config.ScreenshotConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.url" href="#scrapfly.screenshot_config.ScreenshotConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.wait_for_selector" href="#scrapfly.screenshot_config.ScreenshotConfig.wait_for_selector">wait_for_selector</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.webhook" href="#scrapfly.screenshot_config.ScreenshotConfig.webhook">webhook</a></code></li>

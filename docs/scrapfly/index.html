@@ -26,7 +26,7 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">__version__ = &#39;0.8.19&#39;
+<pre><code class="python">__version__ = &#39;0.8.20&#39;
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -655,7 +655,7 @@ def extraction_success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.ExtractionConfig"><code class="flex name class">
 <span>class <span class="ident">ExtractionConfig</span></span>
-<span>(</span><span>body: str, content_type: str, url: Optional[str] = None, charset: Optional[str] = None, extraction_template: Optional[str] = None, extraction_ephemeral_template: Optional[Dict] = None, extraction_prompt: Optional[str] = None, extraction_model: Optional[str] = None, is_document_compressed: Optional[bool] = None, document_compression_format: Optional[<a title="scrapfly.extraction_config.CompressionFormat" href="extraction_config.html#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a>] = None, webhook: Optional[str] = None, raise_on_upstream_error: bool = True, template: Optional[str] = None, ephemeral_template: Optional[Dict] = None)</span>
+<span>(</span><span>body: Union[str, bytes], content_type: str, url: Optional[str] = None, charset: Optional[str] = None, extraction_template: Optional[str] = None, extraction_ephemeral_template: Optional[Dict] = None, extraction_prompt: Optional[str] = None, extraction_model: Optional[str] = None, is_document_compressed: Optional[bool] = None, document_compression_format: Optional[<a title="scrapfly.extraction_config.CompressionFormat" href="extraction_config.html#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a>] = None, webhook: Optional[str] = None, raise_on_upstream_error: bool = True, template: Optional[str] = None, ephemeral_template: Optional[Dict] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -664,7 +664,7 @@ def extraction_success(self) -&gt; bool:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ExtractionConfig(BaseApiConfig):
-    body: str
+    body: Union[str, bytes]
     content_type: str
     url: Optional[str] = None
     charset: Optional[str] = None
@@ -683,7 +683,7 @@ def extraction_success(self) -&gt; bool:
 
     def __init__(
         self,
-        body: str,
+        body: Union[str, bytes],
         content_type: str,
         url: Optional[str] = None,
         charset: Optional[str] = None,
@@ -723,23 +723,51 @@ def extraction_success(self) -&gt; bool:
         self.extraction_prompt = extraction_prompt
         self.extraction_model = extraction_model
         self.is_document_compressed = is_document_compressed
-        self.document_compression_format = document_compression_format
+        self.document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
         self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
 
-        if self.document_compression_format is not None:
-            if self.is_document_compressed is None:
-                raise ExtractionConfigError(
-                    &#39;When declaring compression format, your must declare the is_document_compressed parameter to compress the document or skip it.&#39;
-                )
-            if self.is_document_compressed is False:
-                if self.document_compression_format == CompressionFormat.GZIP:
-                    import gzip
-                    self.body = gzip.compress(bytes(self.body, &#39;utf-8&#39;))
-                else:
+        if isinstance(body, bytes) or document_compression_format:
+            compression_format = detect_compression_format(body)
+
+            if compression_format is not None:
+                self.is_document_compressed = True
+
+                if self.document_compression_format and compression_format != self.document_compression_format:
                     raise ExtractionConfigError(
-                        f&#39;Auto compression for {self.document_compression_format.value} format is not available. You can manually compress to {self.document_compression_format.value} or choose the gzip format for auto compression.&#39;
+                        f&#39;The detected compression format `{compression_format}` does not match declared format `{self.document_compression_format}`. &#39;
+                        f&#39;You must pass the compression format or disable compression.&#39;
                     )
+                
+                self.document_compression_format = compression_format
+            
+            else:
+                self.is_document_compressed = False
+
+            if self.is_document_compressed is False:
+                compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
+                
+                if isinstance(self.body, str) and compression_foramt:
+                    self.body = self.body.encode(&#39;utf-8&#39;)
+
+                if compression_foramt == CompressionFormat.GZIP:
+                    import gzip
+                    self.body = gzip.compress(self.body)
+
+                elif compression_foramt == CompressionFormat.ZSTD:
+                    try:
+                        import zstandard as zstd
+                    except ImportError:
+                        raise ExtractionConfigError(
+                            f&#39;zstandard is not installed. You must run pip install zstandard&#39;
+                            f&#39; to auto compress into zstd or use compression formats.&#39;
+                        )
+                    self.body = zstd.compress(self.body)
+                
+                elif compression_foramt == CompressionFormat.DEFLATE:
+                    import zlib
+                    compressor = zlib.compressobj(wbits=-zlib.MAX_WBITS) # raw deflate compression
+                    self.body = compressor.compress(self.body) + compressor.flush()
 
     def to_api_params(self, key: str) -&gt; Dict:
         params = {
@@ -772,7 +800,81 @@ def extraction_success(self) -&gt; bool:
         if self.webhook:
             params[&#39;webhook_name&#39;] = self.webhook
 
-        return params</code></pre>
+        return params
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ExtractionConfig instance to a plain dictionary.
+        &#34;&#34;&#34;
+
+        if self.is_document_compressed is True:
+                compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
+
+                if compression_foramt == CompressionFormat.GZIP:
+                    import gzip
+                    self.body = gzip.decompress(self.body)
+                    
+                elif compression_foramt == CompressionFormat.ZSTD:
+                    import zstandard as zstd
+                    self.body = zstd.decompress(self.body)
+
+                elif compression_foramt == CompressionFormat.DEFLATE:
+                    import zlib
+                    decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
+                    self.body = decompressor.decompress(self.body) + decompressor.flush()
+
+                if isinstance(self.body, bytes):
+                    self.body = self.body.decode(&#39;utf-8&#39;)
+                    self.is_document_compressed = False
+
+        return {
+            &#39;body&#39;: self.body,
+            &#39;content_type&#39;: self.content_type,
+            &#39;url&#39;: self.url,
+            &#39;charset&#39;: self.charset,
+            &#39;extraction_template&#39;: self.extraction_template,
+            &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+            &#39;extraction_prompt&#39;: self.extraction_prompt,
+            &#39;extraction_model&#39;: self.extraction_model,
+            &#39;is_document_compressed&#39;: self.is_document_compressed,
+            &#39;document_compression_format&#39;: CompressionFormat(self.document_compression_format).value if self.document_compression_format else None,
+            &#39;webhook&#39;: self.webhook,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+        }
+    
+    @staticmethod
+    def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
+        &#34;&#34;&#34;Create an ExtractionConfig instance from a dictionary.&#34;&#34;&#34;
+        body = extraction_config_dict.get(&#39;body&#39;, None)
+        content_type = extraction_config_dict.get(&#39;content_type&#39;, None)
+        url = extraction_config_dict.get(&#39;url&#39;, None)
+        charset = extraction_config_dict.get(&#39;charset&#39;, None)
+        extraction_template = extraction_config_dict.get(&#39;extraction_template&#39;, None)
+        extraction_ephemeral_template = extraction_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+        extraction_prompt = extraction_config_dict.get(&#39;extraction_prompt&#39;, None)
+        extraction_model = extraction_config_dict.get(&#39;extraction_model&#39;, None)
+        is_document_compressed = extraction_config_dict.get(&#39;is_document_compressed&#39;, None)
+
+        document_compression_format = extraction_config_dict.get(&#39;document_compression_format&#39;, None)
+        document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
+        
+        webhook = extraction_config_dict.get(&#39;webhook&#39;, None)
+        raise_on_upstream_error = extraction_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+        return ExtractionConfig(
+            body=body,
+            content_type=content_type,
+            url=url,
+            charset=charset,
+            extraction_template=extraction_template,
+            extraction_ephemeral_template=extraction_ephemeral_template,
+            extraction_prompt=extraction_prompt,
+            extraction_model=extraction_model,
+            is_document_compressed=is_document_compressed,
+            document_compression_format=document_compression_format,
+            webhook=webhook,
+            raise_on_upstream_error=raise_on_upstream_error
+        )</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -780,7 +882,7 @@ def extraction_success(self) -&gt; bool:
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.ExtractionConfig.body"><code class="name">var <span class="ident">body</span> : str</code></dt>
+<dt id="scrapfly.ExtractionConfig.body"><code class="name">var <span class="ident">body</span> : Union[str, bytes]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -837,6 +939,53 @@ def extraction_success(self) -&gt; bool:
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.ExtractionConfig.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>extraction_config_dict: Dict) ‑> <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create an ExtractionConfig instance from a dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
+    &#34;&#34;&#34;Create an ExtractionConfig instance from a dictionary.&#34;&#34;&#34;
+    body = extraction_config_dict.get(&#39;body&#39;, None)
+    content_type = extraction_config_dict.get(&#39;content_type&#39;, None)
+    url = extraction_config_dict.get(&#39;url&#39;, None)
+    charset = extraction_config_dict.get(&#39;charset&#39;, None)
+    extraction_template = extraction_config_dict.get(&#39;extraction_template&#39;, None)
+    extraction_ephemeral_template = extraction_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+    extraction_prompt = extraction_config_dict.get(&#39;extraction_prompt&#39;, None)
+    extraction_model = extraction_config_dict.get(&#39;extraction_model&#39;, None)
+    is_document_compressed = extraction_config_dict.get(&#39;is_document_compressed&#39;, None)
+
+    document_compression_format = extraction_config_dict.get(&#39;document_compression_format&#39;, None)
+    document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
+    
+    webhook = extraction_config_dict.get(&#39;webhook&#39;, None)
+    raise_on_upstream_error = extraction_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+    return ExtractionConfig(
+        body=body,
+        content_type=content_type,
+        url=url,
+        charset=charset,
+        extraction_template=extraction_template,
+        extraction_ephemeral_template=extraction_ephemeral_template,
+        extraction_prompt=extraction_prompt,
+        extraction_model=extraction_model,
+        is_document_compressed=is_document_compressed,
+        document_compression_format=document_compression_format,
+        webhook=webhook,
+        raise_on_upstream_error=raise_on_upstream_error
+    )</code></pre>
+</details>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.ExtractionConfig.to_api_params"><code class="name flex">
@@ -880,6 +1029,56 @@ def extraction_success(self) -&gt; bool:
         params[&#39;webhook_name&#39;] = self.webhook
 
     return params</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ExtractionConfig.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Export the ExtractionConfig instance to a plain dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    Export the ExtractionConfig instance to a plain dictionary.
+    &#34;&#34;&#34;
+
+    if self.is_document_compressed is True:
+            compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
+
+            if compression_foramt == CompressionFormat.GZIP:
+                import gzip
+                self.body = gzip.decompress(self.body)
+                
+            elif compression_foramt == CompressionFormat.ZSTD:
+                import zstandard as zstd
+                self.body = zstd.decompress(self.body)
+
+            elif compression_foramt == CompressionFormat.DEFLATE:
+                import zlib
+                decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
+                self.body = decompressor.decompress(self.body) + decompressor.flush()
+
+            if isinstance(self.body, bytes):
+                self.body = self.body.decode(&#39;utf-8&#39;)
+                self.is_document_compressed = False
+
+    return {
+        &#39;body&#39;: self.body,
+        &#39;content_type&#39;: self.content_type,
+        &#39;url&#39;: self.url,
+        &#39;charset&#39;: self.charset,
+        &#39;extraction_template&#39;: self.extraction_template,
+        &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+        &#39;extraction_prompt&#39;: self.extraction_prompt,
+        &#39;extraction_model&#39;: self.extraction_model,
+        &#39;is_document_compressed&#39;: self.is_document_compressed,
+        &#39;document_compression_format&#39;: CompressionFormat(self.document_compression_format).value if self.document_compression_format else None,
+        &#39;webhook&#39;: self.webhook,
+        &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+    }</code></pre>
 </details>
 </dd>
 </dl>
@@ -1355,8 +1554,13 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
             if content_format in [&#39;clob&#39;, &#39;blob&#39;]:
                 api_result[&#39;result&#39;][&#39;content&#39;], api_result[&#39;result&#39;][&#39;format&#39;] = self.large_object_handler(callback_url=api_result[&#39;result&#39;][&#39;content&#39;], format=content_format)
-            elif content_format == &#39;binary&#39; and isinstance(api_result[&#39;result&#39;][&#39;content&#39;], bytes):
-                api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+            elif content_format == &#39;binary&#39;:
+                base64_payload = api_result[&#39;result&#39;][&#39;content&#39;]
+
+                if isinstance(base64_payload, bytes):
+                    base64_payload = base64_payload.decode(&#39;utf-8&#39;)
+
+                api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(base64_payload))
 
         return FrozenDict(api_result)
 
@@ -1764,8 +1968,13 @@ def upstream_status_code(self) -&gt; Optional[int]:
 
         if content_format in [&#39;clob&#39;, &#39;blob&#39;]:
             api_result[&#39;result&#39;][&#39;content&#39;], api_result[&#39;result&#39;][&#39;format&#39;] = self.large_object_handler(callback_url=api_result[&#39;result&#39;][&#39;content&#39;], format=content_format)
-        elif content_format == &#39;binary&#39; and isinstance(api_result[&#39;result&#39;][&#39;content&#39;], bytes):
-            api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+        elif content_format == &#39;binary&#39;:
+            base64_payload = api_result[&#39;result&#39;][&#39;content&#39;]
+
+            if isinstance(base64_payload, bytes):
+                base64_payload = base64_payload.decode(&#39;utf-8&#39;)
+
+            api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(base64_payload))
 
     return FrozenDict(api_result)</code></pre>
 </details>
@@ -2327,6 +2536,153 @@ def upstream_status_code(self) -&gt; Optional[int]:
             proxy_pool=data[&#39;proxy_pool&#39;],
             auto_scroll=data[&#39;auto_scroll&#39;],
             cost_budget=data[&#39;cost_budget&#39;]
+        )
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ScrapeConfig instance to a plain dictionary. 
+        Useful for JSON-serialization or other external storage.
+        &#34;&#34;&#34;
+        
+        return {
+            &#39;url&#39;: self.url,
+            &#39;retry&#39;: self.retry,
+            &#39;method&#39;: self.method,
+            &#39;country&#39;: self.country,
+            &#39;render_js&#39;: self.render_js,
+            &#39;cache&#39;: self.cache,
+            &#39;cache_clear&#39;: self.cache_clear,
+            &#39;ssl&#39;: self.ssl,
+            &#39;dns&#39;: self.dns,
+            &#39;asp&#39;: self.asp,
+            &#39;debug&#39;: self.debug,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+            &#39;cache_ttl&#39;: self.cache_ttl,
+            &#39;proxy_pool&#39;: self.proxy_pool,
+            &#39;session&#39;: self.session,
+            &#39;tags&#39;: list(self.tags),
+            &#39;format&#39;: Format(self.format).value if self.format else None,
+            &#39;format_options&#39;: [FormatOption(option).value for option in self.format_options] if self.format_options else None,
+            &#39;extraction_template&#39;: self.extraction_template,
+            &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+            &#39;extraction_prompt&#39;: self.extraction_prompt,
+            &#39;extraction_model&#39;: self.extraction_model,
+            &#39;correlation_id&#39;: self.correlation_id,
+            &#39;cookies&#39;: CaseInsensitiveDict(self.cookies),
+            &#39;body&#39;: self.body,
+            &#39;data&#39;: None if self.body else self.data,
+            &#39;headers&#39;: CaseInsensitiveDict(self.headers),
+            &#39;js&#39;: self.js,
+            &#39;rendering_wait&#39;: self.rendering_wait,
+            &#39;wait_for_selector&#39;: self.wait_for_selector,
+            &#39;session_sticky_proxy&#39;: self.session_sticky_proxy,
+            &#39;screenshots&#39;: self.screenshots,
+            &#39;screenshot_flags&#39;: [ScreenshotFlag(flag).value for flag in self.screenshot_flags] if self.screenshot_flags else None,
+            &#39;webhook&#39;: self.webhook,
+            &#39;timeout&#39;: self.timeout,
+            &#39;js_scenario&#39;: self.js_scenario,
+            &#39;extract&#39;: self.extract,
+            &#39;lang&#39;: self.lang,
+            &#39;os&#39;: self.os,
+            &#39;auto_scroll&#39;: self.auto_scroll,
+            &#39;cost_budget&#39;: self.cost_budget,
+        }
+
+    @staticmethod
+    def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
+        &#34;&#34;&#34;Create a ScrapeConfig instance from a dictionary.&#34;&#34;&#34;
+        url = scrape_config_dict.get(&#39;url&#39;, None)
+        retry = scrape_config_dict.get(&#39;retry&#39;, False)
+        method = scrape_config_dict.get(&#39;method&#39;, &#39;GET&#39;)
+        country = scrape_config_dict.get(&#39;country&#39;, None)
+        render_js = scrape_config_dict.get(&#39;render_js&#39;, False)
+        cache = scrape_config_dict.get(&#39;cache&#39;, False)
+        cache_clear = scrape_config_dict.get(&#39;cache_clear&#39;, False)
+        ssl = scrape_config_dict.get(&#39;ssl&#39;, False)
+        dns = scrape_config_dict.get(&#39;dns&#39;, False)
+        asp = scrape_config_dict.get(&#39;asp&#39;, False)
+        debug = scrape_config_dict.get(&#39;debug&#39;, False)
+        raise_on_upstream_error = scrape_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+        cache_ttl = scrape_config_dict.get(&#39;cache_ttl&#39;, None)
+        proxy_pool = scrape_config_dict.get(&#39;proxy_pool&#39;, None)
+        session = scrape_config_dict.get(&#39;session&#39;, None)
+        tags = scrape_config_dict.get(&#39;tags&#39;, [])
+
+        format = scrape_config_dict.get(&#39;format&#39;, None)
+        format = Format(format) if format else None
+
+        format_options = scrape_config_dict.get(&#39;format_options&#39;, None)
+        format_options = [FormatOption(option) for option in format_options] if format_options else None
+
+        extraction_template = scrape_config_dict.get(&#39;extraction_template&#39;, None)
+        extraction_ephemeral_template = scrape_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+        extraction_prompt = scrape_config_dict.get(&#39;extraction_prompt&#39;, None)
+        extraction_model = scrape_config_dict.get(&#39;extraction_model&#39;, None)
+        correlation_id = scrape_config_dict.get(&#39;correlation_id&#39;, None)
+        cookies = scrape_config_dict.get(&#39;cookies&#39;, {})
+        body = scrape_config_dict.get(&#39;body&#39;, None)
+        data = scrape_config_dict.get(&#39;data&#39;, None)
+        headers = scrape_config_dict.get(&#39;headers&#39;, {})
+        js = scrape_config_dict.get(&#39;js&#39;, None)
+        rendering_wait = scrape_config_dict.get(&#39;rendering_wait&#39;, None)
+        wait_for_selector = scrape_config_dict.get(&#39;wait_for_selector&#39;, None)
+        screenshots = scrape_config_dict.get(&#39;screenshots&#39;, [])
+        
+        screenshot_flags = scrape_config_dict.get(&#39;screenshot_flags&#39;, [])
+        screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
+
+        session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, False)
+        webhook = scrape_config_dict.get(&#39;webhook&#39;, None)
+        timeout = scrape_config_dict.get(&#39;timeout&#39;, None)
+        js_scenario = scrape_config_dict.get(&#39;js_scenario&#39;, None)
+        extract = scrape_config_dict.get(&#39;extract&#39;, None)
+        os = scrape_config_dict.get(&#39;os&#39;, None)
+        lang = scrape_config_dict.get(&#39;lang&#39;, None)
+        auto_scroll = scrape_config_dict.get(&#39;auto_scroll&#39;, None)
+        cost_budget = scrape_config_dict.get(&#39;cost_budget&#39;, None)
+
+        return ScrapeConfig(
+            url=url,
+            retry=retry,
+            method=method,
+            country=country,
+            render_js=render_js,
+            cache=cache,
+            cache_clear=cache_clear,
+            ssl=ssl,
+            dns=dns,
+            asp=asp,
+            debug=debug,
+            raise_on_upstream_error=raise_on_upstream_error,
+            cache_ttl=cache_ttl,
+            proxy_pool=proxy_pool,
+            session=session,
+            tags=tags,
+            format=format,
+            format_options=format_options,
+            extraction_template=extraction_template,
+            extraction_ephemeral_template=extraction_ephemeral_template,
+            extraction_prompt=extraction_prompt,
+            extraction_model=extraction_model,
+            correlation_id=correlation_id,
+            cookies=cookies,
+            body=body,
+            data=data,
+            headers=headers,
+            js=js,
+            rendering_wait=rendering_wait,
+            wait_for_selector=wait_for_selector,
+            screenshots=screenshots,
+            screenshot_flags=screenshot_flags,
+            session_sticky_proxy=session_sticky_proxy,
+            webhook=webhook,
+            timeout=timeout,
+            js_scenario=js_scenario,
+            extract=extract,
+            os=os,
+            lang=lang,
+            auto_scroll=auto_scroll,
+            cost_budget=cost_budget,
         )</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -2510,6 +2866,113 @@ def upstream_status_code(self) -&gt; Optional[int]:
 </dl>
 <h3>Static methods</h3>
 <dl>
+<dt id="scrapfly.ScrapeConfig.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>scrape_config_dict: Dict) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a ScrapeConfig instance from a dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
+    &#34;&#34;&#34;Create a ScrapeConfig instance from a dictionary.&#34;&#34;&#34;
+    url = scrape_config_dict.get(&#39;url&#39;, None)
+    retry = scrape_config_dict.get(&#39;retry&#39;, False)
+    method = scrape_config_dict.get(&#39;method&#39;, &#39;GET&#39;)
+    country = scrape_config_dict.get(&#39;country&#39;, None)
+    render_js = scrape_config_dict.get(&#39;render_js&#39;, False)
+    cache = scrape_config_dict.get(&#39;cache&#39;, False)
+    cache_clear = scrape_config_dict.get(&#39;cache_clear&#39;, False)
+    ssl = scrape_config_dict.get(&#39;ssl&#39;, False)
+    dns = scrape_config_dict.get(&#39;dns&#39;, False)
+    asp = scrape_config_dict.get(&#39;asp&#39;, False)
+    debug = scrape_config_dict.get(&#39;debug&#39;, False)
+    raise_on_upstream_error = scrape_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+    cache_ttl = scrape_config_dict.get(&#39;cache_ttl&#39;, None)
+    proxy_pool = scrape_config_dict.get(&#39;proxy_pool&#39;, None)
+    session = scrape_config_dict.get(&#39;session&#39;, None)
+    tags = scrape_config_dict.get(&#39;tags&#39;, [])
+
+    format = scrape_config_dict.get(&#39;format&#39;, None)
+    format = Format(format) if format else None
+
+    format_options = scrape_config_dict.get(&#39;format_options&#39;, None)
+    format_options = [FormatOption(option) for option in format_options] if format_options else None
+
+    extraction_template = scrape_config_dict.get(&#39;extraction_template&#39;, None)
+    extraction_ephemeral_template = scrape_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+    extraction_prompt = scrape_config_dict.get(&#39;extraction_prompt&#39;, None)
+    extraction_model = scrape_config_dict.get(&#39;extraction_model&#39;, None)
+    correlation_id = scrape_config_dict.get(&#39;correlation_id&#39;, None)
+    cookies = scrape_config_dict.get(&#39;cookies&#39;, {})
+    body = scrape_config_dict.get(&#39;body&#39;, None)
+    data = scrape_config_dict.get(&#39;data&#39;, None)
+    headers = scrape_config_dict.get(&#39;headers&#39;, {})
+    js = scrape_config_dict.get(&#39;js&#39;, None)
+    rendering_wait = scrape_config_dict.get(&#39;rendering_wait&#39;, None)
+    wait_for_selector = scrape_config_dict.get(&#39;wait_for_selector&#39;, None)
+    screenshots = scrape_config_dict.get(&#39;screenshots&#39;, [])
+    
+    screenshot_flags = scrape_config_dict.get(&#39;screenshot_flags&#39;, [])
+    screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
+
+    session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, False)
+    webhook = scrape_config_dict.get(&#39;webhook&#39;, None)
+    timeout = scrape_config_dict.get(&#39;timeout&#39;, None)
+    js_scenario = scrape_config_dict.get(&#39;js_scenario&#39;, None)
+    extract = scrape_config_dict.get(&#39;extract&#39;, None)
+    os = scrape_config_dict.get(&#39;os&#39;, None)
+    lang = scrape_config_dict.get(&#39;lang&#39;, None)
+    auto_scroll = scrape_config_dict.get(&#39;auto_scroll&#39;, None)
+    cost_budget = scrape_config_dict.get(&#39;cost_budget&#39;, None)
+
+    return ScrapeConfig(
+        url=url,
+        retry=retry,
+        method=method,
+        country=country,
+        render_js=render_js,
+        cache=cache,
+        cache_clear=cache_clear,
+        ssl=ssl,
+        dns=dns,
+        asp=asp,
+        debug=debug,
+        raise_on_upstream_error=raise_on_upstream_error,
+        cache_ttl=cache_ttl,
+        proxy_pool=proxy_pool,
+        session=session,
+        tags=tags,
+        format=format,
+        format_options=format_options,
+        extraction_template=extraction_template,
+        extraction_ephemeral_template=extraction_ephemeral_template,
+        extraction_prompt=extraction_prompt,
+        extraction_model=extraction_model,
+        correlation_id=correlation_id,
+        cookies=cookies,
+        body=body,
+        data=data,
+        headers=headers,
+        js=js,
+        rendering_wait=rendering_wait,
+        wait_for_selector=wait_for_selector,
+        screenshots=screenshots,
+        screenshot_flags=screenshot_flags,
+        session_sticky_proxy=session_sticky_proxy,
+        webhook=webhook,
+        timeout=timeout,
+        js_scenario=js_scenario,
+        extract=extract,
+        os=os,
+        lang=lang,
+        auto_scroll=auto_scroll,
+        cost_budget=cost_budget,
+    )</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.ScrapeConfig.from_exported_config"><code class="name flex">
 <span>def <span class="ident">from_exported_config</span></span>(<span>config: str) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
 </code></dt>
@@ -2723,6 +3186,67 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         params[&#39;os&#39;] = self.os
 
     return params</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScrapeConfig.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Export the ScrapeConfig instance to a plain dictionary.
+Useful for JSON-serialization or other external storage.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    Export the ScrapeConfig instance to a plain dictionary. 
+    Useful for JSON-serialization or other external storage.
+    &#34;&#34;&#34;
+    
+    return {
+        &#39;url&#39;: self.url,
+        &#39;retry&#39;: self.retry,
+        &#39;method&#39;: self.method,
+        &#39;country&#39;: self.country,
+        &#39;render_js&#39;: self.render_js,
+        &#39;cache&#39;: self.cache,
+        &#39;cache_clear&#39;: self.cache_clear,
+        &#39;ssl&#39;: self.ssl,
+        &#39;dns&#39;: self.dns,
+        &#39;asp&#39;: self.asp,
+        &#39;debug&#39;: self.debug,
+        &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+        &#39;cache_ttl&#39;: self.cache_ttl,
+        &#39;proxy_pool&#39;: self.proxy_pool,
+        &#39;session&#39;: self.session,
+        &#39;tags&#39;: list(self.tags),
+        &#39;format&#39;: Format(self.format).value if self.format else None,
+        &#39;format_options&#39;: [FormatOption(option).value for option in self.format_options] if self.format_options else None,
+        &#39;extraction_template&#39;: self.extraction_template,
+        &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+        &#39;extraction_prompt&#39;: self.extraction_prompt,
+        &#39;extraction_model&#39;: self.extraction_model,
+        &#39;correlation_id&#39;: self.correlation_id,
+        &#39;cookies&#39;: CaseInsensitiveDict(self.cookies),
+        &#39;body&#39;: self.body,
+        &#39;data&#39;: None if self.body else self.data,
+        &#39;headers&#39;: CaseInsensitiveDict(self.headers),
+        &#39;js&#39;: self.js,
+        &#39;rendering_wait&#39;: self.rendering_wait,
+        &#39;wait_for_selector&#39;: self.wait_for_selector,
+        &#39;session_sticky_proxy&#39;: self.session_sticky_proxy,
+        &#39;screenshots&#39;: self.screenshots,
+        &#39;screenshot_flags&#39;: [ScreenshotFlag(flag).value for flag in self.screenshot_flags] if self.screenshot_flags else None,
+        &#39;webhook&#39;: self.webhook,
+        &#39;timeout&#39;: self.timeout,
+        &#39;js_scenario&#39;: self.js_scenario,
+        &#39;extract&#39;: self.extract,
+        &#39;lang&#39;: self.lang,
+        &#39;os&#39;: self.os,
+        &#39;auto_scroll&#39;: self.auto_scroll,
+        &#39;cost_budget&#39;: self.cost_budget,
+    }</code></pre>
 </details>
 </dd>
 </dl>
@@ -4955,7 +5479,75 @@ def screenshot_success(self) -&gt; bool:
         if self.webhook is not None:
             params[&#39;webhook_name&#39;] = self.webhook
 
-        return params</code></pre>
+        return params
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ScreenshotConfig instance to a plain dictionary.
+        &#34;&#34;&#34;
+        return {
+            &#39;url&#39;: self.url,
+            &#39;format&#39;: Format(self.format).value if self.format else None,
+            &#39;capture&#39;: self.capture,
+            &#39;resolution&#39;: self.resolution,
+            &#39;country&#39;: self.country,
+            &#39;timeout&#39;: self.timeout,
+            &#39;rendering_wait&#39;: self.rendering_wait,
+            &#39;wait_for_selector&#39;: self.wait_for_selector,
+            &#39;options&#39;: [Options(option).value for option in self.options] if self.options else None,
+            &#39;auto_scroll&#39;: self.auto_scroll,
+            &#39;js&#39;: self.js,
+            &#39;cache&#39;: self.cache,
+            &#39;cache_ttl&#39;: self.cache_ttl,
+            &#39;cache_clear&#39;: self.cache_clear,
+            &#39;webhook&#39;: self.webhook,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error
+        }
+    
+    @staticmethod
+    def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
+        &#34;&#34;&#34;Create a ScreenshotConfig instance from a dictionary.&#34;&#34;&#34;
+        url = screenshot_config_dict.get(&#39;url&#39;, None)
+
+        format = screenshot_config_dict.get(&#39;format&#39;, None)
+        format = Format(format) if format else None
+
+        capture = screenshot_config_dict.get(&#39;capture&#39;, None)
+        resolution = screenshot_config_dict.get(&#39;resolution&#39;, None)
+        country = screenshot_config_dict.get(&#39;country&#39;, None)
+        timeout = screenshot_config_dict.get(&#39;timeout&#39;, None)
+        rendering_wait = screenshot_config_dict.get(&#39;rendering_wait&#39;, None)
+        wait_for_selector = screenshot_config_dict.get(&#39;wait_for_selector&#39;, None)
+
+        options = screenshot_config_dict.get(&#39;options&#39;, None)
+        options = [Options(option) for option in options] if options else None
+
+        auto_scroll = screenshot_config_dict.get(&#39;auto_scroll&#39;, None)
+        js = screenshot_config_dict.get(&#39;js&#39;, None)
+        cache = screenshot_config_dict.get(&#39;cache&#39;, None)
+        cache_ttl = screenshot_config_dict.get(&#39;cache_ttl&#39;, None)
+        cache_clear = screenshot_config_dict.get(&#39;cache_clear&#39;, None)
+        webhook = screenshot_config_dict.get(&#39;webhook&#39;, None)
+        raise_on_upstream_error = screenshot_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+        return ScreenshotConfig(
+            url=url,
+            format=format,
+            capture=capture,
+            resolution=resolution,
+            country=country,
+            timeout=timeout,
+            rendering_wait=rendering_wait,
+            wait_for_selector=wait_for_selector,
+            options=options,
+            auto_scroll=auto_scroll,
+            js=js,
+            cache=cache,
+            cache_ttl=cache_ttl,
+            cache_clear=cache_clear,
+            webhook=webhook,
+            raise_on_upstream_error=raise_on_upstream_error
+        )</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -5028,6 +5620,64 @@ def screenshot_success(self) -&gt; bool:
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.ScreenshotConfig.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>screenshot_config_dict: Dict) ‑> <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a ScreenshotConfig instance from a dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
+    &#34;&#34;&#34;Create a ScreenshotConfig instance from a dictionary.&#34;&#34;&#34;
+    url = screenshot_config_dict.get(&#39;url&#39;, None)
+
+    format = screenshot_config_dict.get(&#39;format&#39;, None)
+    format = Format(format) if format else None
+
+    capture = screenshot_config_dict.get(&#39;capture&#39;, None)
+    resolution = screenshot_config_dict.get(&#39;resolution&#39;, None)
+    country = screenshot_config_dict.get(&#39;country&#39;, None)
+    timeout = screenshot_config_dict.get(&#39;timeout&#39;, None)
+    rendering_wait = screenshot_config_dict.get(&#39;rendering_wait&#39;, None)
+    wait_for_selector = screenshot_config_dict.get(&#39;wait_for_selector&#39;, None)
+
+    options = screenshot_config_dict.get(&#39;options&#39;, None)
+    options = [Options(option) for option in options] if options else None
+
+    auto_scroll = screenshot_config_dict.get(&#39;auto_scroll&#39;, None)
+    js = screenshot_config_dict.get(&#39;js&#39;, None)
+    cache = screenshot_config_dict.get(&#39;cache&#39;, None)
+    cache_ttl = screenshot_config_dict.get(&#39;cache_ttl&#39;, None)
+    cache_clear = screenshot_config_dict.get(&#39;cache_clear&#39;, None)
+    webhook = screenshot_config_dict.get(&#39;webhook&#39;, None)
+    raise_on_upstream_error = screenshot_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+    return ScreenshotConfig(
+        url=url,
+        format=format,
+        capture=capture,
+        resolution=resolution,
+        country=country,
+        timeout=timeout,
+        rendering_wait=rendering_wait,
+        wait_for_selector=wait_for_selector,
+        options=options,
+        auto_scroll=auto_scroll,
+        js=js,
+        cache=cache,
+        cache_ttl=cache_ttl,
+        cache_clear=cache_clear,
+        webhook=webhook,
+        raise_on_upstream_error=raise_on_upstream_error
+    )</code></pre>
+</details>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.ScreenshotConfig.to_api_params"><code class="name flex">
@@ -5095,6 +5745,39 @@ def screenshot_success(self) -&gt; bool:
         params[&#39;webhook_name&#39;] = self.webhook
 
     return params</code></pre>
+</details>
+</dd>
+<dt id="scrapfly.ScreenshotConfig.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Export the ScreenshotConfig instance to a plain dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    Export the ScreenshotConfig instance to a plain dictionary.
+    &#34;&#34;&#34;
+    return {
+        &#39;url&#39;: self.url,
+        &#39;format&#39;: Format(self.format).value if self.format else None,
+        &#39;capture&#39;: self.capture,
+        &#39;resolution&#39;: self.resolution,
+        &#39;country&#39;: self.country,
+        &#39;timeout&#39;: self.timeout,
+        &#39;rendering_wait&#39;: self.rendering_wait,
+        &#39;wait_for_selector&#39;: self.wait_for_selector,
+        &#39;options&#39;: [Options(option).value for option in self.options] if self.options else None,
+        &#39;auto_scroll&#39;: self.auto_scroll,
+        &#39;js&#39;: self.js,
+        &#39;cache&#39;: self.cache,
+        &#39;cache_ttl&#39;: self.cache_ttl,
+        &#39;cache_clear&#39;: self.cache_clear,
+        &#39;webhook&#39;: self.webhook,
+        &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error
+    }</code></pre>
 </details>
 </dd>
 </dl>
@@ -5244,10 +5927,12 @@ def screenshot_success(self) -&gt; bool:
 <li><code><a title="scrapfly.ExtractionConfig.extraction_model" href="#scrapfly.ExtractionConfig.extraction_model">extraction_model</a></code></li>
 <li><code><a title="scrapfly.ExtractionConfig.extraction_prompt" href="#scrapfly.ExtractionConfig.extraction_prompt">extraction_prompt</a></code></li>
 <li><code><a title="scrapfly.ExtractionConfig.extraction_template" href="#scrapfly.ExtractionConfig.extraction_template">extraction_template</a></code></li>
+<li><code><a title="scrapfly.ExtractionConfig.from_dict" href="#scrapfly.ExtractionConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.ExtractionConfig.is_document_compressed" href="#scrapfly.ExtractionConfig.is_document_compressed">is_document_compressed</a></code></li>
 <li><code><a title="scrapfly.ExtractionConfig.raise_on_upstream_error" href="#scrapfly.ExtractionConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
 <li><code><a title="scrapfly.ExtractionConfig.template" href="#scrapfly.ExtractionConfig.template">template</a></code></li>
 <li><code><a title="scrapfly.ExtractionConfig.to_api_params" href="#scrapfly.ExtractionConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.ExtractionConfig.to_dict" href="#scrapfly.ExtractionConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.ExtractionConfig.url" href="#scrapfly.ExtractionConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.ExtractionConfig.webhook" href="#scrapfly.ExtractionConfig.webhook">webhook</a></code></li>
 </ul>
@@ -5312,6 +5997,7 @@ def screenshot_success(self) -&gt; bool:
 <li><code><a title="scrapfly.ScrapeConfig.extraction_template" href="#scrapfly.ScrapeConfig.extraction_template">extraction_template</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.format" href="#scrapfly.ScrapeConfig.format">format</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.format_options" href="#scrapfly.ScrapeConfig.format_options">format_options</a></code></li>
+<li><code><a title="scrapfly.ScrapeConfig.from_dict" href="#scrapfly.ScrapeConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.from_exported_config" href="#scrapfly.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.headers" href="#scrapfly.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.js" href="#scrapfly.ScrapeConfig.js">js</a></code></li>
@@ -5332,6 +6018,7 @@ def screenshot_success(self) -&gt; bool:
 <li><code><a title="scrapfly.ScrapeConfig.tags" href="#scrapfly.ScrapeConfig.tags">tags</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.timeout" href="#scrapfly.ScrapeConfig.timeout">timeout</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.to_api_params" href="#scrapfly.ScrapeConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.ScrapeConfig.to_dict" href="#scrapfly.ScrapeConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.url" href="#scrapfly.ScrapeConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.wait_for_selector" href="#scrapfly.ScrapeConfig.wait_for_selector">wait_for_selector</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.webhook" href="#scrapfly.ScrapeConfig.webhook">webhook</a></code></li>
@@ -5458,6 +6145,7 @@ def screenshot_success(self) -&gt; bool:
 <li><code><a title="scrapfly.ScreenshotConfig.capture" href="#scrapfly.ScreenshotConfig.capture">capture</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.country" href="#scrapfly.ScreenshotConfig.country">country</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.format" href="#scrapfly.ScreenshotConfig.format">format</a></code></li>
+<li><code><a title="scrapfly.ScreenshotConfig.from_dict" href="#scrapfly.ScreenshotConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.js" href="#scrapfly.ScreenshotConfig.js">js</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.options" href="#scrapfly.ScreenshotConfig.options">options</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.raise_on_upstream_error" href="#scrapfly.ScreenshotConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
@@ -5465,6 +6153,7 @@ def screenshot_success(self) -&gt; bool:
 <li><code><a title="scrapfly.ScreenshotConfig.resolution" href="#scrapfly.ScreenshotConfig.resolution">resolution</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.timeout" href="#scrapfly.ScreenshotConfig.timeout">timeout</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.to_api_params" href="#scrapfly.ScreenshotConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.ScreenshotConfig.to_dict" href="#scrapfly.ScreenshotConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.url" href="#scrapfly.ScreenshotConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.wait_for_selector" href="#scrapfly.ScreenshotConfig.wait_for_selector">wait_for_selector</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.webhook" href="#scrapfly.ScreenshotConfig.webhook">webhook</a></code></li>

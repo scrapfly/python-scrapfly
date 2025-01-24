@@ -450,6 +450,153 @@ class ScrapeConfig(BaseApiConfig):
             proxy_pool=data[&#39;proxy_pool&#39;],
             auto_scroll=data[&#39;auto_scroll&#39;],
             cost_budget=data[&#39;cost_budget&#39;]
+        )
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ScrapeConfig instance to a plain dictionary. 
+        Useful for JSON-serialization or other external storage.
+        &#34;&#34;&#34;
+        
+        return {
+            &#39;url&#39;: self.url,
+            &#39;retry&#39;: self.retry,
+            &#39;method&#39;: self.method,
+            &#39;country&#39;: self.country,
+            &#39;render_js&#39;: self.render_js,
+            &#39;cache&#39;: self.cache,
+            &#39;cache_clear&#39;: self.cache_clear,
+            &#39;ssl&#39;: self.ssl,
+            &#39;dns&#39;: self.dns,
+            &#39;asp&#39;: self.asp,
+            &#39;debug&#39;: self.debug,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+            &#39;cache_ttl&#39;: self.cache_ttl,
+            &#39;proxy_pool&#39;: self.proxy_pool,
+            &#39;session&#39;: self.session,
+            &#39;tags&#39;: list(self.tags),
+            &#39;format&#39;: Format(self.format).value if self.format else None,
+            &#39;format_options&#39;: [FormatOption(option).value for option in self.format_options] if self.format_options else None,
+            &#39;extraction_template&#39;: self.extraction_template,
+            &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+            &#39;extraction_prompt&#39;: self.extraction_prompt,
+            &#39;extraction_model&#39;: self.extraction_model,
+            &#39;correlation_id&#39;: self.correlation_id,
+            &#39;cookies&#39;: CaseInsensitiveDict(self.cookies),
+            &#39;body&#39;: self.body,
+            &#39;data&#39;: None if self.body else self.data,
+            &#39;headers&#39;: CaseInsensitiveDict(self.headers),
+            &#39;js&#39;: self.js,
+            &#39;rendering_wait&#39;: self.rendering_wait,
+            &#39;wait_for_selector&#39;: self.wait_for_selector,
+            &#39;session_sticky_proxy&#39;: self.session_sticky_proxy,
+            &#39;screenshots&#39;: self.screenshots,
+            &#39;screenshot_flags&#39;: [ScreenshotFlag(flag).value for flag in self.screenshot_flags] if self.screenshot_flags else None,
+            &#39;webhook&#39;: self.webhook,
+            &#39;timeout&#39;: self.timeout,
+            &#39;js_scenario&#39;: self.js_scenario,
+            &#39;extract&#39;: self.extract,
+            &#39;lang&#39;: self.lang,
+            &#39;os&#39;: self.os,
+            &#39;auto_scroll&#39;: self.auto_scroll,
+            &#39;cost_budget&#39;: self.cost_budget,
+        }
+
+    @staticmethod
+    def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
+        &#34;&#34;&#34;Create a ScrapeConfig instance from a dictionary.&#34;&#34;&#34;
+        url = scrape_config_dict.get(&#39;url&#39;, None)
+        retry = scrape_config_dict.get(&#39;retry&#39;, False)
+        method = scrape_config_dict.get(&#39;method&#39;, &#39;GET&#39;)
+        country = scrape_config_dict.get(&#39;country&#39;, None)
+        render_js = scrape_config_dict.get(&#39;render_js&#39;, False)
+        cache = scrape_config_dict.get(&#39;cache&#39;, False)
+        cache_clear = scrape_config_dict.get(&#39;cache_clear&#39;, False)
+        ssl = scrape_config_dict.get(&#39;ssl&#39;, False)
+        dns = scrape_config_dict.get(&#39;dns&#39;, False)
+        asp = scrape_config_dict.get(&#39;asp&#39;, False)
+        debug = scrape_config_dict.get(&#39;debug&#39;, False)
+        raise_on_upstream_error = scrape_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+        cache_ttl = scrape_config_dict.get(&#39;cache_ttl&#39;, None)
+        proxy_pool = scrape_config_dict.get(&#39;proxy_pool&#39;, None)
+        session = scrape_config_dict.get(&#39;session&#39;, None)
+        tags = scrape_config_dict.get(&#39;tags&#39;, [])
+
+        format = scrape_config_dict.get(&#39;format&#39;, None)
+        format = Format(format) if format else None
+
+        format_options = scrape_config_dict.get(&#39;format_options&#39;, None)
+        format_options = [FormatOption(option) for option in format_options] if format_options else None
+
+        extraction_template = scrape_config_dict.get(&#39;extraction_template&#39;, None)
+        extraction_ephemeral_template = scrape_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+        extraction_prompt = scrape_config_dict.get(&#39;extraction_prompt&#39;, None)
+        extraction_model = scrape_config_dict.get(&#39;extraction_model&#39;, None)
+        correlation_id = scrape_config_dict.get(&#39;correlation_id&#39;, None)
+        cookies = scrape_config_dict.get(&#39;cookies&#39;, {})
+        body = scrape_config_dict.get(&#39;body&#39;, None)
+        data = scrape_config_dict.get(&#39;data&#39;, None)
+        headers = scrape_config_dict.get(&#39;headers&#39;, {})
+        js = scrape_config_dict.get(&#39;js&#39;, None)
+        rendering_wait = scrape_config_dict.get(&#39;rendering_wait&#39;, None)
+        wait_for_selector = scrape_config_dict.get(&#39;wait_for_selector&#39;, None)
+        screenshots = scrape_config_dict.get(&#39;screenshots&#39;, [])
+        
+        screenshot_flags = scrape_config_dict.get(&#39;screenshot_flags&#39;, [])
+        screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
+
+        session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, False)
+        webhook = scrape_config_dict.get(&#39;webhook&#39;, None)
+        timeout = scrape_config_dict.get(&#39;timeout&#39;, None)
+        js_scenario = scrape_config_dict.get(&#39;js_scenario&#39;, None)
+        extract = scrape_config_dict.get(&#39;extract&#39;, None)
+        os = scrape_config_dict.get(&#39;os&#39;, None)
+        lang = scrape_config_dict.get(&#39;lang&#39;, None)
+        auto_scroll = scrape_config_dict.get(&#39;auto_scroll&#39;, None)
+        cost_budget = scrape_config_dict.get(&#39;cost_budget&#39;, None)
+
+        return ScrapeConfig(
+            url=url,
+            retry=retry,
+            method=method,
+            country=country,
+            render_js=render_js,
+            cache=cache,
+            cache_clear=cache_clear,
+            ssl=ssl,
+            dns=dns,
+            asp=asp,
+            debug=debug,
+            raise_on_upstream_error=raise_on_upstream_error,
+            cache_ttl=cache_ttl,
+            proxy_pool=proxy_pool,
+            session=session,
+            tags=tags,
+            format=format,
+            format_options=format_options,
+            extraction_template=extraction_template,
+            extraction_ephemeral_template=extraction_ephemeral_template,
+            extraction_prompt=extraction_prompt,
+            extraction_model=extraction_model,
+            correlation_id=correlation_id,
+            cookies=cookies,
+            body=body,
+            data=data,
+            headers=headers,
+            js=js,
+            rendering_wait=rendering_wait,
+            wait_for_selector=wait_for_selector,
+            screenshots=screenshots,
+            screenshot_flags=screenshot_flags,
+            session_sticky_proxy=session_sticky_proxy,
+            webhook=webhook,
+            timeout=timeout,
+            js_scenario=js_scenario,
+            extract=extract,
+            os=os,
+            lang=lang,
+            auto_scroll=auto_scroll,
+            cost_budget=cost_budget,
         )</code></pre>
 </details>
 </section>
@@ -941,6 +1088,153 @@ class ScrapeConfig(BaseApiConfig):
             proxy_pool=data[&#39;proxy_pool&#39;],
             auto_scroll=data[&#39;auto_scroll&#39;],
             cost_budget=data[&#39;cost_budget&#39;]
+        )
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ScrapeConfig instance to a plain dictionary. 
+        Useful for JSON-serialization or other external storage.
+        &#34;&#34;&#34;
+        
+        return {
+            &#39;url&#39;: self.url,
+            &#39;retry&#39;: self.retry,
+            &#39;method&#39;: self.method,
+            &#39;country&#39;: self.country,
+            &#39;render_js&#39;: self.render_js,
+            &#39;cache&#39;: self.cache,
+            &#39;cache_clear&#39;: self.cache_clear,
+            &#39;ssl&#39;: self.ssl,
+            &#39;dns&#39;: self.dns,
+            &#39;asp&#39;: self.asp,
+            &#39;debug&#39;: self.debug,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+            &#39;cache_ttl&#39;: self.cache_ttl,
+            &#39;proxy_pool&#39;: self.proxy_pool,
+            &#39;session&#39;: self.session,
+            &#39;tags&#39;: list(self.tags),
+            &#39;format&#39;: Format(self.format).value if self.format else None,
+            &#39;format_options&#39;: [FormatOption(option).value for option in self.format_options] if self.format_options else None,
+            &#39;extraction_template&#39;: self.extraction_template,
+            &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+            &#39;extraction_prompt&#39;: self.extraction_prompt,
+            &#39;extraction_model&#39;: self.extraction_model,
+            &#39;correlation_id&#39;: self.correlation_id,
+            &#39;cookies&#39;: CaseInsensitiveDict(self.cookies),
+            &#39;body&#39;: self.body,
+            &#39;data&#39;: None if self.body else self.data,
+            &#39;headers&#39;: CaseInsensitiveDict(self.headers),
+            &#39;js&#39;: self.js,
+            &#39;rendering_wait&#39;: self.rendering_wait,
+            &#39;wait_for_selector&#39;: self.wait_for_selector,
+            &#39;session_sticky_proxy&#39;: self.session_sticky_proxy,
+            &#39;screenshots&#39;: self.screenshots,
+            &#39;screenshot_flags&#39;: [ScreenshotFlag(flag).value for flag in self.screenshot_flags] if self.screenshot_flags else None,
+            &#39;webhook&#39;: self.webhook,
+            &#39;timeout&#39;: self.timeout,
+            &#39;js_scenario&#39;: self.js_scenario,
+            &#39;extract&#39;: self.extract,
+            &#39;lang&#39;: self.lang,
+            &#39;os&#39;: self.os,
+            &#39;auto_scroll&#39;: self.auto_scroll,
+            &#39;cost_budget&#39;: self.cost_budget,
+        }
+
+    @staticmethod
+    def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
+        &#34;&#34;&#34;Create a ScrapeConfig instance from a dictionary.&#34;&#34;&#34;
+        url = scrape_config_dict.get(&#39;url&#39;, None)
+        retry = scrape_config_dict.get(&#39;retry&#39;, False)
+        method = scrape_config_dict.get(&#39;method&#39;, &#39;GET&#39;)
+        country = scrape_config_dict.get(&#39;country&#39;, None)
+        render_js = scrape_config_dict.get(&#39;render_js&#39;, False)
+        cache = scrape_config_dict.get(&#39;cache&#39;, False)
+        cache_clear = scrape_config_dict.get(&#39;cache_clear&#39;, False)
+        ssl = scrape_config_dict.get(&#39;ssl&#39;, False)
+        dns = scrape_config_dict.get(&#39;dns&#39;, False)
+        asp = scrape_config_dict.get(&#39;asp&#39;, False)
+        debug = scrape_config_dict.get(&#39;debug&#39;, False)
+        raise_on_upstream_error = scrape_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+        cache_ttl = scrape_config_dict.get(&#39;cache_ttl&#39;, None)
+        proxy_pool = scrape_config_dict.get(&#39;proxy_pool&#39;, None)
+        session = scrape_config_dict.get(&#39;session&#39;, None)
+        tags = scrape_config_dict.get(&#39;tags&#39;, [])
+
+        format = scrape_config_dict.get(&#39;format&#39;, None)
+        format = Format(format) if format else None
+
+        format_options = scrape_config_dict.get(&#39;format_options&#39;, None)
+        format_options = [FormatOption(option) for option in format_options] if format_options else None
+
+        extraction_template = scrape_config_dict.get(&#39;extraction_template&#39;, None)
+        extraction_ephemeral_template = scrape_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+        extraction_prompt = scrape_config_dict.get(&#39;extraction_prompt&#39;, None)
+        extraction_model = scrape_config_dict.get(&#39;extraction_model&#39;, None)
+        correlation_id = scrape_config_dict.get(&#39;correlation_id&#39;, None)
+        cookies = scrape_config_dict.get(&#39;cookies&#39;, {})
+        body = scrape_config_dict.get(&#39;body&#39;, None)
+        data = scrape_config_dict.get(&#39;data&#39;, None)
+        headers = scrape_config_dict.get(&#39;headers&#39;, {})
+        js = scrape_config_dict.get(&#39;js&#39;, None)
+        rendering_wait = scrape_config_dict.get(&#39;rendering_wait&#39;, None)
+        wait_for_selector = scrape_config_dict.get(&#39;wait_for_selector&#39;, None)
+        screenshots = scrape_config_dict.get(&#39;screenshots&#39;, [])
+        
+        screenshot_flags = scrape_config_dict.get(&#39;screenshot_flags&#39;, [])
+        screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
+
+        session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, False)
+        webhook = scrape_config_dict.get(&#39;webhook&#39;, None)
+        timeout = scrape_config_dict.get(&#39;timeout&#39;, None)
+        js_scenario = scrape_config_dict.get(&#39;js_scenario&#39;, None)
+        extract = scrape_config_dict.get(&#39;extract&#39;, None)
+        os = scrape_config_dict.get(&#39;os&#39;, None)
+        lang = scrape_config_dict.get(&#39;lang&#39;, None)
+        auto_scroll = scrape_config_dict.get(&#39;auto_scroll&#39;, None)
+        cost_budget = scrape_config_dict.get(&#39;cost_budget&#39;, None)
+
+        return ScrapeConfig(
+            url=url,
+            retry=retry,
+            method=method,
+            country=country,
+            render_js=render_js,
+            cache=cache,
+            cache_clear=cache_clear,
+            ssl=ssl,
+            dns=dns,
+            asp=asp,
+            debug=debug,
+            raise_on_upstream_error=raise_on_upstream_error,
+            cache_ttl=cache_ttl,
+            proxy_pool=proxy_pool,
+            session=session,
+            tags=tags,
+            format=format,
+            format_options=format_options,
+            extraction_template=extraction_template,
+            extraction_ephemeral_template=extraction_ephemeral_template,
+            extraction_prompt=extraction_prompt,
+            extraction_model=extraction_model,
+            correlation_id=correlation_id,
+            cookies=cookies,
+            body=body,
+            data=data,
+            headers=headers,
+            js=js,
+            rendering_wait=rendering_wait,
+            wait_for_selector=wait_for_selector,
+            screenshots=screenshots,
+            screenshot_flags=screenshot_flags,
+            session_sticky_proxy=session_sticky_proxy,
+            webhook=webhook,
+            timeout=timeout,
+            js_scenario=js_scenario,
+            extract=extract,
+            os=os,
+            lang=lang,
+            auto_scroll=auto_scroll,
+            cost_budget=cost_budget,
         )</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -1124,6 +1418,113 @@ class ScrapeConfig(BaseApiConfig):
 </dl>
 <h3>Static methods</h3>
 <dl>
+<dt id="scrapfly.scrape_config.ScrapeConfig.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>scrape_config_dict: Dict) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a ScrapeConfig instance from a dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
+    &#34;&#34;&#34;Create a ScrapeConfig instance from a dictionary.&#34;&#34;&#34;
+    url = scrape_config_dict.get(&#39;url&#39;, None)
+    retry = scrape_config_dict.get(&#39;retry&#39;, False)
+    method = scrape_config_dict.get(&#39;method&#39;, &#39;GET&#39;)
+    country = scrape_config_dict.get(&#39;country&#39;, None)
+    render_js = scrape_config_dict.get(&#39;render_js&#39;, False)
+    cache = scrape_config_dict.get(&#39;cache&#39;, False)
+    cache_clear = scrape_config_dict.get(&#39;cache_clear&#39;, False)
+    ssl = scrape_config_dict.get(&#39;ssl&#39;, False)
+    dns = scrape_config_dict.get(&#39;dns&#39;, False)
+    asp = scrape_config_dict.get(&#39;asp&#39;, False)
+    debug = scrape_config_dict.get(&#39;debug&#39;, False)
+    raise_on_upstream_error = scrape_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+    cache_ttl = scrape_config_dict.get(&#39;cache_ttl&#39;, None)
+    proxy_pool = scrape_config_dict.get(&#39;proxy_pool&#39;, None)
+    session = scrape_config_dict.get(&#39;session&#39;, None)
+    tags = scrape_config_dict.get(&#39;tags&#39;, [])
+
+    format = scrape_config_dict.get(&#39;format&#39;, None)
+    format = Format(format) if format else None
+
+    format_options = scrape_config_dict.get(&#39;format_options&#39;, None)
+    format_options = [FormatOption(option) for option in format_options] if format_options else None
+
+    extraction_template = scrape_config_dict.get(&#39;extraction_template&#39;, None)
+    extraction_ephemeral_template = scrape_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+    extraction_prompt = scrape_config_dict.get(&#39;extraction_prompt&#39;, None)
+    extraction_model = scrape_config_dict.get(&#39;extraction_model&#39;, None)
+    correlation_id = scrape_config_dict.get(&#39;correlation_id&#39;, None)
+    cookies = scrape_config_dict.get(&#39;cookies&#39;, {})
+    body = scrape_config_dict.get(&#39;body&#39;, None)
+    data = scrape_config_dict.get(&#39;data&#39;, None)
+    headers = scrape_config_dict.get(&#39;headers&#39;, {})
+    js = scrape_config_dict.get(&#39;js&#39;, None)
+    rendering_wait = scrape_config_dict.get(&#39;rendering_wait&#39;, None)
+    wait_for_selector = scrape_config_dict.get(&#39;wait_for_selector&#39;, None)
+    screenshots = scrape_config_dict.get(&#39;screenshots&#39;, [])
+    
+    screenshot_flags = scrape_config_dict.get(&#39;screenshot_flags&#39;, [])
+    screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
+
+    session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, False)
+    webhook = scrape_config_dict.get(&#39;webhook&#39;, None)
+    timeout = scrape_config_dict.get(&#39;timeout&#39;, None)
+    js_scenario = scrape_config_dict.get(&#39;js_scenario&#39;, None)
+    extract = scrape_config_dict.get(&#39;extract&#39;, None)
+    os = scrape_config_dict.get(&#39;os&#39;, None)
+    lang = scrape_config_dict.get(&#39;lang&#39;, None)
+    auto_scroll = scrape_config_dict.get(&#39;auto_scroll&#39;, None)
+    cost_budget = scrape_config_dict.get(&#39;cost_budget&#39;, None)
+
+    return ScrapeConfig(
+        url=url,
+        retry=retry,
+        method=method,
+        country=country,
+        render_js=render_js,
+        cache=cache,
+        cache_clear=cache_clear,
+        ssl=ssl,
+        dns=dns,
+        asp=asp,
+        debug=debug,
+        raise_on_upstream_error=raise_on_upstream_error,
+        cache_ttl=cache_ttl,
+        proxy_pool=proxy_pool,
+        session=session,
+        tags=tags,
+        format=format,
+        format_options=format_options,
+        extraction_template=extraction_template,
+        extraction_ephemeral_template=extraction_ephemeral_template,
+        extraction_prompt=extraction_prompt,
+        extraction_model=extraction_model,
+        correlation_id=correlation_id,
+        cookies=cookies,
+        body=body,
+        data=data,
+        headers=headers,
+        js=js,
+        rendering_wait=rendering_wait,
+        wait_for_selector=wait_for_selector,
+        screenshots=screenshots,
+        screenshot_flags=screenshot_flags,
+        session_sticky_proxy=session_sticky_proxy,
+        webhook=webhook,
+        timeout=timeout,
+        js_scenario=js_scenario,
+        extract=extract,
+        os=os,
+        lang=lang,
+        auto_scroll=auto_scroll,
+        cost_budget=cost_budget,
+    )</code></pre>
+</details>
+</dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.from_exported_config"><code class="name flex">
 <span>def <span class="ident">from_exported_config</span></span>(<span>config: str) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
 </code></dt>
@@ -1339,6 +1740,67 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     return params</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Export the ScrapeConfig instance to a plain dictionary.
+Useful for JSON-serialization or other external storage.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    Export the ScrapeConfig instance to a plain dictionary. 
+    Useful for JSON-serialization or other external storage.
+    &#34;&#34;&#34;
+    
+    return {
+        &#39;url&#39;: self.url,
+        &#39;retry&#39;: self.retry,
+        &#39;method&#39;: self.method,
+        &#39;country&#39;: self.country,
+        &#39;render_js&#39;: self.render_js,
+        &#39;cache&#39;: self.cache,
+        &#39;cache_clear&#39;: self.cache_clear,
+        &#39;ssl&#39;: self.ssl,
+        &#39;dns&#39;: self.dns,
+        &#39;asp&#39;: self.asp,
+        &#39;debug&#39;: self.debug,
+        &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+        &#39;cache_ttl&#39;: self.cache_ttl,
+        &#39;proxy_pool&#39;: self.proxy_pool,
+        &#39;session&#39;: self.session,
+        &#39;tags&#39;: list(self.tags),
+        &#39;format&#39;: Format(self.format).value if self.format else None,
+        &#39;format_options&#39;: [FormatOption(option).value for option in self.format_options] if self.format_options else None,
+        &#39;extraction_template&#39;: self.extraction_template,
+        &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+        &#39;extraction_prompt&#39;: self.extraction_prompt,
+        &#39;extraction_model&#39;: self.extraction_model,
+        &#39;correlation_id&#39;: self.correlation_id,
+        &#39;cookies&#39;: CaseInsensitiveDict(self.cookies),
+        &#39;body&#39;: self.body,
+        &#39;data&#39;: None if self.body else self.data,
+        &#39;headers&#39;: CaseInsensitiveDict(self.headers),
+        &#39;js&#39;: self.js,
+        &#39;rendering_wait&#39;: self.rendering_wait,
+        &#39;wait_for_selector&#39;: self.wait_for_selector,
+        &#39;session_sticky_proxy&#39;: self.session_sticky_proxy,
+        &#39;screenshots&#39;: self.screenshots,
+        &#39;screenshot_flags&#39;: [ScreenshotFlag(flag).value for flag in self.screenshot_flags] if self.screenshot_flags else None,
+        &#39;webhook&#39;: self.webhook,
+        &#39;timeout&#39;: self.timeout,
+        &#39;js_scenario&#39;: self.js_scenario,
+        &#39;extract&#39;: self.extract,
+        &#39;lang&#39;: self.lang,
+        &#39;os&#39;: self.os,
+        &#39;auto_scroll&#39;: self.auto_scroll,
+        &#39;cost_budget&#39;: self.cost_budget,
+    }</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfigError"><code class="flex name class">
@@ -1484,6 +1946,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.extraction_template" href="#scrapfly.scrape_config.ScrapeConfig.extraction_template">extraction_template</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.format" href="#scrapfly.scrape_config.ScrapeConfig.format">format</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.format_options" href="#scrapfly.scrape_config.ScrapeConfig.format_options">format_options</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.from_dict" href="#scrapfly.scrape_config.ScrapeConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.from_exported_config" href="#scrapfly.scrape_config.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.headers" href="#scrapfly.scrape_config.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js" href="#scrapfly.scrape_config.ScrapeConfig.js">js</a></code></li>
@@ -1504,6 +1967,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.tags" href="#scrapfly.scrape_config.ScrapeConfig.tags">tags</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.timeout" href="#scrapfly.scrape_config.ScrapeConfig.timeout">timeout</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.to_api_params" href="#scrapfly.scrape_config.ScrapeConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.to_dict" href="#scrapfly.scrape_config.ScrapeConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.url" href="#scrapfly.scrape_config.ScrapeConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.wait_for_selector" href="#scrapfly.scrape_config.ScrapeConfig.wait_for_selector">wait_for_selector</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.webhook" href="#scrapfly.scrape_config.ScrapeConfig.webhook">webhook</a></code></li>

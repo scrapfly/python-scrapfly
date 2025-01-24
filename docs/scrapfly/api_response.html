@@ -477,8 +477,13 @@ class ScrapeApiResponse(ApiResponse):
 
             if content_format in [&#39;clob&#39;, &#39;blob&#39;]:
                 api_result[&#39;result&#39;][&#39;content&#39;], api_result[&#39;result&#39;][&#39;format&#39;] = self.large_object_handler(callback_url=api_result[&#39;result&#39;][&#39;content&#39;], format=content_format)
-            elif content_format == &#39;binary&#39; and isinstance(api_result[&#39;result&#39;][&#39;content&#39;], bytes):
-                api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+            elif content_format == &#39;binary&#39;:
+                base64_payload = api_result[&#39;result&#39;][&#39;content&#39;]
+
+                if isinstance(base64_payload, bytes):
+                    base64_payload = base64_payload.decode(&#39;utf-8&#39;)
+
+                api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(base64_payload))
 
         return FrozenDict(api_result)
 
@@ -1690,8 +1695,13 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
             if content_format in [&#39;clob&#39;, &#39;blob&#39;]:
                 api_result[&#39;result&#39;][&#39;content&#39;], api_result[&#39;result&#39;][&#39;format&#39;] = self.large_object_handler(callback_url=api_result[&#39;result&#39;][&#39;content&#39;], format=content_format)
-            elif content_format == &#39;binary&#39; and isinstance(api_result[&#39;result&#39;][&#39;content&#39;], bytes):
-                api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+            elif content_format == &#39;binary&#39;:
+                base64_payload = api_result[&#39;result&#39;][&#39;content&#39;]
+
+                if isinstance(base64_payload, bytes):
+                    base64_payload = base64_payload.decode(&#39;utf-8&#39;)
+
+                api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(base64_payload))
 
         return FrozenDict(api_result)
 
@@ -2099,8 +2109,13 @@ def upstream_status_code(self) -&gt; Optional[int]:
 
         if content_format in [&#39;clob&#39;, &#39;blob&#39;]:
             api_result[&#39;result&#39;][&#39;content&#39;], api_result[&#39;result&#39;][&#39;format&#39;] = self.large_object_handler(callback_url=api_result[&#39;result&#39;][&#39;content&#39;], format=content_format)
-        elif content_format == &#39;binary&#39; and isinstance(api_result[&#39;result&#39;][&#39;content&#39;], bytes):
-            api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(api_result[&#39;result&#39;][&#39;content&#39;]))
+        elif content_format == &#39;binary&#39;:
+            base64_payload = api_result[&#39;result&#39;][&#39;content&#39;]
+
+            if isinstance(base64_payload, bytes):
+                base64_payload = base64_payload.decode(&#39;utf-8&#39;)
+
+            api_result[&#39;result&#39;][&#39;content&#39;] = BytesIO(b64decode(base64_payload))
 
     return FrozenDict(api_result)</code></pre>
 </details>

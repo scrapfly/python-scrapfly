@@ -29,7 +29,7 @@
 <pre><code class="python">import json
 import warnings
 from enum import Enum
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 from urllib.parse import quote_plus
 from base64 import urlsafe_b64encode
 from .api_config import BaseApiConfig
@@ -42,6 +42,7 @@ class CompressionFormat(Enum):
     Attributes:
         GZIP: gzip format.
         ZSTD: zstd format.
+        DEFLATE: deflate format.
     &#34;&#34;&#34;
 
     GZIP = &#34;gzip&#34;
@@ -54,7 +55,7 @@ class ExtractionConfigError(Exception):
 
 
 class ExtractionConfig(BaseApiConfig):
-    body: str
+    body: Union[str, bytes]
     content_type: str
     url: Optional[str] = None
     charset: Optional[str] = None
@@ -73,7 +74,7 @@ class ExtractionConfig(BaseApiConfig):
 
     def __init__(
         self,
-        body: str,
+        body: Union[str, bytes],
         content_type: str,
         url: Optional[str] = None,
         charset: Optional[str] = None,
@@ -113,23 +114,51 @@ class ExtractionConfig(BaseApiConfig):
         self.extraction_prompt = extraction_prompt
         self.extraction_model = extraction_model
         self.is_document_compressed = is_document_compressed
-        self.document_compression_format = document_compression_format
+        self.document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
         self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
 
-        if self.document_compression_format is not None:
-            if self.is_document_compressed is None:
-                raise ExtractionConfigError(
-                    &#39;When declaring compression format, your must declare the is_document_compressed parameter to compress the document or skip it.&#39;
-                )
-            if self.is_document_compressed is False:
-                if self.document_compression_format == CompressionFormat.GZIP:
-                    import gzip
-                    self.body = gzip.compress(bytes(self.body, &#39;utf-8&#39;))
-                else:
+        if isinstance(body, bytes) or document_compression_format:
+            compression_format = detect_compression_format(body)
+
+            if compression_format is not None:
+                self.is_document_compressed = True
+
+                if self.document_compression_format and compression_format != self.document_compression_format:
                     raise ExtractionConfigError(
-                        f&#39;Auto compression for {self.document_compression_format.value} format is not available. You can manually compress to {self.document_compression_format.value} or choose the gzip format for auto compression.&#39;
+                        f&#39;The detected compression format `{compression_format}` does not match declared format `{self.document_compression_format}`. &#39;
+                        f&#39;You must pass the compression format or disable compression.&#39;
                     )
+                
+                self.document_compression_format = compression_format
+            
+            else:
+                self.is_document_compressed = False
+
+            if self.is_document_compressed is False:
+                compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
+                
+                if isinstance(self.body, str) and compression_foramt:
+                    self.body = self.body.encode(&#39;utf-8&#39;)
+
+                if compression_foramt == CompressionFormat.GZIP:
+                    import gzip
+                    self.body = gzip.compress(self.body)
+
+                elif compression_foramt == CompressionFormat.ZSTD:
+                    try:
+                        import zstandard as zstd
+                    except ImportError:
+                        raise ExtractionConfigError(
+                            f&#39;zstandard is not installed. You must run pip install zstandard&#39;
+                            f&#39; to auto compress into zstd or use compression formats.&#39;
+                        )
+                    self.body = zstd.compress(self.body)
+                
+                elif compression_foramt == CompressionFormat.DEFLATE:
+                    import zlib
+                    compressor = zlib.compressobj(wbits=-zlib.MAX_WBITS) # raw deflate compression
+                    self.body = compressor.compress(self.body) + compressor.flush()
 
     def to_api_params(self, key: str) -&gt; Dict:
         params = {
@@ -162,7 +191,122 @@ class ExtractionConfig(BaseApiConfig):
         if self.webhook:
             params[&#39;webhook_name&#39;] = self.webhook
 
-        return params</code></pre>
+        return params
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ExtractionConfig instance to a plain dictionary.
+        &#34;&#34;&#34;
+
+        if self.is_document_compressed is True:
+                compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
+
+                if compression_foramt == CompressionFormat.GZIP:
+                    import gzip
+                    self.body = gzip.decompress(self.body)
+                    
+                elif compression_foramt == CompressionFormat.ZSTD:
+                    import zstandard as zstd
+                    self.body = zstd.decompress(self.body)
+
+                elif compression_foramt == CompressionFormat.DEFLATE:
+                    import zlib
+                    decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
+                    self.body = decompressor.decompress(self.body) + decompressor.flush()
+
+                if isinstance(self.body, bytes):
+                    self.body = self.body.decode(&#39;utf-8&#39;)
+                    self.is_document_compressed = False
+
+        return {
+            &#39;body&#39;: self.body,
+            &#39;content_type&#39;: self.content_type,
+            &#39;url&#39;: self.url,
+            &#39;charset&#39;: self.charset,
+            &#39;extraction_template&#39;: self.extraction_template,
+            &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+            &#39;extraction_prompt&#39;: self.extraction_prompt,
+            &#39;extraction_model&#39;: self.extraction_model,
+            &#39;is_document_compressed&#39;: self.is_document_compressed,
+            &#39;document_compression_format&#39;: CompressionFormat(self.document_compression_format).value if self.document_compression_format else None,
+            &#39;webhook&#39;: self.webhook,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+        }
+    
+    @staticmethod
+    def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
+        &#34;&#34;&#34;Create an ExtractionConfig instance from a dictionary.&#34;&#34;&#34;
+        body = extraction_config_dict.get(&#39;body&#39;, None)
+        content_type = extraction_config_dict.get(&#39;content_type&#39;, None)
+        url = extraction_config_dict.get(&#39;url&#39;, None)
+        charset = extraction_config_dict.get(&#39;charset&#39;, None)
+        extraction_template = extraction_config_dict.get(&#39;extraction_template&#39;, None)
+        extraction_ephemeral_template = extraction_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+        extraction_prompt = extraction_config_dict.get(&#39;extraction_prompt&#39;, None)
+        extraction_model = extraction_config_dict.get(&#39;extraction_model&#39;, None)
+        is_document_compressed = extraction_config_dict.get(&#39;is_document_compressed&#39;, None)
+
+        document_compression_format = extraction_config_dict.get(&#39;document_compression_format&#39;, None)
+        document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
+        
+        webhook = extraction_config_dict.get(&#39;webhook&#39;, None)
+        raise_on_upstream_error = extraction_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+        return ExtractionConfig(
+            body=body,
+            content_type=content_type,
+            url=url,
+            charset=charset,
+            extraction_template=extraction_template,
+            extraction_ephemeral_template=extraction_ephemeral_template,
+            extraction_prompt=extraction_prompt,
+            extraction_model=extraction_model,
+            is_document_compressed=is_document_compressed,
+            document_compression_format=document_compression_format,
+            webhook=webhook,
+            raise_on_upstream_error=raise_on_upstream_error
+        )
+
+
+def detect_compression_format(data) -&gt; Optional[CompressionFormat]:
+    &#34;&#34;&#34;
+    Detects the compression type of the given data.
+
+    Args:
+        data: The compressed data as bytes.
+
+    Returns:
+        The name of the compression type (&#34;gzip&#34;, &#34;zstd&#34;, &#34;deflate&#34;, &#34;unknown&#34;).
+    &#34;&#34;&#34;
+
+    if len(data) &lt; 2:
+        return None
+
+    # gzip 
+    if data[0] == 0x1f and data[1] == 0x8b:
+        return CompressionFormat.GZIP
+
+    # zstd
+    zstd_magic_numbers = [
+        b&#39;\x1e\xb5\x2f\xfd&#39;,  # v0.1
+        b&#39;\x22\xb5\x2f\xfd&#39;,  # v0.2
+        b&#39;\x23\xb5\x2f\xfd&#39;,  # v0.3
+        b&#39;\x24\xb5\x2f\xfd&#39;,  # v0.4
+        b&#39;\x25\xb5\x2f\xfd&#39;,  # v0.5
+        b&#39;\x26\xb5\x2f\xfd&#39;,  # v0.6
+        b&#39;\x27\xb5\x2f\xfd&#39;,  # v0.7
+        b&#39;\x28\xb5\x2f\xfd&#39;,  # v0.8
+    ]
+    for magic in zstd_magic_numbers:
+        if data[:len(magic)] == magic:
+            return CompressionFormat.ZSTD
+
+    # deflate
+    if data[0] == 0x78:
+        if data[1] in (0x01, 0x5E, 0x9C, 0xDA):
+            return CompressionFormat.DEFLATE
+
+    return None</code></pre>
 </details>
 </section>
 <section>
@@ -170,6 +314,66 @@ class ExtractionConfig(BaseApiConfig):
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="scrapfly.extraction_config.detect_compression_format"><code class="name flex">
+<span>def <span class="ident">detect_compression_format</span></span>(<span>data) ‑> Optional[<a title="scrapfly.extraction_config.CompressionFormat" href="#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Detects the compression type of the given data.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>data</code></strong></dt>
+<dd>The compressed data as bytes.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>The name of the compression type ("gzip", "zstd", "deflate", "unknown").</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def detect_compression_format(data) -&gt; Optional[CompressionFormat]:
+    &#34;&#34;&#34;
+    Detects the compression type of the given data.
+
+    Args:
+        data: The compressed data as bytes.
+
+    Returns:
+        The name of the compression type (&#34;gzip&#34;, &#34;zstd&#34;, &#34;deflate&#34;, &#34;unknown&#34;).
+    &#34;&#34;&#34;
+
+    if len(data) &lt; 2:
+        return None
+
+    # gzip 
+    if data[0] == 0x1f and data[1] == 0x8b:
+        return CompressionFormat.GZIP
+
+    # zstd
+    zstd_magic_numbers = [
+        b&#39;\x1e\xb5\x2f\xfd&#39;,  # v0.1
+        b&#39;\x22\xb5\x2f\xfd&#39;,  # v0.2
+        b&#39;\x23\xb5\x2f\xfd&#39;,  # v0.3
+        b&#39;\x24\xb5\x2f\xfd&#39;,  # v0.4
+        b&#39;\x25\xb5\x2f\xfd&#39;,  # v0.5
+        b&#39;\x26\xb5\x2f\xfd&#39;,  # v0.6
+        b&#39;\x27\xb5\x2f\xfd&#39;,  # v0.7
+        b&#39;\x28\xb5\x2f\xfd&#39;,  # v0.8
+    ]
+    for magic in zstd_magic_numbers:
+        if data[:len(magic)] == magic:
+            return CompressionFormat.ZSTD
+
+    # deflate
+    if data[0] == 0x78:
+        if data[1] in (0x01, 0x5E, 0x9C, 0xDA):
+            return CompressionFormat.DEFLATE
+
+    return None</code></pre>
+</details>
+</dd>
+</dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
@@ -186,6 +390,8 @@ class ExtractionConfig(BaseApiConfig):
 <dd>gzip format.</dd>
 <dt><strong><code>ZSTD</code></strong></dt>
 <dd>zstd format.</dd>
+<dt><strong><code>DEFLATE</code></strong></dt>
+<dd>deflate format.</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -198,6 +404,7 @@ class ExtractionConfig(BaseApiConfig):
     Attributes:
         GZIP: gzip format.
         ZSTD: zstd format.
+        DEFLATE: deflate format.
     &#34;&#34;&#34;
 
     GZIP = &#34;gzip&#34;
@@ -226,7 +433,7 @@ class ExtractionConfig(BaseApiConfig):
 </dd>
 <dt id="scrapfly.extraction_config.ExtractionConfig"><code class="flex name class">
 <span>class <span class="ident">ExtractionConfig</span></span>
-<span>(</span><span>body: str, content_type: str, url: Optional[str] = None, charset: Optional[str] = None, extraction_template: Optional[str] = None, extraction_ephemeral_template: Optional[Dict] = None, extraction_prompt: Optional[str] = None, extraction_model: Optional[str] = None, is_document_compressed: Optional[bool] = None, document_compression_format: Optional[<a title="scrapfly.extraction_config.CompressionFormat" href="#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a>] = None, webhook: Optional[str] = None, raise_on_upstream_error: bool = True, template: Optional[str] = None, ephemeral_template: Optional[Dict] = None)</span>
+<span>(</span><span>body: Union[str, bytes], content_type: str, url: Optional[str] = None, charset: Optional[str] = None, extraction_template: Optional[str] = None, extraction_ephemeral_template: Optional[Dict] = None, extraction_prompt: Optional[str] = None, extraction_model: Optional[str] = None, is_document_compressed: Optional[bool] = None, document_compression_format: Optional[<a title="scrapfly.extraction_config.CompressionFormat" href="#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a>] = None, webhook: Optional[str] = None, raise_on_upstream_error: bool = True, template: Optional[str] = None, ephemeral_template: Optional[Dict] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -235,7 +442,7 @@ class ExtractionConfig(BaseApiConfig):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ExtractionConfig(BaseApiConfig):
-    body: str
+    body: Union[str, bytes]
     content_type: str
     url: Optional[str] = None
     charset: Optional[str] = None
@@ -254,7 +461,7 @@ class ExtractionConfig(BaseApiConfig):
 
     def __init__(
         self,
-        body: str,
+        body: Union[str, bytes],
         content_type: str,
         url: Optional[str] = None,
         charset: Optional[str] = None,
@@ -294,23 +501,51 @@ class ExtractionConfig(BaseApiConfig):
         self.extraction_prompt = extraction_prompt
         self.extraction_model = extraction_model
         self.is_document_compressed = is_document_compressed
-        self.document_compression_format = document_compression_format
+        self.document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
         self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
 
-        if self.document_compression_format is not None:
-            if self.is_document_compressed is None:
-                raise ExtractionConfigError(
-                    &#39;When declaring compression format, your must declare the is_document_compressed parameter to compress the document or skip it.&#39;
-                )
-            if self.is_document_compressed is False:
-                if self.document_compression_format == CompressionFormat.GZIP:
-                    import gzip
-                    self.body = gzip.compress(bytes(self.body, &#39;utf-8&#39;))
-                else:
+        if isinstance(body, bytes) or document_compression_format:
+            compression_format = detect_compression_format(body)
+
+            if compression_format is not None:
+                self.is_document_compressed = True
+
+                if self.document_compression_format and compression_format != self.document_compression_format:
                     raise ExtractionConfigError(
-                        f&#39;Auto compression for {self.document_compression_format.value} format is not available. You can manually compress to {self.document_compression_format.value} or choose the gzip format for auto compression.&#39;
+                        f&#39;The detected compression format `{compression_format}` does not match declared format `{self.document_compression_format}`. &#39;
+                        f&#39;You must pass the compression format or disable compression.&#39;
                     )
+                
+                self.document_compression_format = compression_format
+            
+            else:
+                self.is_document_compressed = False
+
+            if self.is_document_compressed is False:
+                compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
+                
+                if isinstance(self.body, str) and compression_foramt:
+                    self.body = self.body.encode(&#39;utf-8&#39;)
+
+                if compression_foramt == CompressionFormat.GZIP:
+                    import gzip
+                    self.body = gzip.compress(self.body)
+
+                elif compression_foramt == CompressionFormat.ZSTD:
+                    try:
+                        import zstandard as zstd
+                    except ImportError:
+                        raise ExtractionConfigError(
+                            f&#39;zstandard is not installed. You must run pip install zstandard&#39;
+                            f&#39; to auto compress into zstd or use compression formats.&#39;
+                        )
+                    self.body = zstd.compress(self.body)
+                
+                elif compression_foramt == CompressionFormat.DEFLATE:
+                    import zlib
+                    compressor = zlib.compressobj(wbits=-zlib.MAX_WBITS) # raw deflate compression
+                    self.body = compressor.compress(self.body) + compressor.flush()
 
     def to_api_params(self, key: str) -&gt; Dict:
         params = {
@@ -343,7 +578,81 @@ class ExtractionConfig(BaseApiConfig):
         if self.webhook:
             params[&#39;webhook_name&#39;] = self.webhook
 
-        return params</code></pre>
+        return params
+
+    def to_dict(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Export the ExtractionConfig instance to a plain dictionary.
+        &#34;&#34;&#34;
+
+        if self.is_document_compressed is True:
+                compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
+
+                if compression_foramt == CompressionFormat.GZIP:
+                    import gzip
+                    self.body = gzip.decompress(self.body)
+                    
+                elif compression_foramt == CompressionFormat.ZSTD:
+                    import zstandard as zstd
+                    self.body = zstd.decompress(self.body)
+
+                elif compression_foramt == CompressionFormat.DEFLATE:
+                    import zlib
+                    decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
+                    self.body = decompressor.decompress(self.body) + decompressor.flush()
+
+                if isinstance(self.body, bytes):
+                    self.body = self.body.decode(&#39;utf-8&#39;)
+                    self.is_document_compressed = False
+
+        return {
+            &#39;body&#39;: self.body,
+            &#39;content_type&#39;: self.content_type,
+            &#39;url&#39;: self.url,
+            &#39;charset&#39;: self.charset,
+            &#39;extraction_template&#39;: self.extraction_template,
+            &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+            &#39;extraction_prompt&#39;: self.extraction_prompt,
+            &#39;extraction_model&#39;: self.extraction_model,
+            &#39;is_document_compressed&#39;: self.is_document_compressed,
+            &#39;document_compression_format&#39;: CompressionFormat(self.document_compression_format).value if self.document_compression_format else None,
+            &#39;webhook&#39;: self.webhook,
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+        }
+    
+    @staticmethod
+    def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
+        &#34;&#34;&#34;Create an ExtractionConfig instance from a dictionary.&#34;&#34;&#34;
+        body = extraction_config_dict.get(&#39;body&#39;, None)
+        content_type = extraction_config_dict.get(&#39;content_type&#39;, None)
+        url = extraction_config_dict.get(&#39;url&#39;, None)
+        charset = extraction_config_dict.get(&#39;charset&#39;, None)
+        extraction_template = extraction_config_dict.get(&#39;extraction_template&#39;, None)
+        extraction_ephemeral_template = extraction_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+        extraction_prompt = extraction_config_dict.get(&#39;extraction_prompt&#39;, None)
+        extraction_model = extraction_config_dict.get(&#39;extraction_model&#39;, None)
+        is_document_compressed = extraction_config_dict.get(&#39;is_document_compressed&#39;, None)
+
+        document_compression_format = extraction_config_dict.get(&#39;document_compression_format&#39;, None)
+        document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
+        
+        webhook = extraction_config_dict.get(&#39;webhook&#39;, None)
+        raise_on_upstream_error = extraction_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+        return ExtractionConfig(
+            body=body,
+            content_type=content_type,
+            url=url,
+            charset=charset,
+            extraction_template=extraction_template,
+            extraction_ephemeral_template=extraction_ephemeral_template,
+            extraction_prompt=extraction_prompt,
+            extraction_model=extraction_model,
+            is_document_compressed=is_document_compressed,
+            document_compression_format=document_compression_format,
+            webhook=webhook,
+            raise_on_upstream_error=raise_on_upstream_error
+        )</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -351,7 +660,7 @@ class ExtractionConfig(BaseApiConfig):
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.extraction_config.ExtractionConfig.body"><code class="name">var <span class="ident">body</span> : str</code></dt>
+<dt id="scrapfly.extraction_config.ExtractionConfig.body"><code class="name">var <span class="ident">body</span> : Union[str, bytes]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -408,6 +717,53 @@ class ExtractionConfig(BaseApiConfig):
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.extraction_config.ExtractionConfig.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>extraction_config_dict: Dict) ‑> <a title="scrapfly.extraction_config.ExtractionConfig" href="#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create an ExtractionConfig instance from a dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
+    &#34;&#34;&#34;Create an ExtractionConfig instance from a dictionary.&#34;&#34;&#34;
+    body = extraction_config_dict.get(&#39;body&#39;, None)
+    content_type = extraction_config_dict.get(&#39;content_type&#39;, None)
+    url = extraction_config_dict.get(&#39;url&#39;, None)
+    charset = extraction_config_dict.get(&#39;charset&#39;, None)
+    extraction_template = extraction_config_dict.get(&#39;extraction_template&#39;, None)
+    extraction_ephemeral_template = extraction_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
+    extraction_prompt = extraction_config_dict.get(&#39;extraction_prompt&#39;, None)
+    extraction_model = extraction_config_dict.get(&#39;extraction_model&#39;, None)
+    is_document_compressed = extraction_config_dict.get(&#39;is_document_compressed&#39;, None)
+
+    document_compression_format = extraction_config_dict.get(&#39;document_compression_format&#39;, None)
+    document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
+    
+    webhook = extraction_config_dict.get(&#39;webhook&#39;, None)
+    raise_on_upstream_error = extraction_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+
+    return ExtractionConfig(
+        body=body,
+        content_type=content_type,
+        url=url,
+        charset=charset,
+        extraction_template=extraction_template,
+        extraction_ephemeral_template=extraction_ephemeral_template,
+        extraction_prompt=extraction_prompt,
+        extraction_model=extraction_model,
+        is_document_compressed=is_document_compressed,
+        document_compression_format=document_compression_format,
+        webhook=webhook,
+        raise_on_upstream_error=raise_on_upstream_error
+    )</code></pre>
+</details>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.extraction_config.ExtractionConfig.to_api_params"><code class="name flex">
@@ -453,6 +809,56 @@ class ExtractionConfig(BaseApiConfig):
     return params</code></pre>
 </details>
 </dd>
+<dt id="scrapfly.extraction_config.ExtractionConfig.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Export the ExtractionConfig instance to a plain dictionary.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    Export the ExtractionConfig instance to a plain dictionary.
+    &#34;&#34;&#34;
+
+    if self.is_document_compressed is True:
+            compression_foramt = CompressionFormat(self.document_compression_format) if self.document_compression_format else None
+
+            if compression_foramt == CompressionFormat.GZIP:
+                import gzip
+                self.body = gzip.decompress(self.body)
+                
+            elif compression_foramt == CompressionFormat.ZSTD:
+                import zstandard as zstd
+                self.body = zstd.decompress(self.body)
+
+            elif compression_foramt == CompressionFormat.DEFLATE:
+                import zlib
+                decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
+                self.body = decompressor.decompress(self.body) + decompressor.flush()
+
+            if isinstance(self.body, bytes):
+                self.body = self.body.decode(&#39;utf-8&#39;)
+                self.is_document_compressed = False
+
+    return {
+        &#39;body&#39;: self.body,
+        &#39;content_type&#39;: self.content_type,
+        &#39;url&#39;: self.url,
+        &#39;charset&#39;: self.charset,
+        &#39;extraction_template&#39;: self.extraction_template,
+        &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
+        &#39;extraction_prompt&#39;: self.extraction_prompt,
+        &#39;extraction_model&#39;: self.extraction_model,
+        &#39;is_document_compressed&#39;: self.is_document_compressed,
+        &#39;document_compression_format&#39;: CompressionFormat(self.document_compression_format).value if self.document_compression_format else None,
+        &#39;webhook&#39;: self.webhook,
+        &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+    }</code></pre>
+</details>
+</dd>
 </dl>
 </dd>
 <dt id="scrapfly.extraction_config.ExtractionConfigError"><code class="flex name class">
@@ -488,6 +894,11 @@ class ExtractionConfig(BaseApiConfig):
 <li><code><a title="scrapfly" href="index.html">scrapfly</a></code></li>
 </ul>
 </li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="scrapfly.extraction_config.detect_compression_format" href="#scrapfly.extraction_config.detect_compression_format">detect_compression_format</a></code></li>
+</ul>
+</li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
@@ -510,10 +921,12 @@ class ExtractionConfig(BaseApiConfig):
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.extraction_model" href="#scrapfly.extraction_config.ExtractionConfig.extraction_model">extraction_model</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.extraction_prompt" href="#scrapfly.extraction_config.ExtractionConfig.extraction_prompt">extraction_prompt</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.extraction_template" href="#scrapfly.extraction_config.ExtractionConfig.extraction_template">extraction_template</a></code></li>
+<li><code><a title="scrapfly.extraction_config.ExtractionConfig.from_dict" href="#scrapfly.extraction_config.ExtractionConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.is_document_compressed" href="#scrapfly.extraction_config.ExtractionConfig.is_document_compressed">is_document_compressed</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.raise_on_upstream_error" href="#scrapfly.extraction_config.ExtractionConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.template" href="#scrapfly.extraction_config.ExtractionConfig.template">template</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.to_api_params" href="#scrapfly.extraction_config.ExtractionConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.extraction_config.ExtractionConfig.to_dict" href="#scrapfly.extraction_config.ExtractionConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.url" href="#scrapfly.extraction_config.ExtractionConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.webhook" href="#scrapfly.extraction_config.ExtractionConfig.webhook">webhook</a></code></li>
 </ul>
