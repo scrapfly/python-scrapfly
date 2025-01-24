@@ -151,3 +151,71 @@ class ScreenshotConfig(BaseApiConfig):
             params['webhook_name'] = self.webhook
 
         return params
+
+    def to_dict(self) -> Dict:
+        """
+        Export the ScreenshotConfig instance to a plain dictionary.
+        """
+        return {
+            'url': self.url,
+            'format': Format(self.format).value if self.format else None,
+            'capture': self.capture,
+            'resolution': self.resolution,
+            'country': self.country,
+            'timeout': self.timeout,
+            'rendering_wait': self.rendering_wait,
+            'wait_for_selector': self.wait_for_selector,
+            'options': [Options(option).value for option in self.options] if self.options else None,
+            'auto_scroll': self.auto_scroll,
+            'js': self.js,
+            'cache': self.cache,
+            'cache_ttl': self.cache_ttl,
+            'cache_clear': self.cache_clear,
+            'webhook': self.webhook,
+            'raise_on_upstream_error': self.raise_on_upstream_error
+        }
+    
+    @staticmethod
+    def from_dict(screenshot_config_dict: Dict) -> 'ScreenshotConfig':
+        """Create a ScreenshotConfig instance from a dictionary."""
+        url = screenshot_config_dict.get('url', None)
+
+        format = screenshot_config_dict.get('format', None)
+        format = Format(format) if format else None
+
+        capture = screenshot_config_dict.get('capture', None)
+        resolution = screenshot_config_dict.get('resolution', None)
+        country = screenshot_config_dict.get('country', None)
+        timeout = screenshot_config_dict.get('timeout', None)
+        rendering_wait = screenshot_config_dict.get('rendering_wait', None)
+        wait_for_selector = screenshot_config_dict.get('wait_for_selector', None)
+
+        options = screenshot_config_dict.get('options', None)
+        options = [Options(option) for option in options] if options else None
+
+        auto_scroll = screenshot_config_dict.get('auto_scroll', None)
+        js = screenshot_config_dict.get('js', None)
+        cache = screenshot_config_dict.get('cache', None)
+        cache_ttl = screenshot_config_dict.get('cache_ttl', None)
+        cache_clear = screenshot_config_dict.get('cache_clear', None)
+        webhook = screenshot_config_dict.get('webhook', None)
+        raise_on_upstream_error = screenshot_config_dict.get('raise_on_upstream_error', True)
+
+        return ScreenshotConfig(
+            url=url,
+            format=format,
+            capture=capture,
+            resolution=resolution,
+            country=country,
+            timeout=timeout,
+            rendering_wait=rendering_wait,
+            wait_for_selector=wait_for_selector,
+            options=options,
+            auto_scroll=auto_scroll,
+            js=js,
+            cache=cache,
+            cache_ttl=cache_ttl,
+            cache_clear=cache_clear,
+            webhook=webhook,
+            raise_on_upstream_error=raise_on_upstream_error
+        )

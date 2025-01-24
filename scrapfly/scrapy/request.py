@@ -1,6 +1,5 @@
 from copy import deepcopy
-from functools import partial
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 
 from scrapy import Request
 
@@ -32,6 +31,18 @@ class ScrapflyScrapyRequest(Request):
             **kwargs
         )
 
+    def to_dict(self, *, spider: Optional["scrapy.Spider"] = None) -> dict:
+        if spider is None:
+            raise ValueError("The 'spider' argument is required to serialize the request.")
+        return super().to_dict(spider=spider)
+
+    @classmethod
+    def from_dict(cls, data):
+        scrape_config_data = data['meta']['scrapfly_scrape_config'].to_dict()
+        scrape_config = ScrapeConfig.from_dict(scrape_config_data)
+        request = cls(scrape_config=scrape_config)
+        return request
+    
     def replace(self, *args, **kwargs):
         for x in [
             'meta',

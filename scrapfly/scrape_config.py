@@ -423,3 +423,150 @@ class ScrapeConfig(BaseApiConfig):
             auto_scroll=data['auto_scroll'],
             cost_budget=data['cost_budget']
         )
+
+    def to_dict(self) -> Dict:
+        """
+        Export the ScrapeConfig instance to a plain dictionary. 
+        Useful for JSON-serialization or other external storage.
+        """
+        
+        return {
+            'url': self.url,
+            'retry': self.retry,
+            'method': self.method,
+            'country': self.country,
+            'render_js': self.render_js,
+            'cache': self.cache,
+            'cache_clear': self.cache_clear,
+            'ssl': self.ssl,
+            'dns': self.dns,
+            'asp': self.asp,
+            'debug': self.debug,
+            'raise_on_upstream_error': self.raise_on_upstream_error,
+            'cache_ttl': self.cache_ttl,
+            'proxy_pool': self.proxy_pool,
+            'session': self.session,
+            'tags': list(self.tags),
+            'format': Format(self.format).value if self.format else None,
+            'format_options': [FormatOption(option).value for option in self.format_options] if self.format_options else None,
+            'extraction_template': self.extraction_template,
+            'extraction_ephemeral_template': self.extraction_ephemeral_template,
+            'extraction_prompt': self.extraction_prompt,
+            'extraction_model': self.extraction_model,
+            'correlation_id': self.correlation_id,
+            'cookies': CaseInsensitiveDict(self.cookies),
+            'body': self.body,
+            'data': None if self.body else self.data,
+            'headers': CaseInsensitiveDict(self.headers),
+            'js': self.js,
+            'rendering_wait': self.rendering_wait,
+            'wait_for_selector': self.wait_for_selector,
+            'session_sticky_proxy': self.session_sticky_proxy,
+            'screenshots': self.screenshots,
+            'screenshot_flags': [ScreenshotFlag(flag).value for flag in self.screenshot_flags] if self.screenshot_flags else None,
+            'webhook': self.webhook,
+            'timeout': self.timeout,
+            'js_scenario': self.js_scenario,
+            'extract': self.extract,
+            'lang': self.lang,
+            'os': self.os,
+            'auto_scroll': self.auto_scroll,
+            'cost_budget': self.cost_budget,
+        }
+
+    @staticmethod
+    def from_dict(scrape_config_dict: Dict) -> 'ScrapeConfig':
+        """Create a ScrapeConfig instance from a dictionary."""
+        url = scrape_config_dict.get('url', None)
+        retry = scrape_config_dict.get('retry', False)
+        method = scrape_config_dict.get('method', 'GET')
+        country = scrape_config_dict.get('country', None)
+        render_js = scrape_config_dict.get('render_js', False)
+        cache = scrape_config_dict.get('cache', False)
+        cache_clear = scrape_config_dict.get('cache_clear', False)
+        ssl = scrape_config_dict.get('ssl', False)
+        dns = scrape_config_dict.get('dns', False)
+        asp = scrape_config_dict.get('asp', False)
+        debug = scrape_config_dict.get('debug', False)
+        raise_on_upstream_error = scrape_config_dict.get('raise_on_upstream_error', True)
+        cache_ttl = scrape_config_dict.get('cache_ttl', None)
+        proxy_pool = scrape_config_dict.get('proxy_pool', None)
+        session = scrape_config_dict.get('session', None)
+        tags = scrape_config_dict.get('tags', [])
+
+        format = scrape_config_dict.get('format', None)
+        format = Format(format) if format else None
+
+        format_options = scrape_config_dict.get('format_options', None)
+        format_options = [FormatOption(option) for option in format_options] if format_options else None
+
+        extraction_template = scrape_config_dict.get('extraction_template', None)
+        extraction_ephemeral_template = scrape_config_dict.get('extraction_ephemeral_template', None)
+        extraction_prompt = scrape_config_dict.get('extraction_prompt', None)
+        extraction_model = scrape_config_dict.get('extraction_model', None)
+        correlation_id = scrape_config_dict.get('correlation_id', None)
+        cookies = scrape_config_dict.get('cookies', {})
+        body = scrape_config_dict.get('body', None)
+        data = scrape_config_dict.get('data', None)
+        headers = scrape_config_dict.get('headers', {})
+        js = scrape_config_dict.get('js', None)
+        rendering_wait = scrape_config_dict.get('rendering_wait', None)
+        wait_for_selector = scrape_config_dict.get('wait_for_selector', None)
+        screenshots = scrape_config_dict.get('screenshots', [])
+        
+        screenshot_flags = scrape_config_dict.get('screenshot_flags', [])
+        screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
+
+        session_sticky_proxy = scrape_config_dict.get('session_sticky_proxy', False)
+        webhook = scrape_config_dict.get('webhook', None)
+        timeout = scrape_config_dict.get('timeout', None)
+        js_scenario = scrape_config_dict.get('js_scenario', None)
+        extract = scrape_config_dict.get('extract', None)
+        os = scrape_config_dict.get('os', None)
+        lang = scrape_config_dict.get('lang', None)
+        auto_scroll = scrape_config_dict.get('auto_scroll', None)
+        cost_budget = scrape_config_dict.get('cost_budget', None)
+
+        return ScrapeConfig(
+            url=url,
+            retry=retry,
+            method=method,
+            country=country,
+            render_js=render_js,
+            cache=cache,
+            cache_clear=cache_clear,
+            ssl=ssl,
+            dns=dns,
+            asp=asp,
+            debug=debug,
+            raise_on_upstream_error=raise_on_upstream_error,
+            cache_ttl=cache_ttl,
+            proxy_pool=proxy_pool,
+            session=session,
+            tags=tags,
+            format=format,
+            format_options=format_options,
+            extraction_template=extraction_template,
+            extraction_ephemeral_template=extraction_ephemeral_template,
+            extraction_prompt=extraction_prompt,
+            extraction_model=extraction_model,
+            correlation_id=correlation_id,
+            cookies=cookies,
+            body=body,
+            data=data,
+            headers=headers,
+            js=js,
+            rendering_wait=rendering_wait,
+            wait_for_selector=wait_for_selector,
+            screenshots=screenshots,
+            screenshot_flags=screenshot_flags,
+            session_sticky_proxy=session_sticky_proxy,
+            webhook=webhook,
+            timeout=timeout,
+            js_scenario=js_scenario,
+            extract=extract,
+            os=os,
+            lang=lang,
+            auto_scroll=auto_scroll,
+            cost_budget=cost_budget,
+        )
