@@ -566,8 +566,12 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ScrapflyScrapyRequest(Request):
+    scrape_config: ScrapeConfig
 
-    scrape_config:ScrapeConfig
+    # See request_from_dict method in scrapy.utils.request
+    attributes = tuple(
+        attr for attr in Request.attributes if attr not in [&#34;body&#34;, &#34;cookies&#34;, &#34;headers&#34;, &#34;method&#34;, &#34;url&#34;]) + (
+                 &#34;scrape_config&#34;,)
 
     # url:str   inherited
     # method:str inherited
@@ -575,7 +579,7 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
     # headers:Dict inherited
     # encoding:Dict inherited
 
-    def __init__(self, scrape_config:ScrapeConfig, meta:Dict={}, *args, **kwargs):
+    def __init__(self, scrape_config: ScrapeConfig, meta: Dict = {}, *args, **kwargs):
         self.scrape_config = scrape_config
 
         meta[&#39;scrapfly_scrape_config&#39;] = self.scrape_config
@@ -593,7 +597,9 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
     def to_dict(self, *, spider: Optional[&#34;scrapy.Spider&#34;] = None) -&gt; dict:
         if spider is None:
             raise ValueError(&#34;The &#39;spider&#39; argument is required to serialize the request.&#34;)
-        return super().to_dict(spider=spider)
+        d = super().to_dict(spider=spider)
+        d[&#39;scrape_config&#39;] = self.scrape_config
+        return d
 
     @classmethod
     def from_dict(cls, data):
@@ -601,7 +607,7 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
         scrape_config = ScrapeConfig.from_dict(scrape_config_data)
         request = cls(scrape_config=scrape_config)
         return request
-    
+
     def replace(self, *args, **kwargs):
         for x in [
             &#39;meta&#39;,
@@ -626,6 +632,10 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
 </ul>
 <h3>Class variables</h3>
 <dl>
+<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.attributes"><code class="name">var <span class="ident">attributes</span> : Tuple[str, ...]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyRequest.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
 <dd>
 <div class="desc"></div>
@@ -695,7 +705,9 @@ and errback and include them in the output dict, raising an exception if they ca
 <pre><code class="python">def to_dict(self, *, spider: Optional[&#34;scrapy.Spider&#34;] = None) -&gt; dict:
     if spider is None:
         raise ValueError(&#34;The &#39;spider&#39; argument is required to serialize the request.&#34;)
-    return super().to_dict(spider=spider)</code></pre>
+    d = super().to_dict(spider=spider)
+    d[&#39;scrape_config&#39;] = self.scrape_config
+    return d</code></pre>
 </details>
 </dd>
 </dl>
@@ -1336,6 +1348,7 @@ def update_settings(cls, settings):
 <li>
 <h4><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest" href="#scrapfly.scrapy.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></code></h4>
 <ul class="">
+<li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.attributes" href="#scrapfly.scrapy.ScrapflyScrapyRequest.attributes">attributes</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.from_dict" href="#scrapfly.scrapy.ScrapflyScrapyRequest.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.replace" href="#scrapfly.scrapy.ScrapflyScrapyRequest.replace">replace</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyScrapyRequest.scrape_config" href="#scrapfly.scrapy.ScrapflyScrapyRequest.scrape_config">scrape_config</a></code></li>
