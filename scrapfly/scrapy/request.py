@@ -7,8 +7,12 @@ from .. import ScrapeConfig
 
 
 class ScrapflyScrapyRequest(Request):
+    scrape_config: ScrapeConfig
 
-    scrape_config:ScrapeConfig
+    # See request_from_dict method in scrapy.utils.request
+    attributes = tuple(
+        attr for attr in Request.attributes if attr not in ["body", "cookies", "headers", "method", "url"]) + (
+                 "scrape_config",)
 
     # url:str   inherited
     # method:str inherited
@@ -16,7 +20,7 @@ class ScrapflyScrapyRequest(Request):
     # headers:Dict inherited
     # encoding:Dict inherited
 
-    def __init__(self, scrape_config:ScrapeConfig, meta:Dict={}, *args, **kwargs):
+    def __init__(self, scrape_config: ScrapeConfig, meta: Dict = {}, *args, **kwargs):
         self.scrape_config = scrape_config
 
         meta['scrapfly_scrape_config'] = self.scrape_config
@@ -34,7 +38,9 @@ class ScrapflyScrapyRequest(Request):
     def to_dict(self, *, spider: Optional["scrapy.Spider"] = None) -> dict:
         if spider is None:
             raise ValueError("The 'spider' argument is required to serialize the request.")
-        return super().to_dict(spider=spider)
+        d = super().to_dict(spider=spider)
+        d['scrape_config'] = self.scrape_config
+        return d
 
     @classmethod
     def from_dict(cls, data):
@@ -42,7 +48,7 @@ class ScrapflyScrapyRequest(Request):
         scrape_config = ScrapeConfig.from_dict(scrape_config_data)
         request = cls(scrape_config=scrape_config)
         return request
-    
+
     def replace(self, *args, **kwargs):
         for x in [
             'meta',
