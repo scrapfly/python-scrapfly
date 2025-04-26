@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 from urllib.parse import urlencode, quote_plus
 from base64 import urlsafe_b64encode
-from typing import Optional, List, Dict, Iterable, Union, Set
+from typing import Literal, Optional, List, Dict, Iterable, Union, Set
 from requests.structures import CaseInsensitiveDict
 
 from .api_config import BaseApiConfig
@@ -92,6 +92,7 @@ class ScrapeConfig(BaseApiConfig):
     headers: Optional[CaseInsensitiveDict] = None
     js: str = None
     rendering_wait: int = None
+    rendering_stage: Literal["complete", "domcontentloaded"] = "complete"
     wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
@@ -136,6 +137,7 @@ class ScrapeConfig(BaseApiConfig):
         headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
         js: str = None,
         rendering_wait: int = None,
+        rendering_stage: Literal["complete", "domcontentloaded"] = "complete",
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         screenshot_flags: Optional[List[ScreenshotFlag]] = None,
@@ -186,6 +188,7 @@ class ScrapeConfig(BaseApiConfig):
         self.data = data
         self.js = js
         self.rendering_wait = rendering_wait
+        self.rendering_stage = rendering_stage
         self.raise_on_upstream_error = raise_on_upstream_error
         self.screenshots = screenshots
         self.screenshot_flags = screenshot_flags
@@ -270,6 +273,9 @@ class ScrapeConfig(BaseApiConfig):
 
             if self.rendering_wait:
                 params['rendering_wait'] = self.rendering_wait
+            
+            if self.rendering_stage:
+                params['rendering_stage'] = self.rendering_stage
 
             if self.screenshots is not None:
                 for name, element in self.screenshots.items():
