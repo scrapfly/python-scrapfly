@@ -1,8 +1,9 @@
-import requests
-
 from io import BytesIO
+from copy import copy
+from typing import Callable, Dict, Union
 
 import zlib
+import requests
 
 from requests.structures import CaseInsensitiveDict
 from twisted.internet.protocol import Protocol
@@ -17,6 +18,13 @@ from twisted.internet import reactor
 from twisted.web.http_headers import Headers
 from zope.interface import implementer
 
+from scrapy.core.downloader.handlers.http import HTTPDownloadHandler
+from scrapy import Request
+from scrapy.core.downloader.handlers import DownloadHandlers
+from scrapy.utils.defer import mustbe_deferred
+from scrapy.utils.python import without_none_values
+
+
 from . import ScrapflyScrapyRequest, ScrapflySpider, ScrapflyScrapyResponse
 from .. import ScrapeApiResponse
 
@@ -29,6 +37,18 @@ class ScrapflyHTTPDownloader:
     def __init__(self, settings, crawler=None):
         self._crawler = crawler
         self.agent = Agent(reactor)
+        self._donwload_handler = DownloadHandlers(crawler)
+
+        # Restore default downloader for http/https when not using ScraplyRequest following Scrapy's default behavior
+        settings_without_scrapfly_http_downloader = copy(settings)
+        del settings_without_scrapfly_http_downloader['DOWNLOAD_HANDLERS']['http']
+        del settings_without_scrapfly_http_downloader['DOWNLOAD_HANDLERS']['https']
+        self._donwload_handler.handlers = without_none_values(settings_without_scrapfly_http_downloader.getwithbase("DOWNLOAD_HANDLERS"))
+
+        for scheme, clspath in self._donwload_handler.handlers.items():
+            self._donwload_handler._schemes[scheme] = clspath
+            self._donwload_handler._load_handler(scheme, skip_lazy=True)
+        # End
 
         if settings.get('SCRAPFLY_SSL_VERIFY') is False:
             import twisted.internet._sslverify as v
@@ -68,7 +88,7 @@ class ScrapflyHTTPDownloader:
                         raise
 
                     body = brotli.decompress(body)
-
+        
             response = requests.Response()
             response.status_code = status_code
             response.reason = reason
@@ -93,7 +113,7 @@ class ScrapflyHTTPDownloader:
 
     def download_request(self, request, spider):
         if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):
-            return None
+            return mustbe_deferred(self._donwload_handler.download_request, request, spider)
 
         request_data = spider.scrapfly_client._scrape_request(scrape_config=request.scrape_config)
 

@@ -1,7 +1,7 @@
+import collections
 import copy
 import uuid
 import logging
-import collections.abc
 
 try:
     from functools import cached_property
@@ -12,10 +12,12 @@ from os import environ
 from typing import Dict, Iterable, Sequence, Union, Optional
 
 import scrapy
-from scrapy.crawler import Crawler
 from scrapy.spiders import Rule
 from scrapy.utils.python import global_object_name
 from scrapy.utils.spider import iterate_spider_output
+from scrapy.crawler import Crawler
+from scrapy.settings import BaseSettings
+
 from twisted.internet.defer import Deferred
 from twisted.internet import task
 
@@ -24,14 +26,12 @@ from . import ScrapflyScrapyRequest, ScrapflyScrapyResponse
 
 logger = logging.getLogger(__name__)
 
-
 class ScrapflySpider(scrapy.Spider):
 
     scrapfly_client:ScrapflyClient
     account_info:Dict
     run_id:int
 
-    custom_settings:Dict = {}
     scrapfly_settings:Dict = {
         'DOWNLOADER_MIDDLEWARES': {
             'scrapfly.scrapy.middleware.ScrapflyMiddleware': 725,
@@ -45,7 +45,7 @@ class ScrapflySpider(scrapy.Spider):
             'scrapy.downloadermiddlewares.cookies.CookiesMiddleware': None,
             'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': None,
         },
-        'DOWNLOAD_HANDLERS_BASE': {
+        'DOWNLOAD_HANDLERS': {
             'http': 'scrapfly.scrapy.downloader.ScrapflyHTTPDownloader',
             'https': 'scrapfly.scrapy.downloader.ScrapflyHTTPDownloader'
         },
@@ -54,11 +54,33 @@ class ScrapflySpider(scrapy.Spider):
             'scrapy.spidermiddlewares.referer.RefererMiddleware': None,
         },
         'ITEM_PIPELINES': {
-            'scrapfly.scrapy.pipelines.FilesPipeline': 1,
-            'scrapfly.scrapy.pipelines.ImagesPipeline': 1,
+            'scrapfly.scrapy.pipelines.FilesPipeline': 50,
+            'scrapfly.scrapy.pipelines.ImagesPipeline': 50,
             'scrapy.pipelines.files.FilesPipeline': None,
             'scrapy.pipelines.images.ImagesPipeline': None
         }
+    }
+
+    # User config cant override these settings
+    _MANDATORY_SETTINGS = {
+        'SPIDER_MIDDLEWARES': [
+            'scrapfly.scrapy.middleware.ScrapflyRefererMiddleware',
+            'scrapy.spidermiddlewares.referer.RefererMiddleware',
+        ],
+        'DOWNLOADER_MIDDLEWARES': [
+            'scrapfly.scrapy.middleware.ScrapflyMiddleware',
+            'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware',
+            'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware',
+            'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware',
+            'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware',
+            'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware',
+            'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware',
+            'scrapy.downloadermiddlewares.redirect.RedirectMiddleware',
+            'scrapy.downloadermiddlewares.cookies.CookiesMiddleware',
+            'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware'
+        ],
+        'DOWNLOAD_HANDLERS': '*',
+        'ITEM_PIPELINES': []
     }
 
     @classmethod
@@ -71,8 +93,21 @@ class ScrapflySpider(scrapy.Spider):
         return d
 
     @classmethod
-    def update_settings(cls, settings):
-        settings.update(cls._merge_settings(dict(settings), cls.scrapfly_settings), priority='spider')
+    def update_settings(cls, settings: BaseSettings) -> None:
+        spider_scrapfly_settings = copy.deepcopy(cls.scrapfly_settings)
+        spider_user_settings = settings.copy_to_dict()
+
+        # we only merge SPIDER_MIDDLEWARES and ITEM_PIPELINEE and prevent user from overriding them
+        for key, values in cls._MANDATORY_SETTINGS.items():
+            if values == '*':
+                spider_user_settings.pop(key)
+            elif key in spider_user_settings:
+                for value in values:
+                    if value in spider_user_settings[key]:
+                        spider_user_settings[key].remove(value)
+
+        _settings = cls._merge_settings(spider_scrapfly_settings, spider_user_settings)
+        settings.update(_settings, priority='spider')
 
     @cached_property
     def run_id(self):
@@ -142,7 +177,6 @@ class ScrapflySpider(scrapy.Spider):
         )
 
         settings_max_concurrency = crawler.settings.get('CONCURRENT_REQUESTS', -1)
-
         account_info = scrapfly_client.account()
 
         if account_info['account']['suspended'] is True:
@@ -150,7 +184,6 @@ class ScrapflySpider(scrapy.Spider):
 
         max_account_concurrency = account_info['subscription']['max_concurrency']
         project_concurrency_limit = account_info['project']['concurrency_limit']
-
         maximum_allowed_concurrency = max_account_concurrency
 
         if project_concurrency_limit is not None:

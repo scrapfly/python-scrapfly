@@ -1,4 +1,4 @@
-from scrapy import Item, Field
+from scrapy import Item, Field, Request
 from scrapy.exceptions import CloseSpider
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.python.failure import Failure
@@ -23,21 +23,20 @@ class Demo(ScrapflySpider):
     name = "demo"
 
     allowed_domains = ["web-scraping.dev", "httpbin.dev"]
-    start_urls = [
-        ScrapeConfig("https://web-scraping.dev/product/1", render_js=True),
-        ScrapeConfig("https://web-scraping.dev/product/2"),
-        ScrapeConfig("https://web-scraping.dev/product/3"),
-        ScrapeConfig("https://web-scraping.dev/product/4"),
-        ScrapeConfig("https://web-scraping.dev/product/5", render_js=True),
-        ScrapeConfig("https://httpbin.dev/status/403", asp=True, retry=False), # it will fail on purpose
-        ScrapeConfig("https://httpbin.dev/status/400"), # it will fail on purpose - will fall on scrapy.spidermiddlewares.httperror.HttpError
-        ScrapeConfig("https://httpbin.dev/status/404"), # it will fail on purpose - will fall on scrapy.spidermiddlewares.httperror.HttpError
-    ]
 
     def start_requests(self):
-        for scrape_config in self.start_urls:
-            yield ScrapflyScrapyRequest(scrape_config, callback=self.parse, errback=self.error_handler, dont_filter=True)
-
+        yield ScrapflyScrapyRequest(ScrapeConfig("https://web-scraping.dev/product/1", render_js=True), callback=self.parse, errback=self.error_handler, dont_filter=True)
+        # yield ScrapflyScrapyRequest(ScrapeConfig("https://web-scraping.dev/product/2"), callback=self.parse, errback=self.error_handler, dont_filter=True)
+        # yield ScrapflyScrapyRequest(ScrapeConfig("https://web-scraping.dev/product/3", country="US"), callback=self.parse, errback=self.error_handler, dont_filter=True)
+        # yield ScrapflyScrapyRequest(ScrapeConfig("https://web-scraping.dev/product/4", proxy_pool=ScrapeConfig.PUBLIC_RESIDENTIAL_POOL), callback=self.parse, errback=self.error_handler, dont_filter=True)
+        # yield ScrapflyScrapyRequest(ScrapeConfig("https://httpbin.dev/status/404"), callback=self.parse, errback=self.error_handler, dont_filter=True)
+        
+        # Regular Scrapy Request without using Scrapfly
+        # yield Request(
+        #     "https://web-scraping.dev/product/1",
+        #     callback=self.parse
+        # )
+    
     def error_handler(self, failure:Failure):
         if failure.check(ScraperAPIError): # The scrape errored
             error_code = failure.value.code # https://scrapfly.io/docs/scrape-api/errors#web_scraping_api_error

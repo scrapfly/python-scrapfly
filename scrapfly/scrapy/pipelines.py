@@ -2,7 +2,7 @@ from scrapy.pipelines.files import FilesPipeline as ScrapyFilesPipeline
 from scrapy.pipelines.images import ImagesPipeline as ScrapyImagesPipeline
 from itemadapter import ItemAdapter
 
-from . import ScrapflyScrapyRequest, ScrapflyScrapyResponse
+from . import ScrapflyScrapyRequest
 from .. import ScrapeConfig
 
 

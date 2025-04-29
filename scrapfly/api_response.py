@@ -189,13 +189,13 @@ class ApiResponse:
     @property
     def status_code(self) -> int:
         """
-            /!\ This is the status code of our API, not the upstream website
+            This is the status code of our API, not the upstream website
         """
         return self.response.status_code
 
     @property
     def remaining_quota(self) -> Optional[int]:
-        remaining_scrape = self.response.headers.get('X-Scrapfly-Remaining-Scrape')
+        remaining_scrape = self.response.headers.get('X-Scrapfly-Remaining-Api-Credit')
 
         if remaining_scrape:
             remaining_scrape = int(remaining_scrape)
@@ -347,10 +347,6 @@ class ScrapeApiResponse(ApiResponse):
         return self.result.get('result', None)
 
     @property
-    def scrape_result(self) -> Optional[Dict]:
-        return self.result.get('result', None)
-
-    @property
     def config(self) -> Optional[Dict]:
         if self.scrape_result is None:
             return None
@@ -374,7 +370,7 @@ class ScrapeApiResponse(ApiResponse):
     @property
     def success(self) -> bool:
         """
-            /!\ Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
+            Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
         """
         return 200 >= self.response.status_code <= 299
 
