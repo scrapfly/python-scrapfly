@@ -2,18 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.10.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
 <title>scrapfly.scrape_config API documentation</title>
-<meta name="description" content="" />
-<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
-<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
-<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
-<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
-<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<meta name="description" content="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
 <style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
-<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
 </head>
 <body>
 <main>
@@ -22,583 +36,6 @@
 <h1 class="title">Module <code>scrapfly.scrape_config</code></h1>
 </header>
 <section id="section-intro">
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">import base64
-import json
-import logging
-from enum import Enum
-from urllib.parse import urlencode, quote_plus
-from base64 import urlsafe_b64encode
-from typing import Optional, List, Dict, Iterable, Union, Set
-from requests.structures import CaseInsensitiveDict
-
-from .api_config import BaseApiConfig
-
-class ScreenshotFlag(Enum):
-    &#34;&#34;&#34;
-    Attributes:
-        LOAD_IMAGES: Enable image rendering with the request, add extra usage for the bandwidth consumed.
-        DARK_MODE: Enable dark mode display.
-        BLOCK_BANNERS: Block cookies banners and overlay that cover the screen.
-        HIGH_QUALITY: No compression on the output image.
-        PRINT_MEDIA_FORMAT: Render the page in the print mode.
-    &#34;&#34;&#34;
-
-    LOAD_IMAGES = &#34;load_images&#34;
-    DARK_MODE = &#34;dark_mode&#34;
-    BLOCK_BANNERS = &#34;block_banners&#34;
-    HIGH_QUALITY = &#34;high_quality&#34;
-    PRINT_MEDIA_FORMAT = &#34;print_media_format&#34;
-
-
-class Format(Enum):
-    &#34;&#34;&#34;
-    Attributes:
-        JSON: JSON format.
-        TEXT: Text format.
-        MARKDOWN: Markdown format.
-        CLEAN_HTML: Clean HTML format.
-    &#34;&#34;&#34;
-
-    JSON = &#34;json&#34;
-    TEXT = &#34;text&#34;
-    MARKDOWN = &#34;markdown&#34;
-    CLEAN_HTML = &#34;clean_html&#34;
-
-
-class FormatOption(Enum):
-    &#34;&#34;&#34;
-    Attributes:
-        NO_IMAGES: exlude images from `markdown` format
-        NO_LINKS: exlude links from `markdown` format
-    &#34;&#34;&#34;
-
-    NO_IMAGES = &#34;no_images&#34;
-    NO_LINKS = &#34;no_links&#34;
-    ONLY_CONTENT = &#34;only_content&#34;
-
-
-
-class ScrapeConfigError(Exception):
-    pass
-
-
-class ScrapeConfig(BaseApiConfig):
-
-    PUBLIC_DATACENTER_POOL = &#39;public_datacenter_pool&#39;
-    PUBLIC_RESIDENTIAL_POOL = &#39;public_residential_pool&#39;
-
-    url: str
-    retry: bool = True
-    method: str = &#39;GET&#39;
-    country: Optional[str] = None
-    render_js: bool = False
-    cache: bool = False
-    cache_clear:bool = False
-    ssl:bool = False
-    dns:bool = False
-    asp:bool = False
-    debug: bool = False
-    raise_on_upstream_error:bool = True
-    cache_ttl:Optional[int] = None
-    proxy_pool:Optional[str] = None
-    session: Optional[str] = None
-    tags: Optional[List[str]] = None
-    format: Optional[Format] = None, # raw(unchanged)
-    format_options: Optional[List[FormatOption]] 
-    extraction_template: Optional[str] = None  # a saved template name
-    extraction_ephemeral_template: Optional[Dict]  # ephemeraly declared json template
-    extraction_prompt: Optional[str] = None
-    extraction_model: Optional[str] = None    
-    correlation_id: Optional[str] = None
-    cookies: Optional[CaseInsensitiveDict] = None
-    body: Optional[str] = None
-    data: Optional[Dict] = None
-    headers: Optional[CaseInsensitiveDict] = None
-    js: str = None
-    rendering_wait: int = None
-    wait_for_selector: Optional[str] = None
-    session_sticky_proxy:bool = True
-    screenshots:Optional[Dict]=None
-    screenshot_flags: Optional[List[ScreenshotFlag]] = None,
-    webhook:Optional[str]=None
-    timeout:Optional[int]=None # in milliseconds
-    js_scenario: Dict = None
-    extract: Dict = None
-    lang:Optional[List[str]] = None
-    os:Optional[str] = None
-    auto_scroll:Optional[bool] = None
-    cost_budget:Optional[int] = None
-
-    def __init__(
-        self,
-        url: str,
-        retry: bool = True,
-        method: str = &#39;GET&#39;,
-        country: Optional[str] = None,
-        render_js: bool = False,
-        cache: bool = False,
-        cache_clear:bool = False,
-        ssl:bool = False,
-        dns:bool = False,
-        asp:bool = False,
-        debug: bool = False,
-        raise_on_upstream_error:bool = True,
-        cache_ttl:Optional[int] = None,
-        proxy_pool:Optional[str] = None,
-        session: Optional[str] = None,
-        tags: Optional[Union[List[str], Set[str]]] = None,
-        format: Optional[Format] = None, # raw(unchanged)
-        format_options: Optional[List[FormatOption]] = None, # raw(unchanged)
-        extraction_template: Optional[str] = None,  # a saved template name
-        extraction_ephemeral_template: Optional[Dict] = None,  # ephemeraly declared json template
-        extraction_prompt: Optional[str] = None,
-        extraction_model: Optional[str] = None,        
-        correlation_id: Optional[str] = None,
-        cookies: Optional[CaseInsensitiveDict] = None,
-        body: Optional[str] = None,
-        data: Optional[Dict] = None,
-        headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
-        js: str = None,
-        rendering_wait: int = None,
-        wait_for_selector: Optional[str] = None,
-        screenshots:Optional[Dict]=None,
-        screenshot_flags: Optional[List[ScreenshotFlag]] = None,
-        session_sticky_proxy:Optional[bool] = None,
-        webhook:Optional[str] = None,
-        timeout:Optional[int] = None, # in milliseconds
-        js_scenario:Optional[List] = None,
-        extract:Optional[Dict] = None,
-        os:Optional[str] = None,
-        lang:Optional[List[str]] = None,
-        auto_scroll:Optional[bool] = None,
-        cost_budget:Optional[int] = None
-    ):
-        assert(type(url) is str)
-
-        if isinstance(tags, List):
-            tags = set(tags)
-
-        cookies = cookies or {}
-        headers = headers or {}
-
-        self.cookies = CaseInsensitiveDict(cookies)
-        self.headers = CaseInsensitiveDict(headers)
-        self.url = url
-        self.retry = retry
-        self.method = method
-        self.country = country
-        self.session_sticky_proxy = session_sticky_proxy
-        self.render_js = render_js
-        self.cache = cache
-        self.cache_clear = cache_clear
-        self.asp = asp
-        self.webhook = webhook
-        self.session = session
-        self.debug = debug
-        self.cache_ttl = cache_ttl
-        self.proxy_pool = proxy_pool
-        self.tags = tags or set()
-        self.format = format
-        self.format_options = format_options
-        self.extraction_template = extraction_template
-        self.extraction_ephemeral_template = extraction_ephemeral_template
-        self.extraction_prompt = extraction_prompt
-        self.extraction_model = extraction_model        
-        self.correlation_id = correlation_id
-        self.wait_for_selector = wait_for_selector
-        self.body = body
-        self.data = data
-        self.js = js
-        self.rendering_wait = rendering_wait
-        self.raise_on_upstream_error = raise_on_upstream_error
-        self.screenshots = screenshots
-        self.screenshot_flags = screenshot_flags
-        self.key = None
-        self.dns = dns
-        self.ssl = ssl
-        self.js_scenario = js_scenario
-        self.timeout = timeout
-        self.extract = extract
-        self.lang = lang
-        self.os = os
-        self.auto_scroll = auto_scroll
-        self.cost_budget = cost_budget
-
-        if cookies:
-            _cookies = []
-
-            for name, value in cookies.items():
-                _cookies.append(name + &#39;=&#39; + value)
-
-            if &#39;cookie&#39; in self.headers:
-                if self.headers[&#39;cookie&#39;][-1] != &#39;;&#39;:
-                    self.headers[&#39;cookie&#39;] += &#39;;&#39;
-            else:
-                self.headers[&#39;cookie&#39;] = &#39;&#39;
-
-            self.headers[&#39;cookie&#39;] += &#39;; &#39;.join(_cookies)
-
-        if self.body and self.data:
-            raise ScrapeConfigError(&#39;You cannot pass both parameters body and data. You must choose&#39;)
-
-        if method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
-            if self.body is None and self.data is not None:
-                if &#39;content-type&#39; not in self.headers:
-                    self.headers[&#39;content-type&#39;] = &#39;application/x-www-form-urlencoded&#39;
-                    self.body = urlencode(data)
-                else:
-                    if self.headers[&#39;content-type&#39;].find(&#39;application/json&#39;) != -1:
-                        self.body = json.dumps(data)
-                    elif self.headers[&#39;content-type&#39;].find(&#39;application/x-www-form-urlencoded&#39;) != -1:
-                        self.body = urlencode(data)
-                    else:
-                        raise ScrapeConfigError(&#39;Content-Type &#34;%s&#34; not supported, use body parameter to pass pre encoded body according to your content type&#39; % self.headers[&#39;content-type&#39;])
-            elif self.body is None and self.data is None:
-                self.headers[&#39;content-type&#39;] = &#39;text/plain&#39;
-
-    def to_api_params(self, key:str) -&gt; Dict:
-        params = {
-            &#39;key&#39;: self.key or key,
-            &#39;url&#39;: self.url
-        }
-
-        if self.country is not None:
-            params[&#39;country&#39;] = self.country
-
-        for name, value in self.headers.items():
-            params[&#39;headers[%s]&#39; % name] = value
-
-        if self.webhook is not None:
-            params[&#39;webhook_name&#39;] = self.webhook
-
-        if self.timeout is not None:
-            params[&#39;timeout&#39;] = self.timeout
-
-        if self.extract is not None:
-            params[&#39;extract&#39;] = base64.urlsafe_b64encode(json.dumps(self.extract).encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
-
-        if self.cost_budget is not None:
-            params[&#39;cost_budget&#39;] = self.cost_budget
-
-        if self.render_js is True:
-            params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
-
-            if self.wait_for_selector is not None:
-                params[&#39;wait_for_selector&#39;] = self.wait_for_selector
-
-            if self.js:
-                params[&#39;js&#39;] = base64.urlsafe_b64encode(self.js.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
-
-            if self.js_scenario:
-                params[&#39;js_scenario&#39;] = base64.urlsafe_b64encode(json.dumps(self.js_scenario).encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
-
-            if self.rendering_wait:
-                params[&#39;rendering_wait&#39;] = self.rendering_wait
-
-            if self.screenshots is not None:
-                for name, element in self.screenshots.items():
-                    params[&#39;screenshots[%s]&#39; % name] = element
-
-            if self.screenshot_flags is not None:
-                self.screenshot_flags = [ScreenshotFlag(flag) for flag in self.screenshot_flags]
-                params[&#34;screenshot_flags&#34;] = &#34;,&#34;.join(flag.value for flag in self.screenshot_flags)
-            else:
-                if self.screenshot_flags is not None:
-                    logging.warning(&#39;Params &#34;screenshot_flags&#34; is ignored. Works only if screenshots is enabled&#39;)
-
-            if self.auto_scroll is True:
-                params[&#39;auto_scroll&#39;] = self._bool_to_http(self.auto_scroll)
-        else:
-            if self.wait_for_selector is not None:
-                logging.warning(&#39;Params &#34;wait_for_selector&#34; is ignored. Works only if render_js is enabled&#39;)
-
-            if self.screenshots:
-                logging.warning(&#39;Params &#34;screenshots&#34; is ignored. Works only if render_js is enabled&#39;)
-
-            if self.js_scenario:
-                logging.warning(&#39;Params &#34;js_scenario&#34; is ignored. Works only if render_js is enabled&#39;)
-
-            if self.js:
-                logging.warning(&#39;Params &#34;js&#34; is ignored. Works only if render_js is enabled&#39;)
-
-            if self.rendering_wait:
-                logging.warning(&#39;Params &#34;rendering_wait&#34; is ignored. Works only if render_js is enabled&#39;)
-
-        if self.asp is True:
-            params[&#39;asp&#39;] = self._bool_to_http(self.asp)
-
-        if self.retry is False:
-            params[&#39;retry&#39;] = self._bool_to_http(self.retry)
-
-        if self.cache is True:
-            params[&#39;cache&#39;] = self._bool_to_http(self.cache)
-
-            if self.cache_clear is True:
-                params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
-
-            if self.cache_ttl is not None:
-                params[&#39;cache_ttl&#39;] = self.cache_ttl
-        else:
-            if self.cache_clear is True:
-                logging.warning(&#39;Params &#34;cache_clear&#34; is ignored. Works only if cache is enabled&#39;)
-
-            if self.cache_ttl is not None:
-                logging.warning(&#39;Params &#34;cache_ttl&#34; is ignored. Works only if cache is enabled&#39;)
-
-        if self.dns is True:
-            params[&#39;dns&#39;] = self._bool_to_http(self.dns)
-
-        if self.ssl is True:
-            params[&#39;ssl&#39;] = self._bool_to_http(self.ssl)
-
-        if self.tags:
-            params[&#39;tags&#39;] = &#39;,&#39;.join(self.tags)
-
-        if self.format:
-            params[&#39;format&#39;] = Format(self.format).value
-            if self.format_options:
-                params[&#39;format&#39;] += &#39;:&#39; + &#39;,&#39;.join(FormatOption(option).value for option in self.format_options)
-
-        if self.extraction_template and self.extraction_ephemeral_template:
-            raise ScrapeConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
-
-        if self.extraction_template:
-            params[&#39;extraction_template&#39;] = self.extraction_template
-
-        if self.extraction_ephemeral_template:
-            self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
-            params[&#39;extraction_template&#39;] = &#39;ephemeral:&#39; + urlsafe_b64encode(self.extraction_ephemeral_template.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
-
-        if self.extraction_prompt:
-            params[&#39;extraction_prompt&#39;] = quote_plus(self.extraction_prompt)
-
-        if self.extraction_model:
-            params[&#39;extraction_model&#39;] = self.extraction_model
-
-        if self.correlation_id:
-            params[&#39;correlation_id&#39;] = self.correlation_id
-
-        if self.session:
-            params[&#39;session&#39;] = self.session
-
-            if self.session_sticky_proxy is True: # false by default
-                params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
-        else:
-            if self.session_sticky_proxy:
-                logging.warning(&#39;Params &#34;session_sticky_proxy&#34; is ignored. Works only if session is enabled&#39;)
-
-        if self.debug is True:
-            params[&#39;debug&#39;] = self._bool_to_http(self.debug)
-
-        if self.proxy_pool is not None:
-            params[&#39;proxy_pool&#39;] = self.proxy_pool
-
-        if self.lang is not None:
-            params[&#39;lang&#39;] = &#39;,&#39;.join(self.lang)
-
-        if self.os is not None:
-            params[&#39;os&#39;] = self.os
-
-        return params
-
-    @staticmethod
-    def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
-        try:
-            from msgpack import loads as msgpack_loads
-        except ImportError as e:
-            print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[seepdup] or pip install msgpack&#39;)
-            raise
-
-        data = msgpack_loads(base64.b64decode(config))
-
-        headers = {}
-
-        for name, value in data[&#39;headers&#39;].items():
-            if isinstance(value, Iterable):
-                headers[name] = &#39;; &#39;.join(value)
-            else:
-                headers[name] = value
-
-        return ScrapeConfig(
-            url=data[&#39;url&#39;],
-            retry=data[&#39;retry&#39;],
-            headers=headers,
-            session=data[&#39;session&#39;],
-            session_sticky_proxy=data[&#39;session_sticky_proxy&#39;],
-            cache=data[&#39;cache&#39;],
-            cache_ttl=data[&#39;cache_ttl&#39;],
-            cache_clear=data[&#39;cache_clear&#39;],
-            render_js=data[&#39;render_js&#39;],
-            method=data[&#39;method&#39;],
-            asp=data[&#39;asp&#39;],
-            body=data[&#39;body&#39;],
-            ssl=data[&#39;ssl&#39;],
-            dns=data[&#39;dns&#39;],
-            country=data[&#39;country&#39;],
-            debug=data[&#39;debug&#39;],
-            correlation_id=data[&#39;correlation_id&#39;],
-            tags=data[&#39;tags&#39;],
-            format=data[&#39;format&#39;],
-            js=data[&#39;js&#39;],
-            rendering_wait=data[&#39;rendering_wait&#39;],
-            screenshots=data[&#39;screenshots&#39;] or {},
-            screenshot_flags=data[&#39;screenshot_flags&#39;],
-            proxy_pool=data[&#39;proxy_pool&#39;],
-            auto_scroll=data[&#39;auto_scroll&#39;],
-            cost_budget=data[&#39;cost_budget&#39;]
-        )
-
-    def to_dict(self) -&gt; Dict:
-        &#34;&#34;&#34;
-        Export the ScrapeConfig instance to a plain dictionary. 
-        Useful for JSON-serialization or other external storage.
-        &#34;&#34;&#34;
-        
-        return {
-            &#39;url&#39;: self.url,
-            &#39;retry&#39;: self.retry,
-            &#39;method&#39;: self.method,
-            &#39;country&#39;: self.country,
-            &#39;render_js&#39;: self.render_js,
-            &#39;cache&#39;: self.cache,
-            &#39;cache_clear&#39;: self.cache_clear,
-            &#39;ssl&#39;: self.ssl,
-            &#39;dns&#39;: self.dns,
-            &#39;asp&#39;: self.asp,
-            &#39;debug&#39;: self.debug,
-            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
-            &#39;cache_ttl&#39;: self.cache_ttl,
-            &#39;proxy_pool&#39;: self.proxy_pool,
-            &#39;session&#39;: self.session,
-            &#39;tags&#39;: list(self.tags),
-            &#39;format&#39;: Format(self.format).value if self.format else None,
-            &#39;format_options&#39;: [FormatOption(option).value for option in self.format_options] if self.format_options else None,
-            &#39;extraction_template&#39;: self.extraction_template,
-            &#39;extraction_ephemeral_template&#39;: self.extraction_ephemeral_template,
-            &#39;extraction_prompt&#39;: self.extraction_prompt,
-            &#39;extraction_model&#39;: self.extraction_model,
-            &#39;correlation_id&#39;: self.correlation_id,
-            &#39;cookies&#39;: CaseInsensitiveDict(self.cookies),
-            &#39;body&#39;: self.body,
-            &#39;data&#39;: None if self.body else self.data,
-            &#39;headers&#39;: CaseInsensitiveDict(self.headers),
-            &#39;js&#39;: self.js,
-            &#39;rendering_wait&#39;: self.rendering_wait,
-            &#39;wait_for_selector&#39;: self.wait_for_selector,
-            &#39;session_sticky_proxy&#39;: self.session_sticky_proxy,
-            &#39;screenshots&#39;: self.screenshots,
-            &#39;screenshot_flags&#39;: [ScreenshotFlag(flag).value for flag in self.screenshot_flags] if self.screenshot_flags else None,
-            &#39;webhook&#39;: self.webhook,
-            &#39;timeout&#39;: self.timeout,
-            &#39;js_scenario&#39;: self.js_scenario,
-            &#39;extract&#39;: self.extract,
-            &#39;lang&#39;: self.lang,
-            &#39;os&#39;: self.os,
-            &#39;auto_scroll&#39;: self.auto_scroll,
-            &#39;cost_budget&#39;: self.cost_budget,
-        }
-
-    @staticmethod
-    def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
-        &#34;&#34;&#34;Create a ScrapeConfig instance from a dictionary.&#34;&#34;&#34;
-        url = scrape_config_dict.get(&#39;url&#39;, None)
-        retry = scrape_config_dict.get(&#39;retry&#39;, False)
-        method = scrape_config_dict.get(&#39;method&#39;, &#39;GET&#39;)
-        country = scrape_config_dict.get(&#39;country&#39;, None)
-        render_js = scrape_config_dict.get(&#39;render_js&#39;, False)
-        cache = scrape_config_dict.get(&#39;cache&#39;, False)
-        cache_clear = scrape_config_dict.get(&#39;cache_clear&#39;, False)
-        ssl = scrape_config_dict.get(&#39;ssl&#39;, False)
-        dns = scrape_config_dict.get(&#39;dns&#39;, False)
-        asp = scrape_config_dict.get(&#39;asp&#39;, False)
-        debug = scrape_config_dict.get(&#39;debug&#39;, False)
-        raise_on_upstream_error = scrape_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
-        cache_ttl = scrape_config_dict.get(&#39;cache_ttl&#39;, None)
-        proxy_pool = scrape_config_dict.get(&#39;proxy_pool&#39;, None)
-        session = scrape_config_dict.get(&#39;session&#39;, None)
-        tags = scrape_config_dict.get(&#39;tags&#39;, [])
-
-        format = scrape_config_dict.get(&#39;format&#39;, None)
-        format = Format(format) if format else None
-
-        format_options = scrape_config_dict.get(&#39;format_options&#39;, None)
-        format_options = [FormatOption(option) for option in format_options] if format_options else None
-
-        extraction_template = scrape_config_dict.get(&#39;extraction_template&#39;, None)
-        extraction_ephemeral_template = scrape_config_dict.get(&#39;extraction_ephemeral_template&#39;, None)
-        extraction_prompt = scrape_config_dict.get(&#39;extraction_prompt&#39;, None)
-        extraction_model = scrape_config_dict.get(&#39;extraction_model&#39;, None)
-        correlation_id = scrape_config_dict.get(&#39;correlation_id&#39;, None)
-        cookies = scrape_config_dict.get(&#39;cookies&#39;, {})
-        body = scrape_config_dict.get(&#39;body&#39;, None)
-        data = scrape_config_dict.get(&#39;data&#39;, None)
-        headers = scrape_config_dict.get(&#39;headers&#39;, {})
-        js = scrape_config_dict.get(&#39;js&#39;, None)
-        rendering_wait = scrape_config_dict.get(&#39;rendering_wait&#39;, None)
-        wait_for_selector = scrape_config_dict.get(&#39;wait_for_selector&#39;, None)
-        screenshots = scrape_config_dict.get(&#39;screenshots&#39;, [])
-        
-        screenshot_flags = scrape_config_dict.get(&#39;screenshot_flags&#39;, [])
-        screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
-
-        session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, False)
-        webhook = scrape_config_dict.get(&#39;webhook&#39;, None)
-        timeout = scrape_config_dict.get(&#39;timeout&#39;, None)
-        js_scenario = scrape_config_dict.get(&#39;js_scenario&#39;, None)
-        extract = scrape_config_dict.get(&#39;extract&#39;, None)
-        os = scrape_config_dict.get(&#39;os&#39;, None)
-        lang = scrape_config_dict.get(&#39;lang&#39;, None)
-        auto_scroll = scrape_config_dict.get(&#39;auto_scroll&#39;, None)
-        cost_budget = scrape_config_dict.get(&#39;cost_budget&#39;, None)
-
-        return ScrapeConfig(
-            url=url,
-            retry=retry,
-            method=method,
-            country=country,
-            render_js=render_js,
-            cache=cache,
-            cache_clear=cache_clear,
-            ssl=ssl,
-            dns=dns,
-            asp=asp,
-            debug=debug,
-            raise_on_upstream_error=raise_on_upstream_error,
-            cache_ttl=cache_ttl,
-            proxy_pool=proxy_pool,
-            session=session,
-            tags=tags,
-            format=format,
-            format_options=format_options,
-            extraction_template=extraction_template,
-            extraction_ephemeral_template=extraction_ephemeral_template,
-            extraction_prompt=extraction_prompt,
-            extraction_model=extraction_model,
-            correlation_id=correlation_id,
-            cookies=cookies,
-            body=body,
-            data=data,
-            headers=headers,
-            js=js,
-            rendering_wait=rendering_wait,
-            wait_for_selector=wait_for_selector,
-            screenshots=screenshots,
-            screenshot_flags=screenshot_flags,
-            session_sticky_proxy=session_sticky_proxy,
-            webhook=webhook,
-            timeout=timeout,
-            js_scenario=js_scenario,
-            extract=extract,
-            os=os,
-            lang=lang,
-            auto_scroll=auto_scroll,
-            cost_budget=cost_budget,
-        )</code></pre>
-</details>
 </section>
 <section>
 </section>
@@ -611,20 +48,9 @@ class ScrapeConfig(BaseApiConfig):
 <dl>
 <dt id="scrapfly.scrape_config.Format"><code class="flex name class">
 <span>class <span class="ident">Format</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
-<div class="desc"><h2 id="attributes">Attributes</h2>
-<dl>
-<dt><strong><code>JSON</code></strong></dt>
-<dd>JSON format.</dd>
-<dt><strong><code>TEXT</code></strong></dt>
-<dd>Text format.</dd>
-<dt><strong><code>MARKDOWN</code></strong></dt>
-<dd>Markdown format.</dd>
-<dt><strong><code>CLEAN_HTML</code></strong></dt>
-<dd>Clean HTML format.</dd>
-</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -643,6 +69,17 @@ class ScrapeConfig(BaseApiConfig):
     MARKDOWN = &#34;markdown&#34;
     CLEAN_HTML = &#34;clean_html&#34;</code></pre>
 </details>
+<div class="desc"><h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>JSON</code></strong></dt>
+<dd>JSON format.</dd>
+<dt><strong><code>TEXT</code></strong></dt>
+<dd>Text format.</dd>
+<dt><strong><code>MARKDOWN</code></strong></dt>
+<dd>Markdown format.</dd>
+<dt><strong><code>CLEAN_HTML</code></strong></dt>
+<dd>Clean HTML format.</dd>
+</dl></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>enum.Enum</li>
@@ -651,34 +88,27 @@ class ScrapeConfig(BaseApiConfig):
 <dl>
 <dt id="scrapfly.scrape_config.Format.CLEAN_HTML"><code class="name">var <span class="ident">CLEAN_HTML</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.Format.JSON"><code class="name">var <span class="ident">JSON</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.Format.MARKDOWN"><code class="name">var <span class="ident">MARKDOWN</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.Format.TEXT"><code class="name">var <span class="ident">TEXT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.scrape_config.FormatOption"><code class="flex name class">
 <span>class <span class="ident">FormatOption</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
-<div class="desc"><h2 id="attributes">Attributes</h2>
-<dl>
-<dt><strong><code>NO_IMAGES</code></strong></dt>
-<dd>exlude images from <code>markdown</code> format</dd>
-<dt><strong><code>NO_LINKS</code></strong></dt>
-<dd>exlude links from <code>markdown</code> format</dd>
-</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -694,6 +124,13 @@ class ScrapeConfig(BaseApiConfig):
     NO_LINKS = &#34;no_links&#34;
     ONLY_CONTENT = &#34;only_content&#34;</code></pre>
 </details>
+<div class="desc"><h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>NO_IMAGES</code></strong></dt>
+<dd>exlude images from <code>markdown</code> format</dd>
+<dt><strong><code>NO_LINKS</code></strong></dt>
+<dd>exlude links from <code>markdown</code> format</dd>
+</dl></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>enum.Enum</li>
@@ -702,24 +139,23 @@ class ScrapeConfig(BaseApiConfig):
 <dl>
 <dt id="scrapfly.scrape_config.FormatOption.NO_IMAGES"><code class="name">var <span class="ident">NO_IMAGES</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.FormatOption.NO_LINKS"><code class="name">var <span class="ident">NO_LINKS</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.FormatOption.ONLY_CONTENT"><code class="name">var <span class="ident">ONLY_CONTENT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Union[List[str], Set[str], ForwardRef(None)] = None, format: Optional[<a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a>] = None, format_options: Optional[List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>]] = None, extraction_template: Optional[str] = None, extraction_ephemeral_template: Optional[Dict] = None, extraction_prompt: Optional[str] = None, extraction_model: Optional[str] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, screenshot_flags: Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[List] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None, cost_budget: Optional[int] = None)</span>
+<span>(</span><span>url: str,<br>retry: bool = True,<br>method: str = 'GET',<br>country: str | None = None,<br>render_js: bool = False,<br>cache: bool = False,<br>cache_clear: bool = False,<br>ssl: bool = False,<br>dns: bool = False,<br>asp: bool = False,<br>debug: bool = False,<br>raise_on_upstream_error: bool = True,<br>cache_ttl: int | None = None,<br>proxy_pool: str | None = None,<br>session: str | None = None,<br>tags: List[str] | Set[str] | None = None,<br>format: <a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a> | None = None,<br>format_options: List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>correlation_id: str | None = None,<br>cookies: requests.structures.CaseInsensitiveDict | None = None,<br>body: str | None = None,<br>data: Dict | None = None,<br>headers: requests.structures.CaseInsensitiveDict | Dict[str, str] | None = None,<br>js: str = None,<br>rendering_wait: int = None,<br>rendering_stage: Literal['complete', 'domcontentloaded'] = 'complete',<br>wait_for_selector: str | None = None,<br>screenshots: Dict | None = None,<br>screenshot_flags: List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None = None,<br>session_sticky_proxy: bool | None = None,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>js_scenario: List | None = None,<br>extract: Dict | None = None,<br>os: str | None = None,<br>lang: List[str] | None = None,<br>auto_scroll: bool | None = None,<br>cost_budget: int | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -758,6 +194,7 @@ class ScrapeConfig(BaseApiConfig):
     headers: Optional[CaseInsensitiveDict] = None
     js: str = None
     rendering_wait: int = None
+    rendering_stage: Literal[&#34;complete&#34;, &#34;domcontentloaded&#34;] = &#34;complete&#34;
     wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
@@ -802,6 +239,7 @@ class ScrapeConfig(BaseApiConfig):
         headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
         js: str = None,
         rendering_wait: int = None,
+        rendering_stage: Literal[&#34;complete&#34;, &#34;domcontentloaded&#34;] = &#34;complete&#34;,
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         screenshot_flags: Optional[List[ScreenshotFlag]] = None,
@@ -852,6 +290,7 @@ class ScrapeConfig(BaseApiConfig):
         self.data = data
         self.js = js
         self.rendering_wait = rendering_wait
+        self.rendering_stage = rendering_stage
         self.raise_on_upstream_error = raise_on_upstream_error
         self.screenshots = screenshots
         self.screenshot_flags = screenshot_flags
@@ -936,6 +375,9 @@ class ScrapeConfig(BaseApiConfig):
 
             if self.rendering_wait:
                 params[&#39;rendering_wait&#39;] = self.rendering_wait
+            
+            if self.rendering_stage:
+                params[&#39;rendering_stage&#39;] = self.rendering_stage
 
             if self.screenshots is not None:
                 for name, element in self.screenshots.items():
@@ -1237,6 +679,7 @@ class ScrapeConfig(BaseApiConfig):
             cost_budget=cost_budget,
         )</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_config.BaseApiConfig" href="api_config.html#scrapfly.api_config.BaseApiConfig">BaseApiConfig</a></li>
@@ -1245,175 +688,179 @@ class ScrapeConfig(BaseApiConfig):
 <dl>
 <dt id="scrapfly.scrape_config.ScrapeConfig.PUBLIC_DATACENTER_POOL"><code class="name">var <span class="ident">PUBLIC_DATACENTER_POOL</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL"><code class="name">var <span class="ident">PUBLIC_RESIDENTIAL_POOL</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.asp"><code class="name">var <span class="ident">asp</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.auto_scroll"><code class="name">var <span class="ident">auto_scroll</span> : Optional[bool]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.auto_scroll"><code class="name">var <span class="ident">auto_scroll</span> : bool | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.body"><code class="name">var <span class="ident">body</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.body"><code class="name">var <span class="ident">body</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.cache"><code class="name">var <span class="ident">cache</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.cache_clear"><code class="name">var <span class="ident">cache_clear</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : Optional[int]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.cookies"><code class="name">var <span class="ident">cookies</span> : Optional[requests.structures.CaseInsensitiveDict]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.cookies"><code class="name">var <span class="ident">cookies</span> : requests.structures.CaseInsensitiveDict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.correlation_id"><code class="name">var <span class="ident">correlation_id</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.correlation_id"><code class="name">var <span class="ident">correlation_id</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.cost_budget"><code class="name">var <span class="ident">cost_budget</span> : Optional[int]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.cost_budget"><code class="name">var <span class="ident">cost_budget</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.country"><code class="name">var <span class="ident">country</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.country"><code class="name">var <span class="ident">country</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.data"><code class="name">var <span class="ident">data</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.data"><code class="name">var <span class="ident">data</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.debug"><code class="name">var <span class="ident">debug</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.dns"><code class="name">var <span class="ident">dns</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.extract"><code class="name">var <span class="ident">extract</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_ephemeral_template"><code class="name">var <span class="ident">extraction_ephemeral_template</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_ephemeral_template"><code class="name">var <span class="ident">extraction_ephemeral_template</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_model"><code class="name">var <span class="ident">extraction_model</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_model"><code class="name">var <span class="ident">extraction_model</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_prompt"><code class="name">var <span class="ident">extraction_prompt</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_prompt"><code class="name">var <span class="ident">extraction_prompt</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_template"><code class="name">var <span class="ident">extraction_template</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.extraction_template"><code class="name">var <span class="ident">extraction_template</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.format"><code class="name">var <span class="ident">format</span> : Optional[<a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a>]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.format"><code class="name">var <span class="ident">format</span> : <a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a> | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.format_options"><code class="name">var <span class="ident">format_options</span> : Optional[List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>]]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.format_options"><code class="name">var <span class="ident">format_options</span> : List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.headers"><code class="name">var <span class="ident">headers</span> : Optional[requests.structures.CaseInsensitiveDict]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.headers"><code class="name">var <span class="ident">headers</span> : requests.structures.CaseInsensitiveDict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.js"><code class="name">var <span class="ident">js</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.js_scenario"><code class="name">var <span class="ident">js_scenario</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.lang"><code class="name">var <span class="ident">lang</span> : Optional[List[str]]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.lang"><code class="name">var <span class="ident">lang</span> : List[str] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.method"><code class="name">var <span class="ident">method</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.os"><code class="name">var <span class="ident">os</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.os"><code class="name">var <span class="ident">os</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.proxy_pool"><code class="name">var <span class="ident">proxy_pool</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.proxy_pool"><code class="name">var <span class="ident">proxy_pool</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error"><code class="name">var <span class="ident">raise_on_upstream_error</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.render_js"><code class="name">var <span class="ident">render_js</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.rendering_stage"><code class="name">var <span class="ident">rendering_stage</span> : Literal['complete', 'domcontentloaded']</code></dt>
+<dd>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.rendering_wait"><code class="name">var <span class="ident">rendering_wait</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.retry"><code class="name">var <span class="ident">retry</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.screenshot_flags"><code class="name">var <span class="ident">screenshot_flags</span> : Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.screenshot_flags"><code class="name">var <span class="ident">screenshot_flags</span> : List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.screenshots"><code class="name">var <span class="ident">screenshots</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.screenshots"><code class="name">var <span class="ident">screenshots</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.session"><code class="name">var <span class="ident">session</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.session"><code class="name">var <span class="ident">session</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.session_sticky_proxy"><code class="name">var <span class="ident">session_sticky_proxy</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.tags"><code class="name">var <span class="ident">tags</span> : Optional[List[str]]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.tags"><code class="name">var <span class="ident">tags</span> : List[str] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.timeout"><code class="name">var <span class="ident">timeout</span> : Optional[int]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.timeout"><code class="name">var <span class="ident">timeout</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.wait_for_selector"><code class="name">var <span class="ident">wait_for_selector</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.wait_for_selector"><code class="name">var <span class="ident">wait_for_selector</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.scrape_config.ScrapeConfig.webhook"><code class="name">var <span class="ident">webhook</span> : Optional[str]</code></dt>
+<dt id="scrapfly.scrape_config.ScrapeConfig.webhook"><code class="name">var <span class="ident">webhook</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -1422,7 +869,6 @@ class ScrapeConfig(BaseApiConfig):
 <span>def <span class="ident">from_dict</span></span>(<span>scrape_config_dict: Dict) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create a ScrapeConfig instance from a dictionary.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1524,12 +970,12 @@ def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
         cost_budget=cost_budget,
     )</code></pre>
 </details>
+<div class="desc"><p>Create a ScrapeConfig instance from a dictionary.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.from_exported_config"><code class="name flex">
 <span>def <span class="ident">from_exported_config</span></span>(<span>config: str) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1581,6 +1027,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         cost_budget=data[&#39;cost_budget&#39;]
     )</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -1589,7 +1036,6 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <span>def <span class="ident">to_api_params</span></span>(<span>self, key: str) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1632,6 +1078,9 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
         if self.rendering_wait:
             params[&#39;rendering_wait&#39;] = self.rendering_wait
+        
+        if self.rendering_stage:
+            params[&#39;rendering_stage&#39;] = self.rendering_stage
 
         if self.screenshots is not None:
             for name, element in self.screenshots.items():
@@ -1739,13 +1188,12 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
     return params</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Export the ScrapeConfig instance to a plain dictionary.
-Useful for JSON-serialization or other external storage.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1800,6 +1248,8 @@ Useful for JSON-serialization or other external storage.</p></div>
         &#39;cost_budget&#39;: self.cost_budget,
     }</code></pre>
 </details>
+<div class="desc"><p>Export the ScrapeConfig instance to a plain dictionary.
+Useful for JSON-serialization or other external storage.</p></div>
 </dd>
 </dl>
 </dd>
@@ -1808,7 +1258,6 @@ Useful for JSON-serialization or other external storage.</p></div>
 <span>(</span><span>*args, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1816,6 +1265,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 <pre><code class="python">class ScrapeConfigError(Exception):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>builtins.Exception</li>
@@ -1824,22 +1274,9 @@ Useful for JSON-serialization or other external storage.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScreenshotFlag"><code class="flex name class">
 <span>class <span class="ident">ScreenshotFlag</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
-<div class="desc"><h2 id="attributes">Attributes</h2>
-<dl>
-<dt><strong><code>LOAD_IMAGES</code></strong></dt>
-<dd>Enable image rendering with the request, add extra usage for the bandwidth consumed.</dd>
-<dt><strong><code>DARK_MODE</code></strong></dt>
-<dd>Enable dark mode display.</dd>
-<dt><strong><code>BLOCK_BANNERS</code></strong></dt>
-<dd>Block cookies banners and overlay that cover the screen.</dd>
-<dt><strong><code>HIGH_QUALITY</code></strong></dt>
-<dd>No compression on the output image.</dd>
-<dt><strong><code>PRINT_MEDIA_FORMAT</code></strong></dt>
-<dd>Render the page in the print mode.</dd>
-</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1860,6 +1297,19 @@ Useful for JSON-serialization or other external storage.</p></div>
     HIGH_QUALITY = &#34;high_quality&#34;
     PRINT_MEDIA_FORMAT = &#34;print_media_format&#34;</code></pre>
 </details>
+<div class="desc"><h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>LOAD_IMAGES</code></strong></dt>
+<dd>Enable image rendering with the request, add extra usage for the bandwidth consumed.</dd>
+<dt><strong><code>DARK_MODE</code></strong></dt>
+<dd>Enable dark mode display.</dd>
+<dt><strong><code>BLOCK_BANNERS</code></strong></dt>
+<dd>Block cookies banners and overlay that cover the screen.</dd>
+<dt><strong><code>HIGH_QUALITY</code></strong></dt>
+<dd>No compression on the output image.</dd>
+<dt><strong><code>PRINT_MEDIA_FORMAT</code></strong></dt>
+<dd>Render the page in the print mode.</dd>
+</dl></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>enum.Enum</li>
@@ -1868,23 +1318,23 @@ Useful for JSON-serialization or other external storage.</p></div>
 <dl>
 <dt id="scrapfly.scrape_config.ScreenshotFlag.BLOCK_BANNERS"><code class="name">var <span class="ident">BLOCK_BANNERS</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScreenshotFlag.DARK_MODE"><code class="name">var <span class="ident">DARK_MODE</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScreenshotFlag.HIGH_QUALITY"><code class="name">var <span class="ident">HIGH_QUALITY</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScreenshotFlag.LOAD_IMAGES"><code class="name">var <span class="ident">LOAD_IMAGES</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScreenshotFlag.PRINT_MEDIA_FORMAT"><code class="name">var <span class="ident">PRINT_MEDIA_FORMAT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 </dd>
@@ -1892,7 +1342,6 @@ Useful for JSON-serialization or other external storage.</p></div>
 </section>
 </article>
 <nav id="sidebar">
-<h1>Index</h1>
 <div class="toc">
 <ul></ul>
 </div>
@@ -1957,6 +1406,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.proxy_pool" href="#scrapfly.scrape_config.ScrapeConfig.proxy_pool">proxy_pool</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error" href="#scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.render_js" href="#scrapfly.scrape_config.ScrapeConfig.render_js">render_js</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.rendering_stage" href="#scrapfly.scrape_config.ScrapeConfig.rendering_stage">rendering_stage</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.rendering_wait" href="#scrapfly.scrape_config.ScrapeConfig.rendering_wait">rendering_wait</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.retry" href="#scrapfly.scrape_config.ScrapeConfig.retry">retry</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.screenshot_flags" href="#scrapfly.scrape_config.ScrapeConfig.screenshot_flags">screenshot_flags</a></code></li>
@@ -1992,7 +1442,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
 </footer>
 </body>
 </html>

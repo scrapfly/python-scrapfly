@@ -2,18 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.10.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
 <title>scrapfly API documentation</title>
-<meta name="description" content="" />
-<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
-<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
-<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
-<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
-<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<meta name="description" content="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
 <style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
-<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
 </head>
 <body>
 <main>
@@ -22,70 +36,6 @@
 <h1 class="title">Package <code>scrapfly</code></h1>
 </header>
 <section id="section-intro">
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">__version__ = &#39;0.8.21&#39;
-
-from typing import Tuple
-from .errors import ScrapflyError
-from .errors import ScrapflyAspError
-from .errors import ScrapflyProxyError
-from .errors import ScrapflyScheduleError
-from .errors import ScrapflyScrapeError
-from .errors import ScrapflySessionError
-from .errors import ScrapflyThrottleError
-from .errors import ScrapflyWebhookError
-from .errors import EncoderError
-from .errors import ErrorFactory
-from .errors import HttpError
-from .errors import UpstreamHttpError
-from .errors import UpstreamHttpClientError
-from .errors import UpstreamHttpServerError
-from .errors import ApiHttpClientError
-from .errors import ApiHttpServerError
-from .errors import ScreenshotAPIError
-from .errors import ExtractionAPIError
-from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, ResponseBodyHandler
-from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
-from .scrape_config import ScrapeConfig
-from .screenshot_config import ScreenshotConfig
-from .extraction_config import ExtractionConfig
-
-
-__all__: Tuple[str, ...] = (
-    &#39;ScrapflyError&#39;,
-    &#39;ScrapflyAspError&#39;,
-    &#39;ScrapflyProxyError&#39;,
-    &#39;ScrapflyScheduleError&#39;,
-    &#39;ScrapflyScrapeError&#39;,
-    &#39;ScrapflySessionError&#39;,
-    &#39;ScrapflyThrottleError&#39;,
-    &#39;ScrapflyWebhookError&#39;,
-    &#39;UpstreamHttpError&#39;,
-    &#39;UpstreamHttpClientError&#39;,
-    &#39;UpstreamHttpServerError&#39;,
-    &#39;ApiHttpClientError&#39;,
-    &#39;ApiHttpServerError&#39;,
-    &#39;EncoderError&#39;,
-    &#39;ScrapeApiResponse&#39;,
-    &#39;ScreenshotApiResponse&#39;,
-    &#39;ExtractionApiResponse&#39;,
-    &#39;ErrorFactory&#39;,
-    &#39;HttpError&#39;,
-    &#39;ScrapflyClient&#39;,
-    &#39;ResponseBodyHandler&#39;,
-    &#39;ScrapeConfig&#39;,
-    &#39;ScreenshotConfig&#39;,
-    &#39;ExtractionConfig&#39;,
-    &#39;ScreenshotAPIError&#39;,
-    &#39;ExtractionAPIError&#39;,
-    &#39;ScraperAPI&#39;,
-    &#39;MonitoringTargetPeriod&#39;,
-    &#39;MonitoringAggregation&#39;,
-)</code></pre>
-</details>
 </section>
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
@@ -149,10 +99,9 @@ __all__: Tuple[str, ...] = (
 <dl>
 <dt id="scrapfly.ApiHttpClientError"><code class="flex name class">
 <span>class <span class="ident">ApiHttpClientError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -160,6 +109,7 @@ __all__: Tuple[str, ...] = (
 <pre><code class="python">class ApiHttpClientError(HttpError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
@@ -174,13 +124,28 @@ __all__: Tuple[str, ...] = (
 <li>scrapfly.errors.PaymentRequired</li>
 <li>scrapfly.errors.TooManyRequest</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ApiHttpServerError"><code class="flex name class">
 <span>class <span class="ident">ApiHttpServerError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -188,6 +153,7 @@ __all__: Tuple[str, ...] = (
 <pre><code class="python">class ApiHttpServerError(ApiHttpClientError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.errors.ApiHttpClientError" href="errors.html#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></li>
@@ -196,13 +162,28 @@ __all__: Tuple[str, ...] = (
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ApiHttpClientError" href="errors.html#scrapfly.errors.ApiHttpClientError">ApiHttpClientError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ApiHttpClientError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ApiHttpClientError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ApiHttpClientError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ApiHttpClientError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ApiHttpClientError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ApiHttpClientError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ApiHttpClientError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ApiHttpClientError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ApiHttpClientError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.EncoderError"><code class="flex name class">
 <span>class <span class="ident">EncoderError</span></span>
 <span>(</span><span>content: str)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all exceptions</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -219,6 +200,7 @@ __all__: Tuple[str, ...] = (
     def __repr__(self):
         return &#34;Invalid payload: %s&#34; % self.content</code></pre>
 </details>
+<div class="desc"><p>Common base class for all exceptions</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>builtins.BaseException</li>
@@ -228,7 +210,6 @@ __all__: Tuple[str, ...] = (
 <span>class <span class="ident">ErrorFactory</span></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -337,15 +318,16 @@ __all__: Tuple[str, ...] = (
 
             return ScrapflyError(**args)</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.ErrorFactory.HTTP_STATUS_TO_ERROR"><code class="name">var <span class="ident">HTTP_STATUS_TO_ERROR</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ErrorFactory.RESOURCE_TO_ERROR"><code class="name">var <span class="ident">RESOURCE_TO_ERROR</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -354,7 +336,6 @@ __all__: Tuple[str, ...] = (
 <span>def <span class="ident">create</span></span>(<span>api_response: <a title="scrapfly.ScrapeApiResponse" href="#scrapfly.ScrapeApiResponse">ScrapeApiResponse</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -436,15 +417,15 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 
         return ScrapflyError(**args)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.ExtractionAPIError"><code class="flex name class">
 <span>class <span class="ident">ExtractionAPIError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -452,6 +433,7 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 <pre><code class="python">class ExtractionAPIError(HttpError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
@@ -459,13 +441,28 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ExtractionApiResponse"><code class="flex name class">
 <span>class <span class="ident">ExtractionApiResponse</span></span>
-<span>(</span><span>request: requests.models.Request, response: requests.models.Response, extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>, api_result: Optional[bytes] = None)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response,<br>extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>,<br>api_result: bytes | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -528,15 +525,15 @@ def create(api_response: &#39;ScrapeApiResponse&#39;):
     def raise_for_result(self, raise_on_upstream_error=True, error_class=ExtractionAPIError):
         super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_response.ApiResponse" href="api_response.html#scrapfly.api_response.ApiResponse">ApiResponse</a></li>
 </ul>
 <h3>Instance variables</h3>
 <dl>
-<dt id="scrapfly.ExtractionApiResponse.content_type"><code class="name">var <span class="ident">content_type</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ExtractionApiResponse.content_type"><code class="name">prop <span class="ident">content_type</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -548,10 +545,10 @@ def content_type(self) -&gt; Optional[str]:
 
     return None</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ExtractionApiResponse.data"><code class="name">var <span class="ident">data</span> : Union[Dict, List, str]</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ExtractionApiResponse.data"><code class="name">prop <span class="ident">data</span> : Dict | List | str</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -563,10 +560,10 @@ def data(self) -&gt; Union[Dict, List, str]:  # depends on the LLM prompt
 
     return None</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ExtractionApiResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ExtractionApiResponse.error"><code class="name">prop <span class="ident">error</span> : Dict | None</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -578,10 +575,10 @@ def error(self) -&gt; Optional[Dict]:
 
     return None</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ExtractionApiResponse.extraction_result"><code class="name">var <span class="ident">extraction_result</span> : Optional[Dict]</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ExtractionApiResponse.extraction_result"><code class="name">prop <span class="ident">extraction_result</span> : Dict | None</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -594,10 +591,10 @@ def extraction_result(self) -&gt; Optional[Dict]:
     else:
         return extraction_result</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ExtractionApiResponse.extraction_success"><code class="name">var <span class="ident">extraction_success</span> : bool</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ExtractionApiResponse.extraction_success"><code class="name">prop <span class="ident">extraction_success</span> : bool</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -610,6 +607,7 @@ def extraction_success(self) -&gt; bool:
 
     return True</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -618,7 +616,6 @@ def extraction_success(self) -&gt; bool:
 <span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: bytes) ‑> <a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -629,12 +626,12 @@ def extraction_success(self) -&gt; bool:
 
     return FrozenDict({&#39;result&#39;: api_result})</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ExtractionApiResponse.raise_for_result"><code class="name flex">
-<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error=True, error_class=scrapfly.errors.ExtractionAPIError)</span>
+<span>def <span class="ident">raise_for_result</span></span>(<span>self,<br>raise_on_upstream_error=True,<br>error_class=scrapfly.errors.ExtractionAPIError)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -642,6 +639,7 @@ def extraction_success(self) -&gt; bool:
 <pre><code class="python">def raise_for_result(self, raise_on_upstream_error=True, error_class=ExtractionAPIError):
     super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Inherited members</h3>
@@ -655,10 +653,9 @@ def extraction_success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.ExtractionConfig"><code class="flex name class">
 <span>class <span class="ident">ExtractionConfig</span></span>
-<span>(</span><span>body: Union[str, bytes], content_type: str, url: Optional[str] = None, charset: Optional[str] = None, extraction_template: Optional[str] = None, extraction_ephemeral_template: Optional[Dict] = None, extraction_prompt: Optional[str] = None, extraction_model: Optional[str] = None, is_document_compressed: Optional[bool] = None, document_compression_format: Optional[<a title="scrapfly.extraction_config.CompressionFormat" href="extraction_config.html#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a>] = None, webhook: Optional[str] = None, raise_on_upstream_error: bool = True, template: Optional[str] = None, ephemeral_template: Optional[Dict] = None)</span>
+<span>(</span><span>body: str | bytes,<br>content_type: str,<br>url: str | None = None,<br>charset: str | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>is_document_compressed: bool | None = None,<br>document_compression_format: <a title="scrapfly.extraction_config.CompressionFormat" href="extraction_config.html#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a> | None = None,<br>webhook: str | None = None,<br>raise_on_upstream_error: bool = True,<br>template: str | None = None,<br>ephemeral_template: Dict | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -876,67 +873,68 @@ def extraction_success(self) -&gt; bool:
             raise_on_upstream_error=raise_on_upstream_error
         )</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_config.BaseApiConfig" href="api_config.html#scrapfly.api_config.BaseApiConfig">BaseApiConfig</a></li>
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.ExtractionConfig.body"><code class="name">var <span class="ident">body</span> : Union[str, bytes]</code></dt>
+<dt id="scrapfly.ExtractionConfig.body"><code class="name">var <span class="ident">body</span> : str | bytes</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.charset"><code class="name">var <span class="ident">charset</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ExtractionConfig.charset"><code class="name">var <span class="ident">charset</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ExtractionConfig.content_type"><code class="name">var <span class="ident">content_type</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.document_compression_format"><code class="name">var <span class="ident">document_compression_format</span> : Optional[<a title="scrapfly.extraction_config.CompressionFormat" href="extraction_config.html#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a>]</code></dt>
+<dt id="scrapfly.ExtractionConfig.document_compression_format"><code class="name">var <span class="ident">document_compression_format</span> : <a title="scrapfly.extraction_config.CompressionFormat" href="extraction_config.html#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a> | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.ephemeral_template"><code class="name">var <span class="ident">ephemeral_template</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.ExtractionConfig.ephemeral_template"><code class="name">var <span class="ident">ephemeral_template</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.extraction_ephemeral_template"><code class="name">var <span class="ident">extraction_ephemeral_template</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.ExtractionConfig.extraction_ephemeral_template"><code class="name">var <span class="ident">extraction_ephemeral_template</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.extraction_model"><code class="name">var <span class="ident">extraction_model</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ExtractionConfig.extraction_model"><code class="name">var <span class="ident">extraction_model</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.extraction_prompt"><code class="name">var <span class="ident">extraction_prompt</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ExtractionConfig.extraction_prompt"><code class="name">var <span class="ident">extraction_prompt</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.extraction_template"><code class="name">var <span class="ident">extraction_template</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ExtractionConfig.extraction_template"><code class="name">var <span class="ident">extraction_template</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.is_document_compressed"><code class="name">var <span class="ident">is_document_compressed</span> : Optional[bool]</code></dt>
+<dt id="scrapfly.ExtractionConfig.is_document_compressed"><code class="name">var <span class="ident">is_document_compressed</span> : bool | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ExtractionConfig.raise_on_upstream_error"><code class="name">var <span class="ident">raise_on_upstream_error</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.template"><code class="name">var <span class="ident">template</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ExtractionConfig.template"><code class="name">var <span class="ident">template</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.url"><code class="name">var <span class="ident">url</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ExtractionConfig.url"><code class="name">var <span class="ident">url</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ExtractionConfig.webhook"><code class="name">var <span class="ident">webhook</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ExtractionConfig.webhook"><code class="name">var <span class="ident">webhook</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -945,7 +943,6 @@ def extraction_success(self) -&gt; bool:
 <span>def <span class="ident">from_dict</span></span>(<span>extraction_config_dict: Dict) ‑> <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create an ExtractionConfig instance from a dictionary.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -984,6 +981,7 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
         raise_on_upstream_error=raise_on_upstream_error
     )</code></pre>
 </details>
+<div class="desc"><p>Create an ExtractionConfig instance from a dictionary.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -992,7 +990,6 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
 <span>def <span class="ident">to_api_params</span></span>(<span>self, key: str) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1030,12 +1027,12 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
 
     return params</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ExtractionConfig.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Export the ExtractionConfig instance to a plain dictionary.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1080,15 +1077,15 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
         &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
     }</code></pre>
 </details>
+<div class="desc"><p>Export the ExtractionConfig instance to a plain dictionary.</p></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.HttpError"><code class="flex name class">
 <span>class <span class="ident">HttpError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1114,6 +1111,7 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
 
         return text</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
@@ -1130,13 +1128,28 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
 <li>scrapfly.errors.TooManyConcurrentRequest</li>
 <li>scrapfly.errors.UpstreamHttpError</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
-<span>(</span><span>use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None)</span>
+<span>(</span><span>use_brotli: bool = False, signing_secrets: Tuple[str] | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1254,11 +1267,12 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
             except UnicodeError:
                 raise EncoderError(content=base64.b64encode(content).decode(&#39;utf-8&#39;)) from e</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.ResponseBodyHandler.JSONDateTimeDecoder"><code class="name">var <span class="ident">JSONDateTimeDecoder</span></code></dt>
 <dd>
-<div class="desc"><p>Simple JSON <a href="http://json.org">http://json.org</a> decoder</p>
+<div class="desc"><p>Simple JSON <a href="https://json.org">https://json.org</a> decoder</p>
 <p>Performs the following translations in decoding by default:</p>
 <p>+---------------+-------------------+
 | JSON
@@ -1301,20 +1315,19 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </dd>
 <dt id="scrapfly.ResponseBodyHandler.SUPPORTED_COMPRESSION"><code class="name">var <span class="ident">SUPPORTED_COMPRESSION</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES"><code class="name">var <span class="ident">SUPPORTED_CONTENT_TYPES</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.ResponseBodyHandler.read"><code class="name flex">
-<span>def <span class="ident">read</span></span>(<span>self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) ‑> Dict</span>
+<span>def <span class="ident">read</span></span>(<span>self,<br>content: bytes,<br>content_encoding: str,<br>content_type: str,<br>signature: str | None) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1345,12 +1358,12 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     return content</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ResponseBodyHandler.support"><code class="name flex">
 <span>def <span class="ident">support</span></span>(<span>self, headers: Dict) ‑> bool</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1365,12 +1378,12 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     return False</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ResponseBodyHandler.verify"><code class="name flex">
 <span>def <span class="ident">verify</span></span>(<span>self, message: bytes, signature: str) ‑> bool</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1382,15 +1395,15 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 
     return False</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.ScrapeApiResponse"><code class="flex name class">
 <span>class <span class="ident">ScrapeApiResponse</span></span>
-<span>(</span><span>request: requests.models.Request, response: requests.models.Response, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, api_result: Optional[Dict] = None, large_object_handler: Optional[Callable] = None)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response,<br>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>,<br>api_result: Dict | None = None,<br>large_object_handler: Callable | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1452,10 +1465,6 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         return self.result.get(&#39;result&#39;, None)
 
     @property
-    def scrape_result(self) -&gt; Optional[Dict]:
-        return self.result.get(&#39;result&#39;, None)
-
-    @property
     def config(self) -&gt; Optional[Dict]:
         if self.scrape_result is None:
             return None
@@ -1479,7 +1488,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
     @property
     def success(self) -&gt; bool:
         &#34;&#34;&#34;
-            /!\ Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
+            Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
         &#34;&#34;&#34;
         return 200 &gt;= self.response.status_code &lt;= 299
 
@@ -1718,6 +1727,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                 else:
                     raise error</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_response.ApiResponse" href="api_response.html#scrapfly.api_response.ApiResponse">ApiResponse</a></li>
@@ -1726,18 +1736,17 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <dl>
 <dt id="scrapfly.ScrapeApiResponse.large_object_handler"><code class="name">var <span class="ident">large_object_handler</span> : Callable</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeApiResponse.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Instance variables</h3>
 <dl>
-<dt id="scrapfly.ScrapeApiResponse.config"><code class="name">var <span class="ident">config</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.ScrapeApiResponse.config"><code class="name">prop <span class="ident">config</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1749,10 +1758,10 @@ def config(self) -&gt; Optional[Dict]:
 
     return self.result[&#39;config&#39;]</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapeApiResponse.content"><code class="name">var <span class="ident">content</span> : str</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.content"><code class="name">prop <span class="ident">content</span> : str</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1764,10 +1773,10 @@ def content(self) -&gt; str:
 
     return self.scrape_result[&#39;content&#39;]</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapeApiResponse.context"><code class="name">var <span class="ident">context</span> : Optional[Dict]</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.context"><code class="name">prop <span class="ident">context</span> : Dict | None</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1779,10 +1788,10 @@ def context(self) -&gt; Optional[Dict]:
 
     return self.result[&#39;context&#39;]</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapeApiResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.error"><code class="name">prop <span class="ident">error</span> : Dict | None</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1795,10 +1804,10 @@ def error(self) -&gt; Optional[Dict]:
     if self.scrape_success is False:
         return self.scrape_result[&#39;error&#39;]</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapeApiResponse.scrape_result"><code class="name">var <span class="ident">scrape_result</span> : Optional[Dict]</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.scrape_result"><code class="name">prop <span class="ident">scrape_result</span> : Dict | None</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1807,10 +1816,10 @@ def error(self) -&gt; Optional[Dict]:
 def scrape_result(self) -&gt; Optional[Dict]:
     return self.result.get(&#39;result&#39;, None)</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapeApiResponse.scrape_success"><code class="name">var <span class="ident">scrape_success</span> : bool</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.scrape_success"><code class="name">prop <span class="ident">scrape_success</span> : bool</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1824,88 +1833,50 @@ def scrape_success(self) -&gt; bool:
 
     return self.scrape_result[&#39;success&#39;]</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapeApiResponse.selector"><code class="name">var <span class="ident">selector</span></code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.selector"><code class="name">var <span class="ident">selector</span> : Selector</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def __get__(self, instance, owner=None):
-    if instance is None:
-        return self
-    if self.attrname is None:
-        raise TypeError(
-            &#34;Cannot use cached_property instance without calling __set_name__ on it.&#34;)
+<pre><code class="python">@cached_property
+def selector(self) -&gt; &#39;Selector&#39;:
+    if self.scrape_result[&#39;format&#39;] != &#39;text&#39;:
+        raise ContentError(&#34;Unable to cast into beautiful soup, the format of data is binary - must be text content&#34;)
+
     try:
-        cache = instance.__dict__
-    except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
-        msg = (
-            f&#34;No &#39;__dict__&#39; attribute on {type(instance).__name__!r} &#34;
-            f&#34;instance to cache {self.attrname!r} property.&#34;
-        )
-        raise TypeError(msg) from None
-    val = cache.get(self.attrname, _NOT_FOUND)
-    if val is _NOT_FOUND:
-        with self.lock:
-            # check if another thread filled cache while we awaited lock
-            val = cache.get(self.attrname, _NOT_FOUND)
-            if val is _NOT_FOUND:
-                val = self.func(instance)
-                try:
-                    cache[self.attrname] = val
-                except TypeError:
-                    msg = (
-                        f&#34;The &#39;__dict__&#39; attribute on {type(instance).__name__!r} instance &#34;
-                        f&#34;does not support item assignment for caching {self.attrname!r} property.&#34;
-                    )
-                    raise TypeError(msg) from None
-    return val</code></pre>
+        from parsel import Selector
+        return Selector(text=self.content)
+    except ImportError as e:
+        logger.error(&#39;You must install parsel or scrapy package to enable this feature&#39;)
+        raise e</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapeApiResponse.soup"><code class="name">var <span class="ident">soup</span></code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapeApiResponse.soup"><code class="name">var <span class="ident">soup</span> : BeautifulSoup</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def __get__(self, instance, owner=None):
-    if instance is None:
-        return self
-    if self.attrname is None:
-        raise TypeError(
-            &#34;Cannot use cached_property instance without calling __set_name__ on it.&#34;)
+<pre><code class="python">@cached_property
+def soup(self) -&gt; &#39;BeautifulSoup&#39;:
+    if self.scrape_result[&#39;format&#39;] != &#39;text&#39;:
+        raise ContentError(&#34;Unable to cast into beautiful soup, the format of data is binary - must be text content&#34;)
+
     try:
-        cache = instance.__dict__
-    except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
-        msg = (
-            f&#34;No &#39;__dict__&#39; attribute on {type(instance).__name__!r} &#34;
-            f&#34;instance to cache {self.attrname!r} property.&#34;
-        )
-        raise TypeError(msg) from None
-    val = cache.get(self.attrname, _NOT_FOUND)
-    if val is _NOT_FOUND:
-        with self.lock:
-            # check if another thread filled cache while we awaited lock
-            val = cache.get(self.attrname, _NOT_FOUND)
-            if val is _NOT_FOUND:
-                val = self.func(instance)
-                try:
-                    cache[self.attrname] = val
-                except TypeError:
-                    msg = (
-                        f&#34;The &#39;__dict__&#39; attribute on {type(instance).__name__!r} instance &#34;
-                        f&#34;does not support item assignment for caching {self.attrname!r} property.&#34;
-                    )
-                    raise TypeError(msg) from None
-    return val</code></pre>
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self.content, &#34;lxml&#34;)
+        return soup
+    except ImportError as e:
+        logger.error(&#39;You must install scrapfly[parser] to enable this feature&#39;)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
-<dt id="scrapfly.ScrapeApiResponse.success"><code class="name">var <span class="ident">success</span> : bool</code></dt>
+<dt id="scrapfly.ScrapeApiResponse.success"><code class="name">prop <span class="ident">success</span> : bool</code></dt>
 <dd>
-<div class="desc"><p>/!\ Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1913,14 +1884,14 @@ def scrape_success(self) -&gt; bool:
 <pre><code class="python">@property
 def success(self) -&gt; bool:
     &#34;&#34;&#34;
-        /!\ Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
+        Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
     &#34;&#34;&#34;
     return 200 &gt;= self.response.status_code &lt;= 299</code></pre>
 </details>
+<div class="desc"><p>Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code</p></div>
 </dd>
-<dt id="scrapfly.ScrapeApiResponse.upstream_status_code"><code class="name">var <span class="ident">upstream_status_code</span> : Optional[int]</code></dt>
+<dt id="scrapfly.ScrapeApiResponse.upstream_status_code"><code class="name">prop <span class="ident">upstream_status_code</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1935,15 +1906,15 @@ def upstream_status_code(self) -&gt; Optional[int]:
 
     return None</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.ScrapeApiResponse.handle_api_result"><code class="name flex">
-<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Dict) ‑> Optional[<a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a>]</span>
+<span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: Dict) ‑> <a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a> | None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1978,12 +1949,12 @@ def upstream_status_code(self) -&gt; Optional[int]:
 
     return FrozenDict(api_result)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapeApiResponse.raise_for_result"><code class="name flex">
-<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error=True, error_class=scrapfly.errors.ApiHttpClientError)</span>
+<span>def <span class="ident">raise_for_result</span></span>(<span>self,<br>raise_on_upstream_error=True,<br>error_class=scrapfly.errors.ApiHttpClientError)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1999,12 +1970,12 @@ def upstream_status_code(self) -&gt; Optional[int]:
             else:
                 raise error</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapeApiResponse.sink"><code class="name flex">
-<span>def <span class="ident">sink</span></span>(<span>self, path: Optional[str] = None, name: Optional[str] = None, file: Union[TextIO, _io.BytesIO, ForwardRef(None)] = None, content: Union[str, bytes, ForwardRef(None)] = None)</span>
+<span>def <span class="ident">sink</span></span>(<span>self,<br>path: str | None = None,<br>name: str | None = None,<br>file: <class 'TextIO'> | _io.BytesIO | None = None,<br>content: str | bytes | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2062,12 +2033,12 @@ def upstream_status_code(self) -&gt; Optional[int]:
 
     logger.info(&#39;file %s created&#39; % file_path)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapeApiResponse.upstream_result_into_response"><code class="name flex">
-<span>def <span class="ident">upstream_result_into_response</span></span>(<span>self) ‑> Optional[requests.models.Response]</span>
+<span>def <span class="ident">upstream_result_into_response</span></span>(<span>self) ‑> requests.models.Response | None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2151,6 +2122,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
 
     return response</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Inherited members</h3>
@@ -2164,10 +2136,9 @@ def upstream_status_code(self) -&gt; Optional[int]:
 </dd>
 <dt id="scrapfly.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str, retry: bool = True, method: str = 'GET', country: Optional[str] = None, render_js: bool = False, cache: bool = False, cache_clear: bool = False, ssl: bool = False, dns: bool = False, asp: bool = False, debug: bool = False, raise_on_upstream_error: bool = True, cache_ttl: Optional[int] = None, proxy_pool: Optional[str] = None, session: Optional[str] = None, tags: Union[List[str], Set[str], ForwardRef(None)] = None, format: Optional[<a title="scrapfly.scrape_config.Format" href="scrape_config.html#scrapfly.scrape_config.Format">Format</a>] = None, format_options: Optional[List[<a title="scrapfly.scrape_config.FormatOption" href="scrape_config.html#scrapfly.scrape_config.FormatOption">FormatOption</a>]] = None, extraction_template: Optional[str] = None, extraction_ephemeral_template: Optional[Dict] = None, extraction_prompt: Optional[str] = None, extraction_model: Optional[str] = None, correlation_id: Optional[str] = None, cookies: Optional[requests.structures.CaseInsensitiveDict] = None, body: Optional[str] = None, data: Optional[Dict] = None, headers: Union[requests.structures.CaseInsensitiveDict, Dict[str, str], ForwardRef(None)] = None, js: str = None, rendering_wait: int = None, wait_for_selector: Optional[str] = None, screenshots: Optional[Dict] = None, screenshot_flags: Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]] = None, session_sticky_proxy: Optional[bool] = None, webhook: Optional[str] = None, timeout: Optional[int] = None, js_scenario: Optional[List] = None, extract: Optional[Dict] = None, os: Optional[str] = None, lang: Optional[List[str]] = None, auto_scroll: Optional[bool] = None, cost_budget: Optional[int] = None)</span>
+<span>(</span><span>url: str,<br>retry: bool = True,<br>method: str = 'GET',<br>country: str | None = None,<br>render_js: bool = False,<br>cache: bool = False,<br>cache_clear: bool = False,<br>ssl: bool = False,<br>dns: bool = False,<br>asp: bool = False,<br>debug: bool = False,<br>raise_on_upstream_error: bool = True,<br>cache_ttl: int | None = None,<br>proxy_pool: str | None = None,<br>session: str | None = None,<br>tags: List[str] | Set[str] | None = None,<br>format: <a title="scrapfly.scrape_config.Format" href="scrape_config.html#scrapfly.scrape_config.Format">Format</a> | None = None,<br>format_options: List[<a title="scrapfly.scrape_config.FormatOption" href="scrape_config.html#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>correlation_id: str | None = None,<br>cookies: requests.structures.CaseInsensitiveDict | None = None,<br>body: str | None = None,<br>data: Dict | None = None,<br>headers: requests.structures.CaseInsensitiveDict | Dict[str, str] | None = None,<br>js: str = None,<br>rendering_wait: int = None,<br>rendering_stage: Literal['complete', 'domcontentloaded'] = 'complete',<br>wait_for_selector: str | None = None,<br>screenshots: Dict | None = None,<br>screenshot_flags: List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None = None,<br>session_sticky_proxy: bool | None = None,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>js_scenario: List | None = None,<br>extract: Dict | None = None,<br>os: str | None = None,<br>lang: List[str] | None = None,<br>auto_scroll: bool | None = None,<br>cost_budget: int | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2206,6 +2177,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
     headers: Optional[CaseInsensitiveDict] = None
     js: str = None
     rendering_wait: int = None
+    rendering_stage: Literal[&#34;complete&#34;, &#34;domcontentloaded&#34;] = &#34;complete&#34;
     wait_for_selector: Optional[str] = None
     session_sticky_proxy:bool = True
     screenshots:Optional[Dict]=None
@@ -2250,6 +2222,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
         headers: Optional[Union[CaseInsensitiveDict, Dict[str, str]]] = None,
         js: str = None,
         rendering_wait: int = None,
+        rendering_stage: Literal[&#34;complete&#34;, &#34;domcontentloaded&#34;] = &#34;complete&#34;,
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         screenshot_flags: Optional[List[ScreenshotFlag]] = None,
@@ -2300,6 +2273,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
         self.data = data
         self.js = js
         self.rendering_wait = rendering_wait
+        self.rendering_stage = rendering_stage
         self.raise_on_upstream_error = raise_on_upstream_error
         self.screenshots = screenshots
         self.screenshot_flags = screenshot_flags
@@ -2384,6 +2358,9 @@ def upstream_status_code(self) -&gt; Optional[int]:
 
             if self.rendering_wait:
                 params[&#39;rendering_wait&#39;] = self.rendering_wait
+            
+            if self.rendering_stage:
+                params[&#39;rendering_stage&#39;] = self.rendering_stage
 
             if self.screenshots is not None:
                 for name, element in self.screenshots.items():
@@ -2685,6 +2662,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
             cost_budget=cost_budget,
         )</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_config.BaseApiConfig" href="api_config.html#scrapfly.api_config.BaseApiConfig">BaseApiConfig</a></li>
@@ -2693,175 +2671,179 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <dl>
 <dt id="scrapfly.ScrapeConfig.PUBLIC_DATACENTER_POOL"><code class="name">var <span class="ident">PUBLIC_DATACENTER_POOL</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL"><code class="name">var <span class="ident">PUBLIC_RESIDENTIAL_POOL</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.asp"><code class="name">var <span class="ident">asp</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.auto_scroll"><code class="name">var <span class="ident">auto_scroll</span> : Optional[bool]</code></dt>
+<dt id="scrapfly.ScrapeConfig.auto_scroll"><code class="name">var <span class="ident">auto_scroll</span> : bool | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.body"><code class="name">var <span class="ident">body</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.body"><code class="name">var <span class="ident">body</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.cache"><code class="name">var <span class="ident">cache</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.cache_clear"><code class="name">var <span class="ident">cache_clear</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : Optional[int]</code></dt>
+<dt id="scrapfly.ScrapeConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.cookies"><code class="name">var <span class="ident">cookies</span> : Optional[requests.structures.CaseInsensitiveDict]</code></dt>
+<dt id="scrapfly.ScrapeConfig.cookies"><code class="name">var <span class="ident">cookies</span> : requests.structures.CaseInsensitiveDict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.correlation_id"><code class="name">var <span class="ident">correlation_id</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.correlation_id"><code class="name">var <span class="ident">correlation_id</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.cost_budget"><code class="name">var <span class="ident">cost_budget</span> : Optional[int]</code></dt>
+<dt id="scrapfly.ScrapeConfig.cost_budget"><code class="name">var <span class="ident">cost_budget</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.country"><code class="name">var <span class="ident">country</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.country"><code class="name">var <span class="ident">country</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.data"><code class="name">var <span class="ident">data</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.ScrapeConfig.data"><code class="name">var <span class="ident">data</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.debug"><code class="name">var <span class="ident">debug</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.dns"><code class="name">var <span class="ident">dns</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.extract"><code class="name">var <span class="ident">extract</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.extraction_ephemeral_template"><code class="name">var <span class="ident">extraction_ephemeral_template</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.ScrapeConfig.extraction_ephemeral_template"><code class="name">var <span class="ident">extraction_ephemeral_template</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.extraction_model"><code class="name">var <span class="ident">extraction_model</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.extraction_model"><code class="name">var <span class="ident">extraction_model</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.extraction_prompt"><code class="name">var <span class="ident">extraction_prompt</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.extraction_prompt"><code class="name">var <span class="ident">extraction_prompt</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.extraction_template"><code class="name">var <span class="ident">extraction_template</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.extraction_template"><code class="name">var <span class="ident">extraction_template</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.format"><code class="name">var <span class="ident">format</span> : Optional[<a title="scrapfly.scrape_config.Format" href="scrape_config.html#scrapfly.scrape_config.Format">Format</a>]</code></dt>
+<dt id="scrapfly.ScrapeConfig.format"><code class="name">var <span class="ident">format</span> : <a title="scrapfly.scrape_config.Format" href="scrape_config.html#scrapfly.scrape_config.Format">Format</a> | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.format_options"><code class="name">var <span class="ident">format_options</span> : Optional[List[<a title="scrapfly.scrape_config.FormatOption" href="scrape_config.html#scrapfly.scrape_config.FormatOption">FormatOption</a>]]</code></dt>
+<dt id="scrapfly.ScrapeConfig.format_options"><code class="name">var <span class="ident">format_options</span> : List[<a title="scrapfly.scrape_config.FormatOption" href="scrape_config.html#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.headers"><code class="name">var <span class="ident">headers</span> : Optional[requests.structures.CaseInsensitiveDict]</code></dt>
+<dt id="scrapfly.ScrapeConfig.headers"><code class="name">var <span class="ident">headers</span> : requests.structures.CaseInsensitiveDict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.js"><code class="name">var <span class="ident">js</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.js_scenario"><code class="name">var <span class="ident">js_scenario</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.lang"><code class="name">var <span class="ident">lang</span> : Optional[List[str]]</code></dt>
+<dt id="scrapfly.ScrapeConfig.lang"><code class="name">var <span class="ident">lang</span> : List[str] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.method"><code class="name">var <span class="ident">method</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.os"><code class="name">var <span class="ident">os</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.os"><code class="name">var <span class="ident">os</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.proxy_pool"><code class="name">var <span class="ident">proxy_pool</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.proxy_pool"><code class="name">var <span class="ident">proxy_pool</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.raise_on_upstream_error"><code class="name">var <span class="ident">raise_on_upstream_error</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.render_js"><code class="name">var <span class="ident">render_js</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
+</dd>
+<dt id="scrapfly.ScrapeConfig.rendering_stage"><code class="name">var <span class="ident">rendering_stage</span> : Literal['complete', 'domcontentloaded']</code></dt>
+<dd>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.rendering_wait"><code class="name">var <span class="ident">rendering_wait</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.retry"><code class="name">var <span class="ident">retry</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.screenshot_flags"><code class="name">var <span class="ident">screenshot_flags</span> : Optional[List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>]]</code></dt>
+<dt id="scrapfly.ScrapeConfig.screenshot_flags"><code class="name">var <span class="ident">screenshot_flags</span> : List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="scrape_config.html#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.screenshots"><code class="name">var <span class="ident">screenshots</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.ScrapeConfig.screenshots"><code class="name">var <span class="ident">screenshots</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.session"><code class="name">var <span class="ident">session</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.session"><code class="name">var <span class="ident">session</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.session_sticky_proxy"><code class="name">var <span class="ident">session_sticky_proxy</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.ssl"><code class="name">var <span class="ident">ssl</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.tags"><code class="name">var <span class="ident">tags</span> : Optional[List[str]]</code></dt>
+<dt id="scrapfly.ScrapeConfig.tags"><code class="name">var <span class="ident">tags</span> : List[str] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.timeout"><code class="name">var <span class="ident">timeout</span> : Optional[int]</code></dt>
+<dt id="scrapfly.ScrapeConfig.timeout"><code class="name">var <span class="ident">timeout</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.wait_for_selector"><code class="name">var <span class="ident">wait_for_selector</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.wait_for_selector"><code class="name">var <span class="ident">wait_for_selector</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScrapeConfig.webhook"><code class="name">var <span class="ident">webhook</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScrapeConfig.webhook"><code class="name">var <span class="ident">webhook</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -2870,7 +2852,6 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <span>def <span class="ident">from_dict</span></span>(<span>scrape_config_dict: Dict) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create a ScrapeConfig instance from a dictionary.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -2972,12 +2953,12 @@ def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
         cost_budget=cost_budget,
     )</code></pre>
 </details>
+<div class="desc"><p>Create a ScrapeConfig instance from a dictionary.</p></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.from_exported_config"><code class="name flex">
 <span>def <span class="ident">from_exported_config</span></span>(<span>config: str) ‑> <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -3029,6 +3010,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         cost_budget=data[&#39;cost_budget&#39;]
     )</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -3037,7 +3019,6 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 <span>def <span class="ident">to_api_params</span></span>(<span>self, key: str) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -3080,6 +3061,9 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
         if self.rendering_wait:
             params[&#39;rendering_wait&#39;] = self.rendering_wait
+        
+        if self.rendering_stage:
+            params[&#39;rendering_stage&#39;] = self.rendering_stage
 
         if self.screenshots is not None:
             for name, element in self.screenshots.items():
@@ -3187,13 +3171,12 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
     return params</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapeConfig.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Export the ScrapeConfig instance to a plain dictionary.
-Useful for JSON-serialization or other external storage.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -3248,6 +3231,8 @@ Useful for JSON-serialization or other external storage.</p></div>
         &#39;cost_budget&#39;: self.cost_budget,
     }</code></pre>
 </details>
+<div class="desc"><p>Export the ScrapeConfig instance to a plain dictionary.
+Useful for JSON-serialization or other external storage.</p></div>
 </dd>
 </dl>
 </dd>
@@ -3255,7 +3240,6 @@ Useful for JSON-serialization or other external storage.</p></div>
 <span>class <span class="ident">ScraperAPI</span></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -3275,56 +3259,56 @@ Useful for JSON-serialization or other external storage.</p></div>
     MONITORING_PROJECT_AGGREGATION = &#39;project&#39;
     MONITORING_TARGET_AGGREGATION = &#39;target&#39;</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.ScraperAPI.MONITORING_ACCOUNT_AGGREGATION"><code class="name">var <span class="ident">MONITORING_ACCOUNT_AGGREGATION</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_DATA_FORMAT_PROMETHEUS"><code class="name">var <span class="ident">MONITORING_DATA_FORMAT_PROMETHEUS</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED"><code class="name">var <span class="ident">MONITORING_DATA_FORMAT_STRUCTURED</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_PERIOD_LAST_1H"><code class="name">var <span class="ident">MONITORING_PERIOD_LAST_1H</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_PERIOD_LAST_24H"><code class="name">var <span class="ident">MONITORING_PERIOD_LAST_24H</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_PERIOD_LAST_5m"><code class="name">var <span class="ident">MONITORING_PERIOD_LAST_5m</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_PERIOD_LAST_7D"><code class="name">var <span class="ident">MONITORING_PERIOD_LAST_7D</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_PERIOD_SUBSCRIPTION"><code class="name">var <span class="ident">MONITORING_PERIOD_SUBSCRIPTION</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_PROJECT_AGGREGATION"><code class="name">var <span class="ident">MONITORING_PROJECT_AGGREGATION</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScraperAPI.MONITORING_TARGET_AGGREGATION"><code class="name">var <span class="ident">MONITORING_TARGET_AGGREGATION</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.ScrapflyAspError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyAspError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -3332,6 +3316,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 <pre><code class="python">class ScrapflyAspError(ScraperAPIError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.ScraperAPIError</li>
@@ -3340,13 +3325,28 @@ Useful for JSON-serialization or other external storage.</p></div>
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScrapflyClient"><code class="flex name class">
 <span>class <span class="ident">ScrapflyClient</span></span>
-<span>(</span><span>key: str, host: Optional[str] = 'https://api.scrapfly.io', verify=True, debug: bool = False, max_concurrency: int = 1, connect_timeout: int = 30, web_scraping_api_read_timeout: int = 160, extraction_api_read_timeout: int = 35, screenshot_api_read_timeout: int = 60, read_timeout: int = 30, default_read_timeout: int = 30, reporter: Optional[Callable] = None, **kwargs)</span>
+<span>(</span><span>key: str,<br>host: str | None = 'https://api.scrapfly.io',<br>verify=True,<br>debug: bool = False,<br>max_concurrency: int = 1,<br>connect_timeout: int = 30,<br>web_scraping_api_read_timeout: int = 160,<br>extraction_api_read_timeout: int = 35,<br>screenshot_api_read_timeout: int = 60,<br>read_timeout: int = 30,<br>default_read_timeout: int = 30,<br>reporter: Callable | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4143,110 +4143,110 @@ Useful for JSON-serialization or other external storage.</p></div>
 
         return api_response</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.ScrapflyClient.CONCURRENCY_AUTO"><code class="name">var <span class="ident">CONCURRENCY_AUTO</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.DATETIME_FORMAT"><code class="name">var <span class="ident">DATETIME_FORMAT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_CONNECT_TIMEOUT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.DEFAULT_EXTRACTION_API_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_EXTRACTION_API_READ_TIMEOUT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.DEFAULT_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_READ_TIMEOUT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.DEFAULT_SCREENSHOT_API_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_SCREENSHOT_API_READ_TIMEOUT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.DEFAULT_WEBSCRAPING_API_READ_TIMEOUT"><code class="name">var <span class="ident">DEFAULT_WEBSCRAPING_API_READ_TIMEOUT</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.HOST"><code class="name">var <span class="ident">HOST</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.brotli"><code class="name">var <span class="ident">brotli</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.connect_timeout"><code class="name">var <span class="ident">connect_timeout</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.debug"><code class="name">var <span class="ident">debug</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.default_read_timeout"><code class="name">var <span class="ident">default_read_timeout</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.distributed_mode"><code class="name">var <span class="ident">distributed_mode</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.extraction_api_read_timeout"><code class="name">var <span class="ident">extraction_api_read_timeout</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.host"><code class="name">var <span class="ident">host</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.key"><code class="name">var <span class="ident">key</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.max_concurrency"><code class="name">var <span class="ident">max_concurrency</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.monitoring_api_read_timeout"><code class="name">var <span class="ident">monitoring_api_read_timeout</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.read_timeout"><code class="name">var <span class="ident">read_timeout</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.reporter"><code class="name">var <span class="ident">reporter</span> : scrapfly.reporter.Reporter</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.screenshot_api_read_timeout"><code class="name">var <span class="ident">screenshot_api_read_timeout</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.verify"><code class="name">var <span class="ident">verify</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.version"><code class="name">var <span class="ident">version</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.web_scraping_api_read_timeout"><code class="name">var <span class="ident">web_scraping_api_read_timeout</span> : int</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Instance variables</h3>
 <dl>
-<dt id="scrapfly.ScrapflyClient.http"><code class="name">var <span class="ident">http</span></code></dt>
+<dt id="scrapfly.ScrapflyClient.http"><code class="name">prop <span class="ident">http</span></code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4255,10 +4255,10 @@ Useful for JSON-serialization or other external storage.</p></div>
 def http(self):
     return self._http_handler</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapflyClient.ua"><code class="name">var <span class="ident">ua</span> : str</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.ua"><code class="name">prop <span class="ident">ua</span> : str</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4272,15 +4272,15 @@ def ua(self) -&gt; str:
         platform.uname().machine
     )</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.ScrapflyClient.account"><code class="name flex">
-<span>def <span class="ident">account</span></span>(<span>self) ‑> Union[str, Dict]</span>
+<span>def <span class="ident">account</span></span>(<span>self) ‑> str | Dict</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4305,12 +4305,12 @@ def ua(self) -&gt; str:
 
     return response.content.decode(&#39;utf-8&#39;)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.async_extraction"><code class="name flex">
-<span>async def <span class="ident">async_extraction</span></span>(<span>self, extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>, loop: Optional[asyncio.events.AbstractEventLoop] = None) ‑> <a title="scrapfly.api_response.ExtractionApiResponse" href="api_response.html#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></span>
+<span>async def <span class="ident">async_extraction</span></span>(<span>self,<br>extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>,<br>loop: asyncio.events.AbstractEventLoop | None = None) ‑> <a title="scrapfly.api_response.ExtractionApiResponse" href="api_response.html#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4321,12 +4321,12 @@ def ua(self) -&gt; str:
 
     return await loop.run_in_executor(self.async_executor, self.extract, extraction_config)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.async_scrape"><code class="name flex">
-<span>async def <span class="ident">async_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, loop: Optional[asyncio.events.AbstractEventLoop] = None) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>async def <span class="ident">async_scrape</span></span>(<span>self,<br>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>,<br>loop: asyncio.events.AbstractEventLoop | None = None) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4337,12 +4337,12 @@ def ua(self) -&gt; str:
 
     return await loop.run_in_executor(self.async_executor, self.scrape, scrape_config)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.async_screenshot"><code class="name flex">
-<span>async def <span class="ident">async_screenshot</span></span>(<span>self, screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>, loop: Optional[asyncio.events.AbstractEventLoop] = None) ‑> <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></span>
+<span>async def <span class="ident">async_screenshot</span></span>(<span>self,<br>screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>,<br>loop: asyncio.events.AbstractEventLoop | None = None) ‑> <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4353,12 +4353,12 @@ def ua(self) -&gt; str:
 
     return await loop.run_in_executor(self.async_executor, self.screenshot, screenshot_config)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.close"><code class="name flex">
 <span>def <span class="ident">close</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4367,12 +4367,12 @@ def ua(self) -&gt; str:
     self.http_session.close()
     self.http_session = None</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.concurrent_scrape"><code class="name flex">
-<span>async def <span class="ident">concurrent_scrape</span></span>(<span>self, scrape_configs: List[<a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>], concurrency: Optional[int] = None)</span>
+<span>async def <span class="ident">concurrent_scrape</span></span>(<span>self,<br>scrape_configs: List[<a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>],<br>concurrency: int | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4431,25 +4431,12 @@ def ua(self) -&gt; str:
 
     logger.debug(&#34;Scrape %d/%d - %d running&#34; % (processed_tasks, expected_tasks, len(processing_tasks)))</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.extract"><code class="name flex">
-<span>def <span class="ident">extract</span></span>(<span>self, extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>, no_raise: bool = False) ‑> <a title="scrapfly.api_response.ExtractionApiResponse" href="api_response.html#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></span>
+<span>def <span class="ident">extract</span></span>(<span>self,<br>extraction_config: <a title="scrapfly.extraction_config.ExtractionConfig" href="extraction_config.html#scrapfly.extraction_config.ExtractionConfig">ExtractionConfig</a>,<br>no_raise: bool = False) ‑> <a title="scrapfly.api_response.ExtractionApiResponse" href="api_response.html#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Extract structured data from text content
-:param extraction_config: ExtractionConfig
-:param no_raise: bool - if True, do not raise exception on error while the extraction api response is a ScrapflyError for seamless integration
-:return: str</p>
-<p>If you use no_raise=True, make sure to check the extraction_api_response.error attribute to handle the error.
-If the error is not none, you will get the following structure for example</p>
-<p>'error': {
-'code': 'ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED',
-'message': 'The content type of the response is not supported for extraction',
-'http_code': 422,
-'links': {
-'Checkout the related doc: <a href="https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'">https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'</a>
-}
-}</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4489,12 +4476,25 @@ def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt;
 
         raise e</code></pre>
 </details>
+<div class="desc"><p>Extract structured data from text content
+:param extraction_config: ExtractionConfig
+:param no_raise: bool - if True, do not raise exception on error while the extraction api response is a ScrapflyError for seamless integration
+:return: str</p>
+<p>If you use no_raise=True, make sure to check the extraction_api_response.error attribute to handle the error.
+If the error is not none, you will get the following structure for example</p>
+<p>'error': {
+'code': 'ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED',
+'message': 'The content type of the response is not supported for extraction',
+'http_code': 422,
+'links': {
+'Checkout the related doc: <a href="https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'">https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'</a>
+}
+}</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.get_monitoring_metrics"><code class="name flex">
-<span>def <span class="ident">get_monitoring_metrics</span></span>(<span>self, format: str = 'structured', period: Optional[str] = None, aggregation: Optional[List[Literal['account', 'project', 'target']]] = None)</span>
+<span>def <span class="ident">get_monitoring_metrics</span></span>(<span>self,<br>format: str = 'structured',<br>period: str | None = None,<br>aggregation: List[Literal['account', 'project', 'target']] | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4528,12 +4528,12 @@ def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt;
 
     return response.content.decode(&#39;utf-8&#39;)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.get_monitoring_target_metrics"><code class="name flex">
-<span>def <span class="ident">get_monitoring_target_metrics</span></span>(<span>self, domain: str, group_subdomain: bool = False, period: Optional[Literal['subscription', 'last7d', 'last24h', 'last1h', 'last5m']] = 'last24h', start: Optional[datetime.datetime] = None, end: Optional[datetime.datetime] = None)</span>
+<span>def <span class="ident">get_monitoring_target_metrics</span></span>(<span>self,<br>domain: str,<br>group_subdomain: bool = False,<br>period: Literal['subscription', 'last7d', 'last24h', 'last1h', 'last5m'] | None = 'last24h',<br>start: datetime.datetime | None = None,<br>end: datetime.datetime | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4582,12 +4582,12 @@ def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt;
 
     return response.content.decode(&#39;utf-8&#39;)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.open"><code class="name flex">
 <span>def <span class="ident">open</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4602,12 +4602,12 @@ def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt;
         self.http_session.headers[&#39;accept&#39;] = self.body_handler.accept
         self.http_session.headers[&#39;user-agent&#39;] = self.ua</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.resilient_scrape"><code class="name flex">
-<span>def <span class="ident">resilient_scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, retry_on_errors: Set[Exception] = {&lt;class &#x27;scrapfly.errors.ScrapflyError&#x27;&gt;}, retry_on_status_code: Optional[List[int]] = None, tries: int = 5, delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self,<br>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>,<br>retry_on_errors: Set[Exception] = {&lt;class &#x27;scrapfly.errors.ScrapflyError&#x27;&gt;},<br>retry_on_status_code: List[int] | None = None,<br>tries: int = 5,<br>delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4639,15 +4639,12 @@ def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt;
 
     return inner()</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.save_scrape_screenshot"><code class="name flex">
-<span>def <span class="ident">save_scrape_screenshot</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, name: str, path: Optional[str] = None)</span>
+<span>def <span class="ident">save_scrape_screenshot</span></span>(<span>self,<br>api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>,<br>name: str,<br>path: str | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Save a screenshot from a scrape result
-:param api_response: ScrapeApiResponse
-:param name: str - name of the screenshot given in the scrape config
-:param path: Optional[str]</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4682,15 +4679,15 @@ def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt;
 
     api_response.sink(path=path, name=name, content=screenshot_response.content)</code></pre>
 </details>
+<div class="desc"><p>Save a screenshot from a scrape result
+:param api_response: ScrapeApiResponse
+:param name: str - name of the screenshot given in the scrape config
+:param path: Optional[str]</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.save_screenshot"><code class="name flex">
-<span>def <span class="ident">save_screenshot</span></span>(<span>self, screenshot_api_response: <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a>, name: str, path: Optional[str] = None)</span>
+<span>def <span class="ident">save_screenshot</span></span>(<span>self,<br>screenshot_api_response: <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a>,<br>name: str,<br>path: str | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Save a screenshot from a screenshot API response
-:param api_response: ScreenshotApiResponse
-:param name: str - name of the screenshot to save as
-:param path: Optional[str]</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4724,26 +4721,15 @@ def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -&gt;
     with open(file_path, &#39;wb&#39;) as f:
         shutil.copyfileobj(content, f, length=131072)</code></pre>
 </details>
+<div class="desc"><p>Save a screenshot from a screenshot API response
+:param api_response: ScreenshotApiResponse
+:param name: str - name of the screenshot to save as
+:param path: Optional[str]</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.scrape"><code class="name flex">
-<span>def <span class="ident">scrape</span></span>(<span>self, scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, no_raise: bool = False) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">scrape</span></span>(<span>self,<br>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>,<br>no_raise: bool = False) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Scrape a website
-:param scrape_config: ScrapeConfig
-:param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
-:return: ScrapeApiResponse</p>
-<p>If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
-If the error is not none, you will get the following structure for example</p>
-<p>'error': {
-'code': 'ERR::ASP::SHIELD_PROTECTION_FAILED',
-'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds',
-'retryable': False,
-'http_code': 422,
-'links': {
-'Checkout ASP documentation': 'https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate', 'Related Error Doc': 'https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED'
-}
-}</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4787,25 +4773,26 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 
         raise e</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScrapflyClient.screenshot"><code class="name flex">
-<span>def <span class="ident">screenshot</span></span>(<span>self, screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>, no_raise: bool = False) ‑> <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></span>
-</code></dt>
-<dd>
-<div class="desc"><p>Take a screenshot
-:param screenshot_config: ScrapeConfig
-:param no_raise: bool - if True, do not raise exception on error while the screenshot api response is a ScrapflyError for seamless integration
-:return: str</p>
-<p>If you use no_raise=True, make sure to check the screenshot_api_response.error attribute to handle the error.
+<div class="desc"><p>Scrape a website
+:param scrape_config: ScrapeConfig
+:param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
+:return: ScrapeApiResponse</p>
+<p>If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
 If the error is not none, you will get the following structure for example</p>
 <p>'error': {
-'code': 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT',
-'message': 'For some reason we were unable to take the screenshot',
+'code': 'ERR::ASP::SHIELD_PROTECTION_FAILED',
+'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds',
+'retryable': False,
 'http_code': 422,
 'links': {
-'Checkout the related doc: <a href="https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'">https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'</a>
+'Checkout ASP documentation': 'https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate', 'Related Error Doc': 'https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED'
 }
 }</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.screenshot"><code class="name flex">
+<span>def <span class="ident">screenshot</span></span>(<span>self,<br>screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>,<br>no_raise: bool = False) ‑> <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></span>
+</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4845,12 +4832,25 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 
         raise e</code></pre>
 </details>
+<div class="desc"><p>Take a screenshot
+:param screenshot_config: ScrapeConfig
+:param no_raise: bool - if True, do not raise exception on error while the screenshot api response is a ScrapflyError for seamless integration
+:return: str</p>
+<p>If you use no_raise=True, make sure to check the screenshot_api_response.error attribute to handle the error.
+If the error is not none, you will get the following structure for example</p>
+<p>'error': {
+'code': 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT',
+'message': 'For some reason we were unable to take the screenshot',
+'http_code': 422,
+'links': {
+'Checkout the related doc: <a href="https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'">https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'</a>
+}
+}</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.sink"><code class="name flex">
-<span>def <span class="ident">sink</span></span>(<span>self, api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>, content: Union[str, bytes, ForwardRef(None)] = None, path: Optional[str] = None, name: Optional[str] = None, file: Union[TextIO, _io.BytesIO, ForwardRef(None)] = None) ‑> str</span>
+<span>def <span class="ident">sink</span></span>(<span>self,<br>api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>,<br>content: str | bytes | None = None,<br>path: str | None = None,<br>name: str | None = None,<br>file: <class 'TextIO'> | _io.BytesIO | None = None) ‑> str</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4912,15 +4912,15 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
     logger.info(&#39;file %s created&#39; % file_path)
     return file_path</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.ScrapflyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyError</span></span>
-<span>(</span><span>message: str, code: str, http_status_code: int, resource: Optional[str] = None, is_retryable: bool = False, retry_delay: Optional[int] = None, retry_times: Optional[int] = None, documentation_url: Optional[str] = None, api_response: Optional[ForwardRef('ApiResponse')] = None)</span>
+<span>(</span><span>message: str,<br>code: str,<br>http_status_code: int,<br>resource: str | None = None,<br>is_retryable: bool = False,<br>retry_delay: int | None = None,<br>retry_times: int | None = None,<br>documentation_url: str | None = None,<br>api_response: ForwardRef('ApiResponse') | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -4969,6 +4969,7 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 
         return message</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>builtins.Exception</li>
@@ -4983,48 +4984,47 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <dl>
 <dt id="scrapfly.ScrapflyError.KIND_HTTP_BAD_RESPONSE"><code class="name">var <span class="ident">KIND_HTTP_BAD_RESPONSE</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.KIND_SCRAPFLY_ERROR"><code class="name">var <span class="ident">KIND_SCRAPFLY_ERROR</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_ASP"><code class="name">var <span class="ident">RESOURCE_ASP</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_PROXY"><code class="name">var <span class="ident">RESOURCE_PROXY</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_SCHEDULE"><code class="name">var <span class="ident">RESOURCE_SCHEDULE</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_SCRAPE"><code class="name">var <span class="ident">RESOURCE_SCRAPE</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_SESSION"><code class="name">var <span class="ident">RESOURCE_SESSION</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_THROTTLE"><code class="name">var <span class="ident">RESOURCE_THROTTLE</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyError.RESOURCE_WEBHOOK"><code class="name">var <span class="ident">RESOURCE_WEBHOOK</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.ScrapflyProxyError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyProxyError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5032,6 +5032,7 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <pre><code class="python">class ScrapflyProxyError(ScraperAPIError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.ScraperAPIError</li>
@@ -5040,13 +5041,28 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScrapflyScheduleError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScheduleError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5054,6 +5070,7 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <pre><code class="python">class ScrapflyScheduleError(ScraperAPIError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.ScraperAPIError</li>
@@ -5062,13 +5079,28 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScrapflyScrapeError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScrapeError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5076,6 +5108,7 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <pre><code class="python">class ScrapflyScrapeError(ScraperAPIError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.ScraperAPIError</li>
@@ -5084,13 +5117,28 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScrapflySessionError"><code class="flex name class">
 <span>class <span class="ident">ScrapflySessionError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5098,6 +5146,7 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <pre><code class="python">class ScrapflySessionError(ScraperAPIError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.ScraperAPIError</li>
@@ -5106,13 +5155,28 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScrapflyThrottleError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyThrottleError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5120,6 +5184,7 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <pre><code class="python">class ScrapflyThrottleError(ScraperAPIError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.ScraperAPIError</li>
@@ -5128,13 +5193,28 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScrapflyWebhookError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyWebhookError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5142,6 +5222,7 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <pre><code class="python">class ScrapflyWebhookError(ScraperAPIError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.ScraperAPIError</li>
@@ -5150,13 +5231,28 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScreenshotAPIError"><code class="flex name class">
 <span>class <span class="ident">ScreenshotAPIError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5164,6 +5260,7 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <pre><code class="python">class ScreenshotAPIError(HttpError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
@@ -5171,13 +5268,28 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScreenshotApiResponse"><code class="flex name class">
 <span>class <span class="ident">ScreenshotApiResponse</span></span>
-<span>(</span><span>request: requests.models.Request, response: requests.models.Response, screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>, api_result: Optional[bytes] = None)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response,<br>screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>,<br>api_result: bytes | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5240,15 +5352,15 @@ def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -&
     def raise_for_result(self, raise_on_upstream_error=True, error_class=ScreenshotAPIError):
         super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_response.ApiResponse" href="api_response.html#scrapfly.api_response.ApiResponse">ApiResponse</a></li>
 </ul>
 <h3>Instance variables</h3>
 <dl>
-<dt id="scrapfly.ScreenshotApiResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.ScreenshotApiResponse.error"><code class="name">prop <span class="ident">error</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5261,10 +5373,10 @@ def error(self) -&gt; Optional[Dict]:
     if self.screenshot_success is False:
         return self.result</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScreenshotApiResponse.image"><code class="name">var <span class="ident">image</span> : Optional[str]</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScreenshotApiResponse.image"><code class="name">prop <span class="ident">image</span> : str | None</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5277,10 +5389,10 @@ def image(self) -&gt; Optional[str]:
 
     return binary</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScreenshotApiResponse.metadata"><code class="name">var <span class="ident">metadata</span> : Optional[Dict]</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScreenshotApiResponse.metadata"><code class="name">prop <span class="ident">metadata</span> : Dict | None</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5299,10 +5411,10 @@ def metadata(self) -&gt; Optional[Dict]:
         &#39;upstream-url&#39;: self.response.headers.get(&#39;X-Scrapfly-Upstream-Url&#39;)
     }</code></pre>
 </details>
-</dd>
-<dt id="scrapfly.ScreenshotApiResponse.screenshot_success"><code class="name">var <span class="ident">screenshot_success</span> : bool</code></dt>
-<dd>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScreenshotApiResponse.screenshot_success"><code class="name">prop <span class="ident">screenshot_success</span> : bool</code></dt>
+<dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5314,6 +5426,7 @@ def screenshot_success(self) -&gt; bool:
 
     return True</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -5322,7 +5435,6 @@ def screenshot_success(self) -&gt; bool:
 <span>def <span class="ident">handle_api_result</span></span>(<span>self, api_result: bytes) ‑> <a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5333,12 +5445,12 @@ def screenshot_success(self) -&gt; bool:
 
     return api_result</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScreenshotApiResponse.raise_for_result"><code class="name flex">
-<span>def <span class="ident">raise_for_result</span></span>(<span>self, raise_on_upstream_error=True, error_class=scrapfly.errors.ScreenshotAPIError)</span>
+<span>def <span class="ident">raise_for_result</span></span>(<span>self,<br>raise_on_upstream_error=True,<br>error_class=scrapfly.errors.ScreenshotAPIError)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5346,6 +5458,7 @@ def screenshot_success(self) -&gt; bool:
 <pre><code class="python">def raise_for_result(self, raise_on_upstream_error=True, error_class=ScreenshotAPIError):
     super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Inherited members</h3>
@@ -5359,10 +5472,9 @@ def screenshot_success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.ScreenshotConfig"><code class="flex name class">
 <span>class <span class="ident">ScreenshotConfig</span></span>
-<span>(</span><span>url: str, format: Optional[<a title="scrapfly.screenshot_config.Format" href="screenshot_config.html#scrapfly.screenshot_config.Format">Format</a>] = None, capture: Optional[str] = None, resolution: Optional[str] = None, country: Optional[str] = None, timeout: Optional[int] = None, rendering_wait: Optional[int] = None, wait_for_selector: Optional[str] = None, options: Optional[List[<a title="scrapfly.screenshot_config.Options" href="screenshot_config.html#scrapfly.screenshot_config.Options">Options</a>]] = None, auto_scroll: Optional[bool] = None, js: Optional[str] = None, cache: Optional[bool] = None, cache_ttl: Optional[bool] = None, cache_clear: Optional[bool] = None, webhook: Optional[str] = None, raise_on_upstream_error: bool = True)</span>
+<span>(</span><span>url: str,<br>format: <a title="scrapfly.screenshot_config.Format" href="screenshot_config.html#scrapfly.screenshot_config.Format">Format</a> | None = None,<br>capture: str | None = None,<br>resolution: str | None = None,<br>country: str | None = None,<br>timeout: int | None = None,<br>rendering_wait: int | None = None,<br>wait_for_selector: str | None = None,<br>options: List[<a title="scrapfly.screenshot_config.Options" href="screenshot_config.html#scrapfly.screenshot_config.Options">Options</a>] | None = None,<br>auto_scroll: bool | None = None,<br>js: str | None = None,<br>cache: bool | None = None,<br>cache_ttl: bool | None = None,<br>cache_clear: bool | None = None,<br>webhook: str | None = None,<br>raise_on_upstream_error: bool = True)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5549,75 +5661,76 @@ def screenshot_success(self) -&gt; bool:
             raise_on_upstream_error=raise_on_upstream_error
         )</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_config.BaseApiConfig" href="api_config.html#scrapfly.api_config.BaseApiConfig">BaseApiConfig</a></li>
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.ScreenshotConfig.auto_scroll"><code class="name">var <span class="ident">auto_scroll</span> : Optional[bool]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.auto_scroll"><code class="name">var <span class="ident">auto_scroll</span> : bool | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.cache"><code class="name">var <span class="ident">cache</span> : Optional[bool]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.cache"><code class="name">var <span class="ident">cache</span> : bool | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.cache_clear"><code class="name">var <span class="ident">cache_clear</span> : Optional[bool]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.cache_clear"><code class="name">var <span class="ident">cache_clear</span> : bool | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : Optional[bool]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : bool | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.capture"><code class="name">var <span class="ident">capture</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.capture"><code class="name">var <span class="ident">capture</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.country"><code class="name">var <span class="ident">country</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.country"><code class="name">var <span class="ident">country</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.format"><code class="name">var <span class="ident">format</span> : Optional[<a title="scrapfly.screenshot_config.Format" href="screenshot_config.html#scrapfly.screenshot_config.Format">Format</a>]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.format"><code class="name">var <span class="ident">format</span> : <a title="scrapfly.screenshot_config.Format" href="screenshot_config.html#scrapfly.screenshot_config.Format">Format</a> | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.js"><code class="name">var <span class="ident">js</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.js"><code class="name">var <span class="ident">js</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.options"><code class="name">var <span class="ident">options</span> : Optional[List[<a title="scrapfly.screenshot_config.Options" href="screenshot_config.html#scrapfly.screenshot_config.Options">Options</a>]]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.options"><code class="name">var <span class="ident">options</span> : List[<a title="scrapfly.screenshot_config.Options" href="screenshot_config.html#scrapfly.screenshot_config.Options">Options</a>] | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScreenshotConfig.raise_on_upstream_error"><code class="name">var <span class="ident">raise_on_upstream_error</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.rendering_wait"><code class="name">var <span class="ident">rendering_wait</span> : Optional[int]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.rendering_wait"><code class="name">var <span class="ident">rendering_wait</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.resolution"><code class="name">var <span class="ident">resolution</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.resolution"><code class="name">var <span class="ident">resolution</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.timeout"><code class="name">var <span class="ident">timeout</span> : Optional[int]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.timeout"><code class="name">var <span class="ident">timeout</span> : int | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.ScreenshotConfig.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.wait_for_selector"><code class="name">var <span class="ident">wait_for_selector</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.wait_for_selector"><code class="name">var <span class="ident">wait_for_selector</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
-<dt id="scrapfly.ScreenshotConfig.webhook"><code class="name">var <span class="ident">webhook</span> : Optional[str]</code></dt>
+<dt id="scrapfly.ScreenshotConfig.webhook"><code class="name">var <span class="ident">webhook</span> : str | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -5626,7 +5739,6 @@ def screenshot_success(self) -&gt; bool:
 <span>def <span class="ident">from_dict</span></span>(<span>screenshot_config_dict: Dict) ‑> <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a></span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create a ScreenshotConfig instance from a dictionary.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5676,6 +5788,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
         raise_on_upstream_error=raise_on_upstream_error
     )</code></pre>
 </details>
+<div class="desc"><p>Create a ScreenshotConfig instance from a dictionary.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -5684,7 +5797,6 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <span>def <span class="ident">to_api_params</span></span>(<span>self, key: str) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5746,12 +5858,12 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 
     return params</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScreenshotConfig.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Export the ScreenshotConfig instance to a plain dictionary.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5779,15 +5891,15 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
         &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error
     }</code></pre>
 </details>
+<div class="desc"><p>Export the ScreenshotConfig instance to a plain dictionary.</p></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.UpstreamHttpClientError"><code class="flex name class">
 <span>class <span class="ident">UpstreamHttpClientError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5795,6 +5907,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <pre><code class="python">class UpstreamHttpClientError(UpstreamHttpError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.UpstreamHttpError</li>
@@ -5807,13 +5920,28 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <ul class="hlist">
 <li><a title="scrapfly.errors.UpstreamHttpServerError" href="errors.html#scrapfly.errors.UpstreamHttpServerError">UpstreamHttpServerError</a></li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.UpstreamHttpError"><code class="flex name class">
 <span>class <span class="ident">UpstreamHttpError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5821,6 +5949,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <pre><code class="python">class UpstreamHttpError(HttpError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapfly.errors.HttpError</li>
@@ -5832,13 +5961,28 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <ul class="hlist">
 <li><a title="scrapfly.errors.UpstreamHttpClientError" href="errors.html#scrapfly.errors.UpstreamHttpClientError">UpstreamHttpClientError</a></li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.UpstreamHttpServerError"><code class="flex name class">
 <span>class <span class="ident">UpstreamHttpServerError</span></span>
-<span>(</span><span>request: requests.models.Request, response: Optional[requests.models.Response] = None, **kwargs)</span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -5846,6 +5990,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <pre><code class="python">class UpstreamHttpServerError(UpstreamHttpClientError):
     pass</code></pre>
 </details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.errors.UpstreamHttpClientError" href="errors.html#scrapfly.errors.UpstreamHttpClientError">UpstreamHttpClientError</a></li>
@@ -5855,12 +6000,27 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <li>builtins.Exception</li>
 <li>builtins.BaseException</li>
 </ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.errors.UpstreamHttpClientError" href="errors.html#scrapfly.errors.UpstreamHttpClientError">UpstreamHttpClientError</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.KIND_HTTP_BAD_RESPONSE" href="errors.html#scrapfly.errors.ScrapflyError.KIND_HTTP_BAD_RESPONSE">KIND_HTTP_BAD_RESPONSE</a></code></li>
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.KIND_SCRAPFLY_ERROR" href="errors.html#scrapfly.errors.ScrapflyError.KIND_SCRAPFLY_ERROR">KIND_SCRAPFLY_ERROR</a></code></li>
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.RESOURCE_ASP" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_ASP">RESOURCE_ASP</a></code></li>
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.RESOURCE_PROXY" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_PROXY">RESOURCE_PROXY</a></code></li>
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.RESOURCE_SCHEDULE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCHEDULE">RESOURCE_SCHEDULE</a></code></li>
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.RESOURCE_SCRAPE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SCRAPE">RESOURCE_SCRAPE</a></code></li>
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.RESOURCE_SESSION" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_SESSION">RESOURCE_SESSION</a></code></li>
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.RESOURCE_THROTTLE" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_THROTTLE">RESOURCE_THROTTLE</a></code></li>
+<li><code><a title="scrapfly.errors.UpstreamHttpClientError.RESOURCE_WEBHOOK" href="errors.html#scrapfly.errors.ScrapflyError.RESOURCE_WEBHOOK">RESOURCE_WEBHOOK</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 </dl>
 </section>
 </article>
 <nav id="sidebar">
-<h1>Index</h1>
 <div class="toc">
 <ul></ul>
 </div>
@@ -6008,6 +6168,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <li><code><a title="scrapfly.ScrapeConfig.proxy_pool" href="#scrapfly.ScrapeConfig.proxy_pool">proxy_pool</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.raise_on_upstream_error" href="#scrapfly.ScrapeConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.render_js" href="#scrapfly.ScrapeConfig.render_js">render_js</a></code></li>
+<li><code><a title="scrapfly.ScrapeConfig.rendering_stage" href="#scrapfly.ScrapeConfig.rendering_stage">rendering_stage</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.rendering_wait" href="#scrapfly.ScrapeConfig.rendering_wait">rendering_wait</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.retry" href="#scrapfly.ScrapeConfig.retry">retry</a></code></li>
 <li><code><a title="scrapfly.ScrapeConfig.screenshot_flags" href="#scrapfly.ScrapeConfig.screenshot_flags">screenshot_flags</a></code></li>
@@ -6174,7 +6335,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
 </footer>
 </body>
 </html>

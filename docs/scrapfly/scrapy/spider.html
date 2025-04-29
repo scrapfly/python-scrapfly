@@ -2,18 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.10.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
 <title>scrapfly.scrapy.spider API documentation</title>
-<meta name="description" content="" />
-<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
-<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
-<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
-<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
-<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<meta name="description" content="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
 <style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
-<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
 </head>
 <body>
 <main>
@@ -22,277 +36,6 @@
 <h1 class="title">Module <code>scrapfly.scrapy.spider</code></h1>
 </header>
 <section id="section-intro">
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">import copy
-import uuid
-import logging
-import collections.abc
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..polyfill.cached_property import cached_property
-
-from os import environ
-from typing import Dict, Iterable, Sequence, Union, Optional
-
-import scrapy
-from scrapy.crawler import Crawler
-from scrapy.spiders import Rule
-from scrapy.utils.python import global_object_name
-from scrapy.utils.spider import iterate_spider_output
-from twisted.internet.defer import Deferred
-from twisted.internet import task
-
-from scrapfly import ScrapflyClient, ScrapeConfig, ScrapflyError
-from . import ScrapflyScrapyRequest, ScrapflyScrapyResponse
-
-logger = logging.getLogger(__name__)
-
-
-class ScrapflySpider(scrapy.Spider):
-
-    scrapfly_client:ScrapflyClient
-    account_info:Dict
-    run_id:int
-
-    custom_settings:Dict = {}
-    scrapfly_settings:Dict = {
-        &#39;DOWNLOADER_MIDDLEWARES&#39;: {
-            &#39;scrapfly.scrapy.middleware.ScrapflyMiddleware&#39;: 725,
-            &#39;scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.useragent.UserAgentMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.redirect.RedirectMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.cookies.CookiesMiddleware&#39;: None,
-            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None,
-        },
-        &#39;DOWNLOAD_HANDLERS_BASE&#39;: {
-            &#39;http&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;,
-            &#39;https&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;
-        },
-        &#39;SPIDER_MIDDLEWARES&#39;: {
-            &#39;scrapfly.scrapy.middleware.ScrapflyRefererMiddleware&#39;: 10,
-            &#39;scrapy.spidermiddlewares.referer.RefererMiddleware&#39;: None,
-        },
-        &#39;ITEM_PIPELINES&#39;: {
-            &#39;scrapfly.scrapy.pipelines.FilesPipeline&#39;: 1,
-            &#39;scrapfly.scrapy.pipelines.ImagesPipeline&#39;: 1,
-            &#39;scrapy.pipelines.files.FilesPipeline&#39;: None,
-            &#39;scrapy.pipelines.images.ImagesPipeline&#39;: None
-        }
-    }
-
-    @classmethod
-    def _merge_settings(cls, d, u):
-        for k, v in u.items():
-            if isinstance(v, collections.abc.Mapping):
-                d[k] = cls._merge_settings(d.get(k, {}), v)
-            else:
-                d[k] = v
-        return d
-
-    @classmethod
-    def update_settings(cls, settings):
-        settings.update(cls._merge_settings(dict(settings), cls.scrapfly_settings), priority=&#39;spider&#39;)
-
-    @cached_property
-    def run_id(self):
-        return environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())
-
-    def closed(self, reason:str):
-        self.scrapfly_client.close()
-
-    def start_requests(self) -&gt; Iterable[ScrapflyScrapyRequest]:
-        for scrape_config in self.start_urls:
-            if not isinstance(scrape_config, ScrapeConfig):
-                raise RuntimeError(&#39;start_urls must contains ScrapeConfig Object with ScrapflySpider&#39;)
-            yield ScrapflyScrapyRequest(scrape_config=scrape_config)
-
-    def retry(self, request:ScrapflyScrapyRequest, reason:Union[str, Exception], delay:Optional[int]=None):
-        logger.info(&#39;==&gt; Retrying request for reason %s&#39; % reason)
-        stats = self.crawler.stats
-        retries = request.meta.get(&#39;retry_times&#39;, 0) + 1
-
-        if retries &gt;= self.custom_settings.get(&#39;SCRAPFLY_MAX_API_RETRIES&#39;, 5):
-            return None
-
-        retryreq = request.replace(dont_filter=True)
-        retryreq.priority += 100
-
-        if retryreq.scrape_config.cache is True:
-            retryreq.scrape_config.cache_clear = True
-
-        retryreq.meta[&#39;retry_times&#39;] = retries
-
-        if stats:
-            stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
-
-            if isinstance(reason, ScrapflyError):
-                stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
-
-        if isinstance(reason, Exception):
-            reason = global_object_name(reason.__class__)
-
-        logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
-
-        if delay is None:
-            deferred = Deferred()
-            deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
-        else:
-            from twisted.internet import reactor # prevent reactor already install issue
-            from . import current_scrapy_version, comparable_version
-            if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
-                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
-            else:
-                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
-
-        return deferred
-
-    @classmethod
-    def from_crawler(cls, crawler:Crawler, *args, **kwargs):
-        from . import current_scrapy_version, comparable_version
-
-        scrapfly_client = ScrapflyClient(
-            key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
-            host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
-            verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
-            debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
-            distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
-            connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
-            read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT),
-        )
-
-        settings_max_concurrency = crawler.settings.get(&#39;CONCURRENT_REQUESTS&#39;, -1)
-
-        account_info = scrapfly_client.account()
-
-        if account_info[&#39;account&#39;][&#39;suspended&#39;] is True:
-            raise RuntimeError(&#39;Your account is suspended, please check your subscription status. Reason: %s&#39; % account_info[&#39;account&#39;][&#39;suspension_reason&#39;])
-
-        max_account_concurrency = account_info[&#39;subscription&#39;][&#39;max_concurrency&#39;]
-        project_concurrency_limit = account_info[&#39;project&#39;][&#39;concurrency_limit&#39;]
-
-        maximum_allowed_concurrency = max_account_concurrency
-
-        if project_concurrency_limit is not None:
-            maximum_allowed_concurrency = project_concurrency_limit
-
-        if settings_max_concurrency == -1:
-            crawler.settings.set(&#39;CONCURRENT_REQUESTS&#39;, maximum_allowed_concurrency, 255)
-            logger.warning(&#39;Concurrent request auto configured to %d&#39; % maximum_allowed_concurrency)
-        else:
-            if settings_max_concurrency &gt; maximum_allowed_concurrency:
-                logger.warning(&#39;==&gt; Your maximum concurrency has been adjusted following your subscription because it\&#39;s missconfigured. Configured: %d, Maximum Allowed: %d&#39; % (settings_max_concurrency, maximum_allowed_concurrency))
-                crawler.settings.set(&#39;CONCURRENT_REQUESTS&#39;, maximum_allowed_concurrency, 255)
-
-        if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
-            crawler._apply_settings()
-
-        if crawler.stats:
-            crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
-
-        spider = cls(*args, **kwargs)
-        spider._set_crawler(crawler)
-        spider.scrapfly_client = scrapfly_client
-        spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
-
-        spider.scrapfly_client.open()
-        return spider
-
-
-class ScrapflyCrawlSpider(ScrapflySpider):
-
-    def _scrape_config_factory(self, rule_index, link):
-        return ScrapeConfig(url=link.url)
-
-    def _build_request(self, rule_index, link):
-        return ScrapflyScrapyRequest(
-            scrape_config=self._scrape_config_factory(rule_index, link),
-            callback=self._callback,
-            errback=self._errback,
-            meta=dict(rule=rule_index, link_text=link.text),
-        )
-
-    rules: Sequence[Rule] = ()
-
-    def __init__(self, *a, **kw):
-        super().__init__(*a, **kw)
-        self._compile_rules()
-
-    def _parse(self, response, **kwargs):
-
-        return self._parse_response(
-            response=response,
-            callback=self.parse_start_url,
-            cb_kwargs=kwargs,
-            follow=True,
-        )
-
-    def parse_start_url(self, response, **kwargs):
-        return []
-
-    def process_results(self, response, results):
-        return results
-
-    def _requests_to_follow(self, response):
-        if not isinstance(response, ScrapflyScrapyResponse):
-            return
-
-        seen = set()
-
-        for rule_index, rule in enumerate(self._rules):
-
-            links = [lnk for lnk in rule.link_extractor.extract_links(response) if lnk not in seen]
-
-            for link in rule.process_links(links):
-                seen.add(link)
-                request = self._build_request(rule_index, link)
-                yield rule.process_request(request, response)
-
-    def _callback(self, response):
-        rule = self._rules[response.meta[&#39;rule&#39;]]
-        return self._parse_response(response, rule.callback, rule.cb_kwargs, rule.follow)
-
-    def _errback(self, failure):
-        rule = self._rules[failure.request.meta[&#39;rule&#39;]]
-        return self._handle_failure(failure, rule.errback)
-
-    def _parse_response(self, response, callback, cb_kwargs, follow=True):
-        if callback:
-            cb_res = callback(response, **cb_kwargs) or ()
-            cb_res = self.process_results(response, cb_res)
-            for request_or_item in iterate_spider_output(cb_res):
-                yield request_or_item
-
-        if follow and self._follow_links:
-            for request_or_item in self._requests_to_follow(response):
-                yield request_or_item
-
-    def _handle_failure(self, failure, errback):
-        if errback:
-            results = errback(failure) or ()
-            for request_or_item in iterate_spider_output(results):
-                yield request_or_item
-
-    def _compile_rules(self):
-        self._rules = []
-        for rule in self.rules:
-            self._rules.append(copy.copy(rule))
-            self._rules[-1]._compile(self)
-
-    @classmethod
-    def from_crawler(cls, crawler, *args, **kwargs):
-        spider = super().from_crawler(crawler, *args, **kwargs)
-        spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
-        return spider</code></pre>
-</details>
 </section>
 <section>
 </section>
@@ -308,8 +51,6 @@ class ScrapflyCrawlSpider(ScrapflySpider):
 <span>(</span><span>*a, **kw)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
-class.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -400,6 +141,8 @@ class.</p></div>
         spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
         return spider</code></pre>
 </details>
+<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
+class.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.scrapy.spider.ScrapflySpider" href="#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></li>
@@ -410,7 +153,7 @@ class.</p></div>
 <dl>
 <dt id="scrapfly.scrapy.spider.ScrapflyCrawlSpider.rules"><code class="name">var <span class="ident">rules</span> : Sequence[scrapy.spiders.crawl.Rule]</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -420,16 +163,6 @@ class.</p></div>
 </code></dt>
 <dd>
 <div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@classmethod
-def from_crawler(cls, crawler, *args, **kwargs):
-    spider = super().from_crawler(crawler, *args, **kwargs)
-    spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
-    return spider</code></pre>
-</details>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -438,7 +171,6 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <span>def <span class="ident">parse_start_url</span></span>(<span>self, response, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -446,12 +178,12 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <pre><code class="python">def parse_start_url(self, response, **kwargs):
     return []</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflyCrawlSpider.process_results"><code class="name flex">
 <span>def <span class="ident">process_results</span></span>(<span>self, response, results)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -459,16 +191,25 @@ def from_crawler(cls, crawler, *args, **kwargs):
 <pre><code class="python">def process_results(self, response, results):
     return results</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.scrapy.spider.ScrapflySpider" href="#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.account_info" href="#scrapfly.scrapy.spider.ScrapflySpider.account_info">account_info</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client" href="#scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client">scrapfly_client</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_settings" href="#scrapfly.scrapy.spider.ScrapflySpider.scrapfly_settings">scrapfly_settings</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider"><code class="flex name class">
 <span>class <span class="ident">ScrapflySpider</span></span>
-<span>(</span><span>name: Optional[str] = None, **kwargs: Any)</span>
+<span>(</span><span>name: str | None = None, **kwargs: Any)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
-class.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -479,7 +220,6 @@ class.</p></div>
     account_info:Dict
     run_id:int
 
-    custom_settings:Dict = {}
     scrapfly_settings:Dict = {
         &#39;DOWNLOADER_MIDDLEWARES&#39;: {
             &#39;scrapfly.scrapy.middleware.ScrapflyMiddleware&#39;: 725,
@@ -493,7 +233,7 @@ class.</p></div>
             &#39;scrapy.downloadermiddlewares.cookies.CookiesMiddleware&#39;: None,
             &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;: None,
         },
-        &#39;DOWNLOAD_HANDLERS_BASE&#39;: {
+        &#39;DOWNLOAD_HANDLERS&#39;: {
             &#39;http&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;,
             &#39;https&#39;: &#39;scrapfly.scrapy.downloader.ScrapflyHTTPDownloader&#39;
         },
@@ -502,11 +242,33 @@ class.</p></div>
             &#39;scrapy.spidermiddlewares.referer.RefererMiddleware&#39;: None,
         },
         &#39;ITEM_PIPELINES&#39;: {
-            &#39;scrapfly.scrapy.pipelines.FilesPipeline&#39;: 1,
-            &#39;scrapfly.scrapy.pipelines.ImagesPipeline&#39;: 1,
+            &#39;scrapfly.scrapy.pipelines.FilesPipeline&#39;: 50,
+            &#39;scrapfly.scrapy.pipelines.ImagesPipeline&#39;: 50,
             &#39;scrapy.pipelines.files.FilesPipeline&#39;: None,
             &#39;scrapy.pipelines.images.ImagesPipeline&#39;: None
         }
+    }
+
+    # User config cant override these settings
+    _MANDATORY_SETTINGS = {
+        &#39;SPIDER_MIDDLEWARES&#39;: [
+            &#39;scrapfly.scrapy.middleware.ScrapflyRefererMiddleware&#39;,
+            &#39;scrapy.spidermiddlewares.referer.RefererMiddleware&#39;,
+        ],
+        &#39;DOWNLOADER_MIDDLEWARES&#39;: [
+            &#39;scrapfly.scrapy.middleware.ScrapflyMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.useragent.UserAgentMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.redirect.RedirectMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.cookies.CookiesMiddleware&#39;,
+            &#39;scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware&#39;
+        ],
+        &#39;DOWNLOAD_HANDLERS&#39;: &#39;*&#39;,
+        &#39;ITEM_PIPELINES&#39;: []
     }
 
     @classmethod
@@ -519,8 +281,21 @@ class.</p></div>
         return d
 
     @classmethod
-    def update_settings(cls, settings):
-        settings.update(cls._merge_settings(dict(settings), cls.scrapfly_settings), priority=&#39;spider&#39;)
+    def update_settings(cls, settings: BaseSettings) -&gt; None:
+        spider_scrapfly_settings = copy.deepcopy(cls.scrapfly_settings)
+        spider_user_settings = settings.copy_to_dict()
+
+        # we only merge SPIDER_MIDDLEWARES and ITEM_PIPELINEE and prevent user from overriding them
+        for key, values in cls._MANDATORY_SETTINGS.items():
+            if values == &#39;*&#39;:
+                spider_user_settings.pop(key)
+            elif key in spider_user_settings:
+                for value in values:
+                    if value in spider_user_settings[key]:
+                        spider_user_settings[key].remove(value)
+
+        _settings = cls._merge_settings(spider_scrapfly_settings, spider_user_settings)
+        settings.update(_settings, priority=&#39;spider&#39;)
 
     @cached_property
     def run_id(self):
@@ -590,7 +365,6 @@ class.</p></div>
         )
 
         settings_max_concurrency = crawler.settings.get(&#39;CONCURRENT_REQUESTS&#39;, -1)
-
         account_info = scrapfly_client.account()
 
         if account_info[&#39;account&#39;][&#39;suspended&#39;] is True:
@@ -598,7 +372,6 @@ class.</p></div>
 
         max_account_concurrency = account_info[&#39;subscription&#39;][&#39;max_concurrency&#39;]
         project_concurrency_limit = account_info[&#39;project&#39;][&#39;concurrency_limit&#39;]
-
         maximum_allowed_concurrency = max_account_concurrency
 
         if project_concurrency_limit is not None:
@@ -626,6 +399,8 @@ class.</p></div>
         spider.scrapfly_client.open()
         return spider</code></pre>
 </details>
+<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
+class.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.spiders.Spider</li>
@@ -639,19 +414,15 @@ class.</p></div>
 <dl>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.account_info"><code class="name">var <span class="ident">account_info</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.spider.ScrapflySpider.custom_settings"><code class="name">var <span class="ident">custom_settings</span> : Dict</code></dt>
-<dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client"><code class="name">var <span class="ident">scrapfly_client</span> : <a title="scrapfly.client.ScrapflyClient" href="../client.html#scrapfly.client.ScrapflyClient">ScrapflyClient</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_settings"><code class="name">var <span class="ident">scrapfly_settings</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -661,117 +432,27 @@ class.</p></div>
 </code></dt>
 <dd>
 <div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@classmethod
-def from_crawler(cls, crawler:Crawler, *args, **kwargs):
-    from . import current_scrapy_version, comparable_version
-
-    scrapfly_client = ScrapflyClient(
-        key=crawler.settings.get(&#39;SCRAPFLY_API_KEY&#39;),
-        host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
-        verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
-        debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
-        distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
-        connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
-        read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT),
-    )
-
-    settings_max_concurrency = crawler.settings.get(&#39;CONCURRENT_REQUESTS&#39;, -1)
-
-    account_info = scrapfly_client.account()
-
-    if account_info[&#39;account&#39;][&#39;suspended&#39;] is True:
-        raise RuntimeError(&#39;Your account is suspended, please check your subscription status. Reason: %s&#39; % account_info[&#39;account&#39;][&#39;suspension_reason&#39;])
-
-    max_account_concurrency = account_info[&#39;subscription&#39;][&#39;max_concurrency&#39;]
-    project_concurrency_limit = account_info[&#39;project&#39;][&#39;concurrency_limit&#39;]
-
-    maximum_allowed_concurrency = max_account_concurrency
-
-    if project_concurrency_limit is not None:
-        maximum_allowed_concurrency = project_concurrency_limit
-
-    if settings_max_concurrency == -1:
-        crawler.settings.set(&#39;CONCURRENT_REQUESTS&#39;, maximum_allowed_concurrency, 255)
-        logger.warning(&#39;Concurrent request auto configured to %d&#39; % maximum_allowed_concurrency)
-    else:
-        if settings_max_concurrency &gt; maximum_allowed_concurrency:
-            logger.warning(&#39;==&gt; Your maximum concurrency has been adjusted following your subscription because it\&#39;s missconfigured. Configured: %d, Maximum Allowed: %d&#39; % (settings_max_concurrency, maximum_allowed_concurrency))
-            crawler.settings.set(&#39;CONCURRENT_REQUESTS&#39;, maximum_allowed_concurrency, 255)
-
-    if current_scrapy_version &gt;= comparable_version(&#39;2.11.0&#39;):
-        crawler._apply_settings()
-
-    if crawler.stats:
-        crawler.stats.set_value(&#39;scrapfly/api_call_cost&#39;, 0)
-
-    spider = cls(*args, **kwargs)
-    spider._set_crawler(crawler)
-    spider.scrapfly_client = scrapfly_client
-    spider.scrapfly_client.version += &#34;+scrapy@%s&#34; % scrapy.__version__
-
-    spider.scrapfly_client.open()
-    return spider</code></pre>
-</details>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.update_settings"><code class="name flex">
-<span>def <span class="ident">update_settings</span></span>(<span>settings)</span>
+<span>def <span class="ident">update_settings</span></span>(<span>settings: scrapy.settings.BaseSettings) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@classmethod
-def update_settings(cls, settings):
-    settings.update(cls._merge_settings(dict(settings), cls.scrapfly_settings), priority=&#39;spider&#39;)</code></pre>
-</details>
 </dd>
 </dl>
 <h3>Instance variables</h3>
 <dl>
-<dt id="scrapfly.scrapy.spider.ScrapflySpider.run_id"><code class="name">var <span class="ident">run_id</span> : int</code></dt>
+<dt id="scrapfly.scrapy.spider.ScrapflySpider.run_id"><code class="name">var <span class="ident">run_id</span></code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def __get__(self, instance, owner=None):
-    if instance is None:
-        return self
-    if self.attrname is None:
-        raise TypeError(
-            &#34;Cannot use cached_property instance without calling __set_name__ on it.&#34;)
-    try:
-        cache = instance.__dict__
-    except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
-        msg = (
-            f&#34;No &#39;__dict__&#39; attribute on {type(instance).__name__!r} &#34;
-            f&#34;instance to cache {self.attrname!r} property.&#34;
-        )
-        raise TypeError(msg) from None
-    val = cache.get(self.attrname, _NOT_FOUND)
-    if val is _NOT_FOUND:
-        with self.lock:
-            # check if another thread filled cache while we awaited lock
-            val = cache.get(self.attrname, _NOT_FOUND)
-            if val is _NOT_FOUND:
-                val = self.func(instance)
-                try:
-                    cache[self.attrname] = val
-                except TypeError:
-                    msg = (
-                        f&#34;The &#39;__dict__&#39; attribute on {type(instance).__name__!r} instance &#34;
-                        f&#34;does not support item assignment for caching {self.attrname!r} property.&#34;
-                    )
-                    raise TypeError(msg) from None
-    return val</code></pre>
+<pre><code class="python">@cached_property
+def run_id(self):
+    return environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -780,7 +461,6 @@ def update_settings(cls, settings):
 <span>def <span class="ident">closed</span></span>(<span>self, reason: str)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -788,12 +468,12 @@ def update_settings(cls, settings):
 <pre><code class="python">def closed(self, reason:str):
     self.scrapfly_client.close()</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.retry"><code class="name flex">
-<span>def <span class="ident">retry</span></span>(<span>self, request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>, reason: Union[str, Exception], delay: Optional[int] = None)</span>
+<span>def <span class="ident">retry</span></span>(<span>self,<br>request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>reason: str | Exception,<br>delay: int | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -838,12 +518,12 @@ def update_settings(cls, settings):
 
     return deferred</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.start_requests"><code class="name flex">
 <span>def <span class="ident">start_requests</span></span>(<span>self) ‑> Iterable[<a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>]</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -854,6 +534,7 @@ def update_settings(cls, settings):
             raise RuntimeError(&#39;start_urls must contains ScrapeConfig Object with ScrapflySpider&#39;)
         yield ScrapflyScrapyRequest(scrape_config=scrape_config)</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 </dd>
@@ -861,7 +542,6 @@ def update_settings(cls, settings):
 </section>
 </article>
 <nav id="sidebar">
-<h1>Index</h1>
 <div class="toc">
 <ul></ul>
 </div>
@@ -887,7 +567,6 @@ def update_settings(cls, settings):
 <ul class="two-column">
 <li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.account_info" href="#scrapfly.scrapy.spider.ScrapflySpider.account_info">account_info</a></code></li>
 <li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.closed" href="#scrapfly.scrapy.spider.ScrapflySpider.closed">closed</a></code></li>
-<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.custom_settings" href="#scrapfly.scrapy.spider.ScrapflySpider.custom_settings">custom_settings</a></code></li>
 <li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.from_crawler" href="#scrapfly.scrapy.spider.ScrapflySpider.from_crawler">from_crawler</a></code></li>
 <li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.retry" href="#scrapfly.scrapy.spider.ScrapflySpider.retry">retry</a></code></li>
 <li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.run_id" href="#scrapfly.scrapy.spider.ScrapflySpider.run_id">run_id</a></code></li>
@@ -903,7 +582,7 @@ def update_settings(cls, settings):
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
 </footer>
 </body>
 </html>
