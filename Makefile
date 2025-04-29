@@ -31,3 +31,4 @@ release:
 dev:
 	rm -Rf $(shell python -m site --user-site )/scrapfly*
 	python setup.py develop
+	pip install -e .
