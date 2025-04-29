@@ -1,8 +1,6 @@
 from typing import Callable, Optional, Tuple
 from enum import Enum
 
-import flask
-from flask import request, make_response
 from scrapfly import ResponseBodyHandler
 import logging as logger
 
@@ -12,7 +10,13 @@ class ResourceType(Enum):
     PING = 'ping'
 
 
-def create_server(signing_secrets:Tuple[str], callback:Callable, app:Optional[flask.Flask]=None) -> flask.Flask:
+def create_server(signing_secrets:Tuple[str], callback:Callable, app:Optional['flask.Flask']=None) -> 'flask.Flask':
+    try:
+        import flask
+    except ImportError:
+        raise ImportError("flask is not installed, please install it with `pip install \"scrapfly-sdk[webhook-server]\"`")
+
+    from flask import request, make_response
 
     if app is None:
         app = flask.Flask("Scrapfly Webhook Server")

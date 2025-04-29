@@ -75,6 +75,9 @@ EXTRA_DEPENDENCIES = {
         'brotlipy',
         'msgpack'
     ],
+    'webhook-server': [
+        'flask',
+    ],
     'concurrency': []
 }
 
