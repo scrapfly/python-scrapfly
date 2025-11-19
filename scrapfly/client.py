@@ -16,10 +16,10 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal, Tuple
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal, Tuple, Any
 import requests
 import urllib3
-import logging as logger
+import logging
 
 
 from .errors import ContentError
@@ -35,9 +35,10 @@ from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
+from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse
 from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, HttpError, UpstreamHttpError
 
-logger.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 NetworkError = (
     ConnectionError,
@@ -86,6 +87,7 @@ class ScrapflyClient:
     DEFAULT_WEBSCRAPING_API_READ_TIMEOUT = 160 # 155 real
     DEFAULT_SCREENSHOT_API_READ_TIMEOUT = 60  # 30 real
     DEFAULT_EXTRACTION_API_READ_TIMEOUT = 35 # 30 real
+    DEFAULT_CRAWLER_API_READ_TIMEOUT = 30
 
     host:str
     key:str
@@ -112,7 +114,7 @@ class ScrapflyClient:
     def __init__(
         self,
         key: str,
-        host: Optional[str] = HOST,
+        host: str = HOST,
         verify=True,
         debug: bool = False,
         max_concurrency:int=1,
@@ -868,4 +870,252 @@ class ScrapflyClient:
         api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
 
         return api_response
-    
+
+    @backoff.on_exception(backoff.expo, exception=ConnectionError, max_tries=5)
+    def start_crawl(self, crawler_config: CrawlerConfig) -> CrawlerStartResponse:
+        """
+        Start a crawler job
+
+        :param crawler_config: CrawlerConfig
+        :return: CrawlerStartResponse with UUID and initial status
+
+        Example:
+            ```python
+            from scrapfly import ScrapflyClient, CrawlerConfig
+
+            client = ScrapflyClient(key='YOUR_API_KEY')
+            config = CrawlerConfig(
+                url='https://example.com',
+                page_limit=100,
+                max_depth=3
+            )
+
+            response = client.start_crawl(config)
+            print(f"Crawler started: {response.uuid}")
+            ```
+        """
+        # Get crawler config params (without key)
+        body_params = crawler_config.to_api_params()
+
+        # API key must be passed as query parameter, not in body
+        query_params = {'key': self.key}
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        url = f'{self.host}/crawl'
+        logger.debug(f"Crawler API POST {url}?key=***")
+        logger.debug(f"Crawler API body: {body_params}")
+
+        response = self._http_handler(
+            method='POST',
+            url=url,
+            params=query_params,  # key as query param
+            json=body_params,      # config in body
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code not in (200, 201):
+            # Log error details for debugging
+            try:
+                error_detail = response.json()
+            except:
+                error_detail = response.text
+            logger.debug(f"Crawler API error ({response.status_code}): {error_detail}")
+            self._handle_crawler_error_response(response)
+
+        result = response.json()
+        return CrawlerStartResponse(result)
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def get_crawl_status(self, uuid: str) -> CrawlerStatusResponse:
+        """
+        Get crawler job status
+
+        :param uuid: Crawler job UUID
+        :return: CrawlerStatusResponse with progress information
+
+        Example:
+            ```python
+            status = client.get_crawl_status(uuid)
+            print(f"Status: {status.status}")
+            print(f"Progress: {status.progress_pct:.1f}%")
+            print(f"Crawled: {status.urls_crawled}/{status.urls_discovered}")
+
+            if status.is_complete:
+                print("Crawl completed!")
+            ```
+        """
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = self._http_handler(
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/status',
+            params={'key': self.key},  # key as query param (already correct)
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response)
+
+        result = response.json()
+        return CrawlerStatusResponse(result)
+
+    def cancel_crawl(self, crawl_uuid: str) -> bool:
+        """
+        Cancel a running crawler job
+
+        :param crawl_uuid: Crawler job UUID to cancel
+        :return: True if cancelled successfully
+
+        Example:
+            ```python
+            # Start a crawl
+            crawl = client.start_crawl(config)
+
+            # Cancel it
+            client.cancel_crawl(crawl.uuid)
+            ```
+        """
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = self._http_handler(
+            method='DELETE',
+            url=f'{self.host}/crawl/{crawl_uuid}',
+            params={'key': self.key},
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code not in (200, 204):
+            self._handle_crawler_error_response(response)
+
+        return True
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def get_crawl_artifact(
+        self,
+        uuid: str,
+        artifact_type: str = 'warc'
+    ) -> CrawlerArtifactResponse:
+        """
+        Download crawler job artifact
+
+        :param uuid: Crawler job UUID
+        :param artifact_type: Artifact type ('warc' or 'har')
+        :return: CrawlerArtifactResponse with WARC data and parsing utilities
+
+        Example:
+            ```python
+            # Wait for crawl to complete
+            while True:
+                status = client.get_crawl_status(uuid)
+                if status.is_complete:
+                    break
+                time.sleep(5)
+
+            # Download artifact
+            artifact = client.get_crawl_artifact(uuid)
+
+            # Easy mode: get all pages
+            pages = artifact.get_pages()
+            for page in pages:
+                print(f"{page['url']}: {page['status_code']}")
+
+            # Memory-efficient: iterate
+            for record in artifact.iter_responses():
+                process(record.content)
+
+            # Save to file
+            artifact.save('crawl.warc.gz')
+            ```
+        """
+        timeout = (self.connect_timeout, 300)  # 5 minutes for large downloads
+
+        response = self._http_handler(
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/artifact',
+            params={
+                'key': self.key,
+                'type': artifact_type
+            },
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response)
+
+        return CrawlerArtifactResponse(response.content, artifact_type=artifact_type)
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def get_crawl_contents(
+        self,
+        uuid: str,
+        format: Literal['html', 'clean_html', 'markdown', 'json', 'text', 'extracted_data', 'page_metadata'] = 'html'
+    ) -> Dict[str, Any]:
+        """
+        Get crawl contents in a specific format
+
+        Retrieves extracted content from crawled pages in the format(s) specified
+        in your crawl configuration (via content_formats parameter).
+
+        :param uuid: Crawler job UUID
+        :param format: Content format - 'html', 'clean_html', 'markdown', 'json', 'text',
+                      'extracted_data', 'page_metadata'
+        :return: Dictionary with format {"contents": {url: content, ...}, "links": {...}}
+
+        Example:
+            ```python
+            # Get all content in markdown format
+            result = client.get_crawl_contents(uuid, format='markdown')
+            contents = result['contents']
+
+            # Access specific URL
+            for url, content in contents.items():
+                print(f"{url}: {len(content)} chars")
+            ```
+        """
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        params = {
+            'key': self.key,
+            'format': format
+        }
+
+        response = self._http_handler(
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/contents',
+            params=params,
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response)
+
+        return response.json()
+
+    def _handle_crawler_error_response(self, response: Response):
+        """Handle error responses from Crawler API"""
+        try:
+            error_data = response.json()
+            error_msg = error_data.get('message', 'Unknown error')
+            error_code = error_data.get('code', 'ERR::CRAWLER::UNKNOWN')
+        except Exception:
+            error_msg = response.text
+            error_code = 'ERR::CRAWLER::UNKNOWN'
+
+        raise HttpError(
+            message=f"Crawler API error ({response.status_code}): {error_msg}",
+            code=error_code,
+            http_status_code=response.status_code,
+            request=response.request,
+            response=response
+        )

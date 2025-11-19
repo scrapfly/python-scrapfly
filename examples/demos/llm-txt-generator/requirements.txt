@@ -1,0 +1,7 @@
+# Scrapfly Python SDK - required for this demo
+scrapfly-sdk>=0.8.0
+
+# The SDK will automatically install its own dependencies:
+# - requests: HTTP client
+# - backoff: Automatic retry with exponential backoff
+# - python-dateutil: Date/time parsing

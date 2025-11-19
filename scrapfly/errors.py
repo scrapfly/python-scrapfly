@@ -91,8 +91,9 @@ class HttpError(ScrapflyError):
 
         text = f"{self.response.status_code} - {self.response.reason}"
 
-        if isinstance(self, (ApiHttpClientError, ApiHttpServerError)):
-            text += " - " + self.message
+        # Include detailed error message for all HTTP errors
+        if self.message:
+            text += f" - {self.message}"
 
         return text
 
@@ -173,6 +174,16 @@ class ScreenshotAPIError(HttpError):
 
 
 class ExtractionAPIError(HttpError):
+    pass
+
+
+class CrawlerError(ScrapflyError):
+    """Base exception for Crawler API errors"""
+    pass
+
+
+class ScrapflyCrawlerError(CrawlerError):
+    """Exception raised when a crawler job fails or is cancelled"""
     pass
 
 
@@ -294,4 +305,6 @@ __all__:Tuple[str, ...] = [
     'UpstreamHttpServerError',
     'ApiHttpClientError',
     'ApiHttpServerError',
+    'CrawlerError',
+    'ScrapflyCrawlerError',
 ]
