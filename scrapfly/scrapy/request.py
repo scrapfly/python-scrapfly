@@ -20,8 +20,11 @@ class ScrapflyScrapyRequest(Request):
     # headers:Dict inherited
     # encoding:Dict inherited
 
-    def __init__(self, scrape_config: ScrapeConfig, meta: Dict = {}, *args, **kwargs):
+    def __init__(self, scrape_config: ScrapeConfig, meta: Optional[Dict] = None, *args, **kwargs): 
         self.scrape_config = scrape_config
+
+        if meta is None:
+            meta = {}
 
         meta['scrapfly_scrape_config'] = self.scrape_config
 

@@ -64,7 +64,6 @@ class ExtractionConfig(BaseApiConfig):
         ephemeral_template: Optional[Dict] = None     
     ):
         if template:
-            print("WARNGING")
             warnings.warn(
                 "Deprecation warning: 'template' is deprecated. Use 'extraction_template' instead."
             )
