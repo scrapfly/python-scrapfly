@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>scrapfly.crawler.har_utils API documentation</title>
+<meta name="description" content="HAR (HTTP Archive) Format Utilities …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.crawler.har_utils</code></h1>
+</header>
+<section id="section-intro">
+<p>HAR (HTTP Archive) Format Utilities</p>
+<p>HAR is a JSON-based format for recording HTTP transactions.
+Spec: <a href="http://www.softwareishard.com/blog/har-12-spec/">http://www.softwareishard.com/blog/har-12-spec/</a></p>
+<p>Structure:
+{
+"log": {
+"version": "1.2",
+"creator": {&hellip;},
+"pages": [{&hellip;}],
+"entries": [
+{
+"startedDateTime": "2025-01-01T00:00:00.000Z",
+"request": {
+"method": "GET",
+"url": "https://example.com",
+"headers": [&hellip;],
+&hellip;
+},
+"response": {
+"status": 200,
+"statusText": "OK",
+"headers": [&hellip;],
+"content": {
+"size": 1234,
+"mimeType": "text/html",
+"text": "&hellip;"
+},
+&hellip;
+},
+&hellip;
+}
+]
+}
+}</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.crawler.har_utils.HarArchive"><code class="flex name class">
+<span>class <span class="ident">HarArchive</span></span>
+<span>(</span><span>har_data: bytes)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class HarArchive:
+    &#34;&#34;&#34;Parser and accessor for HAR (HTTP Archive) format data&#34;&#34;&#34;
+
+    def __init__(self, har_data: bytes):
+        &#34;&#34;&#34;
+        Initialize HAR archive from bytes
+
+        Args:
+            har_data: HAR file content as bytes (JSON format, may be gzipped)
+        &#34;&#34;&#34;
+        # Decompress if gzipped
+        if isinstance(har_data, bytes):
+            if har_data[:2] == b&#39;\x1f\x8b&#39;:  # gzip magic number
+                har_data = gzip.decompress(har_data)
+            har_data = har_data.decode(&#39;utf-8&#39;)
+
+        # Parse the special format: {&#34;log&#34;:{...,&#34;entries&#34;:[]}}{&#34;entry1&#34;}{&#34;entry2&#34;}...
+        # First object is HAR log structure, subsequent objects are individual entries
+        objects = []
+        decoder = json.JSONDecoder()
+        idx = 0
+        while idx &lt; len(har_data):
+            har_data_stripped = har_data[idx:].lstrip()
+            if not har_data_stripped:
+                break
+            try:
+                obj, end_idx = decoder.raw_decode(har_data_stripped)
+                objects.append(obj)
+                idx += len(har_data[idx:]) - len(har_data_stripped) + end_idx
+            except json.JSONDecodeError:
+                break
+
+        # First object should be the HAR log structure
+        if objects and &#39;log&#39; in objects[0]:
+            self._data = objects[0]
+            self._log = self._data.get(&#39;log&#39;, {})
+            # Remaining objects are the entries
+            self._entries = objects[1:] if len(objects) &gt; 1 else []
+        else:
+            # Fallback: standard HAR format
+            self._data = json.loads(har_data) if isinstance(har_data, str) else {}
+            self._log = self._data.get(&#39;log&#39;, {})
+            self._entries = self._log.get(&#39;entries&#39;, [])
+
+    @property
+    def version(self) -&gt; str:
+        &#34;&#34;&#34;Get HAR version&#34;&#34;&#34;
+        return self._log.get(&#39;version&#39;, &#39;&#39;)
+
+    @property
+    def creator(self) -&gt; Dict[str, Any]:
+        &#34;&#34;&#34;Get creator information&#34;&#34;&#34;
+        return self._log.get(&#39;creator&#39;, {})
+
+    @property
+    def pages(self) -&gt; List[Dict[str, Any]]:
+        &#34;&#34;&#34;Get pages list&#34;&#34;&#34;
+        return self._log.get(&#39;pages&#39;, [])
+
+    def get_entries(self) -&gt; List[HarEntry]:
+        &#34;&#34;&#34;
+        Get all entries as list
+
+        Returns:
+            List of HarEntry objects
+        &#34;&#34;&#34;
+        return [HarEntry(entry) for entry in self._entries]
+
+    def iter_entries(self) -&gt; Iterator[HarEntry]:
+        &#34;&#34;&#34;
+        Iterate through all HAR entries
+
+        Yields:
+            HarEntry objects
+        &#34;&#34;&#34;
+        for entry in self._entries:
+            yield HarEntry(entry)
+
+    def get_urls(self) -&gt; List[str]:
+        &#34;&#34;&#34;
+        Get all URLs in the archive
+
+        Returns:
+            List of unique URLs
+        &#34;&#34;&#34;
+        urls = []
+        for entry in self._entries:
+            url = entry.get(&#39;request&#39;, {}).get(&#39;url&#39;, &#39;&#39;)
+            if url and url not in urls:
+                urls.append(url)
+        return urls
+
+    def find_by_url(self, url: str) -&gt; Optional[HarEntry]:
+        &#34;&#34;&#34;
+        Find entry by exact URL match
+
+        Args:
+            url: URL to search for
+
+        Returns:
+            First matching HarEntry or None
+        &#34;&#34;&#34;
+        for entry in self.iter_entries():
+            if entry.url == url:
+                return entry
+        return None
+
+    def filter_by_status(self, status_code: int) -&gt; List[HarEntry]:
+        &#34;&#34;&#34;
+        Filter entries by status code
+
+        Args:
+            status_code: HTTP status code to filter by
+
+        Returns:
+            List of matching HarEntry objects
+        &#34;&#34;&#34;
+        return [entry for entry in self.iter_entries()
+                if entry.status_code == status_code]
+
+    def filter_by_content_type(self, content_type: str) -&gt; List[HarEntry]:
+        &#34;&#34;&#34;
+        Filter entries by content type (substring match)
+
+        Args:
+            content_type: Content type to filter by (e.g., &#39;text/html&#39;)
+
+        Returns:
+            List of matching HarEntry objects
+        &#34;&#34;&#34;
+        return [entry for entry in self.iter_entries()
+                if content_type.lower() in entry.content_type.lower()]
+
+    def __len__(self) -&gt; int:
+        &#34;&#34;&#34;Get number of entries&#34;&#34;&#34;
+        return len(self._entries)
+
+    def __repr__(self) -&gt; str:
+        return f&#34;&lt;HarArchive {len(self._entries)} entries&gt;&#34;</code></pre>
+</details>
+<div class="desc"><p>Parser and accessor for HAR (HTTP Archive) format data</p>
+<p>Initialize HAR archive from bytes</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>har_data</code></strong></dt>
+<dd>HAR file content as bytes (JSON format, may be gzipped)</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.har_utils.HarArchive.creator"><code class="name">prop <span class="ident">creator</span> : Dict[str, Any]</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def creator(self) -&gt; Dict[str, Any]:
+    &#34;&#34;&#34;Get creator information&#34;&#34;&#34;
+    return self._log.get(&#39;creator&#39;, {})</code></pre>
+</details>
+<div class="desc"><p>Get creator information</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarArchive.pages"><code class="name">prop <span class="ident">pages</span> : List[Dict[str, Any]]</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def pages(self) -&gt; List[Dict[str, Any]]:
+    &#34;&#34;&#34;Get pages list&#34;&#34;&#34;
+    return self._log.get(&#39;pages&#39;, [])</code></pre>
+</details>
+<div class="desc"><p>Get pages list</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarArchive.version"><code class="name">prop <span class="ident">version</span> : str</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def version(self) -&gt; str:
+    &#34;&#34;&#34;Get HAR version&#34;&#34;&#34;
+    return self._log.get(&#39;version&#39;, &#39;&#39;)</code></pre>
+</details>
+<div class="desc"><p>Get HAR version</p></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.crawler.har_utils.HarArchive.filter_by_content_type"><code class="name flex">
+<span>def <span class="ident">filter_by_content_type</span></span>(<span>self, content_type: str) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def filter_by_content_type(self, content_type: str) -&gt; List[HarEntry]:
+    &#34;&#34;&#34;
+    Filter entries by content type (substring match)
+
+    Args:
+        content_type: Content type to filter by (e.g., &#39;text/html&#39;)
+
+    Returns:
+        List of matching HarEntry objects
+    &#34;&#34;&#34;
+    return [entry for entry in self.iter_entries()
+            if content_type.lower() in entry.content_type.lower()]</code></pre>
+</details>
+<div class="desc"><p>Filter entries by content type (substring match)</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>content_type</code></strong></dt>
+<dd>Content type to filter by (e.g., 'text/html')</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>List of matching HarEntry objects</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarArchive.filter_by_status"><code class="name flex">
+<span>def <span class="ident">filter_by_status</span></span>(<span>self, status_code: int) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def filter_by_status(self, status_code: int) -&gt; List[HarEntry]:
+    &#34;&#34;&#34;
+    Filter entries by status code
+
+    Args:
+        status_code: HTTP status code to filter by
+
+    Returns:
+        List of matching HarEntry objects
+    &#34;&#34;&#34;
+    return [entry for entry in self.iter_entries()
+            if entry.status_code == status_code]</code></pre>
+</details>
+<div class="desc"><p>Filter entries by status code</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>status_code</code></strong></dt>
+<dd>HTTP status code to filter by</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>List of matching HarEntry objects</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarArchive.find_by_url"><code class="name flex">
+<span>def <span class="ident">find_by_url</span></span>(<span>self, url: str) ‑> <a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a> | None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def find_by_url(self, url: str) -&gt; Optional[HarEntry]:
+    &#34;&#34;&#34;
+    Find entry by exact URL match
+
+    Args:
+        url: URL to search for
+
+    Returns:
+        First matching HarEntry or None
+    &#34;&#34;&#34;
+    for entry in self.iter_entries():
+        if entry.url == url:
+            return entry
+    return None</code></pre>
+</details>
+<div class="desc"><p>Find entry by exact URL match</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>url</code></strong></dt>
+<dd>URL to search for</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>First matching HarEntry or None</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarArchive.get_entries"><code class="name flex">
+<span>def <span class="ident">get_entries</span></span>(<span>self) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_entries(self) -&gt; List[HarEntry]:
+    &#34;&#34;&#34;
+    Get all entries as list
+
+    Returns:
+        List of HarEntry objects
+    &#34;&#34;&#34;
+    return [HarEntry(entry) for entry in self._entries]</code></pre>
+</details>
+<div class="desc"><p>Get all entries as list</p>
+<h2 id="returns">Returns</h2>
+<p>List of HarEntry objects</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarArchive.get_urls"><code class="name flex">
+<span>def <span class="ident">get_urls</span></span>(<span>self) ‑> List[str]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_urls(self) -&gt; List[str]:
+    &#34;&#34;&#34;
+    Get all URLs in the archive
+
+    Returns:
+        List of unique URLs
+    &#34;&#34;&#34;
+    urls = []
+    for entry in self._entries:
+        url = entry.get(&#39;request&#39;, {}).get(&#39;url&#39;, &#39;&#39;)
+        if url and url not in urls:
+            urls.append(url)
+    return urls</code></pre>
+</details>
+<div class="desc"><p>Get all URLs in the archive</p>
+<h2 id="returns">Returns</h2>
+<p>List of unique URLs</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarArchive.iter_entries"><code class="name flex">
+<span>def <span class="ident">iter_entries</span></span>(<span>self) ‑> Iterator[<a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def iter_entries(self) -&gt; Iterator[HarEntry]:
+    &#34;&#34;&#34;
+    Iterate through all HAR entries
+
+    Yields:
+        HarEntry objects
+    &#34;&#34;&#34;
+    for entry in self._entries:
+        yield HarEntry(entry)</code></pre>
+</details>
+<div class="desc"><p>Iterate through all HAR entries</p>
+<h2 id="yields">Yields</h2>
+<p>HarEntry objects</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry"><code class="flex name class">
+<span>class <span class="ident">HarEntry</span></span>
+<span>(</span><span>entry_data: Dict[str, Any])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class HarEntry:
+    &#34;&#34;&#34;Represents a single HAR entry (HTTP request/response pair)&#34;&#34;&#34;
+
+    def __init__(self, entry_data: Dict[str, Any]):
+        &#34;&#34;&#34;
+        Initialize from HAR entry dict
+
+        Args:
+            entry_data: HAR entry dictionary
+        &#34;&#34;&#34;
+        self._data = entry_data
+        self._request = entry_data.get(&#39;request&#39;, {})
+        self._response = entry_data.get(&#39;response&#39;, {})
+
+    @property
+    def url(self) -&gt; str:
+        &#34;&#34;&#34;Get request URL&#34;&#34;&#34;
+        return self._request.get(&#39;url&#39;, &#39;&#39;)
+
+    @property
+    def method(self) -&gt; str:
+        &#34;&#34;&#34;Get HTTP method&#34;&#34;&#34;
+        return self._request.get(&#39;method&#39;, &#39;GET&#39;)
+
+    @property
+    def status_code(self) -&gt; int:
+        &#34;&#34;&#34;Get response status code&#34;&#34;&#34;
+        # Handle case where response doesn&#39;t exist or status is missing
+        if not self._response:
+            return 0
+        status = self._response.get(&#39;status&#39;)
+        if status is None:
+            return 0
+        # Ensure it&#39;s an int (HAR data might have status as string)
+        try:
+            return int(status)
+        except (ValueError, TypeError):
+            return 0
+
+    @property
+    def status_text(self) -&gt; str:
+        &#34;&#34;&#34;Get response status text&#34;&#34;&#34;
+        return self._response.get(&#39;statusText&#39;, &#39;&#39;)
+
+    @property
+    def request_headers(self) -&gt; Dict[str, str]:
+        &#34;&#34;&#34;Get request headers as dict&#34;&#34;&#34;
+        headers = {}
+        for header in self._request.get(&#39;headers&#39;, []):
+            headers[header[&#39;name&#39;]] = header[&#39;value&#39;]
+        return headers
+
+    @property
+    def response_headers(self) -&gt; Dict[str, str]:
+        &#34;&#34;&#34;Get response headers as dict&#34;&#34;&#34;
+        headers = {}
+        for header in self._response.get(&#39;headers&#39;, []):
+            headers[header[&#39;name&#39;]] = header[&#39;value&#39;]
+        return headers
+
+    @property
+    def content(self) -&gt; bytes:
+        &#34;&#34;&#34;Get response content as bytes&#34;&#34;&#34;
+        content_data = self._response.get(&#39;content&#39;, {})
+        text = content_data.get(&#39;text&#39;, &#39;&#39;)
+
+        # Handle base64 encoding if present
+        encoding = content_data.get(&#39;encoding&#39;, &#39;&#39;)
+        if encoding == &#39;base64&#39;:
+            import base64
+            return base64.b64decode(text)
+
+        # Return as UTF-8 bytes
+        if isinstance(text, str):
+            return text.encode(&#39;utf-8&#39;)
+        return text
+
+    @property
+    def content_type(self) -&gt; str:
+        &#34;&#34;&#34;Get response content type&#34;&#34;&#34;
+        return self._response.get(&#39;content&#39;, {}).get(&#39;mimeType&#39;, &#39;&#39;)
+
+    @property
+    def content_size(self) -&gt; int:
+        &#34;&#34;&#34;Get response content size&#34;&#34;&#34;
+        return self._response.get(&#39;content&#39;, {}).get(&#39;size&#39;, 0)
+
+    @property
+    def started_datetime(self) -&gt; str:
+        &#34;&#34;&#34;Get when request was started (ISO 8601 format)&#34;&#34;&#34;
+        return self._data.get(&#39;startedDateTime&#39;, &#39;&#39;)
+
+    @property
+    def time(self) -&gt; float:
+        &#34;&#34;&#34;Get total elapsed time in milliseconds&#34;&#34;&#34;
+        return self._data.get(&#39;time&#39;, 0.0)
+
+    @property
+    def timings(self) -&gt; Dict[str, float]:
+        &#34;&#34;&#34;Get detailed timing information&#34;&#34;&#34;
+        return self._data.get(&#39;timings&#39;, {})
+
+    def __repr__(self) -&gt; str:
+        return f&#34;&lt;HarEntry {self.method} {self.url} [{self.status_code}]&gt;&#34;</code></pre>
+</details>
+<div class="desc"><p>Represents a single HAR entry (HTTP request/response pair)</p>
+<p>Initialize from HAR entry dict</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>entry_data</code></strong></dt>
+<dd>HAR entry dictionary</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.har_utils.HarEntry.content"><code class="name">prop <span class="ident">content</span> : bytes</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def content(self) -&gt; bytes:
+    &#34;&#34;&#34;Get response content as bytes&#34;&#34;&#34;
+    content_data = self._response.get(&#39;content&#39;, {})
+    text = content_data.get(&#39;text&#39;, &#39;&#39;)
+
+    # Handle base64 encoding if present
+    encoding = content_data.get(&#39;encoding&#39;, &#39;&#39;)
+    if encoding == &#39;base64&#39;:
+        import base64
+        return base64.b64decode(text)
+
+    # Return as UTF-8 bytes
+    if isinstance(text, str):
+        return text.encode(&#39;utf-8&#39;)
+    return text</code></pre>
+</details>
+<div class="desc"><p>Get response content as bytes</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.content_size"><code class="name">prop <span class="ident">content_size</span> : int</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def content_size(self) -&gt; int:
+    &#34;&#34;&#34;Get response content size&#34;&#34;&#34;
+    return self._response.get(&#39;content&#39;, {}).get(&#39;size&#39;, 0)</code></pre>
+</details>
+<div class="desc"><p>Get response content size</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.content_type"><code class="name">prop <span class="ident">content_type</span> : str</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def content_type(self) -&gt; str:
+    &#34;&#34;&#34;Get response content type&#34;&#34;&#34;
+    return self._response.get(&#39;content&#39;, {}).get(&#39;mimeType&#39;, &#39;&#39;)</code></pre>
+</details>
+<div class="desc"><p>Get response content type</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.method"><code class="name">prop <span class="ident">method</span> : str</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def method(self) -&gt; str:
+    &#34;&#34;&#34;Get HTTP method&#34;&#34;&#34;
+    return self._request.get(&#39;method&#39;, &#39;GET&#39;)</code></pre>
+</details>
+<div class="desc"><p>Get HTTP method</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.request_headers"><code class="name">prop <span class="ident">request_headers</span> : Dict[str, str]</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def request_headers(self) -&gt; Dict[str, str]:
+    &#34;&#34;&#34;Get request headers as dict&#34;&#34;&#34;
+    headers = {}
+    for header in self._request.get(&#39;headers&#39;, []):
+        headers[header[&#39;name&#39;]] = header[&#39;value&#39;]
+    return headers</code></pre>
+</details>
+<div class="desc"><p>Get request headers as dict</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.response_headers"><code class="name">prop <span class="ident">response_headers</span> : Dict[str, str]</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def response_headers(self) -&gt; Dict[str, str]:
+    &#34;&#34;&#34;Get response headers as dict&#34;&#34;&#34;
+    headers = {}
+    for header in self._response.get(&#39;headers&#39;, []):
+        headers[header[&#39;name&#39;]] = header[&#39;value&#39;]
+    return headers</code></pre>
+</details>
+<div class="desc"><p>Get response headers as dict</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.started_datetime"><code class="name">prop <span class="ident">started_datetime</span> : str</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def started_datetime(self) -&gt; str:
+    &#34;&#34;&#34;Get when request was started (ISO 8601 format)&#34;&#34;&#34;
+    return self._data.get(&#39;startedDateTime&#39;, &#39;&#39;)</code></pre>
+</details>
+<div class="desc"><p>Get when request was started (ISO 8601 format)</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.status_code"><code class="name">prop <span class="ident">status_code</span> : int</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def status_code(self) -&gt; int:
+    &#34;&#34;&#34;Get response status code&#34;&#34;&#34;
+    # Handle case where response doesn&#39;t exist or status is missing
+    if not self._response:
+        return 0
+    status = self._response.get(&#39;status&#39;)
+    if status is None:
+        return 0
+    # Ensure it&#39;s an int (HAR data might have status as string)
+    try:
+        return int(status)
+    except (ValueError, TypeError):
+        return 0</code></pre>
+</details>
+<div class="desc"><p>Get response status code</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.status_text"><code class="name">prop <span class="ident">status_text</span> : str</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def status_text(self) -&gt; str:
+    &#34;&#34;&#34;Get response status text&#34;&#34;&#34;
+    return self._response.get(&#39;statusText&#39;, &#39;&#39;)</code></pre>
+</details>
+<div class="desc"><p>Get response status text</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.time"><code class="name">prop <span class="ident">time</span> : float</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def time(self) -&gt; float:
+    &#34;&#34;&#34;Get total elapsed time in milliseconds&#34;&#34;&#34;
+    return self._data.get(&#39;time&#39;, 0.0)</code></pre>
+</details>
+<div class="desc"><p>Get total elapsed time in milliseconds</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.timings"><code class="name">prop <span class="ident">timings</span> : Dict[str, float]</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def timings(self) -&gt; Dict[str, float]:
+    &#34;&#34;&#34;Get detailed timing information&#34;&#34;&#34;
+    return self._data.get(&#39;timings&#39;, {})</code></pre>
+</details>
+<div class="desc"><p>Get detailed timing information</p></div>
+</dd>
+<dt id="scrapfly.crawler.har_utils.HarEntry.url"><code class="name">prop <span class="ident">url</span> : str</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def url(self) -&gt; str:
+    &#34;&#34;&#34;Get request URL&#34;&#34;&#34;
+    return self._request.get(&#39;url&#39;, &#39;&#39;)</code></pre>
+</details>
+<div class="desc"><p>Get request URL</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly.crawler" href="index.html">scrapfly.crawler</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.crawler.har_utils.HarArchive" href="#scrapfly.crawler.har_utils.HarArchive">HarArchive</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.creator" href="#scrapfly.crawler.har_utils.HarArchive.creator">creator</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.filter_by_content_type" href="#scrapfly.crawler.har_utils.HarArchive.filter_by_content_type">filter_by_content_type</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.filter_by_status" href="#scrapfly.crawler.har_utils.HarArchive.filter_by_status">filter_by_status</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.find_by_url" href="#scrapfly.crawler.har_utils.HarArchive.find_by_url">find_by_url</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.get_entries" href="#scrapfly.crawler.har_utils.HarArchive.get_entries">get_entries</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.get_urls" href="#scrapfly.crawler.har_utils.HarArchive.get_urls">get_urls</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.iter_entries" href="#scrapfly.crawler.har_utils.HarArchive.iter_entries">iter_entries</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.pages" href="#scrapfly.crawler.har_utils.HarArchive.pages">pages</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarArchive.version" href="#scrapfly.crawler.har_utils.HarArchive.version">version</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.content" href="#scrapfly.crawler.har_utils.HarEntry.content">content</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.content_size" href="#scrapfly.crawler.har_utils.HarEntry.content_size">content_size</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.content_type" href="#scrapfly.crawler.har_utils.HarEntry.content_type">content_type</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.method" href="#scrapfly.crawler.har_utils.HarEntry.method">method</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.request_headers" href="#scrapfly.crawler.har_utils.HarEntry.request_headers">request_headers</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.response_headers" href="#scrapfly.crawler.har_utils.HarEntry.response_headers">response_headers</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.started_datetime" href="#scrapfly.crawler.har_utils.HarEntry.started_datetime">started_datetime</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.status_code" href="#scrapfly.crawler.har_utils.HarEntry.status_code">status_code</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.status_text" href="#scrapfly.crawler.har_utils.HarEntry.status_text">status_text</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.time" href="#scrapfly.crawler.har_utils.HarEntry.time">time</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.timings" href="#scrapfly.crawler.har_utils.HarEntry.timings">timings</a></code></li>
+<li><code><a title="scrapfly.crawler.har_utils.HarEntry.url" href="#scrapfly.crawler.har_utils.HarEntry.url">url</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

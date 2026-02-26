@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>scrapfly.crawler.crawler_webhook API documentation</title>
+<meta name="description" content="Crawler API Webhook Models …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.crawler.crawler_webhook</code></h1>
+</header>
+<section id="section-intro">
+<p>Crawler API Webhook Models</p>
+<p>This module provides models for handling Crawler API webhook events.
+All webhooks follow the standard format with signature verification support.</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.webhook_from_payload"><code class="name flex">
+<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict,<br>signing_secrets: Tuple[str] | None = None,<br>signature: str | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlStartedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlStartedWebhook">CrawlStartedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook">CrawlUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook">CrawlUrlFailedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook">CrawlCompletedWebhook</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def webhook_from_payload(
+    payload: Dict,
+    signing_secrets: Optional[Tuple[str]] = None,
+    signature: Optional[str] = None
+) -&gt; CrawlerWebhook:
+    &#34;&#34;&#34;
+    Create a typed webhook instance from a raw payload dictionary.
+
+    This helper automatically determines the webhook type based on the &#39;event&#39; field
+    and returns the appropriate typed webhook instance.
+
+    Args:
+        payload: The webhook payload as a dictionary
+        signing_secrets: Optional tuple of signing secrets (hex strings) for verification
+        signature: Optional webhook signature header for verification
+
+    Returns:
+        A typed webhook instance (CrawlStartedWebhook, CrawlUrlDiscoveredWebhook, etc.)
+
+    Raises:
+        ValueError: If the event type is unknown
+        WebhookSignatureMissMatch: If signature verification fails
+
+    Example:
+        ```python
+        from scrapfly import webhook_from_payload
+
+        # From Flask request
+        @app.route(&#39;/webhook&#39;, methods=[&#39;POST&#39;])
+        def handle_webhook():
+            webhook = webhook_from_payload(
+                request.json,
+                signing_secrets=(&#39;your-secret-key&#39;,),
+                signature=request.headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;)
+            )
+
+            if isinstance(webhook, CrawlCompletedWebhook):
+                print(f&#34;Crawl {webhook.uuid} completed!&#34;)
+                print(f&#34;Crawled {webhook.urls_crawled} URLs&#34;)
+
+            return &#39;&#39;, 200
+        ```
+    &#34;&#34;&#34;
+    # Verify signature if provided
+    if signing_secrets and signature:
+        from ..api_response import ResponseBodyHandler
+        from json import dumps
+
+        handler = ResponseBodyHandler(signing_secrets=signing_secrets)
+        message = dumps(payload, separators=(&#39;,&#39;, &#39;:&#39;)).encode(&#39;utf-8&#39;)
+        if not handler.verify(message, signature):
+            from ..errors import WebhookSignatureMissMatch
+            raise WebhookSignatureMissMatch()
+
+    # Determine event type and create appropriate webhook instance
+    event = payload.get(&#39;event&#39;)
+
+    if event == CrawlerWebhookEvent.STARTED.value:
+        return CrawlStartedWebhook.from_dict(payload)
+    elif event == CrawlerWebhookEvent.URL_DISCOVERED.value:
+        return CrawlUrlDiscoveredWebhook.from_dict(payload)
+    elif event == CrawlerWebhookEvent.URL_FAILED.value:
+        return CrawlUrlFailedWebhook.from_dict(payload)
+    elif event == CrawlerWebhookEvent.COMPLETED.value:
+        return CrawlCompletedWebhook.from_dict(payload)
+    else:
+        raise ValueError(f&#34;Unknown crawler webhook event type: {event}&#34;)</code></pre>
+</details>
+<div class="desc"><p>Create a typed webhook instance from a raw payload dictionary.</p>
+<p>This helper automatically determines the webhook type based on the 'event' field
+and returns the appropriate typed webhook instance.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>payload</code></strong></dt>
+<dd>The webhook payload as a dictionary</dd>
+<dt><strong><code>signing_secrets</code></strong></dt>
+<dd>Optional tuple of signing secrets (hex strings) for verification</dd>
+<dt><strong><code>signature</code></strong></dt>
+<dd>Optional webhook signature header for verification</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>A typed webhook instance (CrawlStartedWebhook, CrawlUrlDiscoveredWebhook, etc.)</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>If the event type is unknown</dd>
+<dt><code>WebhookSignatureMissMatch</code></dt>
+<dd>If signature verification fails</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">from scrapfly import webhook_from_payload
+
+# From Flask request
+@app.route('/webhook', methods=['POST'])
+def handle_webhook():
+    webhook = webhook_from_payload(
+        request.json,
+        signing_secrets=('your-secret-key',),
+        signature=request.headers.get('X-Scrapfly-Webhook-Signature')
+    )
+
+    if isinstance(webhook, CrawlCompletedWebhook):
+        print(f&quot;Crawl {webhook.uuid} completed!&quot;)
+        print(f&quot;Crawled {webhook.urls_crawled} URLs&quot;)
+
+    return '', 200
+</code></pre></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook"><code class="flex name class">
+<span>class <span class="ident">CrawlCompletedWebhook</span></span>
+<span>(</span><span>event: str,<br>uuid: str,<br>timestamp: datetime.datetime,<br>status: str,<br>urls_discovered: int,<br>urls_crawled: int,<br>urls_failed: int)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlCompletedWebhook(CrawlerWebhookBase):
+    &#34;&#34;&#34;
+    Webhook payload for crawl.completed event.
+
+    Sent when a crawler job completes (successfully or with errors).
+
+    Additional fields:
+    - status: Final crawler status (COMPLETED, FAILED, etc.)
+    - urls_discovered: Total number of URLs discovered
+    - urls_crawled: Number of URLs successfully crawled
+    - urls_failed: Number of URLs that failed
+
+    Example payload:
+    {
+        &#34;event&#34;: &#34;crawl.completed&#34;,
+        &#34;uuid&#34;: &#34;550e8400-e29b-41d4-a716-446655440000&#34;,
+        &#34;status&#34;: &#34;COMPLETED&#34;,
+        &#34;urls_discovered&#34;: 100,
+        &#34;urls_crawled&#34;: 95,
+        &#34;urls_failed&#34;: 5,
+        &#34;timestamp&#34;: &#34;2025-01-16T10:35:00Z&#34;
+    }
+    &#34;&#34;&#34;
+    status: str
+    urls_discovered: int
+    urls_crawled: int
+    urls_failed: int
+
+    @classmethod
+    def from_dict(cls, data: Dict) -&gt; &#39;CrawlCompletedWebhook&#39;:
+        &#34;&#34;&#34;Create webhook instance from dictionary payload&#34;&#34;&#34;
+        base = CrawlerWebhookBase.from_dict(data)
+        return cls(
+            event=base.event,
+            uuid=base.uuid,
+            timestamp=base.timestamp,
+            status=data[&#39;status&#39;],
+            urls_discovered=data[&#39;urls_discovered&#39;],
+            urls_crawled=data[&#39;urls_crawled&#39;],
+            urls_failed=data[&#39;urls_failed&#39;]
+        )</code></pre>
+</details>
+<div class="desc"><p>Webhook payload for crawl.completed event.</p>
+<p>Sent when a crawler job completes (successfully or with errors).</p>
+<p>Additional fields:
+- status: Final crawler status (COMPLETED, FAILED, etc.)
+- urls_discovered: Total number of URLs discovered
+- urls_crawled: Number of URLs successfully crawled
+- urls_failed: Number of URLs that failed</p>
+<p>Example payload:
+{
+"event": "crawl.completed",
+"uuid": "550e8400-e29b-41d4-a716-446655440000",
+"status": "COMPLETED",
+"urls_discovered": 100,
+"urls_crawled": 95,
+"urls_failed": 5,
+"timestamp": "2025-01-16T10:35:00Z"
+}</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.status"><code class="name">var <span class="ident">status</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_crawled"><code class="name">var <span class="ident">urls_crawled</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_discovered"><code class="name">var <span class="ident">urls_discovered</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_failed"><code class="name">var <span class="ident">urls_failed</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict">from_dict</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlStartedWebhook"><code class="flex name class">
+<span>class <span class="ident">CrawlStartedWebhook</span></span>
+<span>(</span><span>event: str, uuid: str, timestamp: datetime.datetime, status: str)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlStartedWebhook(CrawlerWebhookBase):
+    &#34;&#34;&#34;
+    Webhook payload for crawl.started event.
+
+    Sent when a crawler job starts running.
+
+    Additional fields:
+    - status: Current crawler status (should be &#39;RUNNING&#39;)
+
+    Example payload:
+    {
+        &#34;event&#34;: &#34;crawl.started&#34;,
+        &#34;uuid&#34;: &#34;550e8400-e29b-41d4-a716-446655440000&#34;,
+        &#34;status&#34;: &#34;RUNNING&#34;,
+        &#34;timestamp&#34;: &#34;2025-01-16T10:30:00Z&#34;
+    }
+    &#34;&#34;&#34;
+    status: str
+
+    @classmethod
+    def from_dict(cls, data: Dict) -&gt; &#39;CrawlStartedWebhook&#39;:
+        &#34;&#34;&#34;Create webhook instance from dictionary payload&#34;&#34;&#34;
+        base = CrawlerWebhookBase.from_dict(data)
+        return cls(
+            event=base.event,
+            uuid=base.uuid,
+            timestamp=base.timestamp,
+            status=data[&#39;status&#39;]
+        )</code></pre>
+</details>
+<div class="desc"><p>Webhook payload for crawl.started event.</p>
+<p>Sent when a crawler job starts running.</p>
+<p>Additional fields:
+- status: Current crawler status (should be 'RUNNING')</p>
+<p>Example payload:
+{
+"event": "crawl.started",
+"uuid": "550e8400-e29b-41d4-a716-446655440000",
+"status": "RUNNING",
+"timestamp": "2025-01-16T10:30:00Z"
+}</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlStartedWebhook.status"><code class="name">var <span class="ident">status</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict">from_dict</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook"><code class="flex name class">
+<span>class <span class="ident">CrawlUrlDiscoveredWebhook</span></span>
+<span>(</span><span>event: str, uuid: str, timestamp: datetime.datetime, url: str, depth: int)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlUrlDiscoveredWebhook(CrawlerWebhookBase):
+    &#34;&#34;&#34;
+    Webhook payload for crawl.url_discovered event.
+
+    Sent when a new URL is discovered during crawling.
+
+    Additional fields:
+    - url: The discovered URL
+    - depth: Depth level of the URL from the starting URL
+
+    Example payload:
+    {
+        &#34;event&#34;: &#34;crawl.url_discovered&#34;,
+        &#34;uuid&#34;: &#34;550e8400-e29b-41d4-a716-446655440000&#34;,
+        &#34;url&#34;: &#34;https://example.com/page&#34;,
+        &#34;depth&#34;: 1,
+        &#34;timestamp&#34;: &#34;2025-01-16T10:30:05Z&#34;
+    }
+    &#34;&#34;&#34;
+    url: str
+    depth: int
+
+    @classmethod
+    def from_dict(cls, data: Dict) -&gt; &#39;CrawlUrlDiscoveredWebhook&#39;:
+        &#34;&#34;&#34;Create webhook instance from dictionary payload&#34;&#34;&#34;
+        base = CrawlerWebhookBase.from_dict(data)
+        return cls(
+            event=base.event,
+            uuid=base.uuid,
+            timestamp=base.timestamp,
+            url=data[&#39;url&#39;],
+            depth=data[&#39;depth&#39;]
+        )</code></pre>
+</details>
+<div class="desc"><p>Webhook payload for crawl.url_discovered event.</p>
+<p>Sent when a new URL is discovered during crawling.</p>
+<p>Additional fields:
+- url: The discovered URL
+- depth: Depth level of the URL from the starting URL</p>
+<p>Example payload:
+{
+"event": "crawl.url_discovered",
+"uuid": "550e8400-e29b-41d4-a716-446655440000",
+"url": "https://example.com/page",
+"depth": 1,
+"timestamp": "2025-01-16T10:30:05Z"
+}</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook.depth"><code class="name">var <span class="ident">depth</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict">from_dict</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook"><code class="flex name class">
+<span>class <span class="ident">CrawlUrlFailedWebhook</span></span>
+<span>(</span><span>event: str,<br>uuid: str,<br>timestamp: datetime.datetime,<br>url: str,<br>error: str,<br>status_code: int | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlUrlFailedWebhook(CrawlerWebhookBase):
+    &#34;&#34;&#34;
+    Webhook payload for crawl.url_failed event.
+
+    Sent when a URL fails to be crawled.
+
+    Additional fields:
+    - url: The URL that failed
+    - error: Error message describing the failure
+    - status_code: HTTP status code if available (optional)
+
+    Example payload:
+    {
+        &#34;event&#34;: &#34;crawl.url_failed&#34;,
+        &#34;uuid&#34;: &#34;550e8400-e29b-41d4-a716-446655440000&#34;,
+        &#34;url&#34;: &#34;https://example.com/page&#34;,
+        &#34;error&#34;: &#34;HTTP 404 Not Found&#34;,
+        &#34;status_code&#34;: 404,
+        &#34;timestamp&#34;: &#34;2025-01-16T10:30:10Z&#34;
+    }
+    &#34;&#34;&#34;
+    url: str
+    error: str
+    status_code: Optional[int] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict) -&gt; &#39;CrawlUrlFailedWebhook&#39;:
+        &#34;&#34;&#34;Create webhook instance from dictionary payload&#34;&#34;&#34;
+        base = CrawlerWebhookBase.from_dict(data)
+        return cls(
+            event=base.event,
+            uuid=base.uuid,
+            timestamp=base.timestamp,
+            url=data[&#39;url&#39;],
+            error=data[&#39;error&#39;],
+            status_code=data.get(&#39;status_code&#39;)
+        )</code></pre>
+</details>
+<div class="desc"><p>Webhook payload for crawl.url_failed event.</p>
+<p>Sent when a URL fails to be crawled.</p>
+<p>Additional fields:
+- url: The URL that failed
+- error: Error message describing the failure
+- status_code: HTTP status code if available (optional)</p>
+<p>Example payload:
+{
+"event": "crawl.url_failed",
+"uuid": "550e8400-e29b-41d4-a716-446655440000",
+"url": "https://example.com/page",
+"error": "HTTP 404 Not Found",
+"status_code": 404,
+"timestamp": "2025-01-16T10:30:10Z"
+}</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.error"><code class="name">var <span class="ident">error</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.status_code"><code class="name">var <span class="ident">status_code</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict">from_dict</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase"><code class="flex name class">
+<span>class <span class="ident">CrawlerWebhookBase</span></span>
+<span>(</span><span>event: str, uuid: str, timestamp: datetime.datetime)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerWebhookBase:
+    &#34;&#34;&#34;
+    Base class for all crawler webhook payloads.
+
+    All webhook events share these common fields:
+    - event: The event type (crawl.started, crawl.url_discovered, etc.)
+    - uuid: The crawler job UUID
+    - timestamp: When the event occurred (ISO 8601 format)
+    &#34;&#34;&#34;
+    event: str
+    uuid: str
+    timestamp: datetime
+
+    @classmethod
+    def from_dict(cls, data: Dict) -&gt; &#39;CrawlerWebhookBase&#39;:
+        &#34;&#34;&#34;Create webhook instance from dictionary payload&#34;&#34;&#34;
+        # Parse timestamp if it&#39;s a string
+        timestamp = data.get(&#39;timestamp&#39;)
+        if isinstance(timestamp, str):
+            # Handle ISO 8601 format
+            if timestamp.endswith(&#39;Z&#39;):
+                timestamp = timestamp[:-1] + &#39;+00:00&#39;
+            timestamp = datetime.fromisoformat(timestamp)
+
+        return cls(
+            event=data[&#39;event&#39;],
+            uuid=data[&#39;uuid&#39;],
+            timestamp=timestamp
+        )</code></pre>
+</details>
+<div class="desc"><p>Base class for all crawler webhook payloads.</p>
+<p>All webhook events share these common fields:
+- event: The event type (crawl.started, crawl.url_discovered, etc.)
+- uuid: The crawler job UUID
+- timestamp: When the event occurred (ISO 8601 format)</p></div>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook">CrawlCompletedWebhook</a></li>
+<li><a title="scrapfly.crawler.crawler_webhook.CrawlStartedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlStartedWebhook">CrawlStartedWebhook</a></li>
+<li><a title="scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook">CrawlUrlDiscoveredWebhook</a></li>
+<li><a title="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook">CrawlUrlFailedWebhook</a></li>
+</ul>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create webhook instance from dictionary payload</p></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.event"><code class="name">var <span class="ident">event</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.timestamp"><code class="name">var <span class="ident">timestamp</span> : datetime.datetime</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.uuid"><code class="name">var <span class="ident">uuid</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent"><code class="flex name class">
+<span>class <span class="ident">CrawlerWebhookEvent</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerWebhookEvent(Enum):
+    &#34;&#34;&#34;Crawler webhook event types&#34;&#34;&#34;
+    STARTED = &#39;crawl.started&#39;
+    URL_DISCOVERED = &#39;crawl.url_discovered&#39;
+    URL_FAILED = &#39;crawl.url_failed&#39;
+    COMPLETED = &#39;crawl.completed&#39;</code></pre>
+</details>
+<div class="desc"><p>Crawler webhook event types</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.COMPLETED"><code class="name">var <span class="ident">COMPLETED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.STARTED"><code class="name">var <span class="ident">STARTED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.URL_DISCOVERED"><code class="name">var <span class="ident">URL_DISCOVERED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.URL_FAILED"><code class="name">var <span class="ident">URL_FAILED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly.crawler" href="index.html">scrapfly.crawler</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_webhook.webhook_from_payload" href="#scrapfly.crawler.crawler_webhook.webhook_from_payload">webhook_from_payload</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook">CrawlCompletedWebhook</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.status" href="#scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.status">status</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_crawled" href="#scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_crawled">urls_crawled</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_discovered" href="#scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_discovered">urls_discovered</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_failed" href="#scrapfly.crawler.crawler_webhook.CrawlCompletedWebhook.urls_failed">urls_failed</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_webhook.CrawlStartedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlStartedWebhook">CrawlStartedWebhook</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlStartedWebhook.status" href="#scrapfly.crawler.crawler_webhook.CrawlStartedWebhook.status">status</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook">CrawlUrlDiscoveredWebhook</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook.depth" href="#scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook.depth">depth</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook.url" href="#scrapfly.crawler.crawler_webhook.CrawlUrlDiscoveredWebhook.url">url</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook">CrawlUrlFailedWebhook</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.error" href="#scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.error">error</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.status_code" href="#scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.status_code">status_code</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.url" href="#scrapfly.crawler.crawler_webhook.CrawlUrlFailedWebhook.url">url</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase">CrawlerWebhookBase</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.event" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.event">event</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.from_dict">from_dict</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.timestamp" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.timestamp">timestamp</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.uuid" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookBase.uuid">uuid</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent">CrawlerWebhookEvent</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.COMPLETED" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.COMPLETED">COMPLETED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.STARTED" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.STARTED">STARTED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.URL_DISCOVERED" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.URL_DISCOVERED">URL_DISCOVERED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.URL_FAILED" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent.URL_FAILED">URL_FAILED</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

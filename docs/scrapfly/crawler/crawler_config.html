@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>scrapfly.crawler.crawler_config API documentation</title>
+<meta name="description" content="Crawler API Configuration …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.crawler.crawler_config</code></h1>
+</header>
+<section id="section-intro">
+<p>Crawler API Configuration</p>
+<p>This module provides the CrawlerConfig class for configuring crawler jobs.</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig"><code class="flex name class">
+<span>class <span class="ident">CrawlerConfig</span></span>
+<span>(</span><span>url: str,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool = False,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool = False,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerConfig(BaseApiConfig):
+    &#34;&#34;&#34;
+    Configuration for Scrapfly Crawler API
+
+    The Crawler API performs recursive website crawling with advanced
+    configuration, content extraction, and artifact storage.
+
+    Example:
+        ```python
+        from scrapfly import ScrapflyClient, CrawlerConfig
+        client = ScrapflyClient(key=&#39;YOUR_API_KEY&#39;)
+        config = CrawlerConfig(
+            url=&#39;https://example.com&#39;,
+            page_limit=100,
+            max_depth=3,
+            content_formats=[&#39;markdown&#39;, &#39;html&#39;]
+        )
+
+        # Start crawl
+        start_response = client.start_crawl(config)
+        uuid = start_response.uuid
+
+        # Poll status
+        status = client.get_crawl_status(uuid)
+
+        # Get results when complete
+        if status.is_complete:
+            artifact = client.get_crawl_artifact(uuid)
+            pages = artifact.get_pages()
+        ```
+    &#34;&#34;&#34;
+
+    WEBHOOK_CRAWLER_STARTED = &#39;crawler_started&#39;
+    WEBHOOK_CRAWLER_URL_VISITED = &#39;crawler_url_visited&#39;
+    WEBHOOK_CRAWLER_URL_SKIPPED = &#39;crawler_url_skipped&#39;
+    WEBHOOK_CRAWLER_URL_DISCOVERED = &#39;crawler_url_discovered&#39;
+    WEBHOOK_CRAWLER_URL_FAILED = &#39;crawler_url_failed&#39;
+    WEBHOOK_CRAWLER_STOPPED = &#39;crawler_stopped&#39;
+    WEBHOOK_CRAWLER_CANCELLED = &#39;crawler_cancelled&#39;
+    WEBHOOK_CRAWLER_FINISHED = &#39;crawler_finished&#39;
+
+    ALL_WEBHOOK_EVENTS = [
+        WEBHOOK_CRAWLER_STARTED,
+        WEBHOOK_CRAWLER_URL_VISITED,
+        WEBHOOK_CRAWLER_URL_SKIPPED,
+        WEBHOOK_CRAWLER_URL_DISCOVERED,
+        WEBHOOK_CRAWLER_URL_FAILED,
+        WEBHOOK_CRAWLER_STOPPED,
+        WEBHOOK_CRAWLER_CANCELLED,
+        WEBHOOK_CRAWLER_FINISHED,
+    ]
+
+    def __init__(
+        self,
+        url: str,
+        # Crawl limits
+        page_limit: Optional[int] = None,
+        max_depth: Optional[int] = None,
+        max_duration: Optional[int] = None,
+
+        # Path filtering (mutually exclusive)
+        exclude_paths: Optional[List[str]] = None,
+        include_only_paths: Optional[List[str]] = None,
+
+        # Advanced crawl options
+        ignore_base_path_restriction: bool = False,
+        follow_external_links: bool = False,
+        allowed_external_domains: Optional[List[str]] = None,
+
+        # Request configuration
+        headers: Optional[Dict[str, str]] = None,
+        delay: Optional[int] = None,
+        user_agent: Optional[str] = None,
+        max_concurrency: Optional[int] = None,
+        rendering_delay: Optional[int] = None,
+
+        # Crawl strategy options
+        use_sitemaps: bool = False,
+        respect_robots_txt: bool = False,
+        ignore_no_follow: bool = False,
+
+        # Cache options
+        cache: bool = False,
+        cache_ttl: Optional[int] = None,
+        cache_clear: bool = False,
+
+        # Content extraction
+        content_formats: Optional[List[Literal[&#39;html&#39;, &#39;markdown&#39;, &#39;text&#39;, &#39;clean_html&#39;]]] = None,
+        extraction_rules: Optional[Dict] = None,
+
+        # Web scraping features
+        asp: bool = False,
+        proxy_pool: Optional[str] = None,
+        country: Optional[str] = None,
+
+        # Webhook integration
+        webhook_name: Optional[str] = None,
+        webhook_events: Optional[List[str]] = None,
+
+        # Cost control
+        max_api_credit: Optional[int] = None
+    ):
+        &#34;&#34;&#34;
+        Initialize a CrawlerConfig
+
+        Args:
+            url: Starting URL for the crawl (required)
+            page_limit: Maximum number of pages to crawl
+            max_depth: Maximum crawl depth from starting URL
+            max_duration: Maximum crawl duration in seconds
+
+            exclude_paths: List of path patterns to exclude (mutually exclusive with include_only_paths)
+            include_only_paths: List of path patterns to include only (mutually exclusive with exclude_paths)
+
+            ignore_base_path_restriction: Allow crawling outside the base path
+            follow_external_links: Follow links to external domains
+            allowed_external_domains: List of external domains allowed when follow_external_links is True
+
+            headers: Custom HTTP headers for requests
+            delay: Delay between requests in milliseconds
+            user_agent: Custom user agent string
+            max_concurrency: Maximum concurrent requests
+            rendering_delay: Delay for JavaScript rendering in milliseconds
+
+            use_sitemaps: Use sitemap.xml to discover URLs
+            respect_robots_txt: Respect robots.txt rules
+            ignore_no_follow: Ignore rel=&#34;nofollow&#34; attributes
+
+            cache: Enable caching
+            cache_ttl: Cache time-to-live in seconds
+            cache_clear: Clear cache before crawling
+
+            content_formats: List of content formats to extract (&#39;html&#39;, &#39;markdown&#39;, &#39;text&#39;, &#39;clean_html&#39;)
+            extraction_rules: Custom extraction rules
+
+            asp: Enable Anti-Scraping Protection bypass
+            proxy_pool: Proxy pool to use (e.g., &#39;public_residential_pool&#39;)
+            country: Target country for geo-located content
+
+            webhook_name: Webhook name for event notifications
+            webhook_events: List of webhook events to trigger
+
+            max_api_credit: Maximum API credits to spend on this crawl
+        &#34;&#34;&#34;
+        if exclude_paths and include_only_paths:
+            raise ValueError(&#34;exclude_paths and include_only_paths are mutually exclusive&#34;)
+
+        params = {
+            &#39;url&#39;: url,
+        }
+
+        # Add optional parameters
+        if page_limit is not None:
+            params[&#39;page_limit&#39;] = page_limit
+        if max_depth is not None:
+            params[&#39;max_depth&#39;] = max_depth
+        if max_duration is not None:
+            params[&#39;max_duration&#39;] = max_duration
+
+        # Path filtering
+        if exclude_paths:
+            params[&#39;exclude_paths&#39;] = exclude_paths
+        if include_only_paths:
+            params[&#39;include_only_paths&#39;] = include_only_paths
+
+        # Advanced options
+        if ignore_base_path_restriction:
+            params[&#39;ignore_base_path_restriction&#39;] = True
+        if follow_external_links:
+            params[&#39;follow_external_links&#39;] = True
+        if allowed_external_domains:
+            params[&#39;allowed_external_domains&#39;] = allowed_external_domains
+
+        # Request configuration
+        if headers:
+            params[&#39;headers&#39;] = headers
+        if delay is not None:
+            params[&#39;delay&#39;] = delay
+        if user_agent:
+            params[&#39;user_agent&#39;] = user_agent
+        if max_concurrency is not None:
+            params[&#39;max_concurrency&#39;] = max_concurrency
+        if rendering_delay is not None:
+            params[&#39;rendering_delay&#39;] = rendering_delay
+
+        # Crawl strategy
+        if use_sitemaps:
+            params[&#39;use_sitemaps&#39;] = True
+        if respect_robots_txt:
+            params[&#39;respect_robots_txt&#39;] = True
+        if ignore_no_follow:
+            params[&#39;ignore_no_follow&#39;] = True
+
+        # Cache
+        if cache:
+            params[&#39;cache&#39;] = True
+        if cache_ttl is not None:
+            params[&#39;cache_ttl&#39;] = cache_ttl
+        if cache_clear:
+            params[&#39;cache_clear&#39;] = True
+
+        # Content extraction
+        if content_formats:
+            params[&#39;content_formats&#39;] = content_formats
+        if extraction_rules:
+            params[&#39;extraction_rules&#39;] = extraction_rules
+
+        # Web scraping features
+        if asp:
+            params[&#39;asp&#39;] = True
+        if proxy_pool:
+            params[&#39;proxy_pool&#39;] = proxy_pool
+        if country:
+            params[&#39;country&#39;] = country
+
+        # Webhooks
+        if webhook_name:
+            params[&#39;webhook_name&#39;] = webhook_name
+
+        if webhook_events:
+            assert all(
+                event in self.ALL_WEBHOOK_EVENTS for event in webhook_events
+            ), f&#34;Invalid webhook events. Valid events are: {self.ALL_WEBHOOK_EVENTS}&#34;
+            
+            params[&#39;webhook_events&#39;] = webhook_events
+
+        # Cost control
+        if max_api_credit is not None:
+            params[&#39;max_api_credit&#39;] = max_api_credit
+
+        self._params = params
+
+    def to_api_params(self, key: Optional[str] = None) -&gt; Dict:
+        &#34;&#34;&#34;
+        Convert config to API parameters
+
+        :param key: API key (optional, can be added by client)
+        :return: Dictionary of API parameters
+        &#34;&#34;&#34;
+        params = self._params.copy()
+        if key:
+            params[&#39;key&#39;] = key
+        return params</code></pre>
+</details>
+<div class="desc"><p>Configuration for Scrapfly Crawler API</p>
+<p>The Crawler API performs recursive website crawling with advanced
+configuration, content extraction, and artifact storage.</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig
+client = ScrapflyClient(key='YOUR_API_KEY')
+config = CrawlerConfig(
+    url='https://example.com',
+    page_limit=100,
+    max_depth=3,
+    content_formats=['markdown', 'html']
+)
+
+# Start crawl
+start_response = client.start_crawl(config)
+uuid = start_response.uuid
+
+# Poll status
+status = client.get_crawl_status(uuid)
+
+# Get results when complete
+if status.is_complete:
+    artifact = client.get_crawl_artifact(uuid)
+    pages = artifact.get_pages()
+</code></pre>
+<p>Initialize a CrawlerConfig</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>url</code></strong></dt>
+<dd>Starting URL for the crawl (required)</dd>
+<dt><strong><code>page_limit</code></strong></dt>
+<dd>Maximum number of pages to crawl</dd>
+<dt><strong><code>max_depth</code></strong></dt>
+<dd>Maximum crawl depth from starting URL</dd>
+<dt><strong><code>max_duration</code></strong></dt>
+<dd>Maximum crawl duration in seconds</dd>
+<dt><strong><code>exclude_paths</code></strong></dt>
+<dd>List of path patterns to exclude (mutually exclusive with include_only_paths)</dd>
+<dt><strong><code>include_only_paths</code></strong></dt>
+<dd>List of path patterns to include only (mutually exclusive with exclude_paths)</dd>
+<dt><strong><code>ignore_base_path_restriction</code></strong></dt>
+<dd>Allow crawling outside the base path</dd>
+<dt><strong><code>follow_external_links</code></strong></dt>
+<dd>Follow links to external domains</dd>
+<dt><strong><code>allowed_external_domains</code></strong></dt>
+<dd>List of external domains allowed when follow_external_links is True</dd>
+<dt><strong><code>headers</code></strong></dt>
+<dd>Custom HTTP headers for requests</dd>
+<dt><strong><code>delay</code></strong></dt>
+<dd>Delay between requests in milliseconds</dd>
+<dt><strong><code>user_agent</code></strong></dt>
+<dd>Custom user agent string</dd>
+<dt><strong><code>max_concurrency</code></strong></dt>
+<dd>Maximum concurrent requests</dd>
+<dt><strong><code>rendering_delay</code></strong></dt>
+<dd>Delay for JavaScript rendering in milliseconds</dd>
+<dt><strong><code>use_sitemaps</code></strong></dt>
+<dd>Use sitemap.xml to discover URLs</dd>
+<dt><strong><code>respect_robots_txt</code></strong></dt>
+<dd>Respect robots.txt rules</dd>
+<dt><strong><code>ignore_no_follow</code></strong></dt>
+<dd>Ignore rel="nofollow" attributes</dd>
+<dt><strong><code>cache</code></strong></dt>
+<dd>Enable caching</dd>
+<dt><strong><code>cache_ttl</code></strong></dt>
+<dd>Cache time-to-live in seconds</dd>
+<dt><strong><code>cache_clear</code></strong></dt>
+<dd>Clear cache before crawling</dd>
+<dt><strong><code>content_formats</code></strong></dt>
+<dd>List of content formats to extract ('html', 'markdown', 'text', 'clean_html')</dd>
+<dt><strong><code>extraction_rules</code></strong></dt>
+<dd>Custom extraction rules</dd>
+<dt><strong><code>asp</code></strong></dt>
+<dd>Enable Anti-Scraping Protection bypass</dd>
+<dt><strong><code>proxy_pool</code></strong></dt>
+<dd>Proxy pool to use (e.g., 'public_residential_pool')</dd>
+<dt><strong><code>country</code></strong></dt>
+<dd>Target country for geo-located content</dd>
+<dt><strong><code>webhook_name</code></strong></dt>
+<dd>Webhook name for event notifications</dd>
+<dt><strong><code>webhook_events</code></strong></dt>
+<dd>List of webhook events to trigger</dd>
+<dt><strong><code>max_api_credit</code></strong></dt>
+<dd>Maximum API credits to spend on this crawl</dd>
+</dl></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.api_config.BaseApiConfig" href="../api_config.html#scrapfly.api_config.BaseApiConfig">BaseApiConfig</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.ALL_WEBHOOK_EVENTS"><code class="name">var <span class="ident">ALL_WEBHOOK_EVENTS</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_CANCELLED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_CANCELLED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_FINISHED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_FINISHED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STARTED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_STARTED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STOPPED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_STOPPED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_DISCOVERED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_URL_DISCOVERED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_FAILED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_URL_FAILED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_URL_SKIPPED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_URL_VISITED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.to_api_params"><code class="name flex">
+<span>def <span class="ident">to_api_params</span></span>(<span>self, key: str | None = None) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_api_params(self, key: Optional[str] = None) -&gt; Dict:
+    &#34;&#34;&#34;
+    Convert config to API parameters
+
+    :param key: API key (optional, can be added by client)
+    :return: Dictionary of API parameters
+    &#34;&#34;&#34;
+    params = self._params.copy()
+    if key:
+        params[&#39;key&#39;] = key
+    return params</code></pre>
+</details>
+<div class="desc"><p>Convert config to API parameters</p>
+<p>:param key: API key (optional, can be added by client)
+:return: Dictionary of API parameters</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly.crawler" href="index.html">scrapfly.crawler</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig" href="#scrapfly.crawler.crawler_config.CrawlerConfig">CrawlerConfig</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.ALL_WEBHOOK_EVENTS" href="#scrapfly.crawler.crawler_config.CrawlerConfig.ALL_WEBHOOK_EVENTS">ALL_WEBHOOK_EVENTS</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_CANCELLED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_CANCELLED">WEBHOOK_CRAWLER_CANCELLED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_FINISHED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_FINISHED">WEBHOOK_CRAWLER_FINISHED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STARTED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STARTED">WEBHOOK_CRAWLER_STARTED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STOPPED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STOPPED">WEBHOOK_CRAWLER_STOPPED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_DISCOVERED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_DISCOVERED">WEBHOOK_CRAWLER_URL_DISCOVERED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_FAILED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_FAILED">WEBHOOK_CRAWLER_URL_FAILED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED">WEBHOOK_CRAWLER_URL_SKIPPED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED">WEBHOOK_CRAWLER_URL_VISITED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.to_api_params" href="#scrapfly.crawler.crawler_config.CrawlerConfig.to_api_params">to_api_params</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

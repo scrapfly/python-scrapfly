@@ -3,19 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
-<meta name="generator" content="pdoc3 0.11.1">
+<meta name="generator" content="pdoc3 0.11.6">
 <title>scrapfly.scrapy API documentation</title>
 <meta name="description" content="">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
-<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
 <style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
 <style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
 <script>window.addEventListener('DOMContentLoaded', () => {
 hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
 hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
 })</script>
 </head>
 <body>
@@ -64,6 +75,16 @@ hljs.highlightAll();
 <span>def <span class="ident">comparable_version</span></span>(<span>version: str) ‑> int</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@cache
+def comparable_version(version: str) -&gt; int:
+    l = [int(x, 10) for x in version.split(&#39;.&#39;)]
+    l.reverse()
+    return sum(x * (10 ** i) for i, x in enumerate(l))</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 </dl>
@@ -73,20 +94,9 @@ hljs.highlightAll();
 <dl>
 <dt id="scrapfly.scrapy.FilesPipeline"><code class="flex name class">
 <span>class <span class="ident">FilesPipeline</span></span>
-<span>(</span><span>store_uri, download_func=None, settings=None)</span>
+<span>(</span><span>store_uri: str | PathLike[str],<br>download_func: Callable[[Request, Spider], Response] | None = None,<br>settings: Settings | dict[str, Any] | None = None,<br>*,<br>crawler: Crawler | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Abstract pipeline that implement the file downloading</p>
-<p>This pipeline tries to minimize network transfers and file processing,
-doing stat of the files and determining if file is new, up-to-date or
-expired.</p>
-<p><code>new</code> files are those that pipeline never processed and needs to be
-downloaded from supplier site the first time.</p>
-<p><code>uptodate</code> files are the ones that the pipeline processed and are still
-valid files.</p>
-<p><code>expired</code> files are those that pipeline already processed but the last
-modification was made long time ago, so a reprocessing is recommended to
-refresh it in case of change.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -110,10 +120,22 @@ refresh it in case of change.</p></div>
 
         return requests</code></pre>
 </details>
+<div class="desc"><p>Abstract pipeline that implement the file downloading</p>
+<p>This pipeline tries to minimize network transfers and file processing,
+doing stat of the files and determining if file is new, up-to-date or
+expired.</p>
+<p><code>new</code> files are those that pipeline never processed and needs to be
+downloaded from supplier site the first time.</p>
+<p><code>uptodate</code> files are the ones that the pipeline processed and are still
+valid files.</p>
+<p><code>expired</code> files are those that pipeline already processed but the last
+modification was made long time ago, so a reprocessing is recommended to
+refresh it in case of change.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.pipelines.files.FilesPipeline</li>
 <li>scrapy.pipelines.media.MediaPipeline</li>
+<li>abc.ABC</li>
 </ul>
 <h3>Methods</h3>
 <dl>
@@ -121,16 +143,37 @@ refresh it in case of change.</p></div>
 <span>def <span class="ident">get_media_requests</span></span>(<span>self, item, info)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_media_requests(self, item, info):
+    scrape_configs = ItemAdapter(item).get(self.files_urls_field, [])
+
+    requests = []
+
+    for config in scrape_configs:
+        # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
+        # Auto migrate string url to ScrapeConfig object
+        if isinstance(config, str):
+            config = scrape_config=ScrapeConfig(url=config)
+
+        if isinstance(config, ScrapeConfig):
+            requests.append(ScrapflyScrapyRequest(scrape_config=config))
+        else:
+            raise ValueError(&#39;FilesPipeline item must ScrapeConfig Object or string url&#39;)
+
+    return requests</code></pre>
+</details>
 <div class="desc"><p>Returns the media requests to download</p></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.scrapy.ImagesPipeline"><code class="flex name class">
 <span>class <span class="ident">ImagesPipeline</span></span>
-<span>(</span><span>store_uri, download_func=None, settings=None)</span>
+<span>(</span><span>store_uri: str | PathLike[str],<br>download_func: Callable[[Request, Spider], Response] | None = None,<br>settings: Settings | dict[str, Any] | None = None,<br>*,<br>crawler: Crawler | None = None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Abstract pipeline that implement the image thumbnail generation logic</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -154,11 +197,13 @@ refresh it in case of change.</p></div>
 
         return requests</code></pre>
 </details>
+<div class="desc"><p>Abstract pipeline that implement the image thumbnail generation logic</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.pipelines.images.ImagesPipeline</li>
 <li>scrapy.pipelines.files.FilesPipeline</li>
 <li>scrapy.pipelines.media.MediaPipeline</li>
+<li>abc.ABC</li>
 </ul>
 <h3>Methods</h3>
 <dl>
@@ -166,6 +211,28 @@ refresh it in case of change.</p></div>
 <span>def <span class="ident">get_media_requests</span></span>(<span>self, item, info)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_media_requests(self, item, info):
+    scrape_configs = ItemAdapter(item).get(self.images_urls_field, [])
+
+    requests = []
+
+    for config in scrape_configs:
+        # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
+        # Auto migrate string url to ScrapeConfig object
+        if isinstance(config, str):
+            config = scrape_config = ScrapeConfig(url=config)
+
+        if isinstance(config, ScrapeConfig):
+            requests.append(ScrapflyScrapyRequest(scrape_config=config))
+        else:
+            raise ValueError(&#39;ImagesPipeline item must ScrapeConfig Object or string url&#39;)
+
+    return requests</code></pre>
+</details>
 <div class="desc"><p>Returns the media requests to download</p></div>
 </dd>
 </dl>
@@ -175,8 +242,6 @@ refresh it in case of change.</p></div>
 <span>(</span><span>*a, **kw)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
-class.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -267,6 +332,10 @@ class.</p></div>
         spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
         return spider</code></pre>
 </details>
+<div class="desc"><p>Base class that any spider must subclass.</p>
+<p>It provides a default :meth:<code>start</code> implementation that sends
+requests based on the :attr:<code>start_urls</code> class attribute and calls the
+:meth:<code>parse</code> method for each response.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></li>
@@ -295,12 +364,26 @@ class.</p></div>
 <span>def <span class="ident">parse_start_url</span></span>(<span>self, response, **kwargs)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def parse_start_url(self, response, **kwargs):
+    return []</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyCrawlSpider.process_results"><code class="name flex">
 <span>def <span class="ident">process_results</span></span>(<span>self, response, results)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_results(self, response, results):
+    return results</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 </dl>
@@ -309,7 +392,6 @@ class.</p></div>
 <span>class <span class="ident">ScrapflyMiddleware</span></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -357,6 +439,7 @@ class.</p></div>
     def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
         return response</code></pre>
 </details>
+<div class="desc"></div>
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.MAX_API_RETRIES"><code class="name">var <span class="ident">MAX_API_RETRIES</span></code></dt>
@@ -367,32 +450,82 @@ class.</p></div>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.process_exception"><code class="name flex">
-<span>def <span class="ident">process_exception</span></span>(<span>self, request, exception: Union[str, Exception], spider: <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>)</span>
+<span>def <span class="ident">process_exception</span></span>(<span>self,<br>request,<br>exception: str | Exception,<br>spider: <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+    delay = 1
+
+    if isinstance(exception, ResponseNeverReceived):
+        return spider.retry(request, exception, delay)
+
+    if isinstance(exception, ScrapflyError):
+        if exception.is_retryable:
+            if isinstance(exception, HttpError) and exception.response is not None:
+                if &#39;retry-after&#39; in exception.response.headers:
+                    delay = int(exception.response.headers[&#39;retry-after&#39;])
+
+            return spider.retry(request, exception, delay)
+
+        if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
+            return spider.retry(request, exception, delay)
+
+    raise exception</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.process_request"><code class="name flex">
-<span>def <span class="ident">process_request</span></span>(<span>self, request: Union[scrapy.http.request.Request, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>], spider: Union[scrapy.spiders.Spider, <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>]) ‑> Optional[<a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>]</span>
+<span>def <span class="ident">process_request</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | None</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+    if not isinstance(request, ScrapflyScrapyRequest):
+        return None
+
+    if not isinstance(spider, ScrapflySpider):
+        raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
+
+    if request.scrape_config.tags is None:
+        request.scrape_config.tags = set()
+
+    request.scrape_config.tags.add(spider.name)
+    request.scrape_config.tags.add(str(spider.run_id))
+
+    if request.scrape_config.proxy_pool is None and spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;):
+        request.scrape_config.proxy_pool = spider.settings.get(&#39;SCRAPFLY_PROXY_POOL&#39;)
+
+    return None</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.process_response"><code class="name flex">
-<span>def <span class="ident">process_response</span></span>(<span>self, request: Union[scrapy.http.request.Request, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>], response: Union[scrapy.http.response.Response, <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>], spider: Union[scrapy.spiders.Spider, <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>]) ‑> Union[<a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>, <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>]</span>
+<span>def <span class="ident">process_response</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>response: scrapy.http.response.Response | <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+    return response</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyRequest"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScrapyRequest</span></span>
-<span>(</span><span>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>, meta: Dict = {}, *args, **kwargs)</span>
+<span>(</span><span>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>,<br>meta: Dict | None = None,<br>*args,<br>**kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Represents an HTTP request, which is usually generated in a Spider and
-executed by the Downloader, thus generating a :class:<code>Response</code>.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -411,8 +544,11 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
     # headers:Dict inherited
     # encoding:Dict inherited
 
-    def __init__(self, scrape_config: ScrapeConfig, meta: Dict = {}, *args, **kwargs):
+    def __init__(self, scrape_config: ScrapeConfig, meta: Optional[Dict] = None, *args, **kwargs): 
         self.scrape_config = scrape_config
+
+        if meta is None:
+            meta = {}
 
         meta[&#39;scrapfly_scrape_config&#39;] = self.scrape_config
 
@@ -457,6 +593,8 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
         cls = kwargs.pop(&#39;cls&#39;, self.__class__)
         return cls(*args, **kwargs)</code></pre>
 </details>
+<div class="desc"><p>Represents an HTTP request, which is usually generated in a Spider and
+executed by the Downloader, thus generating a :class:<code>~scrapy.http.Response</code>.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.http.request.Request</li>
@@ -464,7 +602,7 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.attributes"><code class="name">var <span class="ident">attributes</span> : Tuple[str, ...]</code></dt>
+<dt id="scrapfly.scrapy.ScrapflyScrapyRequest.attributes"><code class="name">var <span class="ident">attributes</span> : tuple[str, ...]</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -488,12 +626,44 @@ executed by the Downloader, thus generating a :class:<code>Response</code>.</p><
 <span>def <span class="ident">replace</span></span>(<span>self, *args, **kwargs)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def replace(self, *args, **kwargs):
+    for x in [
+        &#39;meta&#39;,
+        &#39;flags&#39;,
+        &#39;encoding&#39;,
+        &#39;priority&#39;,
+        &#39;dont_filter&#39;,
+        &#39;callback&#39;,
+        &#39;errback&#39;,
+        &#39;cb_kwargs&#39;,
+    ]:
+        kwargs.setdefault(x, getattr(self, x))
+        kwargs[&#39;scrape_config&#39;] = deepcopy(self.scrape_config)
+
+    cls = kwargs.pop(&#39;cls&#39;, self.__class__)
+    return cls(*args, **kwargs)</code></pre>
+</details>
 <div class="desc"><p>Create a new Request with the same attributes except for those given new values</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyRequest.to_dict"><code class="name flex">
-<span>def <span class="ident">to_dict</span></span>(<span>self, *, spider: Optional[ForwardRef('scrapy.Spider')] = None)</span>
+<span>def <span class="ident">to_dict</span></span>(<span>self, *, spider: ForwardRef('scrapy.Spider') | None = None) ‑> dict</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self, *, spider: Optional[&#34;scrapy.Spider&#34;] = None) -&gt; dict:
+    if spider is None:
+        raise ValueError(&#34;The &#39;spider&#39; argument is required to serialize the request.&#34;)
+    d = super().to_dict(spider=spider)
+    d[&#39;scrape_config&#39;] = self.scrape_config
+    return d</code></pre>
+</details>
 <div class="desc"><p>Return a dictionary containing the Request's data.</p>
 <p>Use :func:<code>~scrapy.utils.request.request_from_dict</code> to convert back into a :class:<code>~scrapy.Request</code> object.</p>
 <p>If a spider is given, this method will try to find out the name of the spider methods used as callback
@@ -503,11 +673,9 @@ and errback and include them in the output dict, raising an exception if they ca
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse"><code class="flex name class">
 <span>class <span class="ident">ScrapflyScrapyResponse</span></span>
-<span>(</span><span>request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>, scrape_api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="../api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>)</span>
+<span>(</span><span>request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>scrape_api_response: <a title="scrapfly.api_response.ScrapeApiResponse" href="../api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>An object that represents an HTTP response, which is usually
-downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -584,6 +752,8 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
     def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
         self.scrape_api_response.sink(path=path, name=name, file=file)</code></pre>
 </details>
+<div class="desc"><p>An object that represents an HTTP response, which is usually
+downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.http.response.text.TextResponse</li>
@@ -604,7 +774,7 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.content"><code class="name">var <span class="ident">content</span> : Union[str, _io.BytesIO]</code></dt>
+<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.content"><code class="name">var <span class="ident">content</span> : str | _io.BytesIO</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -612,7 +782,7 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.dns"><code class="name">var <span class="ident">dns</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.dns"><code class="name">var <span class="ident">dns</span> : Dict | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -620,7 +790,7 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.error"><code class="name">var <span class="ident">error</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.error"><code class="name">var <span class="ident">error</span> : Dict | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -648,7 +818,7 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.ssl"><code class="name">var <span class="ident">ssl</span> : Optional[Dict]</code></dt>
+<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.ssl"><code class="name">var <span class="ident">ssl</span> : Dict | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -664,20 +834,25 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.sink"><code class="name flex">
-<span>def <span class="ident">sink</span></span>(<span>self, path: Optional[str] = None, name: Optional[str] = None, file: Union[TextIO, _io.BytesIO, ForwardRef(None)] = None)</span>
+<span>def <span class="ident">sink</span></span>(<span>self,<br>path: str | None = None,<br>name: str | None = None,<br>file: <class 'TextIO'> | _io.BytesIO | None = None)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+    self.scrape_api_response.sink(path=path, name=name, file=file)</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 </dl>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider"><code class="flex name class">
 <span>class <span class="ident">ScrapflySpider</span></span>
-<span>(</span><span>name: Optional[str] = None, **kwargs: Any)</span>
+<span>(</span><span>name: str | None = None, **kwargs: Any)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
-class.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -867,6 +1042,10 @@ class.</p></div>
         spider.scrapfly_client.open()
         return spider</code></pre>
 </details>
+<div class="desc"><p>Base class that any spider must subclass.</p>
+<p>It provides a default :meth:<code>start</code> implementation that sends
+requests based on the :attr:<code>start_urls</code> class attribute and calls the
+:meth:<code>parse</code> method for each response.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.spiders.Spider</li>
@@ -908,40 +1087,17 @@ class.</p></div>
 </dl>
 <h3>Instance variables</h3>
 <dl>
-<dt id="scrapfly.scrapy.ScrapflySpider.run_id"><code class="name">var <span class="ident">run_id</span> : int</code></dt>
+<dt id="scrapfly.scrapy.ScrapflySpider.run_id"><code class="name">var <span class="ident">run_id</span></code></dt>
 <dd>
-<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def __get__(self, instance, owner=None):
-    if instance is None:
-        return self
-    if self.attrname is None:
-        raise TypeError(
-            &#34;Cannot use cached_property instance without calling __set_name__ on it.&#34;)
-    try:
-        cache = instance.__dict__
-    except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
-        msg = (
-            f&#34;No &#39;__dict__&#39; attribute on {type(instance).__name__!r} &#34;
-            f&#34;instance to cache {self.attrname!r} property.&#34;
-        )
-        raise TypeError(msg) from None
-    val = cache.get(self.attrname, _NOT_FOUND)
-    if val is _NOT_FOUND:
-        val = self.func(instance)
-        try:
-            cache[self.attrname] = val
-        except TypeError:
-            msg = (
-                f&#34;The &#39;__dict__&#39; attribute on {type(instance).__name__!r} instance &#34;
-                f&#34;does not support item assignment for caching {self.attrname!r} property.&#34;
-            )
-            raise TypeError(msg) from None
-    return val</code></pre>
+<pre><code class="python">@cached_property
+def run_id(self):
+    return environ.get(&#39;SPIDER_RUN_ID&#39;) or str(uuid.uuid4())</code></pre>
 </details>
+<div class="desc"></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -950,18 +1106,79 @@ class.</p></div>
 <span>def <span class="ident">closed</span></span>(<span>self, reason: str)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def closed(self, reason:str):
+    self.scrapfly_client.close()</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider.retry"><code class="name flex">
-<span>def <span class="ident">retry</span></span>(<span>self, request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>, reason: Union[str, Exception], delay: Optional[int] = None)</span>
+<span>def <span class="ident">retry</span></span>(<span>self,<br>request: <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>reason: str | Exception,<br>delay: int | None = None)</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def retry(self, request:ScrapflyScrapyRequest, reason:Union[str, Exception], delay:Optional[int]=None):
+    logger.info(&#39;==&gt; Retrying request for reason %s&#39; % reason)
+    stats = self.crawler.stats
+    retries = request.meta.get(&#39;retry_times&#39;, 0) + 1
+
+    if retries &gt;= self.custom_settings.get(&#39;SCRAPFLY_MAX_API_RETRIES&#39;, 5):
+        return None
+
+    retryreq = request.replace(dont_filter=True)
+    retryreq.priority += 100
+
+    if retryreq.scrape_config.cache is True:
+        retryreq.scrape_config.cache_clear = True
+
+    retryreq.meta[&#39;retry_times&#39;] = retries
+
+    if stats:
+        stats.inc_value(&#39;scrapfly/api_retry/count&#39;)
+
+        if isinstance(reason, ScrapflyError):
+            stats.inc_value(f&#39;scrapfly/api_retry/{reason.code}&#39;)
+
+    if isinstance(reason, Exception):
+        reason = global_object_name(reason.__class__)
+
+    logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
+
+    if delay is None:
+        deferred = Deferred()
+        deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
+    else:
+        from twisted.internet import reactor # prevent reactor already install issue
+        from . import current_scrapy_version, comparable_version
+        if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
+            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
+        else:
+            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+
+    return deferred</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider.start_requests"><code class="name flex">
 <span>def <span class="ident">start_requests</span></span>(<span>self) ‑> Iterable[<a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>]</span>
 </code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def start_requests(self) -&gt; Iterable[ScrapflyScrapyRequest]:
+    for scrape_config in self.start_urls:
+        if not isinstance(scrape_config, ScrapeConfig):
+            raise RuntimeError(&#39;start_urls must contains ScrapeConfig Object with ScrapflySpider&#39;)
+        yield ScrapflyScrapyRequest(scrape_config=scrape_config)</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 </dl>
@@ -1079,7 +1296,7 @@ class.</p></div>
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.1</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
 </footer>
 </body>
 </html>

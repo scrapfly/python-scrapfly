@@ -1,0 +1,1932 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>scrapfly.crawler.crawl API documentation</title>
+<meta name="description" content="Crawl Object - High-level abstraction for Crawler API …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.crawler.crawl</code></h1>
+</header>
+<section id="section-intro">
+<p>Crawl Object - High-level abstraction for Crawler API</p>
+<p>This module provides a Crawl object that manages the state and lifecycle
+of a crawler job, making it easy to start, monitor, and retrieve results.</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.crawler.crawl.Crawl"><code class="flex name class">
+<span>class <span class="ident">Crawl</span></span>
+<span>(</span><span>client: ScrapflyClient,<br>config: <a title="scrapfly.crawler.crawler_config.CrawlerConfig" href="crawler_config.html#scrapfly.crawler.crawler_config.CrawlerConfig">CrawlerConfig</a>)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Crawl:
+    &#34;&#34;&#34;
+    High-level abstraction for managing a crawler job
+
+    The Crawl object maintains the state of a crawler job and provides
+    convenient methods for managing its lifecycle.
+
+    Example:
+        ```python
+        from scrapfly import ScrapflyClient, CrawlerConfig, Crawl
+
+        client = ScrapflyClient(key=&#39;your-key&#39;)
+        config = CrawlerConfig(url=&#39;https://example.com&#39;, page_limit=10)
+
+        # Create and start crawl
+        crawl = Crawl(client, config)
+        crawl.crawl()  # Start the crawler
+
+        # Wait for completion
+        crawl.wait()
+
+        # Get results
+        pages = crawl.warc().get_pages()
+        for page in pages:
+            print(f&#34;{page[&#39;url&#39;]}: {page[&#39;status_code&#39;]}&#34;)
+
+        # Or read specific URLs
+        html = crawl.read(&#39;https://example.com/page1&#39;, format=&#39;html&#39;)
+        ```
+    &#34;&#34;&#34;
+
+    def __init__(self, client: &#39;ScrapflyClient&#39;, config: CrawlerConfig):
+        &#34;&#34;&#34;
+        Initialize a Crawl object
+
+        Args:
+            client: ScrapflyClient instance
+            config: CrawlerConfig with crawler settings
+        &#34;&#34;&#34;
+        self._client = client
+        self._config = config
+        self._uuid: Optional[str] = None
+        self._status_cache: Optional[CrawlerStatusResponse] = None
+        self._artifact_cache: Optional[CrawlerArtifactResponse] = None
+
+    @property
+    def uuid(self) -&gt; Optional[str]:
+        &#34;&#34;&#34;Get the crawler job UUID (None if not started)&#34;&#34;&#34;
+        return self._uuid
+
+    @property
+    def started(self) -&gt; bool:
+        &#34;&#34;&#34;Check if the crawler has been started&#34;&#34;&#34;
+        return self._uuid is not None
+
+    def crawl(self) -&gt; &#39;Crawl&#39;:
+        &#34;&#34;&#34;
+        Start the crawler job
+
+        Returns:
+            Self for method chaining
+
+        Raises:
+            RuntimeError: If crawler already started
+
+        Example:
+            ```python
+            crawl = Crawl(client, config)
+            crawl.crawl()  # Start crawling
+            ```
+        &#34;&#34;&#34;
+        if self._uuid is not None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler already started&#34;,
+                code=&#34;ALREADY_STARTED&#34;,
+                http_status_code=400
+            )
+
+        response = self._client.start_crawl(self._config)
+        self._uuid = response.uuid
+        return self
+
+    def status(self, refresh: bool = True) -&gt; CrawlerStatusResponse:
+        &#34;&#34;&#34;
+        Get current crawler status
+
+        Args:
+            refresh: If True, fetch fresh status from API. If False, return cached status.
+
+        Returns:
+            CrawlerStatusResponse with current status
+
+        Raises:
+            RuntimeError: If crawler not started yet
+
+        Example:
+            ```python
+            status = crawl.status()
+            print(f&#34;Progress: {status.progress_pct}%&#34;)
+            print(f&#34;URLs crawled: {status.urls_crawled}&#34;)
+            ```
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400
+            )
+
+        if refresh or self._status_cache is None:
+            self._status_cache = self._client.get_crawl_status(self._uuid)
+
+        return self._status_cache
+
+    def wait(
+        self,
+        poll_interval: int = 5,
+        max_wait: Optional[int] = None,
+        verbose: bool = False
+    ) -&gt; &#39;Crawl&#39;:
+        &#34;&#34;&#34;
+        Wait for crawler to complete
+
+        Polls the status endpoint until the crawler finishes.
+
+        Args:
+            poll_interval: Seconds between status checks (default: 5)
+            max_wait: Maximum seconds to wait (None = wait forever)
+            verbose: If True, print progress updates
+
+        Returns:
+            Self for method chaining
+
+        Raises:
+            RuntimeError: If crawler not started, failed, or timed out
+
+        Example:
+            ```python
+            # Wait with progress updates
+            crawl.crawl().wait(verbose=True)
+
+            # Wait with timeout
+            crawl.crawl().wait(max_wait=300)  # 5 minutes max
+            ```
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400
+            )
+
+        start_time = time.time()
+        poll_count = 0
+
+        while True:
+            status = self.status(refresh=True)
+            poll_count += 1
+
+            if verbose:
+                logger.info(f&#34;Poll #{poll_count}: {status.status} - &#34;
+                           f&#34;{status.progress_pct:.1f}% - &#34;
+                           f&#34;{status.urls_crawled}/{status.urls_discovered} URLs&#34;)
+
+            if status.is_complete:
+                if verbose:
+                    logger.info(f&#34;✓ Crawler completed successfully!&#34;)
+                return self
+            elif status.is_failed:
+                raise ScrapflyCrawlerError(
+                    message=f&#34;Crawler failed with status: {status.status}&#34;,
+                    code=&#34;FAILED&#34;,
+                    http_status_code=400
+                )
+            elif status.is_cancelled:
+                raise ScrapflyCrawlerError(
+                    message=&#34;Crawler was cancelled&#34;,
+                    code=&#34;CANCELLED&#34;,
+                    http_status_code=400
+                )
+
+            # Check timeout
+            if max_wait is not None:
+                elapsed = time.time() - start_time
+                if elapsed &gt; max_wait:
+                    raise ScrapflyCrawlerError(
+                        message=f&#34;Timeout waiting for crawler (&gt;{max_wait}s)&#34;,
+                        code=&#34;TIMEOUT&#34;,
+                        http_status_code=400
+                    )
+
+            time.sleep(poll_interval)
+
+    def cancel(self) -&gt; bool:
+        &#34;&#34;&#34;
+        Cancel the running crawler job
+
+        Returns:
+            True if cancelled successfully
+
+        Raises:
+            ScrapflyCrawlerError: If crawler not started yet
+
+        Example:
+            ```python
+            # Start a crawl
+            crawl = Crawl(client, config).crawl()
+
+            # Cancel it
+            crawl.cancel()
+            ```
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400
+            )
+
+        return self._client.cancel_crawl(self._uuid)
+
+    def warc(self, artifact_type: str = &#39;warc&#39;) -&gt; CrawlerArtifactResponse:
+        &#34;&#34;&#34;
+        Download the crawler artifact (WARC file)
+
+        Args:
+            artifact_type: Type of artifact to download (default: &#39;warc&#39;)
+
+        Returns:
+            CrawlerArtifactResponse with parsed WARC data
+
+        Raises:
+            RuntimeError: If crawler not started yet
+
+        Example:
+            ```python
+            # Get WARC artifact
+            artifact = crawl.warc()
+
+            # Get all pages
+            pages = artifact.get_pages()
+
+            # Iterate through responses
+            for record in artifact.iter_responses():
+                print(record.url)
+            ```
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400
+            )
+
+        if self._artifact_cache is None:
+            self._artifact_cache = self._client.get_crawl_artifact(
+                self._uuid,
+                artifact_type=artifact_type
+            )
+
+        return self._artifact_cache
+
+    def har(self) -&gt; CrawlerArtifactResponse:
+        &#34;&#34;&#34;
+        Download the crawler artifact in HAR (HTTP Archive) format
+
+        Returns:
+            CrawlerArtifactResponse with parsed HAR data
+
+        Raises:
+            RuntimeError: If crawler not started yet
+
+        Example:
+            ```python
+            # Get HAR artifact
+            artifact = crawl.har()
+
+            # Get all pages
+            pages = artifact.get_pages()
+
+            # Iterate through HAR entries
+            for entry in artifact.iter_responses():
+                print(f&#34;{entry.url}: {entry.status_code}&#34;)
+                print(f&#34;Timing: {entry.time}ms&#34;)
+            ```
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400
+            )
+
+        return self._client.get_crawl_artifact(
+            self._uuid,
+            artifact_type=&#39;har&#39;
+        )
+
+    def read(self, url: str, format: ContentFormat = &#39;html&#39;) -&gt; Optional[CrawlContent]:
+        &#34;&#34;&#34;
+        Read content from a specific URL in the crawl results
+
+        Args:
+            url: The URL to retrieve content for
+            format: Content format - &#39;html&#39;, &#39;markdown&#39;, &#39;text&#39;, &#39;clean_html&#39;, &#39;json&#39;,
+                   &#39;extracted_data&#39;, &#39;page_metadata&#39;
+
+        Returns:
+            CrawlContent object with content and metadata, or None if URL not found
+
+        Example:
+            ```python
+            # Get HTML content for a specific URL
+            content = crawl.read(&#39;https://example.com/page1&#39;)
+            if content:
+                print(f&#34;URL: {content.url}&#34;)
+                print(f&#34;Status: {content.status_code}&#34;)
+                print(f&#34;Duration: {content.duration}s&#34;)
+                print(content.content)
+
+            # Get markdown content
+            content = crawl.read(&#39;https://example.com/page1&#39;, format=&#39;markdown&#39;)
+            if content:
+                print(content.content)
+
+            # Check if URL was crawled
+            if crawl.read(&#39;https://example.com/missing&#39;) is None:
+                print(&#34;URL not found in crawl results&#34;)
+            ```
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400
+            )
+
+        # For HTML format, we can get it from the WARC artifact (faster)
+        if format == &#39;html&#39;:
+            artifact = self.warc()
+            for record in artifact.iter_responses():
+                if record.url == url:
+                    # Extract metadata from WARC headers
+                    warc_headers = record.warc_headers or {}
+                    duration_str = warc_headers.get(&#39;WARC-Scrape-Duration&#39;)
+                    duration = float(duration_str) if duration_str else None
+
+                    return CrawlContent(
+                        url=record.url,
+                        content=record.content.decode(&#39;utf-8&#39;, errors=&#39;replace&#39;),
+                        status_code=record.status_code,
+                        headers=record.headers,
+                        duration=duration,
+                        log_id=warc_headers.get(&#39;WARC-Scrape-Log-Id&#39;),
+                        country=warc_headers.get(&#39;WARC-Scrape-Country&#39;),
+                        crawl_uuid=self._uuid
+                    )
+            return None
+
+        # For other formats (markdown, text, etc.), use the contents API
+        try:
+            result = self._client.get_crawl_contents(
+                self._uuid,
+                format=format
+            )
+
+            # The API returns: {&#34;contents&#34;: {url: {format: content, ...}, ...}, &#34;links&#34;: {...}}
+            contents = result.get(&#39;contents&#39;, {})
+
+            if url in contents:
+                content_data = contents[url]
+                # Content is always a dict with format keys (e.g., {&#34;html&#34;: &#34;...&#34;, &#34;markdown&#34;: &#34;...&#34;})
+                content_str = content_data.get(format)
+
+                if content_str:
+                    # For non-HTML formats from contents API, we don&#39;t have full metadata
+                    # Try to get status code from WARC if possible
+                    status_code = 200  # Default
+                    headers = {}
+                    duration = None
+                    log_id = None
+                    country = None
+
+                    # Try to get metadata from WARC
+                    try:
+                        artifact = self.warc()
+                        for record in artifact.iter_responses():
+                            if record.url == url:
+                                status_code = record.status_code
+                                headers = record.headers
+                                warc_headers = record.warc_headers or {}
+                                duration_str = warc_headers.get(&#39;WARC-Scrape-Duration&#39;)
+                                duration = float(duration_str) if duration_str else None
+                                log_id = warc_headers.get(&#39;WARC-Scrape-Log-Id&#39;)
+                                country = warc_headers.get(&#39;WARC-Scrape-Country&#39;)
+                                break
+                    except:
+                        pass
+
+                    return CrawlContent(
+                        url=url,
+                        content=content_str,
+                        status_code=status_code,
+                        headers=headers,
+                        duration=duration,
+                        log_id=log_id,
+                        country=country,
+                        crawl_uuid=self._uuid
+                    )
+
+            return None
+
+        except Exception:
+            # If contents API fails, return None
+            return None
+
+    def read_iter(
+        self,
+        pattern: str,
+        format: ContentFormat = &#39;html&#39;
+    ) -&gt; Iterator[CrawlContent]:
+        &#34;&#34;&#34;
+        Iterate through URLs matching a pattern and yield their content
+
+        Supports wildcard patterns using * and ? for flexible URL matching.
+
+        Args:
+            pattern: URL pattern with wildcards (* matches any characters, ? matches one)
+                    Examples: &#34;/products?page=*&#34;, &#34;https://example.com/*/detail&#34;, &#34;*/product/*&#34;
+            format: Content format to retrieve
+
+        Yields:
+            CrawlContent objects for each matching URL
+
+        Example:
+            ```python
+            # Get all product pages in markdown
+            for content in crawl.read_iter(pattern=&#34;*/products?page=*&#34;, format=&#34;markdown&#34;):
+                print(f&#34;{content.url}: {len(content.content)} chars&#34;)
+                print(f&#34;Duration: {content.duration}s&#34;)
+
+            # Get all detail pages
+            for content in crawl.read_iter(pattern=&#34;*/detail/*&#34;):
+                process(content.content)
+
+            # Pattern matching examples:
+            # &#34;/products?page=*&#34; matches /products?page=1, /products?page=2, etc.
+            # &#34;*/product/*&#34; matches any URL with /product/ in the path
+            # &#34;https://example.com/page?&#34; matches https://example.com/page1, page2, etc.
+            ```
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400
+            )
+
+        # For HTML format, use WARC artifact (faster)
+        if format == &#39;html&#39;:
+            artifact = self.warc()
+            for record in artifact.iter_responses():
+                if fnmatch.fnmatch(record.url, pattern):
+                    # Extract metadata from WARC headers
+                    warc_headers = record.warc_headers or {}
+                    duration_str = warc_headers.get(&#39;WARC-Scrape-Duration&#39;)
+                    duration = float(duration_str) if duration_str else None
+
+                    yield CrawlContent(
+                        url=record.url,
+                        content=record.content.decode(&#39;utf-8&#39;, errors=&#39;replace&#39;),
+                        status_code=record.status_code,
+                        headers=record.headers,
+                        duration=duration,
+                        log_id=warc_headers.get(&#39;WARC-Scrape-Log-Id&#39;),
+                        country=warc_headers.get(&#39;WARC-Scrape-Country&#39;),
+                        crawl_uuid=self._uuid
+                    )
+        else:
+            # For other formats, use contents API
+            try:
+                result = self._client.get_crawl_contents(
+                    self._uuid,
+                    format=format
+                )
+
+                contents = result.get(&#39;contents&#39;, {})
+
+                # Build a metadata cache from WARC for non-HTML formats
+                metadata_cache = {}
+                try:
+                    artifact = self.warc()
+                    for record in artifact.iter_responses():
+                        warc_headers = record.warc_headers or {}
+                        duration_str = warc_headers.get(&#39;WARC-Scrape-Duration&#39;)
+                        metadata_cache[record.url] = {
+                            &#39;status_code&#39;: record.status_code,
+                            &#39;headers&#39;: record.headers,
+                            &#39;duration&#39;: float(duration_str) if duration_str else None,
+                            &#39;log_id&#39;: warc_headers.get(&#39;WARC-Scrape-Log-Id&#39;),
+                            &#39;country&#39;: warc_headers.get(&#39;WARC-Scrape-Country&#39;)
+                        }
+                except:
+                    pass
+
+                # Iterate through matching URLs
+                for url, content_data in contents.items():
+                    if fnmatch.fnmatch(url, pattern):
+                        # Content is always a dict with format keys (e.g., {&#34;html&#34;: &#34;...&#34;, &#34;markdown&#34;: &#34;...&#34;})
+                        content = content_data.get(format)
+
+                        if content:
+                            # Get metadata from cache or use defaults
+                            metadata = metadata_cache.get(url, {})
+                            yield CrawlContent(
+                                url=url,
+                                content=content,
+                                status_code=metadata.get(&#39;status_code&#39;, 200),
+                                headers=metadata.get(&#39;headers&#39;, {}),
+                                duration=metadata.get(&#39;duration&#39;),
+                                log_id=metadata.get(&#39;log_id&#39;),
+                                country=metadata.get(&#39;country&#39;),
+                                crawl_uuid=self._uuid
+                            )
+
+            except Exception:
+                # If contents API fails, yield nothing
+                return
+
+    def read_batch(
+        self,
+        urls: List[str],
+        formats: List[ContentFormat] = None
+    ) -&gt; Dict[str, Dict[str, str]]:
+        &#34;&#34;&#34;
+        Retrieve content for multiple URLs in a single batch request
+
+        This is more efficient than calling read() multiple times as it retrieves
+        all content in a single API call. Maximum 100 URLs per request.
+
+        Args:
+            urls: List of URLs to retrieve (max 100)
+            formats: List of content formats to retrieve (e.g., [&#39;markdown&#39;, &#39;text&#39;])
+                    If None, defaults to [&#39;html&#39;]
+
+        Returns:
+            Dictionary mapping URLs to their content in requested formats:
+            {
+                &#39;https://example.com/page1&#39;: {
+                    &#39;markdown&#39;: &#39;# Page 1...&#39;,
+                    &#39;text&#39;: &#39;Page 1...&#39;
+                },
+                &#39;https://example.com/page2&#39;: {
+                    &#39;markdown&#39;: &#39;# Page 2...&#39;,
+                    &#39;text&#39;: &#39;Page 2...&#39;
+                }
+            }
+
+        Example:
+            ```python
+            # Get markdown and text for multiple URLs
+            urls = [&#39;https://example.com/page1&#39;, &#39;https://example.com/page2&#39;]
+            contents = crawl.read_batch(urls, formats=[&#39;markdown&#39;, &#39;text&#39;])
+
+            for url, formats in contents.items():
+                markdown = formats.get(&#39;markdown&#39;, &#39;&#39;)
+                text = formats.get(&#39;text&#39;, &#39;&#39;)
+                print(f&#34;{url}: {len(markdown)} chars markdown, {len(text)} chars text&#34;)
+            ```
+
+        Raises:
+            ValueError: If more than 100 URLs are provided
+            ScrapflyCrawlerError: If crawler not started or request fails
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400
+            )
+
+        if len(urls) &gt; 100:
+            raise ValueError(&#34;Maximum 100 URLs per batch request&#34;)
+
+        if not urls:
+            return {}
+
+        # Default to html if no formats specified
+        if formats is None:
+            formats = [&#39;html&#39;]
+
+        # Build URL with formats parameter
+        formats_str = &#39;,&#39;.join(formats)
+        url = f&#34;{self._client.host}/crawl/{self._uuid}/contents/batch&#34;
+        params = {
+            &#39;key&#39;: self._client.key,
+            &#39;formats&#39;: formats_str
+        }
+
+        # Prepare request body (newline-separated URLs)
+        body = &#39;\n&#39;.join(urls)
+
+        # Make request
+        import requests
+        response = requests.post(
+            url,
+            params=params,
+            data=body.encode(&#39;utf-8&#39;),
+            headers={&#39;Content-Type&#39;: &#39;text/plain&#39;},
+            verify=self._client.verify
+        )
+
+        if response.status_code != 200:
+            raise ScrapflyCrawlerError(
+                message=f&#34;Batch content request failed: {response.status_code}&#34;,
+                code=&#34;BATCH_REQUEST_FAILED&#34;,
+                http_status_code=response.status_code
+            )
+
+        # Parse multipart response
+        content_type = response.headers.get(&#39;Content-Type&#39;, &#39;&#39;)
+        if not content_type.startswith(&#39;multipart/related&#39;):
+            raise ScrapflyCrawlerError(
+                message=f&#34;Unexpected content type: {content_type}&#34;,
+                code=&#34;INVALID_RESPONSE&#34;,
+                http_status_code=500
+            )
+
+        # Extract boundary from Content-Type header
+        boundary = None
+        for part in content_type.split(&#39;;&#39;):
+            part = part.strip()
+            if part.startswith(&#39;boundary=&#39;):
+                boundary = part.split(&#39;=&#39;, 1)[1]
+                break
+
+        if not boundary:
+            raise ScrapflyCrawlerError(
+                message=&#34;No boundary found in multipart response&#34;,
+                code=&#34;INVALID_RESPONSE&#34;,
+                http_status_code=500
+            )
+
+        # Parse multipart message
+        # Prepend Content-Type header to make it a valid email message for the parser
+        message_bytes = f&#34;Content-Type: {content_type}\r\n\r\n&#34;.encode(&#39;utf-8&#39;) + response.content
+        parser = BytesParser(policy=default)
+        message = parser.parsebytes(message_bytes)
+
+        # Extract content from each part
+        result = {}
+
+        for part in message.walk():
+            # Skip the container itself
+            if part.get_content_maintype() == &#39;multipart&#39;:
+                continue
+
+            # Get the URL from Content-Location header
+            content_location = part.get(&#39;Content-Location&#39;)
+            if not content_location:
+                continue
+
+            # Get content type to determine format
+            part_content_type = part.get_content_type()
+            format_type = None
+
+            # Map MIME types to format names
+            if &#39;markdown&#39; in part_content_type:
+                format_type = &#39;markdown&#39;
+            elif &#39;plain&#39; in part_content_type:
+                format_type = &#39;text&#39;
+            elif &#39;html&#39; in part_content_type:
+                format_type = &#39;html&#39;
+            elif &#39;json&#39; in part_content_type:
+                format_type = &#39;json&#39;
+
+            if not format_type:
+                continue
+
+            # Get content
+            content = part.get_content()
+            if isinstance(content, bytes):
+                content = content.decode(&#39;utf-8&#39;, errors=&#39;replace&#39;)
+
+            # Initialize URL dict if needed
+            if content_location not in result:
+                result[content_location] = {}
+
+            # Store content
+            result[content_location][format_type] = content
+
+        return result
+
+    def stats(self) -&gt; Dict[str, Any]:
+        &#34;&#34;&#34;
+        Get comprehensive statistics about the crawl
+
+        Returns:
+            Dictionary with crawl statistics
+
+        Example:
+            ```python
+            stats = crawl.stats()
+            print(f&#34;URLs discovered: {stats[&#39;urls_discovered&#39;]}&#34;)
+            print(f&#34;URLs crawled: {stats[&#39;urls_crawled&#39;]}&#34;)
+            print(f&#34;Success rate: {stats[&#39;success_rate&#39;]:.1f}%&#34;)
+            print(f&#34;Total size: {stats[&#39;total_size_kb&#39;]:.2f} KB&#34;)
+            ```
+        &#34;&#34;&#34;
+        status = self.status(refresh=False)
+
+        # Basic stats from status
+        stats_dict = {
+            &#39;uuid&#39;: self._uuid,
+            &#39;status&#39;: status.status,
+            &#39;urls_discovered&#39;: status.urls_discovered,
+            &#39;urls_crawled&#39;: status.urls_crawled,
+            &#39;urls_pending&#39;: status.urls_pending,
+            &#39;urls_failed&#39;: status.urls_failed,
+            &#39;progress_pct&#39;: status.progress_pct,
+            &#39;is_complete&#39;: status.is_complete,
+            &#39;is_running&#39;: status.is_running,
+            &#39;is_failed&#39;: status.is_failed,
+        }
+
+        # Calculate basic crawl rate (crawled vs discovered)
+        if status.urls_discovered &gt; 0:
+            stats_dict[&#39;crawl_rate&#39;] = (status.urls_crawled / status.urls_discovered) * 100
+
+        # Add artifact stats if available
+        if self._artifact_cache is not None:
+            pages = self._artifact_cache.get_pages()
+            total_size = sum(len(p[&#39;content&#39;]) for p in pages)
+            avg_size = total_size / len(pages) if pages else 0
+
+            stats_dict.update({
+                &#39;pages_downloaded&#39;: len(pages),
+                &#39;total_size_bytes&#39;: total_size,
+                &#39;total_size_kb&#39;: total_size / 1024,
+                &#39;total_size_mb&#39;: total_size / (1024 * 1024),
+                &#39;avg_page_size_bytes&#39;: avg_size,
+                &#39;avg_page_size_kb&#39;: avg_size / 1024,
+            })
+
+            # Calculate download rate (pages vs discovered)
+            if status.urls_discovered &gt; 0:
+                stats_dict[&#39;download_rate&#39;] = (len(pages) / status.urls_discovered) * 100
+
+        return stats_dict
+
+    def __repr__(self):
+        if self._uuid is None:
+            return f&#34;Crawl(not started)&#34;
+
+        status_str = &#34;unknown&#34;
+        if self._status_cache:
+            status_str = self._status_cache.status
+
+        return f&#34;Crawl(uuid={self._uuid}, status={status_str})&#34;</code></pre>
+</details>
+<div class="desc"><p>High-level abstraction for managing a crawler job</p>
+<p>The Crawl object maintains the state of a crawler job and provides
+convenient methods for managing its lifecycle.</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig, Crawl
+
+client = ScrapflyClient(key='your-key')
+config = CrawlerConfig(url='https://example.com', page_limit=10)
+
+# Create and start crawl
+crawl = Crawl(client, config)
+crawl.crawl()  # Start the crawler
+
+# Wait for completion
+crawl.wait()
+
+# Get results
+pages = crawl.warc().get_pages()
+for page in pages:
+    print(f&quot;{page['url']}: {page['status_code']}&quot;)
+
+# Or read specific URLs
+html = crawl.read('https://example.com/page1', format='html')
+</code></pre>
+<p>Initialize a Crawl object</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>client</code></strong></dt>
+<dd>ScrapflyClient instance</dd>
+<dt><strong><code>config</code></strong></dt>
+<dd>CrawlerConfig with crawler settings</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawl.Crawl.started"><code class="name">prop <span class="ident">started</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def started(self) -&gt; bool:
+    &#34;&#34;&#34;Check if the crawler has been started&#34;&#34;&#34;
+    return self._uuid is not None</code></pre>
+</details>
+<div class="desc"><p>Check if the crawler has been started</p></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.uuid"><code class="name">prop <span class="ident">uuid</span> : str | None</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def uuid(self) -&gt; Optional[str]:
+    &#34;&#34;&#34;Get the crawler job UUID (None if not started)&#34;&#34;&#34;
+    return self._uuid</code></pre>
+</details>
+<div class="desc"><p>Get the crawler job UUID (None if not started)</p></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawl.Crawl.cancel"><code class="name flex">
+<span>def <span class="ident">cancel</span></span>(<span>self) ‑> bool</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cancel(self) -&gt; bool:
+    &#34;&#34;&#34;
+    Cancel the running crawler job
+
+    Returns:
+        True if cancelled successfully
+
+    Raises:
+        ScrapflyCrawlerError: If crawler not started yet
+
+    Example:
+        ```python
+        # Start a crawl
+        crawl = Crawl(client, config).crawl()
+
+        # Cancel it
+        crawl.cancel()
+        ```
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400
+        )
+
+    return self._client.cancel_crawl(self._uuid)</code></pre>
+</details>
+<div class="desc"><p>Cancel the running crawler job</p>
+<h2 id="returns">Returns</h2>
+<p>True if cancelled successfully</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ScrapflyCrawlerError</code></dt>
+<dd>If crawler not started yet</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python"># Start a crawl
+crawl = Crawl(client, config).crawl()
+
+# Cancel it
+crawl.cancel()
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.crawl"><code class="name flex">
+<span>def <span class="ident">crawl</span></span>(<span>self) ‑> <a title="scrapfly.crawler.crawl.Crawl" href="#scrapfly.crawler.crawl.Crawl">Crawl</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def crawl(self) -&gt; &#39;Crawl&#39;:
+    &#34;&#34;&#34;
+    Start the crawler job
+
+    Returns:
+        Self for method chaining
+
+    Raises:
+        RuntimeError: If crawler already started
+
+    Example:
+        ```python
+        crawl = Crawl(client, config)
+        crawl.crawl()  # Start crawling
+        ```
+    &#34;&#34;&#34;
+    if self._uuid is not None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler already started&#34;,
+            code=&#34;ALREADY_STARTED&#34;,
+            http_status_code=400
+        )
+
+    response = self._client.start_crawl(self._config)
+    self._uuid = response.uuid
+    return self</code></pre>
+</details>
+<div class="desc"><p>Start the crawler job</p>
+<h2 id="returns">Returns</h2>
+<p>Self for method chaining</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>RuntimeError</code></dt>
+<dd>If crawler already started</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">crawl = Crawl(client, config)
+crawl.crawl()  # Start crawling
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.har"><code class="name flex">
+<span>def <span class="ident">har</span></span>(<span>self) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerArtifactResponse" href="crawler_response.html#scrapfly.crawler.crawler_response.CrawlerArtifactResponse">CrawlerArtifactResponse</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def har(self) -&gt; CrawlerArtifactResponse:
+    &#34;&#34;&#34;
+    Download the crawler artifact in HAR (HTTP Archive) format
+
+    Returns:
+        CrawlerArtifactResponse with parsed HAR data
+
+    Raises:
+        RuntimeError: If crawler not started yet
+
+    Example:
+        ```python
+        # Get HAR artifact
+        artifact = crawl.har()
+
+        # Get all pages
+        pages = artifact.get_pages()
+
+        # Iterate through HAR entries
+        for entry in artifact.iter_responses():
+            print(f&#34;{entry.url}: {entry.status_code}&#34;)
+            print(f&#34;Timing: {entry.time}ms&#34;)
+        ```
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400
+        )
+
+    return self._client.get_crawl_artifact(
+        self._uuid,
+        artifact_type=&#39;har&#39;
+    )</code></pre>
+</details>
+<div class="desc"><p>Download the crawler artifact in HAR (HTTP Archive) format</p>
+<h2 id="returns">Returns</h2>
+<p>CrawlerArtifactResponse with parsed HAR data</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>RuntimeError</code></dt>
+<dd>If crawler not started yet</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python"># Get HAR artifact
+artifact = crawl.har()
+
+# Get all pages
+pages = artifact.get_pages()
+
+# Iterate through HAR entries
+for entry in artifact.iter_responses():
+    print(f&quot;{entry.url}: {entry.status_code}&quot;)
+    print(f&quot;Timing: {entry.time}ms&quot;)
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.read"><code class="name flex">
+<span>def <span class="ident">read</span></span>(<span>self,<br>url: str,<br>format: Literal['html', 'clean_html', 'markdown', 'json', 'text', 'extracted_data', 'page_metadata'] = 'html') ‑> <a title="scrapfly.crawler.crawl_content.CrawlContent" href="crawl_content.html#scrapfly.crawler.crawl_content.CrawlContent">CrawlContent</a> | None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read(self, url: str, format: ContentFormat = &#39;html&#39;) -&gt; Optional[CrawlContent]:
+    &#34;&#34;&#34;
+    Read content from a specific URL in the crawl results
+
+    Args:
+        url: The URL to retrieve content for
+        format: Content format - &#39;html&#39;, &#39;markdown&#39;, &#39;text&#39;, &#39;clean_html&#39;, &#39;json&#39;,
+               &#39;extracted_data&#39;, &#39;page_metadata&#39;
+
+    Returns:
+        CrawlContent object with content and metadata, or None if URL not found
+
+    Example:
+        ```python
+        # Get HTML content for a specific URL
+        content = crawl.read(&#39;https://example.com/page1&#39;)
+        if content:
+            print(f&#34;URL: {content.url}&#34;)
+            print(f&#34;Status: {content.status_code}&#34;)
+            print(f&#34;Duration: {content.duration}s&#34;)
+            print(content.content)
+
+        # Get markdown content
+        content = crawl.read(&#39;https://example.com/page1&#39;, format=&#39;markdown&#39;)
+        if content:
+            print(content.content)
+
+        # Check if URL was crawled
+        if crawl.read(&#39;https://example.com/missing&#39;) is None:
+            print(&#34;URL not found in crawl results&#34;)
+        ```
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400
+        )
+
+    # For HTML format, we can get it from the WARC artifact (faster)
+    if format == &#39;html&#39;:
+        artifact = self.warc()
+        for record in artifact.iter_responses():
+            if record.url == url:
+                # Extract metadata from WARC headers
+                warc_headers = record.warc_headers or {}
+                duration_str = warc_headers.get(&#39;WARC-Scrape-Duration&#39;)
+                duration = float(duration_str) if duration_str else None
+
+                return CrawlContent(
+                    url=record.url,
+                    content=record.content.decode(&#39;utf-8&#39;, errors=&#39;replace&#39;),
+                    status_code=record.status_code,
+                    headers=record.headers,
+                    duration=duration,
+                    log_id=warc_headers.get(&#39;WARC-Scrape-Log-Id&#39;),
+                    country=warc_headers.get(&#39;WARC-Scrape-Country&#39;),
+                    crawl_uuid=self._uuid
+                )
+        return None
+
+    # For other formats (markdown, text, etc.), use the contents API
+    try:
+        result = self._client.get_crawl_contents(
+            self._uuid,
+            format=format
+        )
+
+        # The API returns: {&#34;contents&#34;: {url: {format: content, ...}, ...}, &#34;links&#34;: {...}}
+        contents = result.get(&#39;contents&#39;, {})
+
+        if url in contents:
+            content_data = contents[url]
+            # Content is always a dict with format keys (e.g., {&#34;html&#34;: &#34;...&#34;, &#34;markdown&#34;: &#34;...&#34;})
+            content_str = content_data.get(format)
+
+            if content_str:
+                # For non-HTML formats from contents API, we don&#39;t have full metadata
+                # Try to get status code from WARC if possible
+                status_code = 200  # Default
+                headers = {}
+                duration = None
+                log_id = None
+                country = None
+
+                # Try to get metadata from WARC
+                try:
+                    artifact = self.warc()
+                    for record in artifact.iter_responses():
+                        if record.url == url:
+                            status_code = record.status_code
+                            headers = record.headers
+                            warc_headers = record.warc_headers or {}
+                            duration_str = warc_headers.get(&#39;WARC-Scrape-Duration&#39;)
+                            duration = float(duration_str) if duration_str else None
+                            log_id = warc_headers.get(&#39;WARC-Scrape-Log-Id&#39;)
+                            country = warc_headers.get(&#39;WARC-Scrape-Country&#39;)
+                            break
+                except:
+                    pass
+
+                return CrawlContent(
+                    url=url,
+                    content=content_str,
+                    status_code=status_code,
+                    headers=headers,
+                    duration=duration,
+                    log_id=log_id,
+                    country=country,
+                    crawl_uuid=self._uuid
+                )
+
+        return None
+
+    except Exception:
+        # If contents API fails, return None
+        return None</code></pre>
+</details>
+<div class="desc"><p>Read content from a specific URL in the crawl results</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>url</code></strong></dt>
+<dd>The URL to retrieve content for</dd>
+<dt><strong><code>format</code></strong></dt>
+<dd>Content format - 'html', 'markdown', 'text', 'clean_html', 'json',
+'extracted_data', 'page_metadata'</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>CrawlContent object with content and metadata, or None if URL not found</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-python"># Get HTML content for a specific URL
+content = crawl.read('https://example.com/page1')
+if content:
+    print(f&quot;URL: {content.url}&quot;)
+    print(f&quot;Status: {content.status_code}&quot;)
+    print(f&quot;Duration: {content.duration}s&quot;)
+    print(content.content)
+
+# Get markdown content
+content = crawl.read('https://example.com/page1', format='markdown')
+if content:
+    print(content.content)
+
+# Check if URL was crawled
+if crawl.read('https://example.com/missing') is None:
+    print(&quot;URL not found in crawl results&quot;)
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.read_batch"><code class="name flex">
+<span>def <span class="ident">read_batch</span></span>(<span>self,<br>urls: List[str],<br>formats: List[Literal['html', 'clean_html', 'markdown', 'json', 'text', 'extracted_data', 'page_metadata']] = None) ‑> Dict[str, Dict[str, str]]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read_batch(
+    self,
+    urls: List[str],
+    formats: List[ContentFormat] = None
+) -&gt; Dict[str, Dict[str, str]]:
+    &#34;&#34;&#34;
+    Retrieve content for multiple URLs in a single batch request
+
+    This is more efficient than calling read() multiple times as it retrieves
+    all content in a single API call. Maximum 100 URLs per request.
+
+    Args:
+        urls: List of URLs to retrieve (max 100)
+        formats: List of content formats to retrieve (e.g., [&#39;markdown&#39;, &#39;text&#39;])
+                If None, defaults to [&#39;html&#39;]
+
+    Returns:
+        Dictionary mapping URLs to their content in requested formats:
+        {
+            &#39;https://example.com/page1&#39;: {
+                &#39;markdown&#39;: &#39;# Page 1...&#39;,
+                &#39;text&#39;: &#39;Page 1...&#39;
+            },
+            &#39;https://example.com/page2&#39;: {
+                &#39;markdown&#39;: &#39;# Page 2...&#39;,
+                &#39;text&#39;: &#39;Page 2...&#39;
+            }
+        }
+
+    Example:
+        ```python
+        # Get markdown and text for multiple URLs
+        urls = [&#39;https://example.com/page1&#39;, &#39;https://example.com/page2&#39;]
+        contents = crawl.read_batch(urls, formats=[&#39;markdown&#39;, &#39;text&#39;])
+
+        for url, formats in contents.items():
+            markdown = formats.get(&#39;markdown&#39;, &#39;&#39;)
+            text = formats.get(&#39;text&#39;, &#39;&#39;)
+            print(f&#34;{url}: {len(markdown)} chars markdown, {len(text)} chars text&#34;)
+        ```
+
+    Raises:
+        ValueError: If more than 100 URLs are provided
+        ScrapflyCrawlerError: If crawler not started or request fails
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400
+        )
+
+    if len(urls) &gt; 100:
+        raise ValueError(&#34;Maximum 100 URLs per batch request&#34;)
+
+    if not urls:
+        return {}
+
+    # Default to html if no formats specified
+    if formats is None:
+        formats = [&#39;html&#39;]
+
+    # Build URL with formats parameter
+    formats_str = &#39;,&#39;.join(formats)
+    url = f&#34;{self._client.host}/crawl/{self._uuid}/contents/batch&#34;
+    params = {
+        &#39;key&#39;: self._client.key,
+        &#39;formats&#39;: formats_str
+    }
+
+    # Prepare request body (newline-separated URLs)
+    body = &#39;\n&#39;.join(urls)
+
+    # Make request
+    import requests
+    response = requests.post(
+        url,
+        params=params,
+        data=body.encode(&#39;utf-8&#39;),
+        headers={&#39;Content-Type&#39;: &#39;text/plain&#39;},
+        verify=self._client.verify
+    )
+
+    if response.status_code != 200:
+        raise ScrapflyCrawlerError(
+            message=f&#34;Batch content request failed: {response.status_code}&#34;,
+            code=&#34;BATCH_REQUEST_FAILED&#34;,
+            http_status_code=response.status_code
+        )
+
+    # Parse multipart response
+    content_type = response.headers.get(&#39;Content-Type&#39;, &#39;&#39;)
+    if not content_type.startswith(&#39;multipart/related&#39;):
+        raise ScrapflyCrawlerError(
+            message=f&#34;Unexpected content type: {content_type}&#34;,
+            code=&#34;INVALID_RESPONSE&#34;,
+            http_status_code=500
+        )
+
+    # Extract boundary from Content-Type header
+    boundary = None
+    for part in content_type.split(&#39;;&#39;):
+        part = part.strip()
+        if part.startswith(&#39;boundary=&#39;):
+            boundary = part.split(&#39;=&#39;, 1)[1]
+            break
+
+    if not boundary:
+        raise ScrapflyCrawlerError(
+            message=&#34;No boundary found in multipart response&#34;,
+            code=&#34;INVALID_RESPONSE&#34;,
+            http_status_code=500
+        )
+
+    # Parse multipart message
+    # Prepend Content-Type header to make it a valid email message for the parser
+    message_bytes = f&#34;Content-Type: {content_type}\r\n\r\n&#34;.encode(&#39;utf-8&#39;) + response.content
+    parser = BytesParser(policy=default)
+    message = parser.parsebytes(message_bytes)
+
+    # Extract content from each part
+    result = {}
+
+    for part in message.walk():
+        # Skip the container itself
+        if part.get_content_maintype() == &#39;multipart&#39;:
+            continue
+
+        # Get the URL from Content-Location header
+        content_location = part.get(&#39;Content-Location&#39;)
+        if not content_location:
+            continue
+
+        # Get content type to determine format
+        part_content_type = part.get_content_type()
+        format_type = None
+
+        # Map MIME types to format names
+        if &#39;markdown&#39; in part_content_type:
+            format_type = &#39;markdown&#39;
+        elif &#39;plain&#39; in part_content_type:
+            format_type = &#39;text&#39;
+        elif &#39;html&#39; in part_content_type:
+            format_type = &#39;html&#39;
+        elif &#39;json&#39; in part_content_type:
+            format_type = &#39;json&#39;
+
+        if not format_type:
+            continue
+
+        # Get content
+        content = part.get_content()
+        if isinstance(content, bytes):
+            content = content.decode(&#39;utf-8&#39;, errors=&#39;replace&#39;)
+
+        # Initialize URL dict if needed
+        if content_location not in result:
+            result[content_location] = {}
+
+        # Store content
+        result[content_location][format_type] = content
+
+    return result</code></pre>
+</details>
+<div class="desc"><p>Retrieve content for multiple URLs in a single batch request</p>
+<p>This is more efficient than calling read() multiple times as it retrieves
+all content in a single API call. Maximum 100 URLs per request.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>urls</code></strong></dt>
+<dd>List of URLs to retrieve (max 100)</dd>
+<dt><strong><code>formats</code></strong></dt>
+<dd>List of content formats to retrieve (e.g., ['markdown', 'text'])
+If None, defaults to ['html']</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Dictionary mapping URLs to their content in requested formats:
+{
+'https://example.com/page1': {
+'markdown': '# Page 1&hellip;',
+'text': 'Page 1&hellip;'
+},
+'https://example.com/page2': {
+'markdown': '# Page 2&hellip;',
+'text': 'Page 2&hellip;'
+}
+}</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-python"># Get markdown and text for multiple URLs
+urls = ['https://example.com/page1', 'https://example.com/page2']
+contents = crawl.read_batch(urls, formats=['markdown', 'text'])
+
+for url, formats in contents.items():
+    markdown = formats.get('markdown', '')
+    text = formats.get('text', '')
+    print(f&quot;{url}: {len(markdown)} chars markdown, {len(text)} chars text&quot;)
+</code></pre>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>If more than 100 URLs are provided</dd>
+<dt><code>ScrapflyCrawlerError</code></dt>
+<dd>If crawler not started or request fails</dd>
+</dl></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.read_iter"><code class="name flex">
+<span>def <span class="ident">read_iter</span></span>(<span>self,<br>pattern: str,<br>format: Literal['html', 'clean_html', 'markdown', 'json', 'text', 'extracted_data', 'page_metadata'] = 'html') ‑> Iterator[<a title="scrapfly.crawler.crawl_content.CrawlContent" href="crawl_content.html#scrapfly.crawler.crawl_content.CrawlContent">CrawlContent</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read_iter(
+    self,
+    pattern: str,
+    format: ContentFormat = &#39;html&#39;
+) -&gt; Iterator[CrawlContent]:
+    &#34;&#34;&#34;
+    Iterate through URLs matching a pattern and yield their content
+
+    Supports wildcard patterns using * and ? for flexible URL matching.
+
+    Args:
+        pattern: URL pattern with wildcards (* matches any characters, ? matches one)
+                Examples: &#34;/products?page=*&#34;, &#34;https://example.com/*/detail&#34;, &#34;*/product/*&#34;
+        format: Content format to retrieve
+
+    Yields:
+        CrawlContent objects for each matching URL
+
+    Example:
+        ```python
+        # Get all product pages in markdown
+        for content in crawl.read_iter(pattern=&#34;*/products?page=*&#34;, format=&#34;markdown&#34;):
+            print(f&#34;{content.url}: {len(content.content)} chars&#34;)
+            print(f&#34;Duration: {content.duration}s&#34;)
+
+        # Get all detail pages
+        for content in crawl.read_iter(pattern=&#34;*/detail/*&#34;):
+            process(content.content)
+
+        # Pattern matching examples:
+        # &#34;/products?page=*&#34; matches /products?page=1, /products?page=2, etc.
+        # &#34;*/product/*&#34; matches any URL with /product/ in the path
+        # &#34;https://example.com/page?&#34; matches https://example.com/page1, page2, etc.
+        ```
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400
+        )
+
+    # For HTML format, use WARC artifact (faster)
+    if format == &#39;html&#39;:
+        artifact = self.warc()
+        for record in artifact.iter_responses():
+            if fnmatch.fnmatch(record.url, pattern):
+                # Extract metadata from WARC headers
+                warc_headers = record.warc_headers or {}
+                duration_str = warc_headers.get(&#39;WARC-Scrape-Duration&#39;)
+                duration = float(duration_str) if duration_str else None
+
+                yield CrawlContent(
+                    url=record.url,
+                    content=record.content.decode(&#39;utf-8&#39;, errors=&#39;replace&#39;),
+                    status_code=record.status_code,
+                    headers=record.headers,
+                    duration=duration,
+                    log_id=warc_headers.get(&#39;WARC-Scrape-Log-Id&#39;),
+                    country=warc_headers.get(&#39;WARC-Scrape-Country&#39;),
+                    crawl_uuid=self._uuid
+                )
+    else:
+        # For other formats, use contents API
+        try:
+            result = self._client.get_crawl_contents(
+                self._uuid,
+                format=format
+            )
+
+            contents = result.get(&#39;contents&#39;, {})
+
+            # Build a metadata cache from WARC for non-HTML formats
+            metadata_cache = {}
+            try:
+                artifact = self.warc()
+                for record in artifact.iter_responses():
+                    warc_headers = record.warc_headers or {}
+                    duration_str = warc_headers.get(&#39;WARC-Scrape-Duration&#39;)
+                    metadata_cache[record.url] = {
+                        &#39;status_code&#39;: record.status_code,
+                        &#39;headers&#39;: record.headers,
+                        &#39;duration&#39;: float(duration_str) if duration_str else None,
+                        &#39;log_id&#39;: warc_headers.get(&#39;WARC-Scrape-Log-Id&#39;),
+                        &#39;country&#39;: warc_headers.get(&#39;WARC-Scrape-Country&#39;)
+                    }
+            except:
+                pass
+
+            # Iterate through matching URLs
+            for url, content_data in contents.items():
+                if fnmatch.fnmatch(url, pattern):
+                    # Content is always a dict with format keys (e.g., {&#34;html&#34;: &#34;...&#34;, &#34;markdown&#34;: &#34;...&#34;})
+                    content = content_data.get(format)
+
+                    if content:
+                        # Get metadata from cache or use defaults
+                        metadata = metadata_cache.get(url, {})
+                        yield CrawlContent(
+                            url=url,
+                            content=content,
+                            status_code=metadata.get(&#39;status_code&#39;, 200),
+                            headers=metadata.get(&#39;headers&#39;, {}),
+                            duration=metadata.get(&#39;duration&#39;),
+                            log_id=metadata.get(&#39;log_id&#39;),
+                            country=metadata.get(&#39;country&#39;),
+                            crawl_uuid=self._uuid
+                        )
+
+        except Exception:
+            # If contents API fails, yield nothing
+            return</code></pre>
+</details>
+<div class="desc"><p>Iterate through URLs matching a pattern and yield their content</p>
+<p>Supports wildcard patterns using * and ? for flexible URL matching.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>pattern</code></strong></dt>
+<dd>URL pattern with wildcards (<em> matches any characters, ? matches one)
+Examples: "/products?page=</em>", "https://example.com/<em>/detail", "</em>/product/*"</dd>
+<dt><strong><code>format</code></strong></dt>
+<dd>Content format to retrieve</dd>
+</dl>
+<h2 id="yields">Yields</h2>
+<p>CrawlContent objects for each matching URL</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-python"># Get all product pages in markdown
+for content in crawl.read_iter(pattern=&quot;*/products?page=*&quot;, format=&quot;markdown&quot;):
+    print(f&quot;{content.url}: {len(content.content)} chars&quot;)
+    print(f&quot;Duration: {content.duration}s&quot;)
+
+# Get all detail pages
+for content in crawl.read_iter(pattern=&quot;*/detail/*&quot;):
+    process(content.content)
+
+# Pattern matching examples:
+# &quot;/products?page=*&quot; matches /products?page=1, /products?page=2, etc.
+# &quot;*/product/*&quot; matches any URL with /product/ in the path
+# &quot;https://example.com/page?&quot; matches &lt;https://example.com/page1,&gt; page2, etc.
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.stats"><code class="name flex">
+<span>def <span class="ident">stats</span></span>(<span>self) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def stats(self) -&gt; Dict[str, Any]:
+    &#34;&#34;&#34;
+    Get comprehensive statistics about the crawl
+
+    Returns:
+        Dictionary with crawl statistics
+
+    Example:
+        ```python
+        stats = crawl.stats()
+        print(f&#34;URLs discovered: {stats[&#39;urls_discovered&#39;]}&#34;)
+        print(f&#34;URLs crawled: {stats[&#39;urls_crawled&#39;]}&#34;)
+        print(f&#34;Success rate: {stats[&#39;success_rate&#39;]:.1f}%&#34;)
+        print(f&#34;Total size: {stats[&#39;total_size_kb&#39;]:.2f} KB&#34;)
+        ```
+    &#34;&#34;&#34;
+    status = self.status(refresh=False)
+
+    # Basic stats from status
+    stats_dict = {
+        &#39;uuid&#39;: self._uuid,
+        &#39;status&#39;: status.status,
+        &#39;urls_discovered&#39;: status.urls_discovered,
+        &#39;urls_crawled&#39;: status.urls_crawled,
+        &#39;urls_pending&#39;: status.urls_pending,
+        &#39;urls_failed&#39;: status.urls_failed,
+        &#39;progress_pct&#39;: status.progress_pct,
+        &#39;is_complete&#39;: status.is_complete,
+        &#39;is_running&#39;: status.is_running,
+        &#39;is_failed&#39;: status.is_failed,
+    }
+
+    # Calculate basic crawl rate (crawled vs discovered)
+    if status.urls_discovered &gt; 0:
+        stats_dict[&#39;crawl_rate&#39;] = (status.urls_crawled / status.urls_discovered) * 100
+
+    # Add artifact stats if available
+    if self._artifact_cache is not None:
+        pages = self._artifact_cache.get_pages()
+        total_size = sum(len(p[&#39;content&#39;]) for p in pages)
+        avg_size = total_size / len(pages) if pages else 0
+
+        stats_dict.update({
+            &#39;pages_downloaded&#39;: len(pages),
+            &#39;total_size_bytes&#39;: total_size,
+            &#39;total_size_kb&#39;: total_size / 1024,
+            &#39;total_size_mb&#39;: total_size / (1024 * 1024),
+            &#39;avg_page_size_bytes&#39;: avg_size,
+            &#39;avg_page_size_kb&#39;: avg_size / 1024,
+        })
+
+        # Calculate download rate (pages vs discovered)
+        if status.urls_discovered &gt; 0:
+            stats_dict[&#39;download_rate&#39;] = (len(pages) / status.urls_discovered) * 100
+
+    return stats_dict</code></pre>
+</details>
+<div class="desc"><p>Get comprehensive statistics about the crawl</p>
+<h2 id="returns">Returns</h2>
+<p>Dictionary with crawl statistics</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">stats = crawl.stats()
+print(f&quot;URLs discovered: {stats['urls_discovered']}&quot;)
+print(f&quot;URLs crawled: {stats['urls_crawled']}&quot;)
+print(f&quot;Success rate: {stats['success_rate']:.1f}%&quot;)
+print(f&quot;Total size: {stats['total_size_kb']:.2f} KB&quot;)
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.status"><code class="name flex">
+<span>def <span class="ident">status</span></span>(<span>self, refresh: bool = True) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse" href="crawler_response.html#scrapfly.crawler.crawler_response.CrawlerStatusResponse">CrawlerStatusResponse</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def status(self, refresh: bool = True) -&gt; CrawlerStatusResponse:
+    &#34;&#34;&#34;
+    Get current crawler status
+
+    Args:
+        refresh: If True, fetch fresh status from API. If False, return cached status.
+
+    Returns:
+        CrawlerStatusResponse with current status
+
+    Raises:
+        RuntimeError: If crawler not started yet
+
+    Example:
+        ```python
+        status = crawl.status()
+        print(f&#34;Progress: {status.progress_pct}%&#34;)
+        print(f&#34;URLs crawled: {status.urls_crawled}&#34;)
+        ```
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400
+        )
+
+    if refresh or self._status_cache is None:
+        self._status_cache = self._client.get_crawl_status(self._uuid)
+
+    return self._status_cache</code></pre>
+</details>
+<div class="desc"><p>Get current crawler status</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>refresh</code></strong></dt>
+<dd>If True, fetch fresh status from API. If False, return cached status.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>CrawlerStatusResponse with current status</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>RuntimeError</code></dt>
+<dd>If crawler not started yet</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">status = crawl.status()
+print(f&quot;Progress: {status.progress_pct}%&quot;)
+print(f&quot;URLs crawled: {status.urls_crawled}&quot;)
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.wait"><code class="name flex">
+<span>def <span class="ident">wait</span></span>(<span>self, poll_interval: int = 5, max_wait: int | None = None, verbose: bool = False) ‑> <a title="scrapfly.crawler.crawl.Crawl" href="#scrapfly.crawler.crawl.Crawl">Crawl</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def wait(
+    self,
+    poll_interval: int = 5,
+    max_wait: Optional[int] = None,
+    verbose: bool = False
+) -&gt; &#39;Crawl&#39;:
+    &#34;&#34;&#34;
+    Wait for crawler to complete
+
+    Polls the status endpoint until the crawler finishes.
+
+    Args:
+        poll_interval: Seconds between status checks (default: 5)
+        max_wait: Maximum seconds to wait (None = wait forever)
+        verbose: If True, print progress updates
+
+    Returns:
+        Self for method chaining
+
+    Raises:
+        RuntimeError: If crawler not started, failed, or timed out
+
+    Example:
+        ```python
+        # Wait with progress updates
+        crawl.crawl().wait(verbose=True)
+
+        # Wait with timeout
+        crawl.crawl().wait(max_wait=300)  # 5 minutes max
+        ```
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400
+        )
+
+    start_time = time.time()
+    poll_count = 0
+
+    while True:
+        status = self.status(refresh=True)
+        poll_count += 1
+
+        if verbose:
+            logger.info(f&#34;Poll #{poll_count}: {status.status} - &#34;
+                       f&#34;{status.progress_pct:.1f}% - &#34;
+                       f&#34;{status.urls_crawled}/{status.urls_discovered} URLs&#34;)
+
+        if status.is_complete:
+            if verbose:
+                logger.info(f&#34;✓ Crawler completed successfully!&#34;)
+            return self
+        elif status.is_failed:
+            raise ScrapflyCrawlerError(
+                message=f&#34;Crawler failed with status: {status.status}&#34;,
+                code=&#34;FAILED&#34;,
+                http_status_code=400
+            )
+        elif status.is_cancelled:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler was cancelled&#34;,
+                code=&#34;CANCELLED&#34;,
+                http_status_code=400
+            )
+
+        # Check timeout
+        if max_wait is not None:
+            elapsed = time.time() - start_time
+            if elapsed &gt; max_wait:
+                raise ScrapflyCrawlerError(
+                    message=f&#34;Timeout waiting for crawler (&gt;{max_wait}s)&#34;,
+                    code=&#34;TIMEOUT&#34;,
+                    http_status_code=400
+                )
+
+        time.sleep(poll_interval)</code></pre>
+</details>
+<div class="desc"><p>Wait for crawler to complete</p>
+<p>Polls the status endpoint until the crawler finishes.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>poll_interval</code></strong></dt>
+<dd>Seconds between status checks (default: 5)</dd>
+<dt><strong><code>max_wait</code></strong></dt>
+<dd>Maximum seconds to wait (None = wait forever)</dd>
+<dt><strong><code>verbose</code></strong></dt>
+<dd>If True, print progress updates</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>Self for method chaining</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>RuntimeError</code></dt>
+<dd>If crawler not started, failed, or timed out</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python"># Wait with progress updates
+crawl.crawl().wait(verbose=True)
+
+# Wait with timeout
+crawl.crawl().wait(max_wait=300)  # 5 minutes max
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.crawl.Crawl.warc"><code class="name flex">
+<span>def <span class="ident">warc</span></span>(<span>self, artifact_type: str = 'warc') ‑> <a title="scrapfly.crawler.crawler_response.CrawlerArtifactResponse" href="crawler_response.html#scrapfly.crawler.crawler_response.CrawlerArtifactResponse">CrawlerArtifactResponse</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def warc(self, artifact_type: str = &#39;warc&#39;) -&gt; CrawlerArtifactResponse:
+    &#34;&#34;&#34;
+    Download the crawler artifact (WARC file)
+
+    Args:
+        artifact_type: Type of artifact to download (default: &#39;warc&#39;)
+
+    Returns:
+        CrawlerArtifactResponse with parsed WARC data
+
+    Raises:
+        RuntimeError: If crawler not started yet
+
+    Example:
+        ```python
+        # Get WARC artifact
+        artifact = crawl.warc()
+
+        # Get all pages
+        pages = artifact.get_pages()
+
+        # Iterate through responses
+        for record in artifact.iter_responses():
+            print(record.url)
+        ```
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400
+        )
+
+    if self._artifact_cache is None:
+        self._artifact_cache = self._client.get_crawl_artifact(
+            self._uuid,
+            artifact_type=artifact_type
+        )
+
+    return self._artifact_cache</code></pre>
+</details>
+<div class="desc"><p>Download the crawler artifact (WARC file)</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>artifact_type</code></strong></dt>
+<dd>Type of artifact to download (default: 'warc')</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>CrawlerArtifactResponse with parsed WARC data</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>RuntimeError</code></dt>
+<dd>If crawler not started yet</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python"># Get WARC artifact
+artifact = crawl.warc()
+
+# Get all pages
+pages = artifact.get_pages()
+
+# Iterate through responses
+for record in artifact.iter_responses():
+    print(record.url)
+</code></pre></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly.crawler" href="index.html">scrapfly.crawler</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.crawler.crawl.Crawl" href="#scrapfly.crawler.crawl.Crawl">Crawl</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.crawl.Crawl.cancel" href="#scrapfly.crawler.crawl.Crawl.cancel">cancel</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.crawl" href="#scrapfly.crawler.crawl.Crawl.crawl">crawl</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.har" href="#scrapfly.crawler.crawl.Crawl.har">har</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.read" href="#scrapfly.crawler.crawl.Crawl.read">read</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.read_batch" href="#scrapfly.crawler.crawl.Crawl.read_batch">read_batch</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.read_iter" href="#scrapfly.crawler.crawl.Crawl.read_iter">read_iter</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.started" href="#scrapfly.crawler.crawl.Crawl.started">started</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.stats" href="#scrapfly.crawler.crawl.Crawl.stats">stats</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.status" href="#scrapfly.crawler.crawl.Crawl.status">status</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.uuid" href="#scrapfly.crawler.crawl.Crawl.uuid">uuid</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.wait" href="#scrapfly.crawler.crawl.Crawl.wait">wait</a></code></li>
+<li><code><a title="scrapfly.crawler.crawl.Crawl.warc" href="#scrapfly.crawler.crawl.Crawl.warc">warc</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

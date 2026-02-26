@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>scrapfly.crawler.warc_utils API documentation</title>
+<meta name="description" content="WARC Parsing Utilities …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.crawler.warc_utils</code></h1>
+</header>
+<section id="section-intro">
+<p>WARC Parsing Utilities</p>
+<p>This module provides utilities for parsing WARC (Web ARChive) format files.
+WARC is a standard format for storing web crawl data.</p>
+<p>The module provides automatic gzip decompression, record iteration, and
+high-level interfaces for extracting page data.</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="scrapfly.crawler.warc_utils.parse_warc"><code class="name flex">
+<span>def <span class="ident">parse_warc</span></span>(<span>warc_data: bytes | <class 'BinaryIO'>) ‑> <a title="scrapfly.crawler.warc_utils.WarcParser" href="#scrapfly.crawler.warc_utils.WarcParser">WarcParser</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def parse_warc(warc_data: Union[bytes, BinaryIO]) -&gt; WarcParser:
+    &#34;&#34;&#34;
+    Convenience function to create a WARC parser
+
+    Args:
+        warc_data: WARC data as bytes or file-like object
+
+    Returns:
+        WarcParser: Parser instance
+
+    Example:
+        ```python
+        from scrapfly import parse_warc
+
+        # Quick way to get all pages
+        pages = parse_warc(warc_bytes).get_pages()
+        for page in pages:
+            print(f&#34;{page[&#39;url&#39;]}: {page[&#39;status_code&#39;]}&#34;)
+        ```
+    &#34;&#34;&#34;
+    return WarcParser(warc_data)</code></pre>
+</details>
+<div class="desc"><p>Convenience function to create a WARC parser</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>warc_data</code></strong></dt>
+<dd>WARC data as bytes or file-like object</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code><a title="scrapfly.crawler.warc_utils.WarcParser" href="#scrapfly.crawler.warc_utils.WarcParser">WarcParser</a></code></dt>
+<dd>Parser instance</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">from scrapfly import parse_warc
+
+# Quick way to get all pages
+pages = parse_warc(warc_bytes).get_pages()
+for page in pages:
+    print(f&quot;{page['url']}: {page['status_code']}&quot;)
+</code></pre></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.crawler.warc_utils.WarcParser"><code class="flex name class">
+<span>class <span class="ident">WarcParser</span></span>
+<span>(</span><span>warc_data: bytes | <class 'BinaryIO'>)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class WarcParser:
+    &#34;&#34;&#34;
+    Parser for WARC files with automatic decompression
+
+    Provides methods to iterate through WARC records and extract page data.
+
+    Example:
+        ```python
+        # From bytes
+        parser = WarcParser(warc_bytes)
+
+        # Iterate all records
+        for record in parser.iter_records():
+            print(f&#34;{record.url}: {record.status_code}&#34;)
+
+        # Get only HTTP responses
+        for record in parser.iter_responses():
+            print(f&#34;Page: {record.url}&#34;)
+            html = record.content.decode(&#39;utf-8&#39;)
+
+        # Get all pages as simple dicts
+        pages = parser.get_pages()
+        for page in pages:
+            print(f&#34;{page[&#39;url&#39;]}: {page[&#39;status_code&#39;]}&#34;)
+        ```
+    &#34;&#34;&#34;
+
+    def __init__(self, warc_data: Union[bytes, BinaryIO]):
+        &#34;&#34;&#34;
+        Initialize WARC parser
+
+        Args:
+            warc_data: WARC data as bytes or file-like object
+                      (supports both gzip-compressed and uncompressed)
+        &#34;&#34;&#34;
+        if isinstance(warc_data, bytes):
+            # Try to decompress if gzipped
+            if warc_data[:2] == b&#39;\x1f\x8b&#39;:  # gzip magic number
+                try:
+                    warc_data = gzip.decompress(warc_data)
+                except Exception:
+                    pass  # Not gzipped or decompression failed
+            self._data = BytesIO(warc_data)
+        else:
+            self._data = warc_data
+
+    def iter_records(self) -&gt; Iterator[WarcRecord]:
+        &#34;&#34;&#34;
+        Iterate through all WARC records
+
+        Yields:
+            WarcRecord: Each record in the WARC file
+        &#34;&#34;&#34;
+        self._data.seek(0)
+
+        while True:
+            # Read WARC version line
+            version_line = self._read_line()
+            if not version_line or not version_line.startswith(b&#39;WARC/&#39;):
+                break
+
+            # Read WARC headers
+            warc_headers = self._read_headers()
+            if not warc_headers:
+                break
+
+            # Get content length
+            content_length = int(warc_headers.get(&#39;Content-Length&#39;, 0))
+
+            # Read content block
+            content_block = self._data.read(content_length)
+
+            # Skip trailing newlines
+            self._read_line()
+            self._read_line()
+
+            # Parse the record
+            record = self._parse_record(warc_headers, content_block)
+            if record:
+                yield record
+
+    def iter_responses(self) -&gt; Iterator[WarcRecord]:
+        &#34;&#34;&#34;
+        Iterate through HTTP response records only
+
+        Filters out non-response records (requests, metadata, etc.)
+
+        Yields:
+            WarcRecord: HTTP response records only
+        &#34;&#34;&#34;
+        for record in self.iter_records():
+            if record.record_type == &#39;response&#39; and record.status_code:
+                yield record
+
+    def get_pages(self) -&gt; List[Dict]:
+        &#34;&#34;&#34;
+        Get all crawled pages as simple dictionaries
+
+        This is the easiest way to access crawl results without dealing
+        with WARC format details.
+
+        Returns:
+            List of dicts with keys: url, status_code, headers, content
+
+        Example:
+            ```python
+            pages = parser.get_pages()
+            for page in pages:
+                print(f&#34;{page[&#39;url&#39;]}: {len(page[&#39;content&#39;])} bytes&#34;)
+                html = page[&#39;content&#39;].decode(&#39;utf-8&#39;)
+            ```
+        &#34;&#34;&#34;
+        pages = []
+        for record in self.iter_responses():
+            pages.append({
+                &#39;url&#39;: record.url,
+                &#39;status_code&#39;: record.status_code,
+                &#39;headers&#39;: record.headers,
+                &#39;content&#39;: record.content
+            })
+        return pages
+
+    def _read_line(self) -&gt; bytes:
+        &#34;&#34;&#34;Read a single line from the WARC file&#34;&#34;&#34;
+        line = self._data.readline()
+        return line.rstrip(b&#39;\r\n&#39;)
+
+    def _read_headers(self) -&gt; Dict[str, str]:
+        &#34;&#34;&#34;Read headers until empty line&#34;&#34;&#34;
+        headers = {}
+        while True:
+            line = self._read_line()
+            if not line:
+                break
+
+            # Parse header line
+            if b&#39;:&#39; in line:
+                key, value = line.split(b&#39;:&#39;, 1)
+                headers[key.decode(&#39;utf-8&#39;).strip()] = value.decode(&#39;utf-8&#39;).strip()
+
+        return headers
+
+    def _parse_record(self, warc_headers: Dict[str, str], content_block: bytes) -&gt; Optional[WarcRecord]:
+        &#34;&#34;&#34;Parse a WARC record from headers and content&#34;&#34;&#34;
+        record_type = warc_headers.get(&#39;WARC-Type&#39;, &#39;&#39;)
+        url = warc_headers.get(&#39;WARC-Target-URI&#39;, &#39;&#39;)
+
+        if record_type == &#39;response&#39;:
+            # Parse HTTP response
+            http_headers, body = self._parse_http_response(content_block)
+            status_code = self._extract_status_code(content_block)
+
+            return WarcRecord(
+                record_type=record_type,
+                url=url,
+                headers=http_headers,
+                content=body,
+                status_code=status_code,
+                warc_headers=warc_headers
+            )
+        elif record_type in [&#39;request&#39;, &#39;metadata&#39;, &#39;warcinfo&#39;]:
+            # Other record types - store raw content
+            return WarcRecord(
+                record_type=record_type,
+                url=url,
+                headers={},
+                content=content_block,
+                status_code=None,
+                warc_headers=warc_headers
+            )
+
+        return None
+
+    def _parse_http_response(self, content_block: bytes) -&gt; tuple:
+        &#34;&#34;&#34;Parse HTTP response into headers and body&#34;&#34;&#34;
+        try:
+            # Split on double newline (end of headers)
+            parts = content_block.split(b&#39;\r\n\r\n&#39;, 1)
+            if len(parts) &lt; 2:
+                parts = content_block.split(b&#39;\n\n&#39;, 1)
+
+            if len(parts) == 2:
+                header_section, body = parts
+            else:
+                header_section, body = content_block, b&#39;&#39;
+
+            # Parse headers
+            headers = {}
+            lines = header_section.split(b&#39;\r\n&#39;) if b&#39;\r\n&#39; in header_section else header_section.split(b&#39;\n&#39;)
+
+            # Skip status line
+            for line in lines[1:]:
+                if b&#39;:&#39; in line:
+                    key, value = line.split(b&#39;:&#39;, 1)
+                    headers[key.decode(&#39;utf-8&#39;, errors=&#39;ignore&#39;).strip()] = value.decode(&#39;utf-8&#39;, errors=&#39;ignore&#39;).strip()
+
+            return headers, body
+
+        except Exception:
+            return {}, content_block
+
+    def _extract_status_code(self, content_block: bytes) -&gt; Optional[int]:
+        &#34;&#34;&#34;Extract HTTP status code from response&#34;&#34;&#34;
+        try:
+            # Look for HTTP status line (e.g., &#34;HTTP/1.1 200 OK&#34;)
+            first_line = content_block.split(b&#39;\r\n&#39;, 1)[0] if b&#39;\r\n&#39; in content_block else content_block.split(b&#39;\n&#39;, 1)[0]
+            match = re.match(rb&#39;HTTP/\d\.\d (\d+)&#39;, first_line)
+            if match:
+                return int(match.group(1))
+        except Exception:
+            pass
+        return None</code></pre>
+</details>
+<div class="desc"><p>Parser for WARC files with automatic decompression</p>
+<p>Provides methods to iterate through WARC records and extract page data.</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-python"># From bytes
+parser = WarcParser(warc_bytes)
+
+# Iterate all records
+for record in parser.iter_records():
+    print(f&quot;{record.url}: {record.status_code}&quot;)
+
+# Get only HTTP responses
+for record in parser.iter_responses():
+    print(f&quot;Page: {record.url}&quot;)
+    html = record.content.decode('utf-8')
+
+# Get all pages as simple dicts
+pages = parser.get_pages()
+for page in pages:
+    print(f&quot;{page['url']}: {page['status_code']}&quot;)
+</code></pre>
+<p>Initialize WARC parser</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>warc_data</code></strong></dt>
+<dd>WARC data as bytes or file-like object
+(supports both gzip-compressed and uncompressed)</dd>
+</dl></div>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.crawler.warc_utils.WarcParser.get_pages"><code class="name flex">
+<span>def <span class="ident">get_pages</span></span>(<span>self) ‑> List[Dict]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_pages(self) -&gt; List[Dict]:
+    &#34;&#34;&#34;
+    Get all crawled pages as simple dictionaries
+
+    This is the easiest way to access crawl results without dealing
+    with WARC format details.
+
+    Returns:
+        List of dicts with keys: url, status_code, headers, content
+
+    Example:
+        ```python
+        pages = parser.get_pages()
+        for page in pages:
+            print(f&#34;{page[&#39;url&#39;]}: {len(page[&#39;content&#39;])} bytes&#34;)
+            html = page[&#39;content&#39;].decode(&#39;utf-8&#39;)
+        ```
+    &#34;&#34;&#34;
+    pages = []
+    for record in self.iter_responses():
+        pages.append({
+            &#39;url&#39;: record.url,
+            &#39;status_code&#39;: record.status_code,
+            &#39;headers&#39;: record.headers,
+            &#39;content&#39;: record.content
+        })
+    return pages</code></pre>
+</details>
+<div class="desc"><p>Get all crawled pages as simple dictionaries</p>
+<p>This is the easiest way to access crawl results without dealing
+with WARC format details.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>List</code> of <code>dicts with keys</code></dt>
+<dd>url, status_code, headers, content</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code class="language-python">pages = parser.get_pages()
+for page in pages:
+    print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
+    html = page['content'].decode('utf-8')
+</code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.warc_utils.WarcParser.iter_records"><code class="name flex">
+<span>def <span class="ident">iter_records</span></span>(<span>self) ‑> Iterator[<a title="scrapfly.crawler.warc_utils.WarcRecord" href="#scrapfly.crawler.warc_utils.WarcRecord">WarcRecord</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def iter_records(self) -&gt; Iterator[WarcRecord]:
+    &#34;&#34;&#34;
+    Iterate through all WARC records
+
+    Yields:
+        WarcRecord: Each record in the WARC file
+    &#34;&#34;&#34;
+    self._data.seek(0)
+
+    while True:
+        # Read WARC version line
+        version_line = self._read_line()
+        if not version_line or not version_line.startswith(b&#39;WARC/&#39;):
+            break
+
+        # Read WARC headers
+        warc_headers = self._read_headers()
+        if not warc_headers:
+            break
+
+        # Get content length
+        content_length = int(warc_headers.get(&#39;Content-Length&#39;, 0))
+
+        # Read content block
+        content_block = self._data.read(content_length)
+
+        # Skip trailing newlines
+        self._read_line()
+        self._read_line()
+
+        # Parse the record
+        record = self._parse_record(warc_headers, content_block)
+        if record:
+            yield record</code></pre>
+</details>
+<div class="desc"><p>Iterate through all WARC records</p>
+<h2 id="yields">Yields</h2>
+<dl>
+<dt><code><a title="scrapfly.crawler.warc_utils.WarcRecord" href="#scrapfly.crawler.warc_utils.WarcRecord">WarcRecord</a></code></dt>
+<dd>Each record in the WARC file</dd>
+</dl></div>
+</dd>
+<dt id="scrapfly.crawler.warc_utils.WarcParser.iter_responses"><code class="name flex">
+<span>def <span class="ident">iter_responses</span></span>(<span>self) ‑> Iterator[<a title="scrapfly.crawler.warc_utils.WarcRecord" href="#scrapfly.crawler.warc_utils.WarcRecord">WarcRecord</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def iter_responses(self) -&gt; Iterator[WarcRecord]:
+    &#34;&#34;&#34;
+    Iterate through HTTP response records only
+
+    Filters out non-response records (requests, metadata, etc.)
+
+    Yields:
+        WarcRecord: HTTP response records only
+    &#34;&#34;&#34;
+    for record in self.iter_records():
+        if record.record_type == &#39;response&#39; and record.status_code:
+            yield record</code></pre>
+</details>
+<div class="desc"><p>Iterate through HTTP response records only</p>
+<p>Filters out non-response records (requests, metadata, etc.)</p>
+<h2 id="yields">Yields</h2>
+<dl>
+<dt><code><a title="scrapfly.crawler.warc_utils.WarcRecord" href="#scrapfly.crawler.warc_utils.WarcRecord">WarcRecord</a></code></dt>
+<dd>HTTP response records only</dd>
+</dl></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.warc_utils.WarcRecord"><code class="flex name class">
+<span>class <span class="ident">WarcRecord</span></span>
+<span>(</span><span>record_type: str,<br>url: str,<br>headers: Dict[str, str],<br>content: bytes,<br>status_code: int | None,<br>warc_headers: Dict[str, str])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class WarcRecord:
+    &#34;&#34;&#34;
+    Represents a single WARC record
+
+    A WARC file contains multiple records, each representing a captured
+    HTTP transaction or metadata.
+    &#34;&#34;&#34;
+    record_type: str  # Type of record (response, request, metadata, etc.)
+    url: str  # Associated URL
+    headers: Dict[str, str]  # HTTP headers
+    content: bytes  # Response body/content
+    status_code: Optional[int]  # HTTP status code (for response records)
+    warc_headers: Dict[str, str]  # WARC-specific headers
+
+    def __repr__(self):
+        return f&#34;WarcRecord(type={self.record_type}, url={self.url}, status={self.status_code})&#34;</code></pre>
+</details>
+<div class="desc"><p>Represents a single WARC record</p>
+<p>A WARC file contains multiple records, each representing a captured
+HTTP transaction or metadata.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.warc_utils.WarcRecord.content"><code class="name">var <span class="ident">content</span> : bytes</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.warc_utils.WarcRecord.headers"><code class="name">var <span class="ident">headers</span> : Dict[str, str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.warc_utils.WarcRecord.record_type"><code class="name">var <span class="ident">record_type</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.warc_utils.WarcRecord.status_code"><code class="name">var <span class="ident">status_code</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.warc_utils.WarcRecord.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.warc_utils.WarcRecord.warc_headers"><code class="name">var <span class="ident">warc_headers</span> : Dict[str, str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly.crawler" href="index.html">scrapfly.crawler</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="scrapfly.crawler.warc_utils.parse_warc" href="#scrapfly.crawler.warc_utils.parse_warc">parse_warc</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.crawler.warc_utils.WarcParser" href="#scrapfly.crawler.warc_utils.WarcParser">WarcParser</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.warc_utils.WarcParser.get_pages" href="#scrapfly.crawler.warc_utils.WarcParser.get_pages">get_pages</a></code></li>
+<li><code><a title="scrapfly.crawler.warc_utils.WarcParser.iter_records" href="#scrapfly.crawler.warc_utils.WarcParser.iter_records">iter_records</a></code></li>
+<li><code><a title="scrapfly.crawler.warc_utils.WarcParser.iter_responses" href="#scrapfly.crawler.warc_utils.WarcParser.iter_responses">iter_responses</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.warc_utils.WarcRecord" href="#scrapfly.crawler.warc_utils.WarcRecord">WarcRecord</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.warc_utils.WarcRecord.content" href="#scrapfly.crawler.warc_utils.WarcRecord.content">content</a></code></li>
+<li><code><a title="scrapfly.crawler.warc_utils.WarcRecord.headers" href="#scrapfly.crawler.warc_utils.WarcRecord.headers">headers</a></code></li>
+<li><code><a title="scrapfly.crawler.warc_utils.WarcRecord.record_type" href="#scrapfly.crawler.warc_utils.WarcRecord.record_type">record_type</a></code></li>
+<li><code><a title="scrapfly.crawler.warc_utils.WarcRecord.status_code" href="#scrapfly.crawler.warc_utils.WarcRecord.status_code">status_code</a></code></li>
+<li><code><a title="scrapfly.crawler.warc_utils.WarcRecord.url" href="#scrapfly.crawler.warc_utils.WarcRecord.url">url</a></code></li>
+<li><code><a title="scrapfly.crawler.warc_utils.WarcRecord.warc_headers" href="#scrapfly.crawler.warc_utils.WarcRecord.warc_headers">warc_headers</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>
