@@ -19,11 +19,35 @@ from .errors import ApiHttpClientError
 from .errors import ApiHttpServerError
 from .errors import ScreenshotAPIError
 from .errors import ExtractionAPIError
+from .errors import CrawlerError
+from .errors import ScrapflyCrawlerError
 from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
+from .crawler import (
+    CrawlerConfig,
+    CrawlerStartResponse,
+    CrawlerStatusResponse,
+    CrawlerArtifactResponse,
+    WarcParser,
+    WarcRecord,
+    parse_warc,
+    HarArchive,
+    HarEntry,
+    Crawl,
+    ContentFormat,
+    CrawlContent,
+    CrawlerWebhookEvent,
+    CrawlerWebhookBase,
+    CrawlStartedWebhook,
+    CrawlUrlDiscoveredWebhook,
+    CrawlUrlFailedWebhook,
+    CrawlCompletedWebhook,
+    CrawlerWebhook,
+    webhook_from_payload
+)
 
 
 __all__: Tuple[str, ...] = (
@@ -53,7 +77,29 @@ __all__: Tuple[str, ...] = (
     'ExtractionConfig',
     'ScreenshotAPIError',
     'ExtractionAPIError',
+    'CrawlerError',
+    'ScrapflyCrawlerError',
     'ScraperAPI',
     'MonitoringTargetPeriod',
     'MonitoringAggregation',
+    'CrawlerConfig',
+    'CrawlerStartResponse',
+    'CrawlerStatusResponse',
+    'CrawlerArtifactResponse',
+    'WarcParser',
+    'WarcRecord',
+    'parse_warc',
+    'HarArchive',
+    'HarEntry',
+    'Crawl',
+    'ContentFormat',
+    'CrawlContent',
+    'CrawlerWebhookEvent',
+    'CrawlerWebhookBase',
+    'CrawlStartedWebhook',
+    'CrawlUrlDiscoveredWebhook',
+    'CrawlUrlFailedWebhook',
+    'CrawlCompletedWebhook',
+    'CrawlerWebhook',
+    'webhook_from_payload',
 )

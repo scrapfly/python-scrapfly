@@ -2,12 +2,15 @@ from typing import Callable, Optional, Tuple
 from enum import Enum
 
 from scrapfly import ResponseBodyHandler
-import logging as logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ResourceType(Enum):
     SCRAPE = 'scrape'
     PING = 'ping'
+    CRAWLER = 'crawler'
 
 
 def create_server(signing_secrets:Tuple[str], callback:Callable, app:Optional['flask.Flask']=None) -> 'flask.Flask':
@@ -26,7 +29,7 @@ def create_server(signing_secrets:Tuple[str], callback:Callable, app:Optional['f
         headers = request.headers
         resource_type = headers.get('X-Scrapfly-Webhook-Resource-Type')
 
-        if resource_type == ResourceType.SCRAPE.value or resource_type == ResourceType.PING.value:
+        if resource_type in (ResourceType.SCRAPE.value, ResourceType.PING.value, ResourceType.CRAWLER.value):
             body_handler = ResponseBodyHandler(signing_secrets=signing_secrets)
             data = body_handler.read(
                 content=request.data,

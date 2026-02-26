@@ -7,3 +7,5 @@ venv
 examples/scrapy/demo/images
 examples/scrapy/demo/*.csv
 !examples/scrapy/demo/images/.gitkeep
+/tests/crawler/*.gz
+.env

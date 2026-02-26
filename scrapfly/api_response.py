@@ -3,7 +3,7 @@ import binascii
 import hashlib
 import hmac
 import re
-import logging as logger
+import logging
 import shutil
 
 from base64 import b64decode
@@ -35,7 +35,7 @@ from .errors import ErrorFactory, ScreenshotAPIError, ExtractionAPIError, Encode
     ExtraUsageForbidden, WebhookSignatureMissMatch, ContentError
 from .frozen_dict import FrozenDict
 
-logger.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 _DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 

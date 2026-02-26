@@ -48,7 +48,8 @@ EXTRA_DEPENDENCIES = {
         'twine',
         'setuptools',
         'wheel',
-        'pdoc3'
+        'pdoc3',
+        'python-dotenv',
     ],
     'deploy': [
         'bumpversion',
