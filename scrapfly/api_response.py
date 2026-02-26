@@ -87,10 +87,16 @@ class ResponseBodyHandler:
                 pass
 
         try:
-            import zstd
-            self.SUPPORTED_COMPRESSION.append('zstd')
+            from compression import zstd as _zstd  # noqa: F401 - Python 3.14+ native zstd
+            if 'zstd' not in self.SUPPORTED_COMPRESSION:
+                self.SUPPORTED_COMPRESSION.append('zstd')
         except ImportError:
-            pass
+            try:
+                import zstandard  # noqa: F401 - aligned with urllib3 for transparent decompression
+                if 'zstd' not in self.SUPPORTED_COMPRESSION:
+                    self.SUPPORTED_COMPRESSION.append('zstd')
+            except ImportError:
+                pass
 
         self.content_encoding: str = ', '.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret: Optional[Tuple[str]] = None
@@ -141,8 +147,12 @@ class ResponseBodyHandler:
             import brotli
             content = brotli.decompress(content)
         elif content_encoding == 'zstd':
-            import zstd
-            content = zstd.decompress(content)
+            try:
+                from compression import zstd as _zstd  # Python 3.14+
+                content = _zstd.decompress(content)
+            except ImportError:
+                import zstandard
+                content = zstandard.decompress(content)
 
         if self._signing_secret is not None and signature is not None:
             if not self.verify(content, signature):

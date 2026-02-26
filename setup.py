@@ -73,7 +73,8 @@ EXTRA_DEPENDENCIES = {
     ],
     'speedups': [
         'brotlipy',
-        'msgpack'
+        'msgpack',
+        'zstandard; python_version < "3.14"'
     ],
     'webhook-server': [
         'flask',
