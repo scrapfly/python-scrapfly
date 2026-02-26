@@ -102,7 +102,7 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.MAX_API_RETRIES"><code class="name">var <span class="ident">MAX_API_RETRIES</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -202,25 +202,10 @@ el.replaceWith(d);
 
         ScrapyRefererMidleware.request_scheduled(self, request, spider)</code></pre>
 </details>
-<div class="desc"><p>Optional base class for spider middlewares.</p>
-<div class="admonition versionadded">
-<p class="admonition-title">Added in version:&ensp;2.13</p>
-</div>
-<p>This class provides helper methods for asynchronous
-<code>process_spider_output()</code> and <code>process_start()</code> methods. Middlewares
-that don't have either of these methods don't need to use this class.</p>
-<p>You can override the
-:meth:<code>~scrapy.spidermiddlewares.base.BaseSpiderMiddleware.get_processed_request</code>
-method to add processing code for requests and the
-:meth:<code>~scrapy.spidermiddlewares.base.BaseSpiderMiddleware.get_processed_item</code>
-method to add processing code for items. These methods take a single
-request or item from the spider output iterable and return a request or
-item (the same or a new one), or <code>None</code> to remove this request or item
-from the processing.</p></div>
+<div class="desc"></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.spidermiddlewares.referer.RefererMiddleware</li>
-<li>scrapy.spidermiddlewares.base.BaseSpiderMiddleware</li>
 </ul>
 <h3>Methods</h3>
 <dl>

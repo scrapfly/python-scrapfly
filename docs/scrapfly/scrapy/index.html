@@ -332,10 +332,8 @@ refresh it in case of change.</p></div>
         spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
         return spider</code></pre>
 </details>
-<div class="desc"><p>Base class that any spider must subclass.</p>
-<p>It provides a default :meth:<code>start</code> implementation that sends
-requests based on the :attr:<code>start_urls</code> class attribute and calls the
-:meth:<code>parse</code> method for each response.</p></div>
+<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
+class.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></li>
@@ -346,7 +344,7 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyCrawlSpider.rules"><code class="name">var <span class="ident">rules</span> : Sequence[scrapy.spiders.crawl.Rule]</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -387,6 +385,16 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.account_info" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider.account_info">account_info</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client">scrapfly_client</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_settings" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider.scrapfly_settings">scrapfly_settings</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware"><code class="flex name class">
 <span>class <span class="ident">ScrapflyMiddleware</span></span>
@@ -444,7 +452,7 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.MAX_API_RETRIES"><code class="name">var <span class="ident">MAX_API_RETRIES</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -594,7 +602,7 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
         return cls(*args, **kwargs)</code></pre>
 </details>
 <div class="desc"><p>Represents an HTTP request, which is usually generated in a Spider and
-executed by the Downloader, thus generating a :class:<code>~scrapy.http.Response</code>.</p></div>
+executed by the Downloader, thus generating a :class:<code>Response</code>.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.http.request.Request</li>
@@ -604,11 +612,11 @@ executed by the Downloader, thus generating a :class:<code>~scrapy.http.Response
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyScrapyRequest.attributes"><code class="name">var <span class="ident">attributes</span> : tuple[str, ...]</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyRequest.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -764,71 +772,71 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.DEFAULT_ENCODING"><code class="name">var <span class="ident">DEFAULT_ENCODING</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.browser_data"><code class="name">var <span class="ident">browser_data</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.config"><code class="name">var <span class="ident">config</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.content"><code class="name">var <span class="ident">content</span> : str | _io.BytesIO</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.context"><code class="name">var <span class="ident">context</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.dns"><code class="name">var <span class="ident">dns</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.duration"><code class="name">var <span class="ident">duration</span> : float</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.error"><code class="name">var <span class="ident">error</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.format"><code class="name">var <span class="ident">format</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.iframes"><code class="name">var <span class="ident">iframes</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.log_url"><code class="name">var <span class="ident">log_url</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.scrape_api_response"><code class="name">var <span class="ident">scrape_api_response</span> : <a title="scrapfly.api_response.ScrapeApiResponse" href="../api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="../scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.screenshots"><code class="name">var <span class="ident">screenshots</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.ssl"><code class="name">var <span class="ident">ssl</span> : Dict | None</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.status"><code class="name">var <span class="ident">status</span> : str</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyResponse.success"><code class="name">var <span class="ident">success</span> : bool</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -1042,10 +1050,8 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
         spider.scrapfly_client.open()
         return spider</code></pre>
 </details>
-<div class="desc"><p>Base class that any spider must subclass.</p>
-<p>It provides a default :meth:<code>start</code> implementation that sends
-requests based on the :attr:<code>start_urls</code> class attribute and calls the
-:meth:<code>parse</code> method for each response.</p></div>
+<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
+class.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.spiders.Spider</li>
@@ -1059,15 +1065,15 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <dl>
 <dt id="scrapfly.scrapy.ScrapflySpider.account_info"><code class="name">var <span class="ident">account_info</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider.scrapfly_client"><code class="name">var <span class="ident">scrapfly_client</span> : <a title="scrapfly.client.ScrapflyClient" href="../client.html#scrapfly.client.ScrapflyClient">ScrapflyClient</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider.scrapfly_settings"><code class="name">var <span class="ident">scrapfly_settings</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>

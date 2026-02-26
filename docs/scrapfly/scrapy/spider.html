@@ -141,10 +141,8 @@ el.replaceWith(d);
         spider._follow_links = crawler.settings.getbool(&#39;CRAWLSPIDER_FOLLOW_LINKS&#39;, True)
         return spider</code></pre>
 </details>
-<div class="desc"><p>Base class that any spider must subclass.</p>
-<p>It provides a default :meth:<code>start</code> implementation that sends
-requests based on the :attr:<code>start_urls</code> class attribute and calls the
-:meth:<code>parse</code> method for each response.</p></div>
+<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
+class.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.scrapy.spider.ScrapflySpider" href="#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></li>
@@ -155,7 +153,7 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <dl>
 <dt id="scrapfly.scrapy.spider.ScrapflyCrawlSpider.rules"><code class="name">var <span class="ident">rules</span> : Sequence[scrapy.spiders.crawl.Rule]</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>
@@ -196,6 +194,16 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.scrapy.spider.ScrapflySpider" href="#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.account_info" href="#scrapfly.scrapy.spider.ScrapflySpider.account_info">account_info</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client" href="#scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client">scrapfly_client</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_settings" href="#scrapfly.scrapy.spider.ScrapflySpider.scrapfly_settings">scrapfly_settings</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider"><code class="flex name class">
 <span>class <span class="ident">ScrapflySpider</span></span>
@@ -391,10 +399,8 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
         spider.scrapfly_client.open()
         return spider</code></pre>
 </details>
-<div class="desc"><p>Base class that any spider must subclass.</p>
-<p>It provides a default :meth:<code>start</code> implementation that sends
-requests based on the :attr:<code>start_urls</code> class attribute and calls the
-:meth:<code>parse</code> method for each response.</p></div>
+<div class="desc"><p>Base class for scrapy spiders. All spiders must inherit from this
+class.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.spiders.Spider</li>
@@ -408,15 +414,15 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <dl>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.account_info"><code class="name">var <span class="ident">account_info</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_client"><code class="name">var <span class="ident">scrapfly_client</span> : <a title="scrapfly.client.ScrapflyClient" href="../client.html#scrapfly.client.ScrapflyClient">ScrapflyClient</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.spider.ScrapflySpider.scrapfly_settings"><code class="name">var <span class="ident">scrapfly_settings</span> : Dict</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Static methods</h3>

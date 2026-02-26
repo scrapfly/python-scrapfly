@@ -598,16 +598,11 @@ def extraction_success(self) -&gt; bool:
                 pass
 
         try:
-            from compression import zstd as _zstd  # noqa: F401 - Python 3.14+ native zstd
-            if &#39;zstd&#39; not in self.SUPPORTED_COMPRESSION:
+            from urllib3.response import HAS_ZSTD
+            if HAS_ZSTD and &#39;zstd&#39; not in self.SUPPORTED_COMPRESSION:
                 self.SUPPORTED_COMPRESSION.append(&#39;zstd&#39;)
         except ImportError:
-            try:
-                import zstandard  # noqa: F401 - aligned with urllib3 for transparent decompression
-                if &#39;zstd&#39; not in self.SUPPORTED_COMPRESSION:
-                    self.SUPPORTED_COMPRESSION.append(&#39;zstd&#39;)
-            except ImportError:
-                pass
+            pass
 
         self.content_encoding: str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret: Optional[Tuple[str]] = None
@@ -745,11 +740,11 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </dd>
 <dt id="scrapfly.api_response.ResponseBodyHandler.SUPPORTED_COMPRESSION"><code class="name">var <span class="ident">SUPPORTED_COMPRESSION</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.api_response.ResponseBodyHandler.SUPPORTED_CONTENT_TYPES"><code class="name">var <span class="ident">SUPPORTED_CONTENT_TYPES</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -856,7 +851,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
                 &#39;result&#39;: {
                     &#39;request_headers&#39;: {},
                     &#39;status&#39;: &#39;DONE&#39;,
-                    &#39;success&#39;: 200 &gt;= self.response.status_code &lt; 300,
+                    &#39;success&#39;: 200 &lt;= self.response.status_code &lt; 300,
                     &#39;response_headers&#39;: self.response.headers,
                     &#39;status_code&#39;: self.response.status_code,
                     &#39;reason&#39;: self.response.reason,
@@ -924,7 +919,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
         &#34;&#34;&#34;
             Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
         &#34;&#34;&#34;
-        return 200 &gt;= self.response.status_code &lt;= 299
+        return 200 &lt;= self.response.status_code &lt;= 299
 
     @property
     def scrape_success(self) -&gt; bool:
@@ -941,7 +936,7 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
             return None
 
         if self.scrape_success is False:
-            return self.scrape_result[&#39;error&#39;]
+            return self.scrape_result.get(&#39;error&#39;)
 
     @property
     def upstream_status_code(self) -&gt; Optional[int]:
@@ -1170,11 +1165,11 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <dl>
 <dt id="scrapfly.api_response.ScrapeApiResponse.large_object_handler"><code class="name">var <span class="ident">large_object_handler</span> : Callable</code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 <dt id="scrapfly.api_response.ScrapeApiResponse.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>The type of the None singleton.</p></div>
 </dd>
 </dl>
 <h3>Instance variables</h3>
@@ -1236,7 +1231,7 @@ def error(self) -&gt; Optional[Dict]:
         return None
 
     if self.scrape_success is False:
-        return self.scrape_result[&#39;error&#39;]</code></pre>
+        return self.scrape_result.get(&#39;error&#39;)</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -1320,7 +1315,7 @@ def success(self) -&gt; bool:
     &#34;&#34;&#34;
         Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
     &#34;&#34;&#34;
-    return 200 &gt;= self.response.status_code &lt;= 299</code></pre>
+    return 200 &lt;= self.response.status_code &lt;= 299</code></pre>
 </details>
 <div class="desc"><p>Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code</p></div>
 </dd>
