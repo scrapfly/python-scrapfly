@@ -55,7 +55,7 @@ def _date_parser(value):
                     value[k] = v
             else:
                 value[k] = v
-        elif isinstance(v, Iterable):
+        elif isinstance(v, (Dict, list)):
             value[k] = _date_parser(v)
         else:
             value[k] = v
@@ -87,16 +87,11 @@ class ResponseBodyHandler:
                 pass
 
         try:
-            from compression import zstd as _zstd  # noqa: F401 - Python 3.14+ native zstd
-            if 'zstd' not in self.SUPPORTED_COMPRESSION:
+            from urllib3.response import HAS_ZSTD
+            if HAS_ZSTD and 'zstd' not in self.SUPPORTED_COMPRESSION:
                 self.SUPPORTED_COMPRESSION.append('zstd')
         except ImportError:
-            try:
-                import zstandard  # noqa: F401 - aligned with urllib3 for transparent decompression
-                if 'zstd' not in self.SUPPORTED_COMPRESSION:
-                    self.SUPPORTED_COMPRESSION.append('zstd')
-            except ImportError:
-                pass
+            pass
 
         self.content_encoding: str = ', '.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret: Optional[Tuple[str]] = None
@@ -322,7 +317,7 @@ class ScrapeApiResponse(ApiResponse):
                 'result': {
                     'request_headers': {},
                     'status': 'DONE',
-                    'success': 200 >= self.response.status_code < 300,
+                    'success': 200 <= self.response.status_code < 300,
                     'response_headers': self.response.headers,
                     'status_code': self.response.status_code,
                     'reason': self.response.reason,
@@ -390,7 +385,7 @@ class ScrapeApiResponse(ApiResponse):
         """
             Success means Scrapfly api reply correctly to the call, but the scrape can be unsuccessful if the upstream reply with error status code
         """
-        return 200 >= self.response.status_code <= 299
+        return 200 <= self.response.status_code <= 299
 
     @property
     def scrape_success(self) -> bool:
@@ -407,7 +402,7 @@ class ScrapeApiResponse(ApiResponse):
             return None
 
         if self.scrape_success is False:
-            return self.scrape_result['error']
+            return self.scrape_result.get('error')
 
     @property
     def upstream_status_code(self) -> Optional[int]:
