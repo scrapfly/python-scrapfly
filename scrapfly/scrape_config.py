@@ -149,7 +149,8 @@ class ScrapeConfig(BaseApiConfig):
         os:Optional[str] = None,
         lang:Optional[List[str]] = None,
         auto_scroll:Optional[bool] = None,
-        cost_budget:Optional[int] = None
+        cost_budget:Optional[int] = None,
+        browser_brand:Optional[str] = None
     ):
         assert(type(url) is str)
 
@@ -202,6 +203,7 @@ class ScrapeConfig(BaseApiConfig):
         self.os = os
         self.auto_scroll = auto_scroll
         self.cost_budget = cost_budget
+        self.browser_brand = browser_brand
 
         if cookies:
             _cookies = []
@@ -381,6 +383,9 @@ class ScrapeConfig(BaseApiConfig):
         if self.os is not None:
             params['os'] = self.os
 
+        if self.browser_brand is not None:
+            params['browser_brand'] = self.browser_brand
+
         return params
 
     @staticmethod
@@ -478,6 +483,7 @@ class ScrapeConfig(BaseApiConfig):
             'os': self.os,
             'auto_scroll': self.auto_scroll,
             'cost_budget': self.cost_budget,
+            'browser_brand': self.browser_brand,
         }
 
     @staticmethod
@@ -532,6 +538,7 @@ class ScrapeConfig(BaseApiConfig):
         lang = scrape_config_dict.get('lang', None)
         auto_scroll = scrape_config_dict.get('auto_scroll', None)
         cost_budget = scrape_config_dict.get('cost_budget', None)
+        browser_brand = scrape_config_dict.get('browser_brand', None)
 
         return ScrapeConfig(
             url=url,
@@ -575,4 +582,5 @@ class ScrapeConfig(BaseApiConfig):
             lang=lang,
             auto_scroll=auto_scroll,
             cost_budget=cost_budget,
+            browser_brand=browser_brand,
         )

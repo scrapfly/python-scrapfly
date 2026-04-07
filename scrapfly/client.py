@@ -36,6 +36,7 @@ from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
 from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse
+from .browser_config import BrowserConfig
 from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, HttpError, UpstreamHttpError
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,8 @@ MonitoringAggregation = Literal[
 class ScrapflyClient:
 
     HOST = 'https://api.scrapfly.io'
+    CLOUD_BROWSER_HOST = 'wss://browser.scrapfly.io'
+    CLOUD_BROWSER_API_HOST = 'https://browser.scrapfly.io'
     DEFAULT_CONNECT_TIMEOUT = 30
     DEFAULT_READ_TIMEOUT = 30
 
@@ -127,6 +130,7 @@ class ScrapflyClient:
         read_timeout:int = DEFAULT_READ_TIMEOUT,
         default_read_timeout:int = DEFAULT_READ_TIMEOUT,
         reporter:Optional[Callable]=None,
+        cloud_browser_host: Optional[str] = None,
         **kwargs
     ):
         if host[-1] == '/':  # remove last '/' if exists
@@ -150,6 +154,8 @@ class ScrapflyClient:
         self.host = host
         self.key = key
         self.verify = verify
+        self.cloud_browser_host = cloud_browser_host or self.CLOUD_BROWSER_HOST
+        self.cloud_browser_api_host = cloud_browser_host.replace('wss://', 'https://') if cloud_browser_host else self.CLOUD_BROWSER_API_HOST
         self.debug = debug
         self.connect_timeout = connect_timeout
         self.web_scraping_api_read_timeout = web_scraping_api_read_timeout
@@ -1119,3 +1125,279 @@ class ScrapflyClient:
             request=response.request,
             response=response
         )
+
+    def cloud_browser(self, browser_config: Optional[BrowserConfig] = None) -> str:
+        """
+        Get the WebSocket URL for a Cloud Browser session.
+        :param browser_config: Optional BrowserConfig - connection parameters
+        :return: str - the full wss:// URL for CDP connection
+        """
+        if browser_config is None:
+            browser_config = BrowserConfig()
+
+        return browser_config.websocket_url(api_key=self.key, host=self.cloud_browser_host)
+
+    def cloud_browser_unblock(
+        self,
+        url: str,
+        proxy_pool: Optional[str] = None,
+        country: Optional[str] = None,
+        os: Optional[str] = None,
+        timeout: Optional[int] = None,
+        browser_timeout: Optional[int] = None,
+        headers: Optional[Dict] = None,
+        body: Optional[str] = None,
+        method: Optional[str] = None,
+    ) -> Dict:
+        """
+        Bypass anti-bot protection and get a ready-to-use browser session.
+        :param url: Target URL to navigate to and bypass protection
+        :param proxy_pool: Proxy pool: 'datacenter' or 'residential'
+        :param country: ISO country code for proxy geolocation
+        :param os: Operating system fingerprint: 'linux', 'windows', 'macos'
+        :param timeout: Navigation timeout in seconds (max 300)
+        :param browser_timeout: Browser session timeout in seconds (max 1800)
+        :param headers: Custom request headers
+        :param body: Request body for POST/PUT/PATCH requests
+        :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+        :return: dict with ws_url, session_id, run_id
+        """
+        proxy_pool_map = {
+            'datacenter': 'public_datacenter_pool',
+            'residential': 'public_residential_pool',
+        }
+
+        json_body = {'url': url}
+
+        if proxy_pool is not None:
+            json_body['proxy_pool'] = proxy_pool_map.get(proxy_pool, proxy_pool)
+
+        if country is not None:
+            json_body['country'] = country
+
+        if os is not None:
+            json_body['os'] = os
+
+        if timeout is not None:
+            json_body['timeout'] = timeout
+
+        if browser_timeout is not None:
+            json_body['browser_timeout'] = browser_timeout
+
+        if headers is not None:
+            json_body['headers'] = headers
+
+        if body is not None:
+            json_body['body'] = body
+
+        if method is not None:
+            json_body['method'] = method
+
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/unblock',
+            json=json_body,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, 155),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    def cloud_browser_session_stop(self, session_id: str) -> None:
+        """
+        Terminate a Cloud Browser session.
+        :param session_id: The session identifier to terminate
+        """
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/session/' + session_id + '/stop',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+    def cloud_browser_playback(self, run_id: str) -> Dict:
+        """
+        Get playback info for a debug session recording.
+        :param run_id: The unique run identifier
+        :return: dict with available, metadata, video_url
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/run/' + run_id + '/playback',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    def cloud_browser_video(self, run_id: str, save_path: Optional[str] = None) -> bytes:
+        """
+        Download a debug session recording video.
+        :param run_id: The unique run identifier
+        :param save_path: Optional file path to save the video (e.g. 'recording.webm')
+        :return: bytes - raw video data
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/run/' + run_id + '/video',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, 120),  # Videos can be large
+            headers={
+                'user-agent': self.ua
+            },
+            stream=True,
+        )
+
+        response.raise_for_status()
+
+        data = response.content
+        if save_path:
+            with open(save_path, 'wb') as f:
+                f.write(data)
+
+        return data
+
+    # --- Cloud Browser Extension Management ---
+
+    def cloud_browser_extension_list(self) -> Dict:
+        """
+        List all browser extensions for the current account.
+        :return: dict with 'extensions' list and 'quota' info (used, limit)
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/extension',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_get(self, extension_id: str) -> Dict:
+        """
+        Get details of a specific browser extension.
+        :param extension_id: The extension identifier
+        :return: dict with extension details
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/extension/' + extension_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_upload(self, file_path: str) -> Dict:
+        """
+        Upload a browser extension from a local file (.zip or .crx).
+        :param file_path: Path to the extension file
+        :return: dict with 'extension' details and 'is_update' flag
+        """
+        with open(file_path, 'rb') as f:
+            response = self._http_handler(
+                method='POST',
+                url=self.cloud_browser_api_host + '/extension',
+                params={'key': self.key},
+                files={'file': (os.path.basename(file_path), f)},
+                verify=self.verify,
+                timeout=(self.connect_timeout, self.default_read_timeout),
+                headers={
+                    'user-agent': self.ua
+                },
+            )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_upload_from_url(self, extension_url: str) -> Dict:
+        """
+        Install a browser extension from a URL pointing to a .crx file.
+        URL-based extensions auto-update on each browser session start.
+        :param extension_url: URL to the .crx extension file
+        :return: dict with 'extension' details and 'is_update' flag
+        """
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/extension',
+            params={'key': self.key},
+            json={'extension_url': extension_url},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_delete(self, extension_id: str) -> Dict:
+        """
+        Delete a browser extension.
+        :param extension_id: The extension identifier to delete
+        :return: dict with success status
+        """
+        response = self._http_handler(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/extension/' + extension_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_sessions(self) -> Dict:
+        """
+        List all running Cloud Browser sessions.
+        :return: dict with 'sessions' list and 'total' count
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/sessions',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()

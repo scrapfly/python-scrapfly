@@ -80,7 +80,14 @@ EXTRA_DEPENDENCIES = {
     'webhook-server': [
         'flask',
     ],
-    'concurrency': []
+    'concurrency': [],
+    'browser': [
+        'playwright>=1.40.0',
+    ],
+    'browser-use': [
+        'playwright>=1.40.0',
+        'browser-use',
+    ]
 }
 
 all_deps = set()

@@ -48,6 +48,7 @@ from .crawler import (
     CrawlerWebhook,
     webhook_from_payload
 )
+from .browser_config import BrowserConfig, ProxyPool, OperatingSystem
 
 
 __all__: Tuple[str, ...] = (
@@ -102,4 +103,7 @@ __all__: Tuple[str, ...] = (
     'CrawlCompletedWebhook',
     'CrawlerWebhook',
     'webhook_from_payload',
+    'BrowserConfig',
+    'ProxyPool',
+    'OperatingSystem',
 )
