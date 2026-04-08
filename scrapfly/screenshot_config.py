@@ -71,7 +71,7 @@ class ScreenshotConfig(BaseApiConfig):
     auto_scroll: Optional[bool] = None
     js: Optional[str] = None
     cache: Optional[bool] = None
-    cache_ttl: Optional[bool] = None
+    cache_ttl: Optional[int] = None
     cache_clear: Optional[bool] = None
     webhook: Optional[str] = None
     raise_on_upstream_error: bool = True
@@ -90,7 +90,7 @@ class ScreenshotConfig(BaseApiConfig):
         auto_scroll: Optional[bool] = None,
         js: Optional[str] = None,
         cache: Optional[bool] = None,
-        cache_ttl: Optional[bool] = None,
+        cache_ttl: Optional[int] = None,
         cache_clear: Optional[bool] = None,
         vision_deficiency: Optional[VisionDeficiency] = None,
         webhook: Optional[str] = None,
