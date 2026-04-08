@@ -106,6 +106,7 @@ class ScrapeConfig(BaseApiConfig):
     auto_scroll:Optional[bool] = None
     cost_budget:Optional[int] = None
     browser_brand:Optional[str] = None
+    proxified_response:Optional[bool] = None
 
     def __init__(
         self,
@@ -151,7 +152,8 @@ class ScrapeConfig(BaseApiConfig):
         lang:Optional[List[str]] = None,
         auto_scroll:Optional[bool] = None,
         cost_budget:Optional[int] = None,
-        browser_brand:Optional[str] = None
+        browser_brand:Optional[str] = None,
+        proxified_response:Optional[bool] = None
     ):
         assert(type(url) is str)
 
@@ -205,6 +207,7 @@ class ScrapeConfig(BaseApiConfig):
         self.auto_scroll = auto_scroll
         self.cost_budget = cost_budget
         self.browser_brand = browser_brand
+        self.proxified_response = proxified_response
 
         if cookies:
             _cookies = []
@@ -261,6 +264,9 @@ class ScrapeConfig(BaseApiConfig):
 
         if self.cost_budget is not None:
             params['cost_budget'] = self.cost_budget
+
+        if self.proxified_response is not None:
+            params['proxified_response'] = self._bool_to_http(self.proxified_response)
 
         if self.render_js is True:
             params['render_js'] = self._bool_to_http(self.render_js)

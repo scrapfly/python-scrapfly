@@ -491,6 +491,18 @@ class ScrapflyClient:
             logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
             request_data = self._scrape_request(scrape_config=scrape_config)
             response = self._http_handler(**request_data)
+
+            if scrape_config.proxified_response is True:
+                # Proxified mode: the API returns the raw upstream response
+                # (target's status, headers, body) instead of the JSON
+                # envelope. Skip ScrapeApiResponse parsing entirely and
+                # return the raw requests.Response so callers can drive
+                # it like any HTTP response. Scrapfly metadata is on the
+                # X-Scrapfly-* headers (Content-Format, Log, Api-Cost).
+                response.raise_for_status()
+                self.reporter.report(scrape_api_response=None)
+                return response
+
             scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
 
             self.reporter.report(scrape_api_response=scrape_api_response)
