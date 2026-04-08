@@ -155,9 +155,9 @@ class ScreenshotConfig(BaseApiConfig):
 
         if self.cache is not None:
             params['cache'] = self._bool_to_http(self.cache)
-            
+
             if self.cache_ttl is not None:
-                params['cache_ttl'] = self._bool_to_http(self.cache_ttl)
+                params['cache_ttl'] = self.cache_ttl
 
             if self.cache_clear is not None:
                 params['cache_clear'] = self._bool_to_http(self.cache_clear)
