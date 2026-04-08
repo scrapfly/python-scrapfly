@@ -42,8 +42,8 @@ class TestResultsURLsRetrieval:
         status = assert_crawl_successful(crawl)
         pages = crawl.warc().get_pages()
 
-        # Pages returned should match urls_crawled from status
-        assert len(pages) == status.urls_crawled
+        # Pages returned should match urls_visited from status
+        assert len(pages) == status.state.urls_visited
 
     def test_urls_include_seed(self, client, test_url):
         """Test that pages include the seed URL"""
@@ -126,7 +126,7 @@ class TestResultsContentReadIter:
             count += 1
 
         # Should iterate through all crawled URLs
-        assert count == status.urls_crawled
+        assert count == status.state.urls_visited
 
     def test_read_iter_memory_efficient(self, client, test_url):
         """Test that read_iter doesn't load all content at once"""
@@ -323,7 +323,7 @@ class TestResultsCompleteWorkflow:
 
         # Get all URLs
         urls = crawl.urls()
-        assert len(urls) == status.urls_crawled
+        assert len(urls) == status.state.urls_visited
 
         # Retrieve all content via iteration
         contents = []

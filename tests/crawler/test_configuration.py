@@ -27,7 +27,7 @@ class TestBasicLimits:
         status = assert_crawl_successful(crawl)
 
         # Should crawl at most page_limit pages
-        assert status.urls_crawled <= page_limit
+        assert status.state.urls_visited <= page_limit
 
     def test_max_depth(self, client, test_url):
         """Test that max_depth limits crawl depth"""
@@ -49,7 +49,7 @@ class TestBasicLimits:
         status = assert_crawl_successful(crawl)
 
         # Should respect both limits
-        assert status.urls_crawled <= 3
+        assert status.state.urls_visited <= 3
 
 
 class TestPathFiltering:
@@ -122,7 +122,7 @@ class TestAdvancedOptions:
         crawl = Crawl(client, config).crawl().wait(verbose=False)
 
         status = assert_crawl_successful(crawl)
-        assert status.urls_crawled > 0, "HTTPBin /dump/request endpoint failed to crawl"
+        assert status.state.urls_visited > 0, "HTTPBin /dump/request endpoint failed to crawl"
 
         # Retrieve the actual content
         crawl_content = crawl.read(f"{httpbin_url}/dump/request")
@@ -148,7 +148,7 @@ class TestAdvancedOptions:
         crawl = Crawl(client, config).crawl().wait(verbose=False)
 
         status = assert_crawl_successful(crawl)
-        assert status.urls_crawled > 0, "HTTPBin /dump/request endpoint failed to crawl"
+        assert status.state.urls_visited > 0, "HTTPBin /dump/request endpoint failed to crawl"
 
         # Retrieve the actual content from the seed URL
         crawl_content = crawl.read(f"{httpbin_url}/dump/request")
@@ -252,8 +252,8 @@ class TestProxyAndASP:
         # ASP adds cost per request
         # With ASP enabled, cost should be higher than base (1)
         # Actual cost appears to be 2 credits (1 base + 1 ASP)
-        assert status.api_credit_cost >= 2, \
-            f"Expected at least 2 API credits with ASP enabled, got {status.api_credit_cost}"
+        assert status.state.api_credit_used >= 2, \
+            f"Expected at least 2 API credits with ASP enabled, got {status.state.api_credit_used}"
 
     def test_proxy_pool(self, client, test_url):
         """Test residential proxy pool and verify API credit cost"""
@@ -269,8 +269,8 @@ class TestProxyAndASP:
 
         # Verify API credit cost for residential proxy
         # Should be 25-26 credits: 25 for residential + possibly 1 for sitemap.xml
-        assert status.api_credit_cost >= 25, \
-            f"Expected at least 25 API credits for residential proxy, got {status.api_credit_cost}"
+        assert status.state.api_credit_used >= 25, \
+            f"Expected at least 25 API credits for residential proxy, got {status.state.api_credit_used}"
 
     def test_country_targeting(self, client, httpbin_url):
         """Test with country-specific proxy and verify country is set"""
@@ -311,7 +311,7 @@ class TestCacheOptions:
         # First crawl - populate cache
         crawl1 = Crawl(client, config).crawl().wait(verbose=False)
         status1 = assert_crawl_successful(crawl1)
-        first_cost = status1.api_credit_cost
+        first_cost = status1.state.api_credit_used
 
         # Second crawl - should use cache (no additional cost)
         crawl2 = Crawl(client, config).crawl().wait(verbose=False)
@@ -319,11 +319,11 @@ class TestCacheOptions:
 
         # When using cache, the second crawl should have same or lower cost
         # (cache might still incur minimal costs for metadata/sitemaps)
-        assert status2.api_credit_cost <= first_cost, \
-            f"Expected cached crawl cost ({status2.api_credit_cost}) to be <= first crawl ({first_cost})"
+        assert status2.state.api_credit_used <= first_cost, \
+            f"Expected cached crawl cost ({status2.state.api_credit_used}) to be <= first crawl ({first_cost})"
 
         # Both should complete successfully
-        assert status2.urls_crawled > 0, "Cached crawl should still crawl URLs"
+        assert status2.state.urls_visited > 0, "Cached crawl should still crawl URLs"
 
     def test_cache_clear(self, client, test_url):
         """Test cache clearing - should not use cached results"""
@@ -337,7 +337,7 @@ class TestCacheOptions:
         )
         crawl1 = Crawl(client, config1).crawl().wait(verbose=False)
         status1 = assert_crawl_successful(crawl1)
-        first_cost = status1.api_credit_cost
+        first_cost = status1.state.api_credit_used
 
         # Second crawl with cache_clear=True - should bypass cache
         config2 = CrawlerConfig(
@@ -351,8 +351,8 @@ class TestCacheOptions:
         status2 = assert_crawl_successful(crawl2)
 
         # With cache_clear, should still incur API cost (not using cache)
-        assert status2.api_credit_cost > 0, \
-            f"Expected API cost > 0 with cache_clear=True, got {status2.api_credit_cost}"
+        assert status2.state.api_credit_used > 0, \
+            f"Expected API cost > 0 with cache_clear=True, got {status2.state.api_credit_used}"
 
 
 class TestCrawlLimits:
@@ -410,7 +410,7 @@ class TestCrawlLimits:
         status = assert_crawl_successful(crawl)
 
         # Should hit page_limit before duration
-        assert status.urls_crawled <= 5
+        assert status.state.urls_visited <= 5
 
 
 class TestExternalLinks:
@@ -493,7 +493,7 @@ class TestRenderingOptions:
         # Rendering delay should give JS time to execute
         # Actual verification would require checking page content
         status = crawl.status()
-        assert status.urls_crawled > 0
+        assert status.state.urls_visited > 0
 
     def test_rendering_delay_with_wait(self, client, test_url):
         """Test rendering with different wait strategies"""

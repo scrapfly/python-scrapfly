@@ -46,7 +46,7 @@ class TestErrorHandling:
         status = crawl.status()
 
         # Crawl might complete but with 0 URLs if seed failed
-        if status.is_complete and status.urls_crawled == 0:
+        if status.is_complete and status.state.urls_visited == 0:
             # This is expected - seed URL returned 503
             assert status.stop_reason in ['seed_url_failed', 'no_more_urls']
 
@@ -63,7 +63,7 @@ class TestStopReasons:
         assert status.is_complete
 
         # Should stop due to page limit
-        if status.urls_crawled >= 3:
+        if status.state.urls_visited >= 3:
             assert status.stop_reason == 'page_limit'
 
     def test_stop_reason_no_more_urls(self, client):
@@ -78,7 +78,7 @@ class TestStopReasons:
         status = crawl.status()
 
         # Might fail or complete with no_more_urls
-        if status.is_complete and status.urls_crawled > 0:
+        if status.is_complete and status.state.urls_visited > 0:
             assert status.stop_reason in ['no_more_urls', 'page_limit']
 
     def test_stop_reason_max_duration(self, client, test_url):
@@ -95,7 +95,7 @@ class TestStopReasons:
 
         # Might stop due to max_duration
         if status.stop_reason == 'max_duration':
-            assert status.urls_crawled < 100
+            assert status.state.urls_visited < 100
 
 
 class TestEdgeCases:
@@ -113,7 +113,7 @@ class TestEdgeCases:
 
         # Might complete or fail depending on httpbin availability
         if status.is_complete:
-            assert status.urls_crawled >= 0
+            assert status.state.urls_visited >= 0
 
     def test_very_small_page_limit(self, client, test_url):
         """Test with page_limit=1"""
@@ -122,7 +122,7 @@ class TestEdgeCases:
 
         status = crawl.status()
         assert status.is_complete
-        assert status.urls_crawled <= 1
+        assert status.state.urls_visited <= 1
 
     def test_empty_content_handling(self, client):
         """Test handling of pages with minimal content"""
@@ -136,7 +136,7 @@ class TestEdgeCases:
         status = crawl.status()
 
         # Even if it fails, we're testing the handling
-        if status.is_complete and status.urls_crawled > 0:
+        if status.is_complete and status.state.urls_visited > 0:
             try:
                 content = list(crawl.read_iter())
                 assert len(content) >= 0
@@ -179,7 +179,7 @@ class TestFailedCrawls:
 
         # Should complete but with 0 or very few successful URLs
         assert status.is_complete
-        if status.urls_crawled == 0:
+        if status.state.urls_visited == 0:
             assert status.stop_reason in ['seed_url_failed', 'no_more_urls']
 
     def test_network_timeout(self, client):
@@ -209,7 +209,7 @@ class TestFailedCrawls:
 
             # If it completes, should have failed
             if status.is_complete:
-                assert status.urls_crawled == 0 or status.is_failed
+                assert status.state.urls_visited == 0 or status.is_failed
         except Exception:
             # Or might raise exception
             pass
@@ -392,7 +392,7 @@ class TestRetryAndTimeout:
         assert status.is_complete
 
         # Should have crawled some URLs
-        assert status.urls_crawled > 0
+        assert status.state.urls_visited > 0
 
         # Might have some failed URLs
         if hasattr(status, 'urls_failed'):
@@ -432,4 +432,4 @@ class TestStopReasonsExtended:
 
         # Should stop early due to credit limit
         if hasattr(status, 'stop_reason') and status.stop_reason == 'max_api_credit':
-            assert status.urls_crawled < 100
+            assert status.state.urls_visited < 100

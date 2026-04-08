@@ -2,11 +2,13 @@ from typing import Tuple, Callable, Optional
 from .NoopReporter import NoopReporter
 from .PrintReporter import PrintReporter
 from .ChainReporter import ChainReporter
+from .sentry import SentryReporter  # re-export; lazy-imports sentry_sdk on instantiation
 
 __all__:Tuple[str, ...] = (
     'NoopReporter',
     'PrintReporter',
-    'ChainReporter'
+    'ChainReporter',
+    'SentryReporter',
 )
 
 from .. import ScrapflyError, ScrapeApiResponse

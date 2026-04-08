@@ -76,6 +76,11 @@ class CrawlerConfig(BaseApiConfig):
         ignore_base_path_restriction: bool = False,
         follow_external_links: bool = False,
         allowed_external_domains: Optional[List[str]] = None,
+        # Subdomain control (NEW — added in 0.8.28 to match the documented public API).
+        # Server-side default for follow_internal_subdomains is True; we leave the
+        # field unset by default so the server applies its own default.
+        follow_internal_subdomains: Optional[bool] = None,
+        allowed_internal_subdomains: Optional[List[str]] = None,
 
         # Request configuration
         headers: Optional[Dict[str, str]] = None,
@@ -86,7 +91,9 @@ class CrawlerConfig(BaseApiConfig):
 
         # Crawl strategy options
         use_sitemaps: bool = False,
-        respect_robots_txt: bool = False,
+        # respect_robots_txt: server default is True. Leave unset (None) so the
+        # server applies its own default rather than forcing False on every request.
+        respect_robots_txt: Optional[bool] = None,
         ignore_no_follow: bool = False,
 
         # Cache options
@@ -180,6 +187,12 @@ class CrawlerConfig(BaseApiConfig):
             params['follow_external_links'] = True
         if allowed_external_domains:
             params['allowed_external_domains'] = allowed_external_domains
+        # Subdomain control (NEW). Both fields are tri-state: None means
+        # "unset" (server default applies); explicit True/False / list overrides.
+        if follow_internal_subdomains is not None:
+            params['follow_internal_subdomains'] = follow_internal_subdomains
+        if allowed_internal_subdomains:
+            params['allowed_internal_subdomains'] = allowed_internal_subdomains
 
         # Request configuration
         if headers:
@@ -196,8 +209,10 @@ class CrawlerConfig(BaseApiConfig):
         # Crawl strategy
         if use_sitemaps:
             params['use_sitemaps'] = True
-        if respect_robots_txt:
-            params['respect_robots_txt'] = True
+        # Tri-state: None = let server default win (default True). Explicit
+        # True/False overrides.
+        if respect_robots_txt is not None:
+            params['respect_robots_txt'] = respect_robots_txt
         if ignore_no_follow:
             params['ignore_no_follow'] = True
 

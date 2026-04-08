@@ -93,7 +93,7 @@ crawl.wait(poll_interval=5, verbose=True)
 
 print("\n✅ Crawl completed!")
 final_status = crawl.status()
-print(f"  Total pages crawled: {final_status.urls_crawled}")
+print(f"  Total pages crawled: {final_status.state.urls_visited}")
 print(f"  Failed: {final_status.urls_failed}")
 
 # Get all URLs from WARC to retrieve in batch
@@ -209,8 +209,8 @@ print("-" * 80)
 # Show statistics
 stats = crawl.stats()
 print("\n📊 Crawl Statistics:")
-print(f"  URLs discovered: {stats['urls_discovered']}")
-print(f"  URLs crawled: {stats['urls_crawled']}")
+print(f"  URLs extracted: {stats['urls_extracted']}")
+print(f"  URLs visited: {stats['urls_visited']}")
 print(f"  URLs failed: {stats['urls_failed']}")
 print(f"  Progress: {stats['progress_pct']:.1f}%")
 

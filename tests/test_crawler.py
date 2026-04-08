@@ -48,7 +48,7 @@ def assert_crawl_successful(crawl):
     status = crawl.status()
     assert status.is_complete, f"Crawl {crawl.uuid} should be complete but status is: {status.status}"
     assert not status.is_failed, f"Crawl {crawl.uuid} failed with status: {status.status}"
-    assert status.urls_crawled > 0, f"Crawl {crawl.uuid} should have crawled at least one URL"
+    assert status.state.urls_visited > 0, f"Crawl {crawl.uuid} should have crawled at least one URL"
     return status
 
 
@@ -78,8 +78,8 @@ class TestCrawlerBasicWorkflow:
         # Check final status
         status = crawl.status()
         assert status.is_complete
-        assert status.urls_crawled > 0
-        assert status.urls_discovered > 0
+        assert status.state.urls_visited > 0
+        assert status.state.urls_extracted > 0
 
     def test_crawl_method_chaining(self, client, test_url):
         """Test that crawl methods support chaining"""
@@ -137,8 +137,8 @@ class TestCrawlerStatus:
 
         # Status should have expected fields
         assert final_status.uuid == crawl.uuid
-        assert final_status.urls_crawled >= 0
-        assert final_status.urls_discovered >= 0
+        assert final_status.state.urls_visited >= 0
+        assert final_status.state.urls_extracted >= 0
         assert 0 <= final_status.progress_pct <= 100
 
     def test_status_caching(self, client, test_url):
@@ -626,8 +626,8 @@ class TestCrawlerStats:
 
         assert 'uuid' in stats
         assert 'status' in stats
-        assert 'urls_discovered' in stats
-        assert 'urls_crawled' in stats
+        assert 'urls_extracted' in stats
+        assert 'urls_visited' in stats
         assert 'progress_pct' in stats
         assert stats['uuid'] == crawl.uuid
         assert stats['progress_pct'] == 100.0  # Completed
@@ -712,7 +712,7 @@ class TestHTTPBinTests:
 
         # The crawl should either be failed or have 0 successful pages
         # since the seed URL returns 503
-        assert status.is_failed or status.urls_failed > 0 or status.urls_crawled == 0
+        assert status.is_failed or status.urls_failed > 0 or status.state.urls_visited == 0
 
 
 class TestCrawlerRepr:
@@ -783,7 +783,11 @@ class TestAsyncCrawler:
         start_response = await client.async_start_crawl(config)
 
         assert start_response.uuid is not None
-        assert start_response.status in ['RUNNING', 'PENDING', 'COMPLETED']
+        # Engine status enum: PENDING / RUNNING / DONE / CANCELLED.
+        # A freshly-started crawl starts in PENDING; in extremely rare races
+        # a worker may have already picked it up and bumped it to RUNNING by
+        # the time we check. DONE/CANCELLED are not reachable on start.
+        assert start_response.status in ['PENDING', 'RUNNING']
 
     @pytest.mark.asyncio
     async def test_async_get_status(self, client, test_url):
@@ -797,8 +801,8 @@ class TestAsyncCrawler:
         status = await client.async_get_crawl_status(start_response.uuid)
 
         assert status.uuid == start_response.uuid
-        assert status.urls_discovered >= 0
-        assert status.urls_crawled >= 0
+        assert status.state.urls_extracted >= 0
+        assert status.state.urls_visited >= 0
 
     @pytest.mark.asyncio
     async def test_async_wait_for_completion(self, client, test_url):
@@ -1178,7 +1182,7 @@ class TestProxyAndASP:
 
         # Verify crawl completed successfully
         status = assert_crawl_successful(crawl)
-        assert status.urls_crawled > 0
+        assert status.state.urls_visited > 0
 
 
 class TestURLsEndpoint:
@@ -1241,7 +1245,7 @@ class TestCompleteWorkflow:
 
         # Step 4: Verify completion
         final_status = assert_crawl_successful(crawl)
-        assert final_status.urls_crawled > 0
+        assert final_status.state.urls_visited > 0
 
         # Step 5: Retrieve results
         pages = crawl.warc().get_pages()
@@ -1289,18 +1293,18 @@ class TestCompleteWorkflow:
 
         # Verify crawl completed successfully and get status
         status = assert_crawl_successful(crawl)
-        assert status.urls_discovered > 0
-        assert status.urls_crawled > 0
+        assert status.state.urls_extracted > 0
+        assert status.state.urls_visited > 0
         assert status.progress_pct == 100.0
 
         # Get detailed stats
         stats = crawl.stats()
         assert 'uuid' in stats
         assert 'status' in stats
-        assert 'urls_discovered' in stats
-        assert 'urls_crawled' in stats
+        assert 'urls_extracted' in stats
+        assert 'urls_visited' in stats
         assert 'is_complete' in stats
 
         # Should have crawl rate
-        if stats['urls_discovered'] > 0:
+        if stats['urls_extracted'] > 0:
             assert 'crawl_rate' in stats

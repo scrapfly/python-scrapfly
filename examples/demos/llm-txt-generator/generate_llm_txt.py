@@ -104,9 +104,9 @@ def generate_llm_txt(
     # Get final status
     status = crawl.status()
     print(f"\n✅ Crawl completed!")
-    print(f"  Pages crawled: {status.urls_crawled}")
+    print(f"  Pages crawled: {status.state.urls_visited}")
     print(f"  Pages failed: {status.urls_failed}")
-    print(f"  Total discovered: {status.urls_discovered}")
+    print(f"  Total discovered: {status.state.urls_extracted}")
 
     # Get URLs from WARC artifact
     print("\n📥 Retrieving crawled URLs from WARC...")

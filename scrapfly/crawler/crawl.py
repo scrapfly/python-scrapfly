@@ -13,7 +13,7 @@ from email import message_from_string
 from email.parser import BytesParser
 from email.policy import default
 from .crawler_config import CrawlerConfig
-from .crawler_response import CrawlerStatusResponse, CrawlerArtifactResponse
+from .crawler_response import CrawlerArtifactResponse, CrawlerStatusResponse, CrawlerUrlsResponse
 from .crawl_content import CrawlContent
 from ..errors import ScrapflyCrawlerError
 
@@ -130,7 +130,7 @@ class Crawl:
             ```python
             status = crawl.status()
             print(f"Progress: {status.progress_pct}%")
-            print(f"URLs crawled: {status.urls_crawled}")
+            print(f"URLs visited: {status.state.urls_visited}")
             ```
         """
         if self._uuid is None:
@@ -149,7 +149,8 @@ class Crawl:
         self,
         poll_interval: int = 5,
         max_wait: Optional[int] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        allow_cancelled: bool = False,
     ) -> 'Crawl':
         """
         Wait for crawler to complete
@@ -160,12 +161,19 @@ class Crawl:
             poll_interval: Seconds between status checks (default: 5)
             max_wait: Maximum seconds to wait (None = wait forever)
             verbose: If True, print progress updates
+            allow_cancelled: If True, return normally when the crawler reaches
+                CANCELLED instead of raising. Useful for the cancel-then-wait
+                pattern where the caller already knows they triggered the
+                cancellation. Defaults to False (raises ScrapflyCrawlerError
+                with code='CANCELLED' on user_cancelled), preserving prior
+                behavior for callers that observe external cancellations.
 
         Returns:
             Self for method chaining
 
         Raises:
-            RuntimeError: If crawler not started, failed, or timed out
+            ScrapflyCrawlerError: If crawler not started, failed, or timed out.
+                Also raised on cancellation when ``allow_cancelled=False``.
 
         Example:
             ```python
@@ -174,6 +182,10 @@ class Crawl:
 
             # Wait with timeout
             crawl.crawl().wait(max_wait=300)  # 5 minutes max
+
+            # Cancel from the same call site, then wait without re-raising
+            crawl.cancel()
+            crawl.wait(allow_cancelled=True)
             ```
         """
         if self._uuid is None:
@@ -193,7 +205,7 @@ class Crawl:
             if verbose:
                 logger.info(f"Poll #{poll_count}: {status.status} - "
                            f"{status.progress_pct:.1f}% - "
-                           f"{status.urls_crawled}/{status.urls_discovered} URLs")
+                           f"{status.state.urls_visited}/{status.state.urls_extracted} URLs")
 
             if status.is_complete:
                 if verbose:
@@ -206,6 +218,10 @@ class Crawl:
                     http_status_code=400
                 )
             elif status.is_cancelled:
+                if allow_cancelled:
+                    if verbose:
+                        logger.info("Crawler was cancelled (allow_cancelled=True)")
+                    return self
                 raise ScrapflyCrawlerError(
                     message="Crawler was cancelled",
                     code="CANCELLED",
@@ -251,6 +267,50 @@ class Crawl:
             )
 
         return self._client.cancel_crawl(self._uuid)
+
+    def urls(
+        self,
+        status: Optional[Literal['visited', 'pending', 'failed']] = None,
+        page: int = 1,
+        per_page: int = 100,
+    ) -> CrawlerUrlsResponse:
+        """
+        List the crawled URLs (paginated, optionally filtered by status).
+
+        NEW in 0.8.28 — convenience wrapper around
+        :meth:`ScrapflyClient.get_crawl_urls` that pre-fills the crawler UUID.
+
+        Args:
+            status: Filter by URL status — 'visited', 'pending', or 'failed'.
+                When None, the server defaults to 'visited'.
+            page: 1-based page number (default 1)
+            per_page: Page size (default 100, max 1000)
+
+        Returns:
+            CrawlerUrlsResponse with the URL records, total count and pagination metadata.
+
+        Raises:
+            ScrapflyCrawlerError: if the crawler has not been started yet.
+
+        Example:
+            ```python
+            crawl = Crawl(client, config).crawl().wait()
+            for entry in crawl.urls(status='visited'):
+                print(f"{entry.url} ({entry.status})")
+            ```
+        """
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message="Crawler not started yet. Call crawl() first.",
+                code="NOT_STARTED",
+                http_status_code=400,
+            )
+        return self._client.get_crawl_urls(
+            uuid=self._uuid,
+            status=status,
+            page=page,
+            per_page=per_page,
+        )
 
     def warc(self, artifact_type: str = 'warc') -> CrawlerArtifactResponse:
         """
@@ -734,31 +794,33 @@ class Crawl:
         Example:
             ```python
             stats = crawl.stats()
-            print(f"URLs discovered: {stats['urls_discovered']}")
-            print(f"URLs crawled: {stats['urls_crawled']}")
-            print(f"Success rate: {stats['success_rate']:.1f}%")
+            print(f"URLs extracted: {stats['urls_extracted']}")
+            print(f"URLs visited: {stats['urls_visited']}")
+            print(f"Crawl rate: {stats['crawl_rate']:.1f}%")
             print(f"Total size: {stats['total_size_kb']:.2f} KB")
             ```
         """
         status = self.status(refresh=False)
 
-        # Basic stats from status
+        # Basic stats from status — uses the wire field names as defined by
+        # the scrape-engine source of truth.
         stats_dict = {
             'uuid': self._uuid,
             'status': status.status,
-            'urls_discovered': status.urls_discovered,
-            'urls_crawled': status.urls_crawled,
-            'urls_pending': status.urls_pending,
-            'urls_failed': status.urls_failed,
+            'urls_extracted': status.state.urls_extracted,
+            'urls_visited': status.state.urls_visited,
+            'urls_to_crawl': status.state.urls_to_crawl,
+            'urls_failed': status.state.urls_failed,
+            'urls_skipped': status.state.urls_skipped,
             'progress_pct': status.progress_pct,
             'is_complete': status.is_complete,
             'is_running': status.is_running,
             'is_failed': status.is_failed,
         }
 
-        # Calculate basic crawl rate (crawled vs discovered)
-        if status.urls_discovered > 0:
-            stats_dict['crawl_rate'] = (status.urls_crawled / status.urls_discovered) * 100
+        # Calculate basic crawl rate (visited vs extracted)
+        if status.state.urls_extracted > 0:
+            stats_dict['crawl_rate'] = (status.state.urls_visited / status.state.urls_extracted) * 100
 
         # Add artifact stats if available
         if self._artifact_cache is not None:
@@ -775,18 +837,19 @@ class Crawl:
                 'avg_page_size_kb': avg_size / 1024,
             })
 
-            # Calculate download rate (pages vs discovered)
-            if status.urls_discovered > 0:
-                stats_dict['download_rate'] = (len(pages) / status.urls_discovered) * 100
+            # Calculate download rate (pages vs extracted)
+            if status.state.urls_extracted > 0:
+                stats_dict['download_rate'] = (len(pages) / status.state.urls_extracted) * 100
 
         return stats_dict
 
     def __repr__(self):
+        url = self._config._params['url']
         if self._uuid is None:
-            return f"Crawl(not started)"
+            return f"Crawl(not started, url={url})"
 
         status_str = "unknown"
         if self._status_cache:
             status_str = self._status_cache.status
 
-        return f"Crawl(uuid={self._uuid}, status={status_str})"
+        return f"Crawl(uuid={self._uuid}, url={url}, status={status_str})"

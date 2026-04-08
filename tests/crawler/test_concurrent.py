@@ -73,7 +73,7 @@ class TestConcurrentCrawls:
                     continue
 
                 status = crawl.status()
-                print(f"Crawl {i} ({crawl.uuid}): {status.status}, crawled {status.urls_crawled}")
+                print(f"Crawl {i} ({crawl.uuid}): {status.status}, crawled {status.state.urls_visited}")
 
                 if status.is_complete:
                     completed.add(i)
@@ -88,7 +88,7 @@ class TestConcurrentCrawls:
         # Verify final status
         for crawl in crawls:
             status = assert_crawl_successful(crawl)
-            assert status.urls_crawled > 0
+            assert status.state.urls_visited > 0
 
     def test_wait_for_multiple_crawls_sequentially(self, client, test_url):
         """Test waiting for multiple crawls one by one"""
@@ -103,7 +103,7 @@ class TestConcurrentCrawls:
         for crawl in crawls:
             crawl.wait(verbose=False)
             status = assert_crawl_successful(crawl)
-            assert status.urls_crawled > 0
+            assert status.state.urls_visited > 0
 
     def test_retrieve_artifacts_from_multiple_crawls(self, client, test_url):
         """Test downloading artifacts from multiple completed crawls"""
@@ -145,7 +145,7 @@ class TestConcurrentCrawls:
         # All should complete successfully
         for crawl in crawls:
             status = assert_crawl_successful(crawl)
-            assert status.urls_crawled > 0
+            assert status.state.urls_visited > 0
 
         # Each should have different results based on config
         pages_counts = [len(c.warc().get_pages()) for c in crawls]
@@ -251,5 +251,5 @@ class TestConcurrentResourceManagement:
         assert status2.is_complete
         assert status3.is_complete
 
-        # URLs crawled should be consistent
-        assert status1.urls_crawled == status2.urls_crawled == status3.urls_crawled
+        # URLs visited should be consistent
+        assert status1.state.urls_visited == status2.state.urls_visited == status3.state.urls_visited

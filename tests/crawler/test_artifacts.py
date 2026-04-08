@@ -83,10 +83,10 @@ class TestWARCArtifacts:
             assert response.url is not None
             assert len(response.content) > 0
 
-        # WARC may include robots.txt which isn't counted in urls_crawled
-        # So responses might be urls_crawled or urls_crawled + 1 (with robots.txt)
-        assert len(responses) >= status.urls_crawled
-        assert len(responses) <= status.urls_crawled + 1
+        # WARC may include robots.txt which isn't counted in urls_visited
+        # So responses might be urls_visited or urls_visited + 1 (with robots.txt)
+        assert len(responses) >= status.state.urls_visited
+        assert len(responses) <= status.state.urls_visited + 1
 
     def test_warc_get_pages(self, client, test_url):
         """Test getting all pages as simple dicts"""
@@ -145,10 +145,10 @@ class TestWARCArtifacts:
 
         artifact = crawl.warc()
 
-        # WARC may include robots.txt which isn't counted in urls_crawled
-        # So total_pages might be urls_crawled or urls_crawled + 1 (with robots.txt)
-        assert artifact.total_pages >= status.urls_crawled
-        assert artifact.total_pages <= status.urls_crawled + 1
+        # WARC may include robots.txt which isn't counted in urls_visited
+        # So total_pages might be urls_visited or urls_visited + 1 (with robots.txt)
+        assert artifact.total_pages >= status.state.urls_visited
+        assert artifact.total_pages <= status.state.urls_visited + 1
 
 
 @pytest.mark.artifacts

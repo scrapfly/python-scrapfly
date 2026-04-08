@@ -120,7 +120,7 @@ crawl.wait(verbose=True, max_wait=300)
 
 # Check status
 status = crawl.status()
-print(f"Crawled {status.urls_crawled} URLs")
+print(f"Crawled {status.state.urls_visited} URLs")
 
 # Get results
 artifact = crawl.warc()
@@ -140,8 +140,8 @@ if html:
 
 ```python
 stats = crawl.stats()
-print(f"URLs discovered: {stats['urls_discovered']}")
-print(f"URLs crawled: {stats['urls_crawled']}")
+print(f"URLs extracted: {stats['urls_extracted']}")
+print(f"URLs visited: {stats['urls_visited']}")
 print(f"Crawl rate: {stats['crawl_rate']:.1f}%")
 print(f"Total size: {stats['total_size_kb']:.2f} KB")
 ```

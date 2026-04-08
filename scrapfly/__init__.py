@@ -1,4 +1,4 @@
-__version__ = '0.8.27'
+__version__ = '0.8.28'
 
 from typing import Tuple
 from .errors import ScrapflyError
@@ -24,13 +24,23 @@ from .errors import ScrapflyCrawlerError
 from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
 from .scrape_config import ScrapeConfig
-from .screenshot_config import ScreenshotConfig
+from .screenshot_config import ScreenshotConfig, VisionDeficiency
+from .browser_config import (
+    BrowserConfig,
+    PROXY_POOL_DATACENTER,
+    PROXY_POOL_RESIDENTIAL,
+    OS_LINUX,
+    OS_WINDOWS,
+    OS_MAC,
+)
 from .extraction_config import ExtractionConfig
 from .crawler import (
     CrawlerConfig,
     CrawlerStartResponse,
     CrawlerStatusResponse,
     CrawlerArtifactResponse,
+    CrawlerUrlsResponse,
+    CrawlerUrlEntry,
     WarcParser,
     WarcRecord,
     parse_warc,
@@ -39,14 +49,17 @@ from .crawler import (
     Crawl,
     ContentFormat,
     CrawlContent,
+    CrawlerState,
     CrawlerWebhookEvent,
     CrawlerWebhookBase,
-    CrawlStartedWebhook,
-    CrawlUrlDiscoveredWebhook,
-    CrawlUrlFailedWebhook,
-    CrawlCompletedWebhook,
+    CrawlerLifecycleWebhook,
+    CrawlerUrlVisitedWebhook,
+    CrawlerUrlSkippedWebhook,
+    CrawlerUrlDiscoveredWebhook,
+    CrawlerUrlFailedWebhook,
+    CrawlerScrapeResult,
     CrawlerWebhook,
-    webhook_from_payload
+    webhook_from_payload,
 )
 
 
@@ -74,6 +87,13 @@ __all__: Tuple[str, ...] = (
     'ResponseBodyHandler',
     'ScrapeConfig',
     'ScreenshotConfig',
+    'VisionDeficiency',
+    'BrowserConfig',
+    'PROXY_POOL_DATACENTER',
+    'PROXY_POOL_RESIDENTIAL',
+    'OS_LINUX',
+    'OS_WINDOWS',
+    'OS_MAC',
     'ExtractionConfig',
     'ScreenshotAPIError',
     'ExtractionAPIError',
@@ -85,7 +105,10 @@ __all__: Tuple[str, ...] = (
     'CrawlerConfig',
     'CrawlerStartResponse',
     'CrawlerStatusResponse',
+    'CrawlerState',
     'CrawlerArtifactResponse',
+    'CrawlerUrlsResponse',
+    'CrawlerUrlEntry',
     'WarcParser',
     'WarcRecord',
     'parse_warc',
@@ -96,10 +119,12 @@ __all__: Tuple[str, ...] = (
     'CrawlContent',
     'CrawlerWebhookEvent',
     'CrawlerWebhookBase',
-    'CrawlStartedWebhook',
-    'CrawlUrlDiscoveredWebhook',
-    'CrawlUrlFailedWebhook',
-    'CrawlCompletedWebhook',
+    'CrawlerLifecycleWebhook',
+    'CrawlerUrlVisitedWebhook',
+    'CrawlerUrlSkippedWebhook',
+    'CrawlerUrlDiscoveredWebhook',
+    'CrawlerUrlFailedWebhook',
+    'CrawlerScrapeResult',
     'CrawlerWebhook',
     'webhook_from_payload',
 )

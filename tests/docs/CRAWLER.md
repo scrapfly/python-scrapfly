@@ -867,16 +867,17 @@ curl "https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b
 
  **Response includes:**
 
-- `status` - Current status (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED)
-- `state.urls_discovered` - Total URLs discovered
-- `state.urls_crawled` - URLs successfully crawled
-- `state.urls_pending` - URLs waiting to be crawled
+- `status` - Current status: `PENDING`, `RUNNING`, `DONE`, or `CANCELLED`. Failure is signalled by `status=DONE` with `is_success=false`.
+- `state.urls_extracted` - Total URLs extracted (discovered)
+- `state.urls_visited` - URLs successfully crawled
+- `state.urls_to_crawl` - URLs waiting to be crawled (derived: `urls_extracted - urls_skipped`)
 - `state.urls_failed` - URLs that failed to crawl
-- `state.api_credits_used` - Total API credits consumed
+- `state.urls_skipped` - URLs skipped by filters (exclude rules, robots.txt, etc.)
+- `state.api_credit_used` - Total API credits consumed
  
 ## Get Crawled URLs  
 
- Retrieve a list of all URLs discovered and crawled during the job, with metadata about each URL.
+ Retrieve a list of all URLs extracted and crawled during the job, with metadata about each URL.
 
  GET `https://api.scrapfly.home/crawl/{uuid}/urls` 
 
@@ -1122,7 +1123,7 @@ curl "https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d4
 
  ###   List Crawled URLs
 
- Get a comprehensive list of all URLs discovered and crawled during the job, with detailed metadata for each URL including status codes, depth, and timestamps.
+ Get a comprehensive list of all URLs extracted and crawled during the job, with detailed metadata for each URL including status codes, depth, and timestamps.
 
  ```
 curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993b58675bdf71615
@@ -4486,14 +4487,14 @@ else:
 
 - `max_pages` - Limit total pages crawled
 - `max_duration` - Limit crawl duration in seconds
-- `max_api_credit_cost` - Stop crawl when credit limit is reached
+- `max_api_credit` - Stop crawl when credit limit is reached
  
  ```
 {
   "url": "https://example.com",
   "max_pages": 500,
   "max_duration": 1800,
-  "max_api_credit_cost": 3000
+  "max_api_credit": 3000
 }
 ```
 
@@ -4571,7 +4572,7 @@ The crawl status endpoint includes cost information:
 {
   "uuid": "550e8400-e29b-41d4-a716-446655440000",
   "status": "RUNNING",
-  "urls_crawled": 847,
+  "urls_visited": 847,
   "total_api_credit_consumed": 5082,
   "average_cost_per_page": 6
 }
@@ -4612,7 +4613,7 @@ The crawl status endpoint includes cost information:
 
 ### Q: What happens if I exceed my budget limit?
 
- The crawler automatically stops when `max_api_credit_cost` is reached. You can resume it by increasing the limit.
+ The crawler automatically stops when `max_api_credit` is reached. You can resume it by increasing the limit.
 
 ### Q: Can I get a refund for a failed crawl?
 
@@ -4726,8 +4727,8 @@ Crawler configuration error
  ```
 {
   "status": "running",
-  "urls_crawled": 47,
-  "urls_pending": 153,
+  "urls_visited": 47,
+  "urls_to_crawl": 153,
   "recent_event": "Throttle pause: MAX_REQUEST_RATE_EXCEEDED - resuming in 5s"
 }
 ```
@@ -4764,7 +4765,7 @@ Crawler configuration error
  ```
 {
   "status": "failed",
-  "urls_crawled": 15,
+  "urls_visited": 15,
   "urls_failed": 12,
   "error": {
     "code": "ERR::CRAWLER::HIGH_FAILURE_RATE",
@@ -4812,7 +4813,7 @@ Crawler configuration error
 {
   "crawler_id": "abc123...",
   "status": "completed",
-  "urls_crawled": 847,
+  "urls_visited": 847,
   "urls_failed": 23,
   "error_summary": {
     "total_errors": 23,
@@ -5976,7 +5977,7 @@ All error responses include detailed information in a consistent format:
     "details": {
       "max_duration": 3600,
       "elapsed_duration": 3615,
-      "urls_crawled": 847
+      "urls_visited": 847
     }
   }
 }
@@ -6225,8 +6226,8 @@ curl https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b9
 **Key fields to monitor:**
 
 - `status` - RUNNING, COMPLETED, FAILED, CANCELLED
-- `urls_discovered` - Total URLs found by the crawler
-- `urls_crawled` - Total URLs successfully crawled
+- `urls_extracted` - Total URLs found by the crawler
+- `urls_visited` - Total URLs successfully crawled
 - `urls_failed` - Total URLs that failed to crawl
 - `api_credit_used` - Credits consumed so far
  

@@ -60,7 +60,7 @@ while True:
     status = client.get_crawl_status(start_response.uuid)
     print(f"  Status: {status.status}")
     print(f"  Progress: {status.progress_pct:.1f}%")
-    print(f"  Crawled: {status.urls_crawled}/{status.urls_discovered} pages")
+    print(f"  Visited: {status.state.urls_visited}/{status.state.urls_extracted} pages")
 
     if status.is_complete:
         print("\n✓ Crawl completed!")

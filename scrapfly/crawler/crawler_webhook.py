@@ -1,281 +1,391 @@
 """
 Crawler API Webhook Models
 
-This module provides models for handling Crawler API webhook events.
-All webhooks follow the standard format with signature verification support.
+Typed wrappers around the 8 real crawler webhook payloads emitted by the
+scrape-engine. This module is the Python-side mirror of the authoritative
+event list in
+``apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py``
+(class ``WebhookEvents``) and the example payloads in
+``apps/scrapfly/web-app/src/Template/Docs/crawler-api/webhooks_example/*.json``.
+
+Design notes
+------------
+- Every webhook has the envelope ``{"event": <name>, "payload": {...}}``.
+  There is **no** top-level ``uuid`` or ``timestamp`` field — the crawler UUID
+  lives at ``payload.crawler_uuid`` and the only timing information is
+  ``payload.state.start_time`` / ``payload.state.stop_time`` (unix epoch
+  seconds, nullable during PENDING).
+- All 5 payload shapes share these common fields: ``crawler_uuid``, ``project``,
+  ``env``, ``action``, ``state``. They are modelled by :class:`CrawlerWebhookBase`.
+- The 4 lifecycle events (``crawler_started`` / ``crawler_stopped`` /
+  ``crawler_cancelled`` / ``crawler_finished``) share an identical shape — one
+  dataclass handles all four.
+- Field names match the wire format exactly. Missing required fields raise
+  ``KeyError`` at parse time (strict parsing — same philosophy as
+  :class:`CrawlerStatusResponse`).
 """
 
-from typing import Dict, Optional, Union, Tuple
-from datetime import datetime
+from dataclasses import dataclass, field
 from enum import Enum
-from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+from .crawler_response import CrawlerState
 
 
-class CrawlerWebhookEvent(Enum):
-    """Crawler webhook event types"""
-    STARTED = 'crawl.started'
-    URL_DISCOVERED = 'crawl.url_discovered'
-    URL_FAILED = 'crawl.url_failed'
-    COMPLETED = 'crawl.completed'
+class CrawlerWebhookEvent(str, Enum):
+    """
+    Crawler webhook event names.
+
+    These MUST stay in sync with
+    ``apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py``
+    class ``WebhookEvents``. The scrape-engine is the source of truth.
+    """
+
+    CRAWLER_STARTED = 'crawler_started'
+    CRAWLER_STOPPED = 'crawler_stopped'
+    CRAWLER_CANCELLED = 'crawler_cancelled'
+    CRAWLER_FINISHED = 'crawler_finished'
+    CRAWLER_URL_VISITED = 'crawler_url_visited'
+    CRAWLER_URL_SKIPPED = 'crawler_url_skipped'
+    CRAWLER_URL_DISCOVERED = 'crawler_url_discovered'
+    CRAWLER_URL_FAILED = 'crawler_url_failed'
+
+
+# ---------------------------------------------------------------------------
+# Base / common fields
+# ---------------------------------------------------------------------------
 
 
 @dataclass
 class CrawlerWebhookBase:
     """
-    Base class for all crawler webhook payloads.
+    Common fields carried by every crawler webhook payload.
 
-    All webhook events share these common fields:
-    - event: The event type (crawl.started, crawl.url_discovered, etc.)
-    - uuid: The crawler job UUID
-    - timestamp: When the event occurred (ISO 8601 format)
+    Attributes:
+        event: The wire event name (``crawler_started``, etc.).
+        crawler_uuid: The crawler job UUID.
+        project: Project slug the crawler belongs to.
+        env: Environment (``LIVE`` or ``TEST``).
+        action: Short action tag emitted by the scrape-engine
+            (``started``, ``visited``, ``skipped``, ``url_discovery``,
+            ``failed``, ``stopped``, ``cancelled``, ``finished``).
+        state: Nested state counters at the moment the webhook was emitted.
     """
+
     event: str
-    uuid: str
-    timestamp: datetime
+    crawler_uuid: str
+    project: str
+    env: str
+    action: str
+    state: CrawlerState
+
+    @staticmethod
+    def _parse_base(event: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract the 5 fields every webhook carries. Used by subclass
+        ``from_payload()`` factories.
+        """
+        return {
+            'event': event,
+            'crawler_uuid': payload['crawler_uuid'],
+            'project': payload['project'],
+            'env': payload['env'],
+            'action': payload['action'],
+            'state': CrawlerState(payload['state']),
+        }
+
+
+# ---------------------------------------------------------------------------
+# Lifecycle events: crawler_started / stopped / cancelled / finished
+# All four share an identical payload shape, so one dataclass handles them.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CrawlerLifecycleWebhook(CrawlerWebhookBase):
+    """
+    Payload for the 4 lifecycle events: ``crawler_started``,
+    ``crawler_stopped``, ``crawler_cancelled``, ``crawler_finished``.
+
+    These events all carry the same fields: the seed URL, the common base
+    (crawler_uuid / project / env / action / state), and a ``links.status``
+    URL pointing at the crawl status endpoint. Disambiguate by inspecting
+    ``self.event`` (use :class:`CrawlerWebhookEvent`).
+
+    Attributes:
+        seed_url: The root URL the crawl was started from.
+        status_link: URL to fetch the live crawler status.
+    """
+
+    seed_url: str
+    status_link: str
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'CrawlerWebhookBase':
-        """Create webhook instance from dictionary payload"""
-        # Parse timestamp if it's a string
-        timestamp = data.get('timestamp')
-        if isinstance(timestamp, str):
-            # Handle ISO 8601 format
-            if timestamp.endswith('Z'):
-                timestamp = timestamp[:-1] + '+00:00'
-            timestamp = datetime.fromisoformat(timestamp)
-
+    def from_payload(cls, event: str, payload: Dict[str, Any]) -> 'CrawlerLifecycleWebhook':
+        base = cls._parse_base(event, payload)
         return cls(
-            event=data['event'],
-            uuid=data['uuid'],
-            timestamp=timestamp
+            **base,
+            seed_url=payload['seed_url'],
+            status_link=payload['links']['status'],
+        )
+
+
+# ---------------------------------------------------------------------------
+# crawler_url_visited
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CrawlerScrapeResult:
+    """
+    The ``scrape`` sub-object of a ``crawler_url_visited`` payload.
+
+    Attributes:
+        status_code: HTTP status code returned by the target URL.
+        country: 2-letter country code of the proxy that performed the scrape.
+        log_uuid: ULID of the scrape log (used to fetch the full log later).
+        log_url: Human-browseable dashboard URL for the log.
+        content: Map of requested content format (``html``, ``text``,
+            ``markdown``, ``clean_html``, ``json``, etc.) to the actual
+            rendered string. The keys depend on what the caller requested
+            in ``content_formats``.
+    """
+
+    status_code: int
+    country: str
+    log_uuid: str
+    log_url: str
+    content: Dict[str, Any]
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CrawlerScrapeResult':
+        return cls(
+            status_code=data['status_code'],
+            country=data['country'],
+            log_uuid=data['log_uuid'],
+            log_url=data['log_url'],
+            content=data['content'],
         )
 
 
 @dataclass
-class CrawlStartedWebhook(CrawlerWebhookBase):
+class CrawlerUrlVisitedWebhook(CrawlerWebhookBase):
     """
-    Webhook payload for crawl.started event.
+    Payload for the ``crawler_url_visited`` event.
 
-    Sent when a crawler job starts running.
+    Emitted after each URL has been successfully scraped.
 
-    Additional fields:
-    - status: Current crawler status (should be 'RUNNING')
-
-    Example payload:
-    {
-        "event": "crawl.started",
-        "uuid": "550e8400-e29b-41d4-a716-446655440000",
-        "status": "RUNNING",
-        "timestamp": "2025-01-16T10:30:00Z"
-    }
+    Attributes:
+        url: The URL that was just visited.
+        scrape: Scrape result details (status code, country, log link, content).
     """
-    status: str
 
-    @classmethod
-    def from_dict(cls, data: Dict) -> 'CrawlStartedWebhook':
-        """Create webhook instance from dictionary payload"""
-        base = CrawlerWebhookBase.from_dict(data)
-        return cls(
-            event=base.event,
-            uuid=base.uuid,
-            timestamp=base.timestamp,
-            status=data['status']
-        )
-
-
-@dataclass
-class CrawlUrlDiscoveredWebhook(CrawlerWebhookBase):
-    """
-    Webhook payload for crawl.url_discovered event.
-
-    Sent when a new URL is discovered during crawling.
-
-    Additional fields:
-    - url: The discovered URL
-    - depth: Depth level of the URL from the starting URL
-
-    Example payload:
-    {
-        "event": "crawl.url_discovered",
-        "uuid": "550e8400-e29b-41d4-a716-446655440000",
-        "url": "https://example.com/page",
-        "depth": 1,
-        "timestamp": "2025-01-16T10:30:05Z"
-    }
-    """
     url: str
-    depth: int
+    scrape: CrawlerScrapeResult
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'CrawlUrlDiscoveredWebhook':
-        """Create webhook instance from dictionary payload"""
-        base = CrawlerWebhookBase.from_dict(data)
+    def from_payload(cls, event: str, payload: Dict[str, Any]) -> 'CrawlerUrlVisitedWebhook':
+        base = cls._parse_base(event, payload)
         return cls(
-            event=base.event,
-            uuid=base.uuid,
-            timestamp=base.timestamp,
-            url=data['url'],
-            depth=data['depth']
+            **base,
+            url=payload['url'],
+            scrape=CrawlerScrapeResult.from_dict(payload['scrape']),
         )
 
 
+# ---------------------------------------------------------------------------
+# crawler_url_skipped
+# ---------------------------------------------------------------------------
+
+
 @dataclass
-class CrawlUrlFailedWebhook(CrawlerWebhookBase):
+class CrawlerUrlSkippedWebhook(CrawlerWebhookBase):
     """
-    Webhook payload for crawl.url_failed event.
+    Payload for the ``crawler_url_skipped`` event.
 
-    Sent when a URL fails to be crawled.
+    Emitted in a single batch when the crawler decides to skip a set of
+    URLs (e.g. when reaching ``page_limit`` with discovered-but-unvisited
+    URLs still in the queue).
 
-    Additional fields:
-    - url: The URL that failed
-    - error: Error message describing the failure
-    - status_code: HTTP status code if available (optional)
-
-    Example payload:
-    {
-        "event": "crawl.url_failed",
-        "uuid": "550e8400-e29b-41d4-a716-446655440000",
-        "url": "https://example.com/page",
-        "error": "HTTP 404 Not Found",
-        "status_code": 404,
-        "timestamp": "2025-01-16T10:30:10Z"
-    }
+    Attributes:
+        urls: Mapping from URL to the reason it was skipped
+            (e.g. ``"page_limit"``, ``"excluded"``, ``"robots_txt"``).
     """
+
+    urls: Dict[str, str]
+
+    @classmethod
+    def from_payload(cls, event: str, payload: Dict[str, Any]) -> 'CrawlerUrlSkippedWebhook':
+        base = cls._parse_base(event, payload)
+        return cls(**base, urls=payload['urls'])
+
+
+# ---------------------------------------------------------------------------
+# crawler_url_discovered
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CrawlerUrlDiscoveredWebhook(CrawlerWebhookBase):
+    """
+    Payload for the ``crawler_url_discovered`` event.
+
+    Emitted when the crawler extracts one or more new URLs from a source.
+
+    Attributes:
+        origin: How the URLs were discovered (e.g. ``"navigation"``,
+            ``"sitemap"``).
+        discovered_urls: The newly-discovered URLs as a list.
+    """
+
+    origin: str
+    discovered_urls: List[str]
+
+    @classmethod
+    def from_payload(cls, event: str, payload: Dict[str, Any]) -> 'CrawlerUrlDiscoveredWebhook':
+        base = cls._parse_base(event, payload)
+        return cls(
+            **base,
+            origin=payload['origin'],
+            discovered_urls=payload['discovered_urls'],
+        )
+
+
+# ---------------------------------------------------------------------------
+# crawler_url_failed
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
+    """
+    Payload for the ``crawler_url_failed`` event.
+
+    Emitted when a URL cannot be crawled (network error, scrape error,
+    blocked, etc.).
+
+    Attributes:
+        url: The URL that failed.
+        error: The scrapfly error code (e.g. ``ERR::SCRAPE::NETWORK_ERROR``).
+        scrape_config: The scrape config that was used for the failed attempt.
+        log_link: URL to the full scrape log for this failure. Can be
+            ``None`` — the scrape-engine emits ``null`` when no log was
+            recorded (e.g. the failure happened before the request was ever
+            executed). See
+            ``scrape_engine/crawler/webhook_manager.py::dispatch_url_failed``
+            line 57.
+        scrape_link: URL that re-runs the same scrape as a one-off. Always
+            present on the wire (non-nullable). See line 58 of the engine.
+    """
+
     url: str
     error: str
-    status_code: Optional[int] = None
+    scrape_config: Dict[str, Any]
+    log_link: Optional[str]
+    scrape_link: str
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'CrawlUrlFailedWebhook':
-        """Create webhook instance from dictionary payload"""
-        base = CrawlerWebhookBase.from_dict(data)
+    def from_payload(cls, event: str, payload: Dict[str, Any]) -> 'CrawlerUrlFailedWebhook':
+        base = cls._parse_base(event, payload)
         return cls(
-            event=base.event,
-            uuid=base.uuid,
-            timestamp=base.timestamp,
-            url=data['url'],
-            error=data['error'],
-            status_code=data.get('status_code')
+            **base,
+            url=payload['url'],
+            error=payload['error'],
+            scrape_config=payload['scrape_config'],
+            log_link=payload['links'].get('log'),
+            scrape_link=payload['links']['scrape'],
         )
 
 
-@dataclass
-class CrawlCompletedWebhook(CrawlerWebhookBase):
-    """
-    Webhook payload for crawl.completed event.
-
-    Sent when a crawler job completes (successfully or with errors).
-
-    Additional fields:
-    - status: Final crawler status (COMPLETED, FAILED, etc.)
-    - urls_discovered: Total number of URLs discovered
-    - urls_crawled: Number of URLs successfully crawled
-    - urls_failed: Number of URLs that failed
-
-    Example payload:
-    {
-        "event": "crawl.completed",
-        "uuid": "550e8400-e29b-41d4-a716-446655440000",
-        "status": "COMPLETED",
-        "urls_discovered": 100,
-        "urls_crawled": 95,
-        "urls_failed": 5,
-        "timestamp": "2025-01-16T10:35:00Z"
-    }
-    """
-    status: str
-    urls_discovered: int
-    urls_crawled: int
-    urls_failed: int
-
-    @classmethod
-    def from_dict(cls, data: Dict) -> 'CrawlCompletedWebhook':
-        """Create webhook instance from dictionary payload"""
-        base = CrawlerWebhookBase.from_dict(data)
-        return cls(
-            event=base.event,
-            uuid=base.uuid,
-            timestamp=base.timestamp,
-            status=data['status'],
-            urls_discovered=data['urls_discovered'],
-            urls_crawled=data['urls_crawled'],
-            urls_failed=data['urls_failed']
-        )
+# ---------------------------------------------------------------------------
+# Type alias + dispatcher
+# ---------------------------------------------------------------------------
 
 
-# Type alias for any crawler webhook
 CrawlerWebhook = Union[
-    CrawlStartedWebhook,
-    CrawlUrlDiscoveredWebhook,
-    CrawlUrlFailedWebhook,
-    CrawlCompletedWebhook
+    CrawlerLifecycleWebhook,
+    CrawlerUrlVisitedWebhook,
+    CrawlerUrlSkippedWebhook,
+    CrawlerUrlDiscoveredWebhook,
+    CrawlerUrlFailedWebhook,
 ]
 
 
+# Dispatch table: event name → parser class
+_DISPATCH = {
+    CrawlerWebhookEvent.CRAWLER_STARTED.value:       CrawlerLifecycleWebhook,
+    CrawlerWebhookEvent.CRAWLER_STOPPED.value:       CrawlerLifecycleWebhook,
+    CrawlerWebhookEvent.CRAWLER_CANCELLED.value:     CrawlerLifecycleWebhook,
+    CrawlerWebhookEvent.CRAWLER_FINISHED.value:      CrawlerLifecycleWebhook,
+    CrawlerWebhookEvent.CRAWLER_URL_VISITED.value:   CrawlerUrlVisitedWebhook,
+    CrawlerWebhookEvent.CRAWLER_URL_SKIPPED.value:   CrawlerUrlSkippedWebhook,
+    CrawlerWebhookEvent.CRAWLER_URL_DISCOVERED.value: CrawlerUrlDiscoveredWebhook,
+    CrawlerWebhookEvent.CRAWLER_URL_FAILED.value:    CrawlerUrlFailedWebhook,
+}
+
+
 def webhook_from_payload(
-    payload: Dict,
-    signing_secrets: Optional[Tuple[str]] = None,
-    signature: Optional[str] = None
+    payload: Dict[str, Any],
+    signing_secrets: Optional[Tuple[str, ...]] = None,
+    signature: Optional[str] = None,
 ) -> CrawlerWebhook:
     """
-    Create a typed webhook instance from a raw payload dictionary.
+    Parse a raw crawler webhook envelope into a typed dataclass.
 
-    This helper automatically determines the webhook type based on the 'event' field
-    and returns the appropriate typed webhook instance.
+    The envelope shape is ``{"event": <name>, "payload": {...}}``. This
+    function inspects ``event`` and returns the corresponding typed
+    dataclass — one of :data:`CrawlerWebhook`.
 
     Args:
-        payload: The webhook payload as a dictionary
-        signing_secrets: Optional tuple of signing secrets (hex strings) for verification
-        signature: Optional webhook signature header for verification
+        payload: The full webhook body as a dict (i.e. what you get from
+            ``request.json``).
+        signing_secrets: Optional tuple of signing secrets (hex strings) for
+            signature verification.
+        signature: Optional webhook signature header value
+            (``X-Scrapfly-Webhook-Signature``).
 
     Returns:
-        A typed webhook instance (CrawlStartedWebhook, CrawlUrlDiscoveredWebhook, etc.)
+        A typed webhook instance matching the event.
 
     Raises:
-        ValueError: If the event type is unknown
-        WebhookSignatureMissMatch: If signature verification fails
+        KeyError: If the envelope is missing required fields.
+        ValueError: If ``event`` is not one of the known crawler events.
+        WebhookSignatureMissMatch: If signature verification fails.
 
     Example:
-        ```python
-        from scrapfly import webhook_from_payload
-
-        # From Flask request
-        @app.route('/webhook', methods=['POST'])
-        def handle_webhook():
-            webhook = webhook_from_payload(
-                request.json,
-                signing_secrets=('your-secret-key',),
-                signature=request.headers.get('X-Scrapfly-Webhook-Signature')
-            )
-
-            if isinstance(webhook, CrawlCompletedWebhook):
-                print(f"Crawl {webhook.uuid} completed!")
-                print(f"Crawled {webhook.urls_crawled} URLs")
-
-            return '', 200
-        ```
+        >>> from flask import Flask, request
+        >>> from scrapfly import webhook_from_payload, CrawlerLifecycleWebhook
+        >>> app = Flask(__name__)
+        >>> @app.route('/webhook', methods=['POST'])
+        ... def handle_webhook():
+        ...     wh = webhook_from_payload(
+        ...         request.json,
+        ...         signing_secrets=('your-secret-hex',),
+        ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
+        ...     )
+        ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == 'crawler_finished':
+        ...         print(f"Crawl {wh.crawler_uuid} finished — "
+        ...               f"{wh.state.urls_visited} URLs visited")
+        ...     return '', 200
     """
-    # Verify signature if provided
     if signing_secrets and signature:
-        from ..api_response import ResponseBodyHandler
         from json import dumps
+
+        from ..api_response import ResponseBodyHandler
+        from ..errors import WebhookSignatureMissMatch
 
         handler = ResponseBodyHandler(signing_secrets=signing_secrets)
         message = dumps(payload, separators=(',', ':')).encode('utf-8')
         if not handler.verify(message, signature):
-            from ..errors import WebhookSignatureMissMatch
             raise WebhookSignatureMissMatch()
 
-    # Determine event type and create appropriate webhook instance
-    event = payload.get('event')
+    event = payload['event']
+    inner = payload['payload']
 
-    if event == CrawlerWebhookEvent.STARTED.value:
-        return CrawlStartedWebhook.from_dict(payload)
-    elif event == CrawlerWebhookEvent.URL_DISCOVERED.value:
-        return CrawlUrlDiscoveredWebhook.from_dict(payload)
-    elif event == CrawlerWebhookEvent.URL_FAILED.value:
-        return CrawlUrlFailedWebhook.from_dict(payload)
-    elif event == CrawlerWebhookEvent.COMPLETED.value:
-        return CrawlCompletedWebhook.from_dict(payload)
-    else:
-        raise ValueError(f"Unknown crawler webhook event type: {event}")
+    parser = _DISPATCH.get(event)
+    if parser is None:
+        raise ValueError(
+            f"Unknown crawler webhook event: {event!r}. "
+            f"Expected one of: {sorted(_DISPATCH.keys())}"
+        )
+    return parser.from_payload(event, inner)

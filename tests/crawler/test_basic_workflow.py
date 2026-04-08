@@ -39,8 +39,8 @@ class TestCrawlerBasicWorkflow:
 
         # Verify crawl succeeded
         status = assert_crawl_successful(crawl)
-        assert status.urls_crawled > 0
-        assert status.urls_discovered > 0
+        assert status.state.urls_visited > 0
+        assert status.state.urls_extracted > 0
 
     def test_crawl_method_chaining(self, client, test_url):
         """Test that crawl methods support chaining"""
@@ -91,7 +91,7 @@ class TestCrawlerStatus:
         poll_count = 0
         while poll_count < max_polls:
             status = crawl.status()
-            print(f"Poll {poll_count}: {status.status}, {status.urls_crawled}/{status.urls_discovered} URLs")
+            print(f"Poll {poll_count}: {status.status}, {status.state.urls_visited}/{status.state.urls_extracted} URLs")
 
             if status.is_complete:
                 break
@@ -115,8 +115,8 @@ class TestCrawlerStatus:
 
         # Should have same values
         assert status1.status == status2.status
-        assert status1.urls_crawled == status2.urls_crawled
-        assert status1.urls_discovered == status2.urls_discovered
+        assert status1.state.urls_visited == status2.state.urls_visited
+        assert status1.state.urls_extracted == status2.state.urls_extracted
 
 
 class TestCrawlerRepr:

@@ -55,7 +55,7 @@ def assert_crawl_successful(crawl):
     status = crawl.status()
     assert status.is_complete, f"Crawl {crawl.uuid} should be complete but status is: {status.status}"
     assert not status.is_failed, f"Crawl {crawl.uuid} failed with status: {status.status}"
-    assert status.urls_crawled > 0, f"Crawl {crawl.uuid} should have crawled at least one URL"
+    assert status.state.urls_visited > 0, f"Crawl {crawl.uuid} should have crawled at least one URL"
     return status
 
 
