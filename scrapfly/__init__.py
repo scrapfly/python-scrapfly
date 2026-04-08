@@ -25,14 +25,6 @@ from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionAp
 from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig, VisionDeficiency
-from .browser_config import (
-    BrowserConfig,
-    PROXY_POOL_DATACENTER,
-    PROXY_POOL_RESIDENTIAL,
-    OS_LINUX,
-    OS_WINDOWS,
-    OS_MAC,
-)
 from .extraction_config import ExtractionConfig
 from .crawler import (
     CrawlerConfig,
@@ -90,11 +82,8 @@ __all__: Tuple[str, ...] = (
     'ScreenshotConfig',
     'VisionDeficiency',
     'BrowserConfig',
-    'PROXY_POOL_DATACENTER',
-    'PROXY_POOL_RESIDENTIAL',
-    'OS_LINUX',
-    'OS_WINDOWS',
-    'OS_MAC',
+    'ProxyPool',
+    'OperatingSystem',
     'ExtractionConfig',
     'ScreenshotAPIError',
     'ExtractionAPIError',
