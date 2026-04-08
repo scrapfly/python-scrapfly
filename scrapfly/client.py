@@ -223,13 +223,14 @@ class ScrapflyClient:
             'method': 'GET',
             'url': self.host + '/screenshot',
             'timeout': (self.connect_timeout, self.screenshot_api_read_timeout),
+            'verify': self.verify,
             'headers': {
                 'accept-encoding': self.body_handler.content_encoding,
                 'accept': self.body_handler.accept,
                 'user-agent': self.ua
-            },            
+            },
             'params': screenshot_config.to_api_params(key=self.key)
-        }        
+        }
 
     def _extraction_request(self, extraction_config:ExtractionConfig):
         headers = {
@@ -248,6 +249,7 @@ class ScrapflyClient:
             'url': self.host + '/extraction',
             'data': extraction_config.body,
             'timeout': (self.connect_timeout, self.extraction_api_read_timeout),
+            'verify': self.verify,
             'headers': headers,
             'params': extraction_config.to_api_params(key=self.key)
         }
