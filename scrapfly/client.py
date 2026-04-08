@@ -35,13 +35,8 @@ from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
-from .crawler import (
-    CrawlerArtifactResponse,
-    CrawlerConfig,
-    CrawlerStartResponse,
-    CrawlerStatusResponse,
-    CrawlerUrlsResponse,
-)
+from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse
+from .browser_config import BrowserConfig
 from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, HttpError, UpstreamHttpError
 
 logger = logging.getLogger(__name__)
@@ -87,6 +82,8 @@ MonitoringAggregation = Literal[
 class ScrapflyClient:
 
     HOST = 'https://api.scrapfly.io'
+    CLOUD_BROWSER_HOST = 'wss://browser.scrapfly.io'
+    CLOUD_BROWSER_API_HOST = 'https://browser.scrapfly.io'
     DEFAULT_CONNECT_TIMEOUT = 30
     DEFAULT_READ_TIMEOUT = 30
 
@@ -133,6 +130,7 @@ class ScrapflyClient:
         read_timeout:int = DEFAULT_READ_TIMEOUT,
         default_read_timeout:int = DEFAULT_READ_TIMEOUT,
         reporter:Optional[Callable]=None,
+        cloud_browser_host: Optional[str] = None,
         **kwargs
     ):
         if host[-1] == '/':  # remove last '/' if exists
@@ -156,6 +154,8 @@ class ScrapflyClient:
         self.host = host
         self.key = key
         self.verify = verify
+        self.cloud_browser_host = cloud_browser_host or self.CLOUD_BROWSER_HOST
+        self.cloud_browser_api_host = cloud_browser_host.replace('wss://', 'https://') if cloud_browser_host else self.CLOUD_BROWSER_API_HOST
         self.debug = debug
         self.connect_timeout = connect_timeout
         self.web_scraping_api_read_timeout = web_scraping_api_read_timeout
@@ -272,215 +272,6 @@ class ScrapflyClient:
             return self.body_handler(response.content, response.headers['content-type'])
 
         return response.content.decode('utf-8')
-
-    def _cloud_browser_http_host(self) -> str:
-        """
-        Derive the cloud-browser HTTPS host from this client's API host.
-
-        ``https://api.scrapfly.io`` → ``https://browser.scrapfly.io``
-        ``https://api.scrapfly.home`` → ``https://browser.scrapfly.home``
-
-        Override via the ``SCRAPFLY_BROWSER_HOST`` env var (which is also
-        respected by :meth:`cloud_browser`).
-        """
-        from os import environ
-        override = environ.get('SCRAPFLY_BROWSER_HOST')
-        if override:
-            # Allow either scheme-prefixed or bare host
-            if override.startswith(('http://', 'https://')):
-                return override.rstrip('/')
-            return 'https://' + override
-        host = self.host  # already stripped of trailing slash in __init__
-        # Strip scheme to inspect, then re-add
-        bare = host.replace('https://', '').replace('http://', '')
-        if bare.startswith('api.'):
-            bare = 'browser.' + bare[len('api.'):]
-        return 'https://' + bare
-
-    def cloud_browser_extension_list(self) -> Dict:
-        """
-        List Cloud Browser extensions registered for this account.
-
-        Wraps ``GET /extension`` on the cloud-browser host (derived from
-        the configured API host: ``api.scrapfly.io`` → ``browser.scrapfly.io``).
-        Returns the JSON envelope as-is:
-
-            {
-                "extensions": [{"id": "...", "name": "...", "version": "...", ...}, ...],
-                "quota": {"used": 3, "limit": 10},
-            }
-
-        Example:
-            >>> client = ScrapflyClient(key="YOUR_API_KEY")
-            >>> result = client.cloud_browser_extension_list()
-            >>> print(f"Using {result['quota']['used']}/{result['quota']['limit']} extensions")
-            >>> for ext in result['extensions'] or []:
-            ...     print(f"  {ext['id']} - {ext['name']} v{ext['version']}")
-        """
-        response = self._http_handler(
-            method='GET',
-            url=self._cloud_browser_http_host() + '/extension',
-            params={'key': self.key},
-            verify=self.verify,
-            headers={'accept': 'application/json', 'user-agent': self.ua},
-        )
-        response.raise_for_status()
-        from json import loads
-        return loads(response.content)
-
-    def cloud_browser_extension_delete(self, extension_id: str) -> Dict:
-        """
-        Delete a Cloud Browser extension by ID.
-
-        Wraps ``DELETE /extension/:id`` on the cloud-browser host. Returns
-        the JSON envelope: ``{"message": "..."}``.
-
-        Args:
-            extension_id: The extension ID returned by upload/list.
-
-        Raises:
-            ValueError: If ``extension_id`` is empty.
-            requests.HTTPError: 404 if the extension doesn't exist,
-                403 if it doesn't belong to this account.
-        """
-        if not extension_id:
-            raise ValueError("extension_id must be a non-empty string")
-        from urllib.parse import quote
-        response = self._http_handler(
-            method='DELETE',
-            url=f"{self._cloud_browser_http_host()}/extension/{quote(extension_id, safe='')}",
-            params={'key': self.key},
-            verify=self.verify,
-            headers={'accept': 'application/json', 'user-agent': self.ua},
-        )
-        response.raise_for_status()
-        from json import loads
-        return loads(response.content)
-
-    def cloud_browser_extension_upload(self, file_path: str) -> Dict:
-        """
-        Upload a Chrome extension (.zip or .crx) to your Cloud Browser account.
-
-        Wraps ``POST /extension`` on the cloud-browser host in
-        multipart/form-data mode.
-
-        Args:
-            file_path: Path to a local .zip or .crx file (max 10 MB).
-
-        Returns:
-            JSON envelope: ``{"extension": {"id": "...", "name": "...", ...}}``
-
-        Example:
-            >>> result = client.cloud_browser_extension_upload("my-extension.zip")
-            >>> print("Extension ID:", result["extension"]["id"])
-        """
-        from os.path import basename
-        with open(file_path, 'rb') as f:
-            files = {'file': (basename(file_path), f, 'application/octet-stream')}
-            response = self._http_handler(
-                method='POST',
-                url=self._cloud_browser_http_host() + '/extension',
-                params={'key': self.key},
-                verify=self.verify,
-                headers={'accept': 'application/json', 'user-agent': self.ua},
-                files=files,
-            )
-        response.raise_for_status()
-        from json import loads
-        return loads(response.content)
-
-    def cloud_browser_extension_upload_from_url(self, extension_url: str) -> Dict:
-        """
-        Install a Chrome extension from a public URL (auto-updates each session).
-
-        Wraps ``POST /extension`` on the cloud-browser host in JSON mode.
-        The URL must point at a ``.crx`` file with a valid
-        alphanumeric/hyphen/underscore filename.
-
-        Args:
-            extension_url: HTTPS URL ending in ``.crx``. Max file size 10 MB.
-
-        Returns:
-            JSON envelope: ``{"extension": {"id": "...", "name": "...", ...}}``
-
-        Example:
-            >>> result = client.cloud_browser_extension_upload_from_url(
-            ...     "https://example.com/my-extension.crx"
-            ... )
-            >>> print("Extension ID:", result["extension"]["id"])
-        """
-        from json import dumps, loads
-        response = self._http_handler(
-            method='POST',
-            url=self._cloud_browser_http_host() + '/extension',
-            params={'key': self.key},
-            verify=self.verify,
-            headers={
-                'accept': 'application/json',
-                'content-type': 'application/json',
-                'user-agent': self.ua,
-            },
-            data=dumps({'extension_url': extension_url}),
-        )
-        response.raise_for_status()
-        return loads(response.content)
-
-    def cloud_browser(self, config: 'BrowserConfig' = None) -> str:
-        """
-        Build the Cloud Browser CDP WebSocket URL for the given config.
-
-        This is a pure URL builder — it does NOT make any network call.
-        Pass the returned URL to your CDP client (Playwright, Puppeteer,
-        Selenium, etc.) to allocate and connect to a browser session.
-
-        Args:
-            config: Optional :class:`BrowserConfig`. When omitted, the
-                browser is started with the server's default settings.
-
-        Returns:
-            A ``wss://...`` URL ready to pass to ``connect_over_cdp(url)``.
-
-        Example:
-            >>> from scrapfly import ScrapflyClient, BrowserConfig
-            >>> from playwright.sync_api import sync_playwright
-            >>> client = ScrapflyClient(key="YOUR_API_KEY")
-            >>> config = BrowserConfig(proxy_pool="public_datacenter_pool", os="linux")
-            >>> with sync_playwright() as p:
-            ...     browser = p.chromium.connect_over_cdp(client.cloud_browser(config))
-            ...     # ... use the browser ...
-            ...     browser.close()
-
-        The host is derived from the configured ``self.host``: if you
-        constructed the client against ``https://api.scrapfly.io`` you get
-        ``wss://browser.scrapfly.io``; for the dev cluster
-        (``https://api.scrapfly.home``) you get ``wss://api.scrapfly.home``
-        directly. Override by setting the ``SCRAPFLY_BROWSER_HOST`` env var
-        if you need to point at a custom edge.
-        """
-        from os import environ
-        from urllib.parse import urlencode
-        from .browser_config import BrowserConfig
-
-        params = {'api_key': self.key}
-        if config is not None:
-            if not isinstance(config, BrowserConfig):
-                raise TypeError(
-                    f"cloud_browser() expects BrowserConfig, got {type(config).__name__}"
-                )
-            params.update(config.to_query_params())
-
-        # Map api.scrapfly.{io,home} → browser.scrapfly.{io,home}. Allow
-        # SCRAPFLY_BROWSER_HOST to override the derived host for custom edges.
-        host_override = environ.get('SCRAPFLY_BROWSER_HOST')
-        if host_override:
-            browser_host = host_override
-        else:
-            browser_host = self.host.replace('https://', '').replace('http://', '')
-            # api.scrapfly.io → browser.scrapfly.io ; api.scrapfly.home → browser.scrapfly.home
-            if browser_host.startswith('api.'):
-                browser_host = 'browser.' + browser_host[len('api.'):]
-
-        return f"wss://{browser_host}?{urlencode(params)}"
 
     def get_monitoring_metrics(self, format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED, period:Optional[str]=None, aggregation:Optional[List[MonitoringAggregation]]=None):
         params = {'key': self.key, 'format': format}
@@ -1156,7 +947,7 @@ class ScrapflyClient:
             status = client.get_crawl_status(uuid)
             print(f"Status: {status.status}")
             print(f"Progress: {status.progress_pct:.1f}%")
-            print(f"Visited: {status.state.urls_visited}/{status.state.urls_extracted}")
+            print(f"Crawled: {status.urls_crawled}/{status.urls_discovered}")
 
             if status.is_complete:
                 print("Crawl completed!")
@@ -1186,9 +977,6 @@ class ScrapflyClient:
         :param crawl_uuid: Crawler job UUID to cancel
         :return: True if cancelled successfully
 
-        Calling cancel on a crawl that has already finished is a no-op and
-        returns True (the endpoint is idempotent).
-
         Example:
             ```python
             # Start a crawl
@@ -1200,21 +988,16 @@ class ScrapflyClient:
         """
         timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
 
-        # The cancel endpoint is `POST /crawl/{uuid}/cancel`. Earlier
-        # versions of this SDK called `DELETE /crawl/{uuid}` which is not a
-        # valid public route — that path silently 404'd against the public
-        # API. Fixed in 0.8.28 to match the documented contract and the new
-        # Go API route.
         response = self._http_handler(
-            method='POST',
-            url=f'{self.host}/crawl/{crawl_uuid}/cancel',
+            method='DELETE',
+            url=f'{self.host}/crawl/{crawl_uuid}',
             params={'key': self.key},
             timeout=timeout,
             headers={'User-Agent': self.ua},
-            verify=self.verify,
+            verify=self.verify
         )
 
-        if response.status_code not in (200, 202, 204):
+        if response.status_code not in (200, 204):
             self._handle_crawler_error_response(response)
 
         return True
@@ -1277,209 +1060,51 @@ class ScrapflyClient:
         return CrawlerArtifactResponse(response.content, artifact_type=artifact_type)
 
     @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
-    def get_crawl_urls(
-        self,
-        uuid: str,
-        status: Optional[Literal['visited', 'pending', 'failed', 'skipped']] = None,
-        page: int = 1,
-        per_page: int = 100,
-    ) -> CrawlerUrlsResponse:
-        """
-        List the URLs of a crawler job, paginated and optionally filtered by status.
-
-        NEW in 0.8.28 — closes a documented-API parity gap. The server streams
-        the response as ``text/plain``, one record per line. JSON is
-        intentionally NOT used here because this endpoint is expected to scale
-        to millions of URLs per job; JSON would be too expensive both on the
-        server and the client at that volume.
-
-        Wire format:
-
-        - For ``visited`` / ``pending`` status: one URL per line.
-        - For ``failed`` / ``skipped`` status: ``url,reason`` per line.
-
-        Pagination: the wire protocol carries no global ``total``. Request
-        further pages by incrementing ``page`` until the response has no
-        records.
-
-        Args:
-            uuid: Crawler job UUID
-            status: Filter by URL status — 'visited', 'pending', 'failed', or
-                'skipped'. When None, the server defaults to 'visited'.
-            page: 1-based page number (default 1)
-            per_page: Page size (default 100, max 1000 per public docs)
-
-        Returns:
-            CrawlerUrlsResponse containing the URL records and page metadata.
-
-        Example:
-            ```python
-            urls = client.get_crawl_urls(crawl_uuid, status='visited', per_page=50)
-            for entry in urls:
-                print(f"  {entry.url} ({entry.status})")
-            ```
-        """
-        assert isinstance(uuid, str) and uuid, "uuid must be a non-empty string"
-        assert page >= 1, f"page must be >= 1, got {page}"
-        assert per_page >= 1, f"per_page must be >= 1, got {per_page}"
-
-        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
-        status_hint = status or 'visited'
-
-        params: Dict[str, Any] = {
-            'key': self.key,
-            'page': page,
-            'per_page': per_page,
-        }
-        if status is not None:
-            params['status'] = status
-
-        response = self._http_handler(
-            method='GET',
-            url=f'{self.host}/crawl/{uuid}/urls',
-            params=params,
-            timeout=timeout,
-            headers={
-                'User-Agent': self.ua,
-                # `text/plain` is the canonical wire format. We also accept
-                # JSON because error envelopes come back as JSON regardless
-                # of the success response type.
-                'Accept': 'text/plain, application/json',
-            },
-            verify=self.verify,
-        )
-
-        if response.status_code != 200:
-            self._handle_crawler_error_response(response)
-
-        # The canonical success content-type is `text/plain`. A JSON body on
-        # a 200 response would indicate a server-side misconfiguration — we
-        # surface it loud rather than silently parsing an empty string.
-        content_type = response.headers.get('Content-Type', '')
-        if 'application/json' in content_type:
-            body_preview = response.text[:500]
-            raise ScrapflyError(
-                message=(
-                    f"get_crawl_urls expected text/plain response, got "
-                    f"Content-Type={content_type!r}: {body_preview}"
-                ),
-                code='ERR::CRAWLER::UNEXPECTED_RESPONSE_FORMAT',
-                http_status_code=200,
-                resource='CRAWLER',
-                is_retryable=False,
-            )
-
-        return CrawlerUrlsResponse.from_text(
-            body=response.text,
-            status_hint=status_hint,
-            page=page,
-            per_page=per_page,
-        )
-
-    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
     def get_crawl_contents(
         self,
         uuid: str,
-        format: Literal['html', 'clean_html', 'markdown', 'json', 'text', 'extracted_data', 'page_metadata'] = 'html',
-        url: Optional[str] = None,
-        plain: bool = False,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-    ) -> Union[Dict[str, Any], str]:
+        format: Literal['html', 'clean_html', 'markdown', 'json', 'text', 'extracted_data', 'page_metadata'] = 'html'
+    ) -> Dict[str, Any]:
         """
-        Get crawl contents in a specific format.
+        Get crawl contents in a specific format
 
-        Two response modes:
+        Retrieves extracted content from crawled pages in the format(s) specified
+        in your crawl configuration (via content_formats parameter).
 
-        1. **JSON envelope** (default, ``plain=False``): returns a dict shaped
-           like ``{"contents": {url: {format: content, ...}, ...}, "links": ...}``.
-           Useful for bulk retrieval; supports pagination via ``limit`` /
-           ``offset``.
-
-        2. **Plain mode** (``plain=True``): returns the raw content for a
-           single URL/format as a ``str`` with content-type matching the
-           format. Requires ``url``. NEW in 0.8.28 — useful for piping
-           markdown/text directly without unwrapping the JSON envelope.
-
-        Args:
-            uuid: Crawler job UUID
-            format: Content format — 'html', 'clean_html', 'markdown', 'json',
-                'text', 'extracted_data', 'page_metadata'
-            url: When set, target a single crawled URL. Required for ``plain=True``.
-            plain: Return raw content for a single URL instead of the JSON
-                envelope. Requires ``url``. Defaults to False.
-            limit: (JSON mode only) max URLs per page (default 10, max 50)
-            offset: (JSON mode only) skip N URLs
-
-        Returns:
-            ``str`` when ``plain=True``, else ``Dict[str, Any]`` with the
-            JSON envelope.
+        :param uuid: Crawler job UUID
+        :param format: Content format - 'html', 'clean_html', 'markdown', 'json', 'text',
+                      'extracted_data', 'page_metadata'
+        :return: Dictionary with format {"contents": {url: content, ...}, "links": {...}}
 
         Example:
             ```python
-            # Bulk JSON mode
+            # Get all content in markdown format
             result = client.get_crawl_contents(uuid, format='markdown')
-            for url, formats in result['contents'].items():
-                print(f"{url}: {len(formats['markdown'])} chars")
+            contents = result['contents']
 
-            # Single URL, raw markdown string
-            md = client.get_crawl_contents(
-                uuid,
-                format='markdown',
-                url='https://example.com/page1',
-                plain=True,
-            )
-            print(md[:200])
+            # Access specific URL
+            for url, content in contents.items():
+                print(f"{url}: {len(content)} chars")
             ```
         """
-        if plain and url is None:
-            raise ValueError("plain=True requires a single 'url' argument")
-
         timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
 
-        # Server-side query param is `formats` (plural, comma-separated). The
-        # public docs say `format` but the actual endpoint only honours
-        # `formats`. We accept the singular `format` arg here (matching docs)
-        # and translate at send time.
-        params: Dict[str, Any] = {
+        params = {
             'key': self.key,
-            'formats': format,
+            'format': format
         }
-        if url is not None:
-            params['url'] = url
-        if plain:
-            params['plain'] = 'true'
-        if limit is not None:
-            params['limit'] = limit
-        if offset is not None:
-            params['offset'] = offset
-
-        # In plain mode the server returns the raw content with a format-
-        # matching content-type (text/markdown, text/html, etc.). Accept
-        # anything so the format-specific responses come through.
-        accept = '*/*' if plain else 'application/json'
 
         response = self._http_handler(
             method='GET',
             url=f'{self.host}/crawl/{uuid}/contents',
             params=params,
             timeout=timeout,
-            headers={'User-Agent': self.ua, 'Accept': accept},
-            verify=self.verify,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
         )
 
         if response.status_code != 200:
             self._handle_crawler_error_response(response)
-
-        if plain:
-            content_type = response.headers.get('Content-Type', '')
-            # Even in plain mode, error envelopes still come back as JSON.
-            # The 200 check above means it's not an error, so we can safely
-            # return the body as text — but defensively detect a JSON body
-            # and JSON-encode it for a stable str return type.
-            if 'application/json' in content_type:
-                return response.text
-            return response.text
 
         return response.json()
 
@@ -1500,3 +1125,279 @@ class ScrapflyClient:
             request=response.request,
             response=response
         )
+
+    def cloud_browser(self, browser_config: Optional[BrowserConfig] = None) -> str:
+        """
+        Get the WebSocket URL for a Cloud Browser session.
+        :param browser_config: Optional BrowserConfig - connection parameters
+        :return: str - the full wss:// URL for CDP connection
+        """
+        if browser_config is None:
+            browser_config = BrowserConfig()
+
+        return browser_config.websocket_url(api_key=self.key, host=self.cloud_browser_host)
+
+    def cloud_browser_unblock(
+        self,
+        url: str,
+        proxy_pool: Optional[str] = None,
+        country: Optional[str] = None,
+        os: Optional[str] = None,
+        timeout: Optional[int] = None,
+        browser_timeout: Optional[int] = None,
+        headers: Optional[Dict] = None,
+        body: Optional[str] = None,
+        method: Optional[str] = None,
+    ) -> Dict:
+        """
+        Bypass anti-bot protection and get a ready-to-use browser session.
+        :param url: Target URL to navigate to and bypass protection
+        :param proxy_pool: Proxy pool: 'datacenter' or 'residential'
+        :param country: ISO country code for proxy geolocation
+        :param os: Operating system fingerprint: 'linux', 'windows', 'macos'
+        :param timeout: Navigation timeout in seconds (max 300)
+        :param browser_timeout: Browser session timeout in seconds (max 1800)
+        :param headers: Custom request headers
+        :param body: Request body for POST/PUT/PATCH requests
+        :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+        :return: dict with ws_url, session_id, run_id
+        """
+        proxy_pool_map = {
+            'datacenter': 'public_datacenter_pool',
+            'residential': 'public_residential_pool',
+        }
+
+        json_body = {'url': url}
+
+        if proxy_pool is not None:
+            json_body['proxy_pool'] = proxy_pool_map.get(proxy_pool, proxy_pool)
+
+        if country is not None:
+            json_body['country'] = country
+
+        if os is not None:
+            json_body['os'] = os
+
+        if timeout is not None:
+            json_body['timeout'] = timeout
+
+        if browser_timeout is not None:
+            json_body['browser_timeout'] = browser_timeout
+
+        if headers is not None:
+            json_body['headers'] = headers
+
+        if body is not None:
+            json_body['body'] = body
+
+        if method is not None:
+            json_body['method'] = method
+
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/unblock',
+            json=json_body,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, 155),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    def cloud_browser_session_stop(self, session_id: str) -> None:
+        """
+        Terminate a Cloud Browser session.
+        :param session_id: The session identifier to terminate
+        """
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/session/' + session_id + '/stop',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+    def cloud_browser_playback(self, run_id: str) -> Dict:
+        """
+        Get playback info for a debug session recording.
+        :param run_id: The unique run identifier
+        :return: dict with available, metadata, video_url
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/run/' + run_id + '/playback',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    def cloud_browser_video(self, run_id: str, save_path: Optional[str] = None) -> bytes:
+        """
+        Download a debug session recording video.
+        :param run_id: The unique run identifier
+        :param save_path: Optional file path to save the video (e.g. 'recording.webm')
+        :return: bytes - raw video data
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/run/' + run_id + '/video',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, 120),  # Videos can be large
+            headers={
+                'user-agent': self.ua
+            },
+            stream=True,
+        )
+
+        response.raise_for_status()
+
+        data = response.content
+        if save_path:
+            with open(save_path, 'wb') as f:
+                f.write(data)
+
+        return data
+
+    # --- Cloud Browser Extension Management ---
+
+    def cloud_browser_extension_list(self) -> Dict:
+        """
+        List all browser extensions for the current account.
+        :return: dict with 'extensions' list and 'quota' info (used, limit)
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/extension',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_get(self, extension_id: str) -> Dict:
+        """
+        Get details of a specific browser extension.
+        :param extension_id: The extension identifier
+        :return: dict with extension details
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/extension/' + extension_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_upload(self, file_path: str) -> Dict:
+        """
+        Upload a browser extension from a local file (.zip or .crx).
+        :param file_path: Path to the extension file
+        :return: dict with 'extension' details and 'is_update' flag
+        """
+        with open(file_path, 'rb') as f:
+            response = self._http_handler(
+                method='POST',
+                url=self.cloud_browser_api_host + '/extension',
+                params={'key': self.key},
+                files={'file': (os.path.basename(file_path), f)},
+                verify=self.verify,
+                timeout=(self.connect_timeout, self.default_read_timeout),
+                headers={
+                    'user-agent': self.ua
+                },
+            )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_upload_from_url(self, extension_url: str) -> Dict:
+        """
+        Install a browser extension from a URL pointing to a .crx file.
+        URL-based extensions auto-update on each browser session start.
+        :param extension_url: URL to the .crx extension file
+        :return: dict with 'extension' details and 'is_update' flag
+        """
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/extension',
+            params={'key': self.key},
+            json={'extension_url': extension_url},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_delete(self, extension_id: str) -> Dict:
+        """
+        Delete a browser extension.
+        :param extension_id: The extension identifier to delete
+        :return: dict with success status
+        """
+        response = self._http_handler(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/extension/' + extension_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_sessions(self) -> Dict:
+        """
+        List all running Cloud Browser sessions.
+        :return: dict with 'sessions' list and 'total' count
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/sessions',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()

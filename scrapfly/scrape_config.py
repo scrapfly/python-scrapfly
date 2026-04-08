@@ -484,6 +484,7 @@ class ScrapeConfig(BaseApiConfig):
             'os': self.os,
             'auto_scroll': self.auto_scroll,
             'cost_budget': self.cost_budget,
+            'browser_brand': self.browser_brand,
         }
 
     @staticmethod
@@ -538,6 +539,7 @@ class ScrapeConfig(BaseApiConfig):
         lang = scrape_config_dict.get('lang', None)
         auto_scroll = scrape_config_dict.get('auto_scroll', None)
         cost_budget = scrape_config_dict.get('cost_budget', None)
+        browser_brand = scrape_config_dict.get('browser_brand', None)
 
         return ScrapeConfig(
             url=url,
@@ -581,4 +583,5 @@ class ScrapeConfig(BaseApiConfig):
             lang=lang,
             auto_scroll=auto_scroll,
             cost_budget=cost_budget,
+            browser_brand=browser_brand,
         )
