@@ -210,14 +210,22 @@ class ScrapflyClient:
             'verify': self.verify,
             'timeout': (self.connect_timeout, self.web_scraping_api_read_timeout),
             'headers': {
-                'content-type': scrape_config.headers['content-type'] if scrape_config.method in ['POST', 'PUT', 'PATCH'] else self.body_handler.content_type,
+                # When method has a body (POST/PUT/PATCH) AND the caller
+                # explicitly set a Content-Type, forward it. Otherwise fall
+                # back to the body_handler default so we don't KeyError on
+                # callers who omit the header (e.g. simple PUT "test-body").
+                'content-type': (
+                    scrape_config.headers.get('content-type', self.body_handler.content_type)
+                    if scrape_config.method in ['POST', 'PUT', 'PATCH']
+                    else self.body_handler.content_type
+                ),
                 'accept-encoding': self.body_handler.content_encoding,
                 'accept': self.body_handler.accept,
                 'user-agent': self.ua
             },
             'params': scrape_config.to_api_params(key=self.key)
         }
-    
+
     def _screenshot_request(self, screenshot_config:ScreenshotConfig):
         return {
             'method': 'GET',
@@ -819,7 +827,30 @@ class ScrapflyClient:
             if self.body_handler.support(headers=response.headers):
                 body = self.body_handler(content=response.content, content_type=response.headers['content-type'])
             else:
-                body = response.content.decode('utf-8')
+                # body_handler rejected — content-type not in SUPPORTED_CONTENT_TYPES.
+                # Response may still be compressed (zstd/brotli) if requests did
+                # not transparently decompress. Probe content-encoding and try
+                # the handler's read() anyway before falling back to a tolerant
+                # utf-8 decode. Previously this branch raised UnicodeDecodeError
+                # on valid zstd/br responses with a non-json/msgpack content-type.
+                raw = response.content
+                content_encoding = response.headers.get('content-encoding', '').lower()
+                if content_encoding in ('gzip', 'gz', 'deflate', 'br', 'brotli', 'zstd'):
+                    try:
+                        raw = self.body_handler.read(
+                            content=raw,
+                            content_encoding=content_encoding,
+                            content_type=response.headers.get('content-type', ''),
+                            signature=None,
+                        )
+                    except Exception:
+                        # Fall through to tolerant decode below; don't mask the
+                        # real error with a decoder crash.
+                        pass
+                if isinstance(raw, (bytes, bytearray)):
+                    body = raw.decode('utf-8', errors='replace')
+                else:
+                    body = raw
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
