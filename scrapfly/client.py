@@ -495,11 +495,29 @@ class ScrapflyClient:
             if scrape_config.proxified_response is True:
                 # Proxified mode: the API returns the raw upstream response
                 # (target's status, headers, body) instead of the JSON
-                # envelope. Skip ScrapeApiResponse parsing entirely and
-                # return the raw requests.Response so callers can drive
-                # it like any HTTP response. Scrapfly metadata is on the
-                # X-Scrapfly-* headers (Content-Format, Log, Api-Cost).
-                response.raise_for_status()
+                # envelope. Error restoration: if X-Scrapfly-Reject-Code is
+                # present, the scrape failed and the SDK must raise a typed
+                # error with the code/message/retryable from the headers.
+                reject_code = response.headers.get('X-Scrapfly-Reject-Code')
+                if reject_code:
+                    from scrapfly.errors import HttpError
+                    reject_desc = response.headers.get('X-Scrapfly-Reject-Description', '')
+                    reject_retryable = response.headers.get('X-Scrapfly-Reject-Retryable', 'false').lower() == 'true'
+                    retry_after = None
+                    if reject_retryable:
+                        try:
+                            retry_after = int(response.headers.get('Retry-After', '0'))
+                        except (ValueError, TypeError):
+                            retry_after = None
+                    raise HttpError(
+                        request=response.request,
+                        response=response,
+                        code=reject_code,
+                        http_status_code=response.status_code,
+                        message=reject_desc,
+                        is_retryable=reject_retryable,
+                        retry_delay=retry_after,
+                    )
                 self.reporter.report(scrape_api_response=None)
                 return response
 
