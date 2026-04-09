@@ -106,6 +106,7 @@ class ScrapeConfig(BaseApiConfig):
     auto_scroll:Optional[bool] = None
     cost_budget:Optional[int] = None
     browser_brand:Optional[str] = None
+    geolocation:Optional[str] = None
     proxified_response:Optional[bool] = None
 
     def __init__(
@@ -153,6 +154,7 @@ class ScrapeConfig(BaseApiConfig):
         auto_scroll:Optional[bool] = None,
         cost_budget:Optional[int] = None,
         browser_brand:Optional[str] = None,
+        geolocation:Optional[str] = None,
         proxified_response:Optional[bool] = None
     ):
         assert(type(url) is str)
@@ -207,6 +209,7 @@ class ScrapeConfig(BaseApiConfig):
         self.auto_scroll = auto_scroll
         self.cost_budget = cost_budget
         self.browser_brand = browser_brand
+        self.geolocation = geolocation
         self.proxified_response = proxified_response
 
         if cookies:
@@ -392,6 +395,8 @@ class ScrapeConfig(BaseApiConfig):
 
         if self.browser_brand is not None:
             params['browser_brand'] = self.browser_brand
+        if self.geolocation is not None:
+            params['geolocation'] = self.geolocation
 
         return params
 

@@ -38,6 +38,7 @@ class ExtractionConfig(BaseApiConfig):
     is_document_compressed: Optional[bool] = None
     document_compression_format: Optional[CompressionFormat] = None
     webhook: Optional[str] = None
+    timeout: Optional[int] = None
     raise_on_upstream_error: bool = True
 
     # deprecated options
@@ -57,6 +58,7 @@ class ExtractionConfig(BaseApiConfig):
         is_document_compressed: Optional[bool] = None,
         document_compression_format: Optional[CompressionFormat] = None,
         webhook: Optional[str] = None,
+        timeout: Optional[int] = None,
         raise_on_upstream_error: bool = True,
 
         # deprecated options
@@ -87,6 +89,7 @@ class ExtractionConfig(BaseApiConfig):
         self.is_document_compressed = is_document_compressed
         self.document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
         self.webhook = webhook
+        self.timeout = timeout
         self.raise_on_upstream_error = raise_on_upstream_error
 
         if isinstance(body, bytes) or document_compression_format:
@@ -150,8 +153,8 @@ class ExtractionConfig(BaseApiConfig):
             params['extraction_template'] = self.extraction_template
 
         if self.extraction_ephemeral_template:
-            self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
-            params['extraction_template'] = 'ephemeral:' + urlsafe_b64encode(self.extraction_ephemeral_template.encode('utf-8')).decode('utf-8')
+            template_json = json.dumps(self.extraction_ephemeral_template)
+            params['extraction_template'] = 'ephemeral:' + urlsafe_b64encode(template_json.encode('utf-8')).decode('utf-8')
 
         if self.extraction_prompt:
             params['extraction_prompt'] = quote_plus(self.extraction_prompt)
@@ -161,6 +164,9 @@ class ExtractionConfig(BaseApiConfig):
 
         if self.webhook:
             params['webhook_name'] = self.webhook
+
+        if self.timeout is not None:
+            params['timeout'] = self.timeout
 
         return params
 

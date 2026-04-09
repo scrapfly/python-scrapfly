@@ -360,12 +360,13 @@ class ScrapflyClient:
     def resilient_scrape(
         self,
         scrape_config:ScrapeConfig,
-        retry_on_errors:Set[Exception]={ScrapflyError},
+        retry_on_errors:Optional[Set[Exception]]=None,
         retry_on_status_code:Optional[List[int]]=None,
         tries: int = 5,
         delay: int = 20,
     ) -> ScrapeApiResponse:
-        assert retry_on_errors is not None, 'Retry on error is None'
+        if retry_on_errors is None:
+            retry_on_errors = {ScrapflyError}
         assert isinstance(retry_on_errors, set), 'retry_on_errors is not a set()'
 
         @backoff.on_exception(backoff.expo, exception=tuple(retry_on_errors), max_tries=tries, max_time=delay)
@@ -449,7 +450,7 @@ class ScrapflyClient:
                     for _ in range(0, concurrency - len(processing_tasks)):
                         try:
                             scrape_config = scrape_configs.pop()
-                        except:
+                        except IndexError:
                             break
 
                         scrape_config.raise_on_upstream_error = False
@@ -989,7 +990,7 @@ class ScrapflyClient:
             # Log error details for debugging
             try:
                 error_detail = response.json()
-            except:
+            except (ValueError, Exception):
                 error_detail = response.text
             logger.debug(f"Crawler API error ({response.status_code}): {error_detail}")
             self._handle_crawler_error_response(response)
