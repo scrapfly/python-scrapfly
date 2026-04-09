@@ -499,6 +499,10 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 
     Returned by ScrapflyClient.start_crawl() method.
 
+    Strict parsing: ``uuid`` and ``status`` are part of the documented contract
+    and are required. A missing field raises ``KeyError`` so the caller knows
+    immediately that the API contract changed.
+
     Attributes:
         uuid: Unique identifier for the crawler job
         status: Initial status (typically &#39;PENDING&#39;)
@@ -512,15 +516,32 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
             response_data: Raw API response dictionary
         &#34;&#34;&#34;
         self._data = response_data
-        # API returns &#39;crawler_uuid&#39; not &#39;uuid&#39;
-        self.uuid = response_data.get(&#39;crawler_uuid&#39;) or response_data.get(&#39;uuid&#39;)
-        self.status = response_data.get(&#39;status&#39;)
+        # API canonical name is `crawler_uuid`; we accept `uuid` only as a
+        # legacy fallback, in case an older server emits the short form.
+        if &#39;crawler_uuid&#39; in response_data:
+            self.uuid = response_data[&#39;crawler_uuid&#39;]
+        elif &#39;uuid&#39; in response_data:
+            self.uuid = response_data[&#39;uuid&#39;]
+        else:
+            raise KeyError(
+                &#34;CrawlerStartResponse: required field &#39;crawler_uuid&#39; (or legacy &#39;uuid&#39;) is missing&#34;
+            )
+        self.status = response_data[&#39;status&#39;]
+        assert isinstance(self.uuid, str) and self.uuid, (
+            f&#34;CrawlerStartResponse: uuid must be a non-empty string, got {self.uuid!r}&#34;
+        )
+        assert isinstance(self.status, str) and self.status, (
+            f&#34;CrawlerStartResponse: status must be a non-empty string, got {self.status!r}&#34;
+        )
 
     def __repr__(self):
         return f&#34;CrawlerStartResponse(uuid={self.uuid}, status={self.status})&#34;</code></pre>
 </details>
 <div class="desc"><p>Response from starting a crawler job</p>
 <p>Returned by ScrapflyClient.start_crawl() method.</p>
+<p>Strict parsing: <code>uuid</code> and <code>status</code> are part of the documented contract
+and are required. A missing field raises <code>KeyError</code> so the caller knows
+immediately that the API contract changed.</p>
 <h2 id="attributes">Attributes</h2>
 <dl>
 <dt><strong><code>uuid</code></strong></dt>
@@ -535,6 +556,735 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 <dd>Raw API response dictionary</dd>
 </dl></div>
 </dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState"><code class="flex name class">
+<span>class <span class="ident">CrawlerState</span></span>
+<span>(</span><span>state: Dict[str, Any])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"><p>Nested <code>state</code> block of a crawler status response.</p>
+<p>Field names match the wire format emitted by the scrape-engine
+(<code>apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py</code>), which
+is the single source of truth. Go and TypeScript SDKs expose the same
+names on their <code>status.state</code> object.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>urls_visited</code></strong></dt>
+<dd>Number of URLs successfully crawled.</dd>
+<dt><strong><code>urls_extracted</code></strong></dt>
+<dd>Total URLs discovered (seed + links + sitemaps).</dd>
+<dt><strong><code>urls_to_crawl</code></strong></dt>
+<dd>Derived as <code>urls_extracted - urls_skipped</code> server-side.</dd>
+<dt><strong><code>urls_failed</code></strong></dt>
+<dd>URLs that failed to crawl.</dd>
+<dt><strong><code>urls_skipped</code></strong></dt>
+<dd>URLs skipped (filtered by exclude rules, robots.txt, etc.).</dd>
+<dt><strong><code>api_credit_used</code></strong></dt>
+<dd>Total API credits consumed by this crawl.</dd>
+<dt><strong><code>duration</code></strong></dt>
+<dd>Elapsed time in seconds.</dd>
+<dt><strong><code>start_time</code></strong></dt>
+<dd>Unix epoch seconds when the first worker picked up the job,
+or <code>None</code> while the job is still in <code>PENDING</code>.</dd>
+<dt><strong><code>stop_time</code></strong></dt>
+<dd>Unix epoch seconds when the crawler reached a terminal state,
+or <code>None</code> while still running.</dd>
+<dt><strong><code>stop_reason</code></strong></dt>
+<dd>Reason for stop (<code>page_limit</code>, <code>max_duration</code>, etc.),
+or <code>None</code> while still running.</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.api_credit_used"><code class="name">var <span class="ident">api_credit_used</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.duration"><code class="name">var <span class="ident">duration</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.start_time"><code class="name">var <span class="ident">start_time</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.stop_reason"><code class="name">var <span class="ident">stop_reason</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.stop_time"><code class="name">var <span class="ident">stop_time</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.urls_extracted"><code class="name">var <span class="ident">urls_extracted</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.urls_failed"><code class="name">var <span class="ident">urls_failed</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.urls_skipped"><code class="name">var <span class="ident">urls_skipped</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.urls_to_crawl"><code class="name">var <span class="ident">urls_to_crawl</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerState.urls_visited"><code class="name">var <span class="ident">urls_visited</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerState:
+    &#34;&#34;&#34;
+    Nested ``state`` block of a crawler status response.
+
+    Field names match the wire format emitted by the scrape-engine
+    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    is the single source of truth. Go and TypeScript SDKs expose the same
+    names on their ``status.state`` object.
+
+    Attributes:
+        urls_visited: Number of URLs successfully crawled.
+        urls_extracted: Total URLs discovered (seed + links + sitemaps).
+        urls_to_crawl: Derived as ``urls_extracted - urls_skipped`` server-side.
+        urls_failed: URLs that failed to crawl.
+        urls_skipped: URLs skipped (filtered by exclude rules, robots.txt, etc.).
+        api_credit_used: Total API credits consumed by this crawl.
+        duration: Elapsed time in seconds.
+        start_time: Unix epoch seconds when the first worker picked up the job,
+            or ``None`` while the job is still in ``PENDING``.
+        stop_time: Unix epoch seconds when the crawler reached a terminal state,
+            or ``None`` while still running.
+        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
+            or ``None`` while still running.
+    &#34;&#34;&#34;
+
+    __slots__ = (
+        &#39;urls_visited&#39;, &#39;urls_extracted&#39;, &#39;urls_to_crawl&#39;,
+        &#39;urls_failed&#39;, &#39;urls_skipped&#39;,
+        &#39;api_credit_used&#39;, &#39;duration&#39;,
+        &#39;start_time&#39;, &#39;stop_time&#39;, &#39;stop_reason&#39;,
+    )
+
+    def __init__(self, state: Dict[str, Any]):
+        assert isinstance(state, dict), (
+            f&#34;CrawlerState: expected dict, got {type(state).__name__}&#34;
+        )
+        self.urls_visited: int = state[&#39;urls_visited&#39;]
+        self.urls_extracted: int = state[&#39;urls_extracted&#39;]
+        self.urls_to_crawl: int = state[&#39;urls_to_crawl&#39;]
+        self.urls_failed: int = state[&#39;urls_failed&#39;]
+        self.urls_skipped: int = state[&#39;urls_skipped&#39;]
+        self.api_credit_used = state[&#39;api_credit_used&#39;]
+        self.duration = state[&#39;duration&#39;]
+        # Nullable during PENDING — before a worker has picked up the job.
+        self.start_time: Optional[int] = state.get(&#39;start_time&#39;)
+        self.stop_time: Optional[int] = state.get(&#39;stop_time&#39;)
+        self.stop_reason: Optional[str] = state.get(&#39;stop_reason&#39;)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerState(visited={self.urls_visited}, extracted={self.urls_extracted}, &#34;
+            f&#34;to_crawl={self.urls_to_crawl}, failed={self.urls_failed}, &#34;
+            f&#34;skipped={self.urls_skipped})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
 <dt id="scrapfly.crawler.crawler_response.CrawlerStatusResponse"><code class="flex name class">
 <span>class <span class="ident">CrawlerStatusResponse</span></span>
 <span>(</span><span>response_data: Dict[str, Any])</span>
@@ -546,137 +1296,149 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 </summary>
 <pre><code class="python">class CrawlerStatusResponse:
     &#34;&#34;&#34;
-    Response from checking crawler job status
+    Response from checking crawler job status.
 
-    Returned by ScrapflyClient.get_crawl_status() method.
+    Returned by :py:meth:`ScrapflyClient.get_crawl_status`. Provides real-time
+    progress tracking for crawler jobs.
 
-    Provides real-time progress tracking for crawler jobs.
+    **Field names match the wire format.** The scrape-engine is the source of
+    truth; the Go and TypeScript SDKs expose identical names. Access state
+    counters via the nested ``state`` attribute:
+
+        &gt;&gt;&gt; status.state.urls_visited
+        12
+        &gt;&gt;&gt; status.state.urls_extracted
+        34
 
     Attributes:
-        uuid: Crawler job UUID
-        status: Current status (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, DONE)
-        is_success: Whether the crawler job completed successfully
-        is_finished: Whether the crawler job has finished (regardless of success/failure)
-        api_credit_cost: Total API credits consumed by this crawl
-        stop_reason: Reason why the crawler stopped (e.g., &#39;seed_url_failed&#39;, &#39;page_limit_reached&#39;), None if still running
-        urls_discovered: Total URLs discovered so far
-        urls_crawled: Number of URLs successfully crawled
-        urls_pending: Number of URLs waiting to be crawled
-        urls_failed: Number of URLs that failed to crawl
+        uuid: Crawler job UUID.
+        status: Current status (``PENDING``, ``RUNNING``, ``DONE``, ``CANCELLED``).
+        is_success: Whether the crawler job completed successfully (``None`` while running).
+        is_finished: Whether the crawler job has finished (regardless of success/failure).
+        state: :class:`CrawlerState` — all the per-crawl counters and timings.
     &#34;&#34;&#34;
 
     # Status constants
     STATUS_PENDING = &#39;PENDING&#39;
     STATUS_RUNNING = &#39;RUNNING&#39;
-    STATUS_COMPLETED = &#39;COMPLETED&#39;
     STATUS_DONE = &#39;DONE&#39;
-    STATUS_FAILED = &#39;FAILED&#39;
     STATUS_CANCELLED = &#39;CANCELLED&#39;
 
     def __init__(self, response_data: Dict[str, Any]):
         &#34;&#34;&#34;
-        Initialize from API response
+        Initialize from API response.
+
+        Strict parsing: required fields (``crawler_uuid``, ``status``,
+        ``is_success``, ``is_finished``, and the documented ``state.*``
+        metrics) are read with direct access so missing keys raise
+        ``KeyError`` at parse time. This catches API contract drift loud and
+        early.
 
         Args:
-            response_data: Raw API response dictionary
+            response_data: Raw API response dictionary.
         &#34;&#34;&#34;
         self._data = response_data
-        # API returns crawler_uuid in status response
-        self.uuid = response_data.get(&#39;crawler_uuid&#39;) or response_data.get(&#39;uuid&#39;)
-        self.status = response_data.get(&#39;status&#39;)
 
-        # New fields from API
-        self.is_success = response_data.get(&#39;is_success&#39;, False)
-        self.is_finished = response_data.get(&#39;is_finished&#39;, False)
-
-        # Parse state dict if present (actual API format)
-        state = response_data.get(&#39;state&#39;, {})
-        if state:
-            # Actual API response structure
-            self.urls_discovered = state.get(&#39;urls_extracted&#39;, 0)
-            self.urls_crawled = state.get(&#39;urls_visited&#39;, 0)
-            self.urls_pending = state.get(&#39;urls_to_crawl&#39;, 0)
-            self.urls_failed = state.get(&#39;urls_failed&#39;, 0)
-            self.stop_reason = state.get(&#39;stop_reason&#39;)
-            # API credit cost is in the state dict as &#39;api_credit_used&#39;
-            self.api_credit_cost = state.get(&#39;api_credit_used&#39;, 0)
+        # Identification — accept legacy `uuid` only as fallback.
+        if &#39;crawler_uuid&#39; in response_data:
+            self.uuid = response_data[&#39;crawler_uuid&#39;]
+        elif &#39;uuid&#39; in response_data:
+            self.uuid = response_data[&#39;uuid&#39;]
         else:
-            # Fallback for simpler format (if docs change)
-            self.urls_discovered = response_data.get(&#39;urls_discovered&#39;, 0)
-            self.urls_crawled = response_data.get(&#39;urls_crawled&#39;, 0)
-            self.urls_pending = response_data.get(&#39;urls_pending&#39;, 0)
-            self.urls_failed = response_data.get(&#39;urls_failed&#39;, 0)
-            self.stop_reason = None
-            self.api_credit_cost = response_data.get(&#39;api_credit_cost&#39;, 0)
+            raise KeyError(
+                &#34;CrawlerStatusResponse: required field &#39;crawler_uuid&#39; (or legacy &#39;uuid&#39;) is missing&#34;
+            )
+        self.status = response_data[&#39;status&#39;]
+        # `is_success` may legitimately be `null` while still running.
+        self.is_success = response_data[&#39;is_success&#39;]
+        self.is_finished = response_data[&#39;is_finished&#39;]
+
+        assert isinstance(self.uuid, str) and self.uuid, (
+            f&#34;CrawlerStatusResponse: uuid must be a non-empty string, got {self.uuid!r}&#34;
+        )
+        assert isinstance(self.status, str) and self.status, (
+            f&#34;CrawlerStatusResponse: status must be a non-empty string, got {self.status!r}&#34;
+        )
+        assert isinstance(self.is_finished, bool), (
+            f&#34;CrawlerStatusResponse: is_finished must be bool, got {type(self.is_finished).__name__}&#34;
+        )
+        assert self.is_success is None or isinstance(self.is_success, bool), (
+            f&#34;CrawlerStatusResponse: is_success must be bool or None, got {type(self.is_success).__name__}&#34;
+        )
+
+        # Nested state — canonical shape matching Go / TS SDKs.
+        self.state = CrawlerState(response_data[&#39;state&#39;])
 
     @property
     def is_complete(self) -&gt; bool:
-        &#34;&#34;&#34;Check if crawler job is complete&#34;&#34;&#34;
-        return self.status in (self.STATUS_COMPLETED, self.STATUS_DONE)
+        &#34;&#34;&#34;Whether the crawler reached DONE with is_success=True.&#34;&#34;&#34;
+        return self.status == self.STATUS_DONE and self.is_success is True
 
     @property
     def is_running(self) -&gt; bool:
-        &#34;&#34;&#34;Check if crawler job is currently running&#34;&#34;&#34;
+        &#34;&#34;&#34;Whether the crawler is currently PENDING or RUNNING.&#34;&#34;&#34;
         return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)
 
     @property
     def is_failed(self) -&gt; bool:
-        &#34;&#34;&#34;Check if crawler job failed&#34;&#34;&#34;
-        return self.status == self.STATUS_FAILED
+        &#34;&#34;&#34;Whether the crawler reached DONE with is_success=False.&#34;&#34;&#34;
+        return self.status == self.STATUS_DONE and self.is_success is False
 
     @property
     def is_cancelled(self) -&gt; bool:
-        &#34;&#34;&#34;Check if crawler job was cancelled&#34;&#34;&#34;
+        &#34;&#34;&#34;Whether the crawler was cancelled.&#34;&#34;&#34;
         return self.status == self.STATUS_CANCELLED
 
     @property
     def progress_pct(self) -&gt; float:
         &#34;&#34;&#34;
-        Calculate progress percentage
+        Visited/extracted ratio as a percentage (0-100).
 
-        Returns:
-            Progress as percentage (0-100)
+        Returns 0.0 when no URLs have been extracted yet.
         &#34;&#34;&#34;
-        if self.urls_discovered == 0:
+        if self.state.urls_extracted == 0:
             return 0.0
-        return (self.urls_crawled / self.urls_discovered) * 100
+        return (self.state.urls_visited / self.state.urls_extracted) * 100
 
     def __repr__(self):
         return (f&#34;CrawlerStatusResponse(uuid={self.uuid}, status={self.status}, &#34;
                 f&#34;progress={self.progress_pct:.1f}%, &#34;
-                f&#34;crawled={self.urls_crawled}/{self.urls_discovered})&#34;)</code></pre>
+                f&#34;visited={self.state.urls_visited}/{self.state.urls_extracted})&#34;)</code></pre>
 </details>
-<div class="desc"><p>Response from checking crawler job status</p>
-<p>Returned by ScrapflyClient.get_crawl_status() method.</p>
-<p>Provides real-time progress tracking for crawler jobs.</p>
+<div class="desc"><p>Response from checking crawler job status.</p>
+<p>Returned by :py:meth:<code>ScrapflyClient.get_crawl_status</code>. Provides real-time
+progress tracking for crawler jobs.</p>
+<p><strong>Field names match the wire format.</strong> The scrape-engine is the source of
+truth; the Go and TypeScript SDKs expose identical names. Access state
+counters via the nested <code>state</code> attribute:</p>
+<pre><code>&gt;&gt;&gt; status.state.urls_visited
+12
+&gt;&gt;&gt; status.state.urls_extracted
+34
+</code></pre>
 <h2 id="attributes">Attributes</h2>
 <dl>
 <dt><strong><code>uuid</code></strong></dt>
-<dd>Crawler job UUID</dd>
+<dd>Crawler job UUID.</dd>
 <dt><strong><code>status</code></strong></dt>
-<dd>Current status (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, DONE)</dd>
+<dd>Current status (<code>PENDING</code>, <code>RUNNING</code>, <code>DONE</code>, <code>CANCELLED</code>).</dd>
 <dt><strong><code>is_success</code></strong></dt>
-<dd>Whether the crawler job completed successfully</dd>
+<dd>Whether the crawler job completed successfully (<code>None</code> while running).</dd>
 <dt><strong><code>is_finished</code></strong></dt>
-<dd>Whether the crawler job has finished (regardless of success/failure)</dd>
-<dt><strong><code>api_credit_cost</code></strong></dt>
-<dd>Total API credits consumed by this crawl</dd>
-<dt><strong><code>stop_reason</code></strong></dt>
-<dd>Reason why the crawler stopped (e.g., 'seed_url_failed', 'page_limit_reached'), None if still running</dd>
-<dt><strong><code>urls_discovered</code></strong></dt>
-<dd>Total URLs discovered so far</dd>
-<dt><strong><code>urls_crawled</code></strong></dt>
-<dd>Number of URLs successfully crawled</dd>
-<dt><strong><code>urls_pending</code></strong></dt>
-<dd>Number of URLs waiting to be crawled</dd>
-<dt><strong><code>urls_failed</code></strong></dt>
-<dd>Number of URLs that failed to crawl</dd>
+<dd>Whether the crawler job has finished (regardless of success/failure).</dd>
+<dt><strong><code>state</code></strong></dt>
+<dd>:class:<code><a title="scrapfly.crawler.crawler_response.CrawlerState" href="#scrapfly.crawler.crawler_response.CrawlerState">CrawlerState</a></code> — all the per-crawl counters and timings.</dd>
 </dl>
-<p>Initialize from API response</p>
+<p>Initialize from API response.</p>
+<p>Strict parsing: required fields (<code>crawler_uuid</code>, <code>status</code>,
+<code>is_success</code>, <code>is_finished</code>, and the documented <code>state.*</code>
+metrics) are read with direct access so missing keys raise
+<code>KeyError</code> at parse time. This catches API contract drift loud and
+early.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>response_data</code></strong></dt>
-<dd>Raw API response dictionary</dd>
+<dd>Raw API response dictionary.</dd>
 </dl></div>
 <h3>Class variables</h3>
 <dl>
@@ -684,15 +1446,7 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_COMPLETED"><code class="name">var <span class="ident">STATUS_COMPLETED</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
 <dt id="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_DONE"><code class="name">var <span class="ident">STATUS_DONE</span></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_FAILED"><code class="name">var <span class="ident">STATUS_FAILED</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -715,10 +1469,10 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 </summary>
 <pre><code class="python">@property
 def is_cancelled(self) -&gt; bool:
-    &#34;&#34;&#34;Check if crawler job was cancelled&#34;&#34;&#34;
+    &#34;&#34;&#34;Whether the crawler was cancelled.&#34;&#34;&#34;
     return self.status == self.STATUS_CANCELLED</code></pre>
 </details>
-<div class="desc"><p>Check if crawler job was cancelled</p></div>
+<div class="desc"><p>Whether the crawler was cancelled.</p></div>
 </dd>
 <dt id="scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_complete"><code class="name">prop <span class="ident">is_complete</span> : bool</code></dt>
 <dd>
@@ -728,10 +1482,10 @@ def is_cancelled(self) -&gt; bool:
 </summary>
 <pre><code class="python">@property
 def is_complete(self) -&gt; bool:
-    &#34;&#34;&#34;Check if crawler job is complete&#34;&#34;&#34;
-    return self.status in (self.STATUS_COMPLETED, self.STATUS_DONE)</code></pre>
+    &#34;&#34;&#34;Whether the crawler reached DONE with is_success=True.&#34;&#34;&#34;
+    return self.status == self.STATUS_DONE and self.is_success is True</code></pre>
 </details>
-<div class="desc"><p>Check if crawler job is complete</p></div>
+<div class="desc"><p>Whether the crawler reached DONE with is_success=True.</p></div>
 </dd>
 <dt id="scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_failed"><code class="name">prop <span class="ident">is_failed</span> : bool</code></dt>
 <dd>
@@ -741,10 +1495,10 @@ def is_complete(self) -&gt; bool:
 </summary>
 <pre><code class="python">@property
 def is_failed(self) -&gt; bool:
-    &#34;&#34;&#34;Check if crawler job failed&#34;&#34;&#34;
-    return self.status == self.STATUS_FAILED</code></pre>
+    &#34;&#34;&#34;Whether the crawler reached DONE with is_success=False.&#34;&#34;&#34;
+    return self.status == self.STATUS_DONE and self.is_success is False</code></pre>
 </details>
-<div class="desc"><p>Check if crawler job failed</p></div>
+<div class="desc"><p>Whether the crawler reached DONE with is_success=False.</p></div>
 </dd>
 <dt id="scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_running"><code class="name">prop <span class="ident">is_running</span> : bool</code></dt>
 <dd>
@@ -754,10 +1508,10 @@ def is_failed(self) -&gt; bool:
 </summary>
 <pre><code class="python">@property
 def is_running(self) -&gt; bool:
-    &#34;&#34;&#34;Check if crawler job is currently running&#34;&#34;&#34;
+    &#34;&#34;&#34;Whether the crawler is currently PENDING or RUNNING.&#34;&#34;&#34;
     return self.status in (self.STATUS_PENDING, self.STATUS_RUNNING)</code></pre>
 </details>
-<div class="desc"><p>Check if crawler job is currently running</p></div>
+<div class="desc"><p>Whether the crawler is currently PENDING or RUNNING.</p></div>
 </dd>
 <dt id="scrapfly.crawler.crawler_response.CrawlerStatusResponse.progress_pct"><code class="name">prop <span class="ident">progress_pct</span> : float</code></dt>
 <dd>
@@ -768,18 +1522,635 @@ def is_running(self) -&gt; bool:
 <pre><code class="python">@property
 def progress_pct(self) -&gt; float:
     &#34;&#34;&#34;
-    Calculate progress percentage
+    Visited/extracted ratio as a percentage (0-100).
 
-    Returns:
-        Progress as percentage (0-100)
+    Returns 0.0 when no URLs have been extracted yet.
     &#34;&#34;&#34;
-    if self.urls_discovered == 0:
+    if self.state.urls_extracted == 0:
         return 0.0
-    return (self.urls_crawled / self.urls_discovered) * 100</code></pre>
+    return (self.state.urls_visited / self.state.urls_extracted) * 100</code></pre>
 </details>
-<div class="desc"><p>Calculate progress percentage</p>
-<h2 id="returns">Returns</h2>
-<p>Progress as percentage (0-100)</p></div>
+<div class="desc"><p>Visited/extracted ratio as a percentage (0-100).</p>
+<p>Returns 0.0 when no URLs have been extracted yet.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlEntry"><code class="flex name class">
+<span>class <span class="ident">CrawlerUrlEntry</span></span>
+<span>(</span><span>url: str, status: str, reason: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerUrlEntry:
+    &#34;&#34;&#34;
+    Single URL entry from ``GET /crawl/{uuid}/urls``.
+
+    The endpoint streams one record per line as ``text/plain``. For
+    ``visited`` and ``pending`` URLs each line is just the URL; for ``failed``
+    or ``skipped`` URLs the line is ``url,reason``. Streaming text is used
+    because this endpoint is expected to scale to millions of records per
+    job — JSON is not a suitable wire format at that volume.
+
+    Attributes:
+        url: The crawled URL
+        status: The filter status used by the caller (``visited``, ``pending``,
+            ``failed`` or ``skipped``). Echoed from the request parameter so
+            downstream code can disambiguate mixed buffers.
+        reason: Only set for ``failed`` / ``skipped`` URLs; ``None`` otherwise.
+    &#34;&#34;&#34;
+
+    __slots__ = (&#39;url&#39;, &#39;status&#39;, &#39;reason&#39;)
+
+    def __init__(self, url: str, status: str, reason: Optional[str] = None):
+        assert isinstance(url, str) and url, (
+            f&#34;CrawlerUrlEntry: url must be a non-empty string, got {url!r}&#34;
+        )
+        assert isinstance(status, str) and status, (
+            f&#34;CrawlerUrlEntry: status must be a non-empty string, got {status!r}&#34;
+        )
+        self.url = url
+        self.status = status
+        self.reason = reason
+
+    def __repr__(self):
+        if self.reason is not None:
+            return f&#34;CrawlerUrlEntry(url={self.url!r}, status={self.status!r}, reason={self.reason!r})&#34;
+        return f&#34;CrawlerUrlEntry(url={self.url!r}, status={self.status!r})&#34;</code></pre>
+</details>
+<div class="desc"><p>Single URL entry from <code>GET /crawl/{uuid}/urls</code>.</p>
+<p>The endpoint streams one record per line as <code>text/plain</code>. For
+<code>visited</code> and <code>pending</code> URLs each line is just the URL; for <code>failed</code>
+or <code>skipped</code> URLs the line is <code>url,reason</code>. Streaming text is used
+because this endpoint is expected to scale to millions of records per
+job — JSON is not a suitable wire format at that volume.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>url</code></strong></dt>
+<dd>The crawled URL</dd>
+<dt><strong><code>status</code></strong></dt>
+<dd>The filter status used by the caller (<code>visited</code>, <code>pending</code>,
+<code>failed</code> or <code>skipped</code>). Echoed from the request parameter so
+downstream code can disambiguate mixed buffers.</dd>
+<dt><strong><code>reason</code></strong></dt>
+<dd>Only set for <code>failed</code> / <code>skipped</code> URLs; <code>None</code> otherwise.</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlEntry.reason"><code class="name">var <span class="ident">reason</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerUrlEntry:
+    &#34;&#34;&#34;
+    Single URL entry from ``GET /crawl/{uuid}/urls``.
+
+    The endpoint streams one record per line as ``text/plain``. For
+    ``visited`` and ``pending`` URLs each line is just the URL; for ``failed``
+    or ``skipped`` URLs the line is ``url,reason``. Streaming text is used
+    because this endpoint is expected to scale to millions of records per
+    job — JSON is not a suitable wire format at that volume.
+
+    Attributes:
+        url: The crawled URL
+        status: The filter status used by the caller (``visited``, ``pending``,
+            ``failed`` or ``skipped``). Echoed from the request parameter so
+            downstream code can disambiguate mixed buffers.
+        reason: Only set for ``failed`` / ``skipped`` URLs; ``None`` otherwise.
+    &#34;&#34;&#34;
+
+    __slots__ = (&#39;url&#39;, &#39;status&#39;, &#39;reason&#39;)
+
+    def __init__(self, url: str, status: str, reason: Optional[str] = None):
+        assert isinstance(url, str) and url, (
+            f&#34;CrawlerUrlEntry: url must be a non-empty string, got {url!r}&#34;
+        )
+        assert isinstance(status, str) and status, (
+            f&#34;CrawlerUrlEntry: status must be a non-empty string, got {status!r}&#34;
+        )
+        self.url = url
+        self.status = status
+        self.reason = reason
+
+    def __repr__(self):
+        if self.reason is not None:
+            return f&#34;CrawlerUrlEntry(url={self.url!r}, status={self.status!r}, reason={self.reason!r})&#34;
+        return f&#34;CrawlerUrlEntry(url={self.url!r}, status={self.status!r})&#34;</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlEntry.status"><code class="name">var <span class="ident">status</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerUrlEntry:
+    &#34;&#34;&#34;
+    Single URL entry from ``GET /crawl/{uuid}/urls``.
+
+    The endpoint streams one record per line as ``text/plain``. For
+    ``visited`` and ``pending`` URLs each line is just the URL; for ``failed``
+    or ``skipped`` URLs the line is ``url,reason``. Streaming text is used
+    because this endpoint is expected to scale to millions of records per
+    job — JSON is not a suitable wire format at that volume.
+
+    Attributes:
+        url: The crawled URL
+        status: The filter status used by the caller (``visited``, ``pending``,
+            ``failed`` or ``skipped``). Echoed from the request parameter so
+            downstream code can disambiguate mixed buffers.
+        reason: Only set for ``failed`` / ``skipped`` URLs; ``None`` otherwise.
+    &#34;&#34;&#34;
+
+    __slots__ = (&#39;url&#39;, &#39;status&#39;, &#39;reason&#39;)
+
+    def __init__(self, url: str, status: str, reason: Optional[str] = None):
+        assert isinstance(url, str) and url, (
+            f&#34;CrawlerUrlEntry: url must be a non-empty string, got {url!r}&#34;
+        )
+        assert isinstance(status, str) and status, (
+            f&#34;CrawlerUrlEntry: status must be a non-empty string, got {status!r}&#34;
+        )
+        self.url = url
+        self.status = status
+        self.reason = reason
+
+    def __repr__(self):
+        if self.reason is not None:
+            return f&#34;CrawlerUrlEntry(url={self.url!r}, status={self.status!r}, reason={self.reason!r})&#34;
+        return f&#34;CrawlerUrlEntry(url={self.url!r}, status={self.status!r})&#34;</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlEntry.url"><code class="name">var <span class="ident">url</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerUrlEntry:
+    &#34;&#34;&#34;
+    Single URL entry from ``GET /crawl/{uuid}/urls``.
+
+    The endpoint streams one record per line as ``text/plain``. For
+    ``visited`` and ``pending`` URLs each line is just the URL; for ``failed``
+    or ``skipped`` URLs the line is ``url,reason``. Streaming text is used
+    because this endpoint is expected to scale to millions of records per
+    job — JSON is not a suitable wire format at that volume.
+
+    Attributes:
+        url: The crawled URL
+        status: The filter status used by the caller (``visited``, ``pending``,
+            ``failed`` or ``skipped``). Echoed from the request parameter so
+            downstream code can disambiguate mixed buffers.
+        reason: Only set for ``failed`` / ``skipped`` URLs; ``None`` otherwise.
+    &#34;&#34;&#34;
+
+    __slots__ = (&#39;url&#39;, &#39;status&#39;, &#39;reason&#39;)
+
+    def __init__(self, url: str, status: str, reason: Optional[str] = None):
+        assert isinstance(url, str) and url, (
+            f&#34;CrawlerUrlEntry: url must be a non-empty string, got {url!r}&#34;
+        )
+        assert isinstance(status, str) and status, (
+            f&#34;CrawlerUrlEntry: status must be a non-empty string, got {status!r}&#34;
+        )
+        self.url = url
+        self.status = status
+        self.reason = reason
+
+    def __repr__(self):
+        if self.reason is not None:
+            return f&#34;CrawlerUrlEntry(url={self.url!r}, status={self.status!r}, reason={self.reason!r})&#34;
+        return f&#34;CrawlerUrlEntry(url={self.url!r}, status={self.status!r})&#34;</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlsResponse"><code class="flex name class">
+<span>class <span class="ident">CrawlerUrlsResponse</span></span>
+<span>(</span><span>urls: List[ForwardRef('<a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry">CrawlerUrlEntry</a>')],<br>page: int,<br>per_page: int)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerUrlsResponse:
+    &#34;&#34;&#34;
+    Response from ``GET /crawl/{crawler_uuid}/urls``.
+
+    The server returns a streaming ``text/plain`` body with one record per
+    line. This class parses that stream into a materialised ``List`` of
+    :class:`CrawlerUrlEntry` records for caller convenience.
+
+    Pagination: the wire protocol carries no global ``total``. ``page`` and
+    ``per_page`` are echoes of the caller&#39;s request parameters — request
+    further pages by incrementing ``page`` until the response has no records.
+
+    Attributes:
+        urls: List of :class:`CrawlerUrlEntry` records on this page
+        page: 1-based page number (echoed from the request)
+        per_page: Page size (echoed from the request)
+    &#34;&#34;&#34;
+
+    __slots__ = (&#39;urls&#39;, &#39;page&#39;, &#39;per_page&#39;)
+
+    def __init__(self, urls: List[&#39;CrawlerUrlEntry&#39;], page: int, per_page: int):
+        self.urls = urls
+        self.page = page
+        self.per_page = per_page
+
+    @classmethod
+    def from_text(
+        cls,
+        body: str,
+        status_hint: str,
+        page: int,
+        per_page: int,
+    ) -&gt; &#39;CrawlerUrlsResponse&#39;:
+        &#34;&#34;&#34;
+        Parse the raw text body returned by ``GET /crawl/{uuid}/urls``.
+
+        - Empty lines are ignored (trailing newlines, blank records).
+        - For ``visited`` / ``pending`` status each line is one URL.
+        - For ``failed`` / ``skipped`` status each line is ``url,reason``.
+        - When the caller passed no ``status`` filter, the server defaults to
+          ``visited``; the caller is expected to pass that as ``status_hint``
+          so every parsed record gets the right status tag.
+
+        Args:
+            body: Raw response body text.
+            status_hint: The status filter the caller used.
+            page: Caller-provided page (echoed on the response object).
+            per_page: Caller-provided per_page (echoed on the response object).
+        &#34;&#34;&#34;
+        entries: List[CrawlerUrlEntry] = []
+        for raw_line in body.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if status_hint in (&#39;visited&#39;, &#39;pending&#39;):
+                entries.append(CrawlerUrlEntry(url=line, status=status_hint))
+            else:
+                # `url,reason` — split on the first comma only. URLs never
+                # contain an unencoded comma in the path/query, so this is
+                # unambiguous.
+                comma_idx = line.find(&#39;,&#39;)
+                if comma_idx == -1:
+                    entries.append(CrawlerUrlEntry(url=line, status=status_hint))
+                else:
+                    entries.append(
+                        CrawlerUrlEntry(
+                            url=line[:comma_idx],
+                            status=status_hint,
+                            reason=line[comma_idx + 1:] or None,
+                        )
+                    )
+        return cls(entries, page, per_page)
+
+    def __len__(self) -&gt; int:
+        return len(self.urls)
+
+    def __iter__(self) -&gt; Iterator[CrawlerUrlEntry]:
+        return iter(self.urls)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerUrlsResponse(page={self.page}, per_page={self.per_page}, &#34;
+            f&#34;urls={len(self.urls)})&#34;
+        )</code></pre>
+</details>
+<div class="desc"><p>Response from <code>GET /crawl/{crawler_uuid}/urls</code>.</p>
+<p>The server returns a streaming <code>text/plain</code> body with one record per
+line. This class parses that stream into a materialised <code>List</code> of
+:class:<code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry">CrawlerUrlEntry</a></code> records for caller convenience.</p>
+<p>Pagination: the wire protocol carries no global <code>total</code>. <code>page</code> and
+<code>per_page</code> are echoes of the caller's request parameters — request
+further pages by incrementing <code>page</code> until the response has no records.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>urls</code></strong></dt>
+<dd>List of :class:<code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry">CrawlerUrlEntry</a></code> records on this page</dd>
+<dt><strong><code>page</code></strong></dt>
+<dd>1-based page number (echoed from the request)</dd>
+<dt><strong><code>per_page</code></strong></dt>
+<dd>Page size (echoed from the request)</dd>
+</dl></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlsResponse.from_text"><code class="name flex">
+<span>def <span class="ident">from_text</span></span>(<span>body: str, status_hint: str, page: int, per_page: int) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerUrlsResponse" href="#scrapfly.crawler.crawler_response.CrawlerUrlsResponse">CrawlerUrlsResponse</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Parse the raw text body returned by <code>GET /crawl/{uuid}/urls</code>.</p>
+<ul>
+<li>Empty lines are ignored (trailing newlines, blank records).</li>
+<li>For <code>visited</code> / <code>pending</code> status each line is one URL.</li>
+<li>For <code>failed</code> / <code>skipped</code> status each line is <code>url,reason</code>.</li>
+<li>When the caller passed no <code>status</code> filter, the server defaults to
+<code>visited</code>; the caller is expected to pass that as <code>status_hint</code>
+so every parsed record gets the right status tag.</li>
+</ul>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>body</code></strong></dt>
+<dd>Raw response body text.</dd>
+<dt><strong><code>status_hint</code></strong></dt>
+<dd>The status filter the caller used.</dd>
+<dt><strong><code>page</code></strong></dt>
+<dd>Caller-provided page (echoed on the response object).</dd>
+<dt><strong><code>per_page</code></strong></dt>
+<dd>Caller-provided per_page (echoed on the response object).</dd>
+</dl></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlsResponse.page"><code class="name">var <span class="ident">page</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerUrlsResponse:
+    &#34;&#34;&#34;
+    Response from ``GET /crawl/{crawler_uuid}/urls``.
+
+    The server returns a streaming ``text/plain`` body with one record per
+    line. This class parses that stream into a materialised ``List`` of
+    :class:`CrawlerUrlEntry` records for caller convenience.
+
+    Pagination: the wire protocol carries no global ``total``. ``page`` and
+    ``per_page`` are echoes of the caller&#39;s request parameters — request
+    further pages by incrementing ``page`` until the response has no records.
+
+    Attributes:
+        urls: List of :class:`CrawlerUrlEntry` records on this page
+        page: 1-based page number (echoed from the request)
+        per_page: Page size (echoed from the request)
+    &#34;&#34;&#34;
+
+    __slots__ = (&#39;urls&#39;, &#39;page&#39;, &#39;per_page&#39;)
+
+    def __init__(self, urls: List[&#39;CrawlerUrlEntry&#39;], page: int, per_page: int):
+        self.urls = urls
+        self.page = page
+        self.per_page = per_page
+
+    @classmethod
+    def from_text(
+        cls,
+        body: str,
+        status_hint: str,
+        page: int,
+        per_page: int,
+    ) -&gt; &#39;CrawlerUrlsResponse&#39;:
+        &#34;&#34;&#34;
+        Parse the raw text body returned by ``GET /crawl/{uuid}/urls``.
+
+        - Empty lines are ignored (trailing newlines, blank records).
+        - For ``visited`` / ``pending`` status each line is one URL.
+        - For ``failed`` / ``skipped`` status each line is ``url,reason``.
+        - When the caller passed no ``status`` filter, the server defaults to
+          ``visited``; the caller is expected to pass that as ``status_hint``
+          so every parsed record gets the right status tag.
+
+        Args:
+            body: Raw response body text.
+            status_hint: The status filter the caller used.
+            page: Caller-provided page (echoed on the response object).
+            per_page: Caller-provided per_page (echoed on the response object).
+        &#34;&#34;&#34;
+        entries: List[CrawlerUrlEntry] = []
+        for raw_line in body.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if status_hint in (&#39;visited&#39;, &#39;pending&#39;):
+                entries.append(CrawlerUrlEntry(url=line, status=status_hint))
+            else:
+                # `url,reason` — split on the first comma only. URLs never
+                # contain an unencoded comma in the path/query, so this is
+                # unambiguous.
+                comma_idx = line.find(&#39;,&#39;)
+                if comma_idx == -1:
+                    entries.append(CrawlerUrlEntry(url=line, status=status_hint))
+                else:
+                    entries.append(
+                        CrawlerUrlEntry(
+                            url=line[:comma_idx],
+                            status=status_hint,
+                            reason=line[comma_idx + 1:] or None,
+                        )
+                    )
+        return cls(entries, page, per_page)
+
+    def __len__(self) -&gt; int:
+        return len(self.urls)
+
+    def __iter__(self) -&gt; Iterator[CrawlerUrlEntry]:
+        return iter(self.urls)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerUrlsResponse(page={self.page}, per_page={self.per_page}, &#34;
+            f&#34;urls={len(self.urls)})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlsResponse.per_page"><code class="name">var <span class="ident">per_page</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerUrlsResponse:
+    &#34;&#34;&#34;
+    Response from ``GET /crawl/{crawler_uuid}/urls``.
+
+    The server returns a streaming ``text/plain`` body with one record per
+    line. This class parses that stream into a materialised ``List`` of
+    :class:`CrawlerUrlEntry` records for caller convenience.
+
+    Pagination: the wire protocol carries no global ``total``. ``page`` and
+    ``per_page`` are echoes of the caller&#39;s request parameters — request
+    further pages by incrementing ``page`` until the response has no records.
+
+    Attributes:
+        urls: List of :class:`CrawlerUrlEntry` records on this page
+        page: 1-based page number (echoed from the request)
+        per_page: Page size (echoed from the request)
+    &#34;&#34;&#34;
+
+    __slots__ = (&#39;urls&#39;, &#39;page&#39;, &#39;per_page&#39;)
+
+    def __init__(self, urls: List[&#39;CrawlerUrlEntry&#39;], page: int, per_page: int):
+        self.urls = urls
+        self.page = page
+        self.per_page = per_page
+
+    @classmethod
+    def from_text(
+        cls,
+        body: str,
+        status_hint: str,
+        page: int,
+        per_page: int,
+    ) -&gt; &#39;CrawlerUrlsResponse&#39;:
+        &#34;&#34;&#34;
+        Parse the raw text body returned by ``GET /crawl/{uuid}/urls``.
+
+        - Empty lines are ignored (trailing newlines, blank records).
+        - For ``visited`` / ``pending`` status each line is one URL.
+        - For ``failed`` / ``skipped`` status each line is ``url,reason``.
+        - When the caller passed no ``status`` filter, the server defaults to
+          ``visited``; the caller is expected to pass that as ``status_hint``
+          so every parsed record gets the right status tag.
+
+        Args:
+            body: Raw response body text.
+            status_hint: The status filter the caller used.
+            page: Caller-provided page (echoed on the response object).
+            per_page: Caller-provided per_page (echoed on the response object).
+        &#34;&#34;&#34;
+        entries: List[CrawlerUrlEntry] = []
+        for raw_line in body.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if status_hint in (&#39;visited&#39;, &#39;pending&#39;):
+                entries.append(CrawlerUrlEntry(url=line, status=status_hint))
+            else:
+                # `url,reason` — split on the first comma only. URLs never
+                # contain an unencoded comma in the path/query, so this is
+                # unambiguous.
+                comma_idx = line.find(&#39;,&#39;)
+                if comma_idx == -1:
+                    entries.append(CrawlerUrlEntry(url=line, status=status_hint))
+                else:
+                    entries.append(
+                        CrawlerUrlEntry(
+                            url=line[:comma_idx],
+                            status=status_hint,
+                            reason=line[comma_idx + 1:] or None,
+                        )
+                    )
+        return cls(entries, page, per_page)
+
+    def __len__(self) -&gt; int:
+        return len(self.urls)
+
+    def __iter__(self) -&gt; Iterator[CrawlerUrlEntry]:
+        return iter(self.urls)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerUrlsResponse(page={self.page}, per_page={self.per_page}, &#34;
+            f&#34;urls={len(self.urls)})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerUrlsResponse.urls"><code class="name">var <span class="ident">urls</span></code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerUrlsResponse:
+    &#34;&#34;&#34;
+    Response from ``GET /crawl/{crawler_uuid}/urls``.
+
+    The server returns a streaming ``text/plain`` body with one record per
+    line. This class parses that stream into a materialised ``List`` of
+    :class:`CrawlerUrlEntry` records for caller convenience.
+
+    Pagination: the wire protocol carries no global ``total``. ``page`` and
+    ``per_page`` are echoes of the caller&#39;s request parameters — request
+    further pages by incrementing ``page`` until the response has no records.
+
+    Attributes:
+        urls: List of :class:`CrawlerUrlEntry` records on this page
+        page: 1-based page number (echoed from the request)
+        per_page: Page size (echoed from the request)
+    &#34;&#34;&#34;
+
+    __slots__ = (&#39;urls&#39;, &#39;page&#39;, &#39;per_page&#39;)
+
+    def __init__(self, urls: List[&#39;CrawlerUrlEntry&#39;], page: int, per_page: int):
+        self.urls = urls
+        self.page = page
+        self.per_page = per_page
+
+    @classmethod
+    def from_text(
+        cls,
+        body: str,
+        status_hint: str,
+        page: int,
+        per_page: int,
+    ) -&gt; &#39;CrawlerUrlsResponse&#39;:
+        &#34;&#34;&#34;
+        Parse the raw text body returned by ``GET /crawl/{uuid}/urls``.
+
+        - Empty lines are ignored (trailing newlines, blank records).
+        - For ``visited`` / ``pending`` status each line is one URL.
+        - For ``failed`` / ``skipped`` status each line is ``url,reason``.
+        - When the caller passed no ``status`` filter, the server defaults to
+          ``visited``; the caller is expected to pass that as ``status_hint``
+          so every parsed record gets the right status tag.
+
+        Args:
+            body: Raw response body text.
+            status_hint: The status filter the caller used.
+            page: Caller-provided page (echoed on the response object).
+            per_page: Caller-provided per_page (echoed on the response object).
+        &#34;&#34;&#34;
+        entries: List[CrawlerUrlEntry] = []
+        for raw_line in body.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if status_hint in (&#39;visited&#39;, &#39;pending&#39;):
+                entries.append(CrawlerUrlEntry(url=line, status=status_hint))
+            else:
+                # `url,reason` — split on the first comma only. URLs never
+                # contain an unencoded comma in the path/query, so this is
+                # unambiguous.
+                comma_idx = line.find(&#39;,&#39;)
+                if comma_idx == -1:
+                    entries.append(CrawlerUrlEntry(url=line, status=status_hint))
+                else:
+                    entries.append(
+                        CrawlerUrlEntry(
+                            url=line[:comma_idx],
+                            status=status_hint,
+                            reason=line[comma_idx + 1:] or None,
+                        )
+                    )
+        return cls(entries, page, per_page)
+
+    def __len__(self) -&gt; int:
+        return len(self.urls)
+
+    def __iter__(self) -&gt; Iterator[CrawlerUrlEntry]:
+        return iter(self.urls)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerUrlsResponse(page={self.page}, per_page={self.per_page}, &#34;
+            f&#34;urls={len(self.urls)})&#34;
+        )</code></pre>
+</details>
+<div class="desc"></div>
 </dd>
 </dl>
 </dd>
@@ -816,12 +2187,25 @@ def progress_pct(self) -&gt; float:
 <h4><code><a title="scrapfly.crawler.crawler_response.CrawlerStartResponse" href="#scrapfly.crawler.crawler_response.CrawlerStartResponse">CrawlerStartResponse</a></code></h4>
 </li>
 <li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerState" href="#scrapfly.crawler.crawler_response.CrawlerState">CrawlerState</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.api_credit_used" href="#scrapfly.crawler.crawler_response.CrawlerState.api_credit_used">api_credit_used</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.duration" href="#scrapfly.crawler.crawler_response.CrawlerState.duration">duration</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.start_time" href="#scrapfly.crawler.crawler_response.CrawlerState.start_time">start_time</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.stop_reason" href="#scrapfly.crawler.crawler_response.CrawlerState.stop_reason">stop_reason</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.stop_time" href="#scrapfly.crawler.crawler_response.CrawlerState.stop_time">stop_time</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.urls_extracted" href="#scrapfly.crawler.crawler_response.CrawlerState.urls_extracted">urls_extracted</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.urls_failed" href="#scrapfly.crawler.crawler_response.CrawlerState.urls_failed">urls_failed</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.urls_skipped" href="#scrapfly.crawler.crawler_response.CrawlerState.urls_skipped">urls_skipped</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.urls_to_crawl" href="#scrapfly.crawler.crawler_response.CrawlerState.urls_to_crawl">urls_to_crawl</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerState.urls_visited" href="#scrapfly.crawler.crawler_response.CrawlerState.urls_visited">urls_visited</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse">CrawlerStatusResponse</a></code></h4>
 <ul class="two-column">
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_CANCELLED" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_CANCELLED">STATUS_CANCELLED</a></code></li>
-<li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_COMPLETED" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_COMPLETED">STATUS_COMPLETED</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_DONE" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_DONE">STATUS_DONE</a></code></li>
-<li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_FAILED" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_FAILED">STATUS_FAILED</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_PENDING" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_PENDING">STATUS_PENDING</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_RUNNING" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.STATUS_RUNNING">STATUS_RUNNING</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_cancelled" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_cancelled">is_cancelled</a></code></li>
@@ -829,6 +2213,23 @@ def progress_pct(self) -&gt; float:
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_failed" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_failed">is_failed</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_running" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.is_running">is_running</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerStatusResponse.progress_pct" href="#scrapfly.crawler.crawler_response.CrawlerStatusResponse.progress_pct">progress_pct</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry">CrawlerUrlEntry</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry.reason" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry.reason">reason</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry.status" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry.status">status</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry.url" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry.url">url</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlsResponse" href="#scrapfly.crawler.crawler_response.CrawlerUrlsResponse">CrawlerUrlsResponse</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlsResponse.from_text" href="#scrapfly.crawler.crawler_response.CrawlerUrlsResponse.from_text">from_text</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlsResponse.page" href="#scrapfly.crawler.crawler_response.CrawlerUrlsResponse.page">page</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlsResponse.per_page" href="#scrapfly.crawler.crawler_response.CrawlerUrlsResponse.per_page">per_page</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerUrlsResponse.urls" href="#scrapfly.crawler.crawler_response.CrawlerUrlsResponse.urls">urls</a></code></li>
 </ul>
 </li>
 </ul>

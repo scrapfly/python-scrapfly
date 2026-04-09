@@ -116,7 +116,7 @@ el.replaceWith(d);
 </dd>
 <dt id="scrapfly.client.ScrapflyClient"><code class="flex name class">
 <span>class <span class="ident">ScrapflyClient</span></span>
-<span>(</span><span>key: str,<br>host: str = 'https://api.scrapfly.io',<br>verify=True,<br>debug: bool = False,<br>max_concurrency: int = 1,<br>connect_timeout: int = 30,<br>web_scraping_api_read_timeout: int = 160,<br>extraction_api_read_timeout: int = 35,<br>screenshot_api_read_timeout: int = 60,<br>read_timeout: int = 30,<br>default_read_timeout: int = 30,<br>reporter: Callable | None = None,<br>**kwargs)</span>
+<span>(</span><span>key: str,<br>host: str = 'https://api.scrapfly.io',<br>verify=True,<br>debug: bool = False,<br>max_concurrency: int = 1,<br>connect_timeout: int = 30,<br>web_scraping_api_read_timeout: int = 160,<br>extraction_api_read_timeout: int = 35,<br>screenshot_api_read_timeout: int = 60,<br>read_timeout: int = 30,<br>default_read_timeout: int = 30,<br>reporter: Callable | None = None,<br>cloud_browser_host: str | None = None,<br>**kwargs)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -126,6 +126,8 @@ el.replaceWith(d);
 <pre><code class="python">class ScrapflyClient:
 
     HOST = &#39;https://api.scrapfly.io&#39;
+    CLOUD_BROWSER_HOST = &#39;wss://browser.scrapfly.io&#39;
+    CLOUD_BROWSER_API_HOST = &#39;https://browser.scrapfly.io&#39;
     DEFAULT_CONNECT_TIMEOUT = 30
     DEFAULT_READ_TIMEOUT = 30
 
@@ -172,6 +174,7 @@ el.replaceWith(d);
         read_timeout:int = DEFAULT_READ_TIMEOUT,
         default_read_timeout:int = DEFAULT_READ_TIMEOUT,
         reporter:Optional[Callable]=None,
+        cloud_browser_host: Optional[str] = None,
         **kwargs
     ):
         if host[-1] == &#39;/&#39;:  # remove last &#39;/&#39; if exists
@@ -195,6 +198,8 @@ el.replaceWith(d);
         self.host = host
         self.key = key
         self.verify = verify
+        self.cloud_browser_host = cloud_browser_host or self.CLOUD_BROWSER_HOST
+        self.cloud_browser_api_host = cloud_browser_host.replace(&#39;wss://&#39;, &#39;https://&#39;) if cloud_browser_host else self.CLOUD_BROWSER_API_HOST
         self.debug = debug
         self.connect_timeout = connect_timeout
         self.web_scraping_api_read_timeout = web_scraping_api_read_timeout
@@ -249,26 +254,35 @@ el.replaceWith(d);
             &#39;verify&#39;: self.verify,
             &#39;timeout&#39;: (self.connect_timeout, self.web_scraping_api_read_timeout),
             &#39;headers&#39;: {
-                &#39;content-type&#39;: scrape_config.headers[&#39;content-type&#39;] if scrape_config.method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;] else self.body_handler.content_type,
+                # When method has a body (POST/PUT/PATCH) AND the caller
+                # explicitly set a Content-Type, forward it. Otherwise fall
+                # back to the body_handler default so we don&#39;t KeyError on
+                # callers who omit the header (e.g. simple PUT &#34;test-body&#34;).
+                &#39;content-type&#39;: (
+                    scrape_config.headers.get(&#39;content-type&#39;, self.body_handler.content_type)
+                    if scrape_config.method in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]
+                    else self.body_handler.content_type
+                ),
                 &#39;accept-encoding&#39;: self.body_handler.content_encoding,
                 &#39;accept&#39;: self.body_handler.accept,
                 &#39;user-agent&#39;: self.ua
             },
             &#39;params&#39;: scrape_config.to_api_params(key=self.key)
         }
-    
+
     def _screenshot_request(self, screenshot_config:ScreenshotConfig):
         return {
             &#39;method&#39;: &#39;GET&#39;,
             &#39;url&#39;: self.host + &#39;/screenshot&#39;,
             &#39;timeout&#39;: (self.connect_timeout, self.screenshot_api_read_timeout),
+            &#39;verify&#39;: self.verify,
             &#39;headers&#39;: {
                 &#39;accept-encoding&#39;: self.body_handler.content_encoding,
                 &#39;accept&#39;: self.body_handler.accept,
                 &#39;user-agent&#39;: self.ua
-            },            
+            },
             &#39;params&#39;: screenshot_config.to_api_params(key=self.key)
-        }        
+        }
 
     def _extraction_request(self, extraction_config:ExtractionConfig):
         headers = {
@@ -287,6 +301,7 @@ el.replaceWith(d);
             &#39;url&#39;: self.host + &#39;/extraction&#39;,
             &#39;data&#39;: extraction_config.body,
             &#39;timeout&#39;: (self.connect_timeout, self.extraction_api_read_timeout),
+            &#39;verify&#39;: self.verify,
             &#39;headers&#39;: headers,
             &#39;params&#39;: extraction_config.to_api_params(key=self.key)
         }
@@ -389,12 +404,13 @@ el.replaceWith(d);
     def resilient_scrape(
         self,
         scrape_config:ScrapeConfig,
-        retry_on_errors:Set[Exception]={ScrapflyError},
+        retry_on_errors:Optional[Set[Exception]]=None,
         retry_on_status_code:Optional[List[int]]=None,
         tries: int = 5,
         delay: int = 20,
     ) -&gt; ScrapeApiResponse:
-        assert retry_on_errors is not None, &#39;Retry on error is None&#39;
+        if retry_on_errors is None:
+            retry_on_errors = {ScrapflyError}
         assert isinstance(retry_on_errors, set), &#39;retry_on_errors is not a set()&#39;
 
         @backoff.on_exception(backoff.expo, exception=tuple(retry_on_errors), max_tries=tries, max_time=delay)
@@ -478,7 +494,7 @@ el.replaceWith(d);
                     for _ in range(0, concurrency - len(processing_tasks)):
                         try:
                             scrape_config = scrape_configs.pop()
-                        except:
+                        except IndexError:
                             break
 
                         scrape_config.raise_on_upstream_error = False
@@ -520,6 +536,36 @@ el.replaceWith(d);
             logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
             request_data = self._scrape_request(scrape_config=scrape_config)
             response = self._http_handler(**request_data)
+
+            if scrape_config.proxified_response is True:
+                # Proxified mode: the API returns the raw upstream response
+                # (target&#39;s status, headers, body) instead of the JSON
+                # envelope. Error restoration: if X-Scrapfly-Reject-Code is
+                # present, the scrape failed and the SDK must raise a typed
+                # error with the code/message/retryable from the headers.
+                reject_code = response.headers.get(&#39;X-Scrapfly-Reject-Code&#39;)
+                if reject_code:
+                    from scrapfly.errors import HttpError
+                    reject_desc = response.headers.get(&#39;X-Scrapfly-Reject-Description&#39;, &#39;&#39;)
+                    reject_retryable = response.headers.get(&#39;X-Scrapfly-Reject-Retryable&#39;, &#39;false&#39;).lower() == &#39;true&#39;
+                    retry_after = None
+                    if reject_retryable:
+                        try:
+                            retry_after = int(response.headers.get(&#39;Retry-After&#39;, &#39;0&#39;))
+                        except (ValueError, TypeError):
+                            retry_after = None
+                    raise HttpError(
+                        request=response.request,
+                        response=response,
+                        code=reject_code,
+                        http_status_code=response.status_code,
+                        message=reject_desc,
+                        is_retryable=reject_retryable,
+                        retry_delay=retry_after,
+                    )
+                self.reporter.report(scrape_api_response=None)
+                return response
+
             scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
 
             self.reporter.report(scrape_api_response=scrape_api_response)
@@ -856,7 +902,30 @@ el.replaceWith(d);
             if self.body_handler.support(headers=response.headers):
                 body = self.body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
             else:
-                body = response.content.decode(&#39;utf-8&#39;)
+                # body_handler rejected — content-type not in SUPPORTED_CONTENT_TYPES.
+                # Response may still be compressed (zstd/brotli) if requests did
+                # not transparently decompress. Probe content-encoding and try
+                # the handler&#39;s read() anyway before falling back to a tolerant
+                # utf-8 decode. Previously this branch raised UnicodeDecodeError
+                # on valid zstd/br responses with a non-json/msgpack content-type.
+                raw = response.content
+                content_encoding = response.headers.get(&#39;content-encoding&#39;, &#39;&#39;).lower()
+                if content_encoding in (&#39;gzip&#39;, &#39;gz&#39;, &#39;deflate&#39;, &#39;br&#39;, &#39;brotli&#39;, &#39;zstd&#39;):
+                    try:
+                        raw = self.body_handler.read(
+                            content=raw,
+                            content_encoding=content_encoding,
+                            content_type=response.headers.get(&#39;content-type&#39;, &#39;&#39;),
+                            signature=None,
+                        )
+                    except Exception:
+                        # Fall through to tolerant decode below; don&#39;t mask the
+                        # real error with a decoder crash.
+                        pass
+                if isinstance(raw, (bytes, bytearray)):
+                    body = raw.decode(&#39;utf-8&#39;, errors=&#39;replace&#39;)
+                else:
+                    body = raw
 
         api_response:ScrapeApiResponse = ScrapeApiResponse(
             response=response,
@@ -965,7 +1034,7 @@ el.replaceWith(d);
             # Log error details for debugging
             try:
                 error_detail = response.json()
-            except:
+            except (ValueError, Exception):
                 error_detail = response.text
             logger.debug(f&#34;Crawler API error ({response.status_code}): {error_detail}&#34;)
             self._handle_crawler_error_response(response)
@@ -1163,11 +1232,295 @@ el.replaceWith(d);
             http_status_code=response.status_code,
             request=response.request,
             response=response
-        )</code></pre>
+        )
+
+    def cloud_browser(self, browser_config: Optional[BrowserConfig] = None) -&gt; str:
+        &#34;&#34;&#34;
+        Get the WebSocket URL for a Cloud Browser session.
+        :param browser_config: Optional BrowserConfig - connection parameters
+        :return: str - the full wss:// URL for CDP connection
+        &#34;&#34;&#34;
+        if browser_config is None:
+            browser_config = BrowserConfig()
+
+        return browser_config.websocket_url(api_key=self.key, host=self.cloud_browser_host)
+
+    def cloud_browser_unblock(
+        self,
+        url: str,
+        proxy_pool: Optional[str] = None,
+        country: Optional[str] = None,
+        os: Optional[str] = None,
+        timeout: Optional[int] = None,
+        browser_timeout: Optional[int] = None,
+        headers: Optional[Dict] = None,
+        body: Optional[str] = None,
+        method: Optional[str] = None,
+    ) -&gt; Dict:
+        &#34;&#34;&#34;
+        Bypass anti-bot protection and get a ready-to-use browser session.
+        :param url: Target URL to navigate to and bypass protection
+        :param proxy_pool: Proxy pool: &#39;datacenter&#39; or &#39;residential&#39;
+        :param country: ISO country code for proxy geolocation
+        :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
+        :param timeout: Navigation timeout in seconds (max 300)
+        :param browser_timeout: Browser session timeout in seconds (max 1800)
+        :param headers: Custom request headers
+        :param body: Request body for POST/PUT/PATCH requests
+        :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+        :return: dict with ws_url, session_id, run_id
+        &#34;&#34;&#34;
+        proxy_pool_map = {
+            &#39;datacenter&#39;: &#39;public_datacenter_pool&#39;,
+            &#39;residential&#39;: &#39;public_residential_pool&#39;,
+        }
+
+        json_body = {&#39;url&#39;: url}
+
+        if proxy_pool is not None:
+            json_body[&#39;proxy_pool&#39;] = proxy_pool_map.get(proxy_pool, proxy_pool)
+
+        if country is not None:
+            json_body[&#39;country&#39;] = country
+
+        if os is not None:
+            json_body[&#39;os&#39;] = os
+
+        if timeout is not None:
+            json_body[&#39;timeout&#39;] = timeout
+
+        if browser_timeout is not None:
+            json_body[&#39;browser_timeout&#39;] = browser_timeout
+
+        if headers is not None:
+            json_body[&#39;headers&#39;] = headers
+
+        if body is not None:
+            json_body[&#39;body&#39;] = body
+
+        if method is not None:
+            json_body[&#39;method&#39;] = method
+
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=self.cloud_browser_api_host + &#39;/unblock&#39;,
+            json=json_body,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, 155),
+            headers={
+                &#39;content-type&#39;: &#39;application/json&#39;,
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    def cloud_browser_session_stop(self, session_id: str) -&gt; None:
+        &#34;&#34;&#34;
+        Terminate a Cloud Browser session.
+        :param session_id: The session identifier to terminate
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=self.cloud_browser_api_host + &#39;/session/&#39; + session_id + &#39;/stop&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+    def cloud_browser_playback(self, run_id: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Get playback info for a debug session recording.
+        :param run_id: The unique run identifier
+        :return: dict with available, metadata, video_url
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.cloud_browser_api_host + &#39;/run/&#39; + run_id + &#39;/playback&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    def cloud_browser_video(self, run_id: str, save_path: Optional[str] = None) -&gt; bytes:
+        &#34;&#34;&#34;
+        Download a debug session recording video.
+        :param run_id: The unique run identifier
+        :param save_path: Optional file path to save the video (e.g. &#39;recording.webm&#39;)
+        :return: bytes - raw video data
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.cloud_browser_api_host + &#39;/run/&#39; + run_id + &#39;/video&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, 120),  # Videos can be large
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+            stream=True,
+        )
+
+        response.raise_for_status()
+
+        data = response.content
+        if save_path:
+            with open(save_path, &#39;wb&#39;) as f:
+                f.write(data)
+
+        return data
+
+    # --- Cloud Browser Extension Management ---
+
+    def cloud_browser_extension_list(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        List all browser extensions for the current account.
+        :return: dict with &#39;extensions&#39; list and &#39;quota&#39; info (used, limit)
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.cloud_browser_api_host + &#39;/extension&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_get(self, extension_id: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Get details of a specific browser extension.
+        :param extension_id: The extension identifier
+        :return: dict with extension details
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.cloud_browser_api_host + &#39;/extension/&#39; + extension_id,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_upload(self, file_path: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Upload a browser extension from a local file (.zip or .crx).
+        :param file_path: Path to the extension file
+        :return: dict with &#39;extension&#39; details and &#39;is_update&#39; flag
+        &#34;&#34;&#34;
+        with open(file_path, &#39;rb&#39;) as f:
+            response = self._http_handler(
+                method=&#39;POST&#39;,
+                url=self.cloud_browser_api_host + &#39;/extension&#39;,
+                params={&#39;key&#39;: self.key},
+                files={&#39;file&#39;: (os.path.basename(file_path), f)},
+                verify=self.verify,
+                timeout=(self.connect_timeout, self.default_read_timeout),
+                headers={
+                    &#39;user-agent&#39;: self.ua
+                },
+            )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_upload_from_url(self, extension_url: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Install a browser extension from a URL pointing to a .crx file.
+        URL-based extensions auto-update on each browser session start.
+        :param extension_url: URL to the .crx extension file
+        :return: dict with &#39;extension&#39; details and &#39;is_update&#39; flag
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=self.cloud_browser_api_host + &#39;/extension&#39;,
+            params={&#39;key&#39;: self.key},
+            json={&#39;extension_url&#39;: extension_url},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;content-type&#39;: &#39;application/json&#39;,
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_extension_delete(self, extension_id: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Delete a browser extension.
+        :param extension_id: The extension identifier to delete
+        :return: dict with success status
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;DELETE&#39;,
+            url=self.cloud_browser_api_host + &#39;/extension/&#39; + extension_id,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_sessions(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        List all running Cloud Browser sessions.
+        :return: dict with &#39;sessions&#39; list and &#39;total&#39; count
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.cloud_browser_api_host + &#39;/sessions&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()</code></pre>
 </details>
 <div class="desc"></div>
 <h3>Class variables</h3>
 <dl>
+<dt id="scrapfly.client.ScrapflyClient.CLOUD_BROWSER_API_HOST"><code class="name">var <span class="ident">CLOUD_BROWSER_API_HOST</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.CLOUD_BROWSER_HOST"><code class="name">var <span class="ident">CLOUD_BROWSER_HOST</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.CONCURRENCY_AUTO"><code class="name">var <span class="ident">CONCURRENCY_AUTO</span></code></dt>
 <dd>
 <div class="desc"></div>
@@ -1446,6 +1799,419 @@ client.cancel_crawl(crawl.uuid)
 </details>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser"><code class="name flex">
+<span>def <span class="ident">cloud_browser</span></span>(<span>self,<br>browser_config: <a title="scrapfly.browser_config.BrowserConfig" href="browser_config.html#scrapfly.browser_config.BrowserConfig">BrowserConfig</a> | None = None) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser(self, browser_config: Optional[BrowserConfig] = None) -&gt; str:
+    &#34;&#34;&#34;
+    Get the WebSocket URL for a Cloud Browser session.
+    :param browser_config: Optional BrowserConfig - connection parameters
+    :return: str - the full wss:// URL for CDP connection
+    &#34;&#34;&#34;
+    if browser_config is None:
+        browser_config = BrowserConfig()
+
+    return browser_config.websocket_url(api_key=self.key, host=self.cloud_browser_host)</code></pre>
+</details>
+<div class="desc"><p>Get the WebSocket URL for a Cloud Browser session.
+:param browser_config: Optional BrowserConfig - connection parameters
+:return: str - the full wss:// URL for CDP connection</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_extension_delete"><code class="name flex">
+<span>def <span class="ident">cloud_browser_extension_delete</span></span>(<span>self, extension_id: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_extension_delete(self, extension_id: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Delete a browser extension.
+    :param extension_id: The extension identifier to delete
+    :return: dict with success status
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;DELETE&#39;,
+        url=self.cloud_browser_api_host + &#39;/extension/&#39; + extension_id,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Delete a browser extension.
+:param extension_id: The extension identifier to delete
+:return: dict with success status</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_extension_get"><code class="name flex">
+<span>def <span class="ident">cloud_browser_extension_get</span></span>(<span>self, extension_id: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_extension_get(self, extension_id: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Get details of a specific browser extension.
+    :param extension_id: The extension identifier
+    :return: dict with extension details
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.cloud_browser_api_host + &#39;/extension/&#39; + extension_id,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Get details of a specific browser extension.
+:param extension_id: The extension identifier
+:return: dict with extension details</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_extension_list"><code class="name flex">
+<span>def <span class="ident">cloud_browser_extension_list</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_extension_list(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    List all browser extensions for the current account.
+    :return: dict with &#39;extensions&#39; list and &#39;quota&#39; info (used, limit)
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.cloud_browser_api_host + &#39;/extension&#39;,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>List all browser extensions for the current account.
+:return: dict with 'extensions' list and 'quota' info (used, limit)</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_extension_upload"><code class="name flex">
+<span>def <span class="ident">cloud_browser_extension_upload</span></span>(<span>self, file_path: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_extension_upload(self, file_path: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Upload a browser extension from a local file (.zip or .crx).
+    :param file_path: Path to the extension file
+    :return: dict with &#39;extension&#39; details and &#39;is_update&#39; flag
+    &#34;&#34;&#34;
+    with open(file_path, &#39;rb&#39;) as f:
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=self.cloud_browser_api_host + &#39;/extension&#39;,
+            params={&#39;key&#39;: self.key},
+            files={&#39;file&#39;: (os.path.basename(file_path), f)},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Upload a browser extension from a local file (.zip or .crx).
+:param file_path: Path to the extension file
+:return: dict with 'extension' details and 'is_update' flag</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_extension_upload_from_url"><code class="name flex">
+<span>def <span class="ident">cloud_browser_extension_upload_from_url</span></span>(<span>self, extension_url: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_extension_upload_from_url(self, extension_url: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Install a browser extension from a URL pointing to a .crx file.
+    URL-based extensions auto-update on each browser session start.
+    :param extension_url: URL to the .crx extension file
+    :return: dict with &#39;extension&#39; details and &#39;is_update&#39; flag
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;POST&#39;,
+        url=self.cloud_browser_api_host + &#39;/extension&#39;,
+        params={&#39;key&#39;: self.key},
+        json={&#39;extension_url&#39;: extension_url},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;content-type&#39;: &#39;application/json&#39;,
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Install a browser extension from a URL pointing to a .crx file.
+URL-based extensions auto-update on each browser session start.
+:param extension_url: URL to the .crx extension file
+:return: dict with 'extension' details and 'is_update' flag</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_playback"><code class="name flex">
+<span>def <span class="ident">cloud_browser_playback</span></span>(<span>self, run_id: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_playback(self, run_id: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Get playback info for a debug session recording.
+    :param run_id: The unique run identifier
+    :return: dict with available, metadata, video_url
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.cloud_browser_api_host + &#39;/run/&#39; + run_id + &#39;/playback&#39;,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Get playback info for a debug session recording.
+:param run_id: The unique run identifier
+:return: dict with available, metadata, video_url</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_session_stop"><code class="name flex">
+<span>def <span class="ident">cloud_browser_session_stop</span></span>(<span>self, session_id: str) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_session_stop(self, session_id: str) -&gt; None:
+    &#34;&#34;&#34;
+    Terminate a Cloud Browser session.
+    :param session_id: The session identifier to terminate
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;POST&#39;,
+        url=self.cloud_browser_api_host + &#39;/session/&#39; + session_id + &#39;/stop&#39;,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()</code></pre>
+</details>
+<div class="desc"><p>Terminate a Cloud Browser session.
+:param session_id: The session identifier to terminate</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_sessions"><code class="name flex">
+<span>def <span class="ident">cloud_browser_sessions</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_sessions(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    List all running Cloud Browser sessions.
+    :return: dict with &#39;sessions&#39; list and &#39;total&#39; count
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.cloud_browser_api_host + &#39;/sessions&#39;,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>List all running Cloud Browser sessions.
+:return: dict with 'sessions' list and 'total' count</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_unblock"><code class="name flex">
+<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_unblock(
+    self,
+    url: str,
+    proxy_pool: Optional[str] = None,
+    country: Optional[str] = None,
+    os: Optional[str] = None,
+    timeout: Optional[int] = None,
+    browser_timeout: Optional[int] = None,
+    headers: Optional[Dict] = None,
+    body: Optional[str] = None,
+    method: Optional[str] = None,
+) -&gt; Dict:
+    &#34;&#34;&#34;
+    Bypass anti-bot protection and get a ready-to-use browser session.
+    :param url: Target URL to navigate to and bypass protection
+    :param proxy_pool: Proxy pool: &#39;datacenter&#39; or &#39;residential&#39;
+    :param country: ISO country code for proxy geolocation
+    :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
+    :param timeout: Navigation timeout in seconds (max 300)
+    :param browser_timeout: Browser session timeout in seconds (max 1800)
+    :param headers: Custom request headers
+    :param body: Request body for POST/PUT/PATCH requests
+    :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+    :return: dict with ws_url, session_id, run_id
+    &#34;&#34;&#34;
+    proxy_pool_map = {
+        &#39;datacenter&#39;: &#39;public_datacenter_pool&#39;,
+        &#39;residential&#39;: &#39;public_residential_pool&#39;,
+    }
+
+    json_body = {&#39;url&#39;: url}
+
+    if proxy_pool is not None:
+        json_body[&#39;proxy_pool&#39;] = proxy_pool_map.get(proxy_pool, proxy_pool)
+
+    if country is not None:
+        json_body[&#39;country&#39;] = country
+
+    if os is not None:
+        json_body[&#39;os&#39;] = os
+
+    if timeout is not None:
+        json_body[&#39;timeout&#39;] = timeout
+
+    if browser_timeout is not None:
+        json_body[&#39;browser_timeout&#39;] = browser_timeout
+
+    if headers is not None:
+        json_body[&#39;headers&#39;] = headers
+
+    if body is not None:
+        json_body[&#39;body&#39;] = body
+
+    if method is not None:
+        json_body[&#39;method&#39;] = method
+
+    response = self._http_handler(
+        method=&#39;POST&#39;,
+        url=self.cloud_browser_api_host + &#39;/unblock&#39;,
+        json=json_body,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, 155),
+        headers={
+            &#39;content-type&#39;: &#39;application/json&#39;,
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Bypass anti-bot protection and get a ready-to-use browser session.
+:param url: Target URL to navigate to and bypass protection
+:param proxy_pool: Proxy pool: 'datacenter' or 'residential'
+:param country: ISO country code for proxy geolocation
+:param os: Operating system fingerprint: 'linux', 'windows', 'macos'
+:param timeout: Navigation timeout in seconds (max 300)
+:param browser_timeout: Browser session timeout in seconds (max 1800)
+:param headers: Custom request headers
+:param body: Request body for POST/PUT/PATCH requests
+:param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+:return: dict with ws_url, session_id, run_id</p></div>
+</dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_video"><code class="name flex">
+<span>def <span class="ident">cloud_browser_video</span></span>(<span>self, run_id: str, save_path: str | None = None) ‑> bytes</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_video(self, run_id: str, save_path: Optional[str] = None) -&gt; bytes:
+    &#34;&#34;&#34;
+    Download a debug session recording video.
+    :param run_id: The unique run identifier
+    :param save_path: Optional file path to save the video (e.g. &#39;recording.webm&#39;)
+    :return: bytes - raw video data
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.cloud_browser_api_host + &#39;/run/&#39; + run_id + &#39;/video&#39;,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, 120),  # Videos can be large
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+        stream=True,
+    )
+
+    response.raise_for_status()
+
+    data = response.content
+    if save_path:
+        with open(save_path, &#39;wb&#39;) as f:
+            f.write(data)
+
+    return data</code></pre>
+</details>
+<div class="desc"><p>Download a debug session recording video.
+:param run_id: The unique run identifier
+:param save_path: Optional file path to save the video (e.g. 'recording.webm')
+:return: bytes - raw video data</p></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.concurrent_scrape"><code class="name flex">
 <span>async def <span class="ident">concurrent_scrape</span></span>(<span>self,<br>scrape_configs: List[<a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>],<br>concurrency: int | None = None)</span>
 </code></dt>
@@ -1492,7 +2258,7 @@ client.cancel_crawl(crawl.uuid)
                 for _ in range(0, concurrency - len(processing_tasks)):
                     try:
                         scrape_config = scrape_configs.pop()
-                    except:
+                    except IndexError:
                         break
 
                     scrape_config.raise_on_upstream_error = False
@@ -1906,7 +2672,7 @@ if status.is_complete:
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.resilient_scrape"><code class="name flex">
-<span>def <span class="ident">resilient_scrape</span></span>(<span>self,<br>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>,<br>retry_on_errors: Set[Exception] = {&lt;class &#x27;scrapfly.errors.ScrapflyError&#x27;&gt;},<br>retry_on_status_code: List[int] | None = None,<br>tries: int = 5,<br>delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
+<span>def <span class="ident">resilient_scrape</span></span>(<span>self,<br>scrape_config: <a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>,<br>retry_on_errors: Set[Exception] | None = None,<br>retry_on_status_code: List[int] | None = None,<br>tries: int = 5,<br>delay: int = 20) ‑> <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></span>
 </code></dt>
 <dd>
 <details class="source">
@@ -1916,12 +2682,13 @@ if status.is_complete:
 <pre><code class="python">def resilient_scrape(
     self,
     scrape_config:ScrapeConfig,
-    retry_on_errors:Set[Exception]={ScrapflyError},
+    retry_on_errors:Optional[Set[Exception]]=None,
     retry_on_status_code:Optional[List[int]]=None,
     tries: int = 5,
     delay: int = 20,
 ) -&gt; ScrapeApiResponse:
-    assert retry_on_errors is not None, &#39;Retry on error is None&#39;
+    if retry_on_errors is None:
+        retry_on_errors = {ScrapflyError}
     assert isinstance(retry_on_errors, set), &#39;retry_on_errors is not a set()&#39;
 
     @backoff.on_exception(backoff.expo, exception=tuple(retry_on_errors), max_tries=tries, max_time=delay)
@@ -2061,6 +2828,36 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
         logger.debug(&#39;--&gt; %s Scrapping %s&#39; % (scrape_config.method, scrape_config.url))
         request_data = self._scrape_request(scrape_config=scrape_config)
         response = self._http_handler(**request_data)
+
+        if scrape_config.proxified_response is True:
+            # Proxified mode: the API returns the raw upstream response
+            # (target&#39;s status, headers, body) instead of the JSON
+            # envelope. Error restoration: if X-Scrapfly-Reject-Code is
+            # present, the scrape failed and the SDK must raise a typed
+            # error with the code/message/retryable from the headers.
+            reject_code = response.headers.get(&#39;X-Scrapfly-Reject-Code&#39;)
+            if reject_code:
+                from scrapfly.errors import HttpError
+                reject_desc = response.headers.get(&#39;X-Scrapfly-Reject-Description&#39;, &#39;&#39;)
+                reject_retryable = response.headers.get(&#39;X-Scrapfly-Reject-Retryable&#39;, &#39;false&#39;).lower() == &#39;true&#39;
+                retry_after = None
+                if reject_retryable:
+                    try:
+                        retry_after = int(response.headers.get(&#39;Retry-After&#39;, &#39;0&#39;))
+                    except (ValueError, TypeError):
+                        retry_after = None
+                raise HttpError(
+                    request=response.request,
+                    response=response,
+                    code=reject_code,
+                    http_status_code=response.status_code,
+                    message=reject_desc,
+                    is_retryable=reject_retryable,
+                    retry_delay=retry_after,
+                )
+            self.reporter.report(scrape_api_response=None)
+            return response
+
         scrape_api_response = self._handle_response(response=response, scrape_config=scrape_config)
 
         self.reporter.report(scrape_api_response=scrape_api_response)
@@ -2272,7 +3069,7 @@ def start_crawl(self, crawler_config: CrawlerConfig) -&gt; CrawlerStartResponse:
         # Log error details for debugging
         try:
             error_detail = response.json()
-        except:
+        except (ValueError, Exception):
             error_detail = response.text
         logger.debug(f&#34;Crawler API error ({response.status_code}): {error_detail}&#34;)
         self._handle_crawler_error_response(response)
@@ -2332,6 +3129,8 @@ print(f&quot;Crawler started: {response.uuid}&quot;)
 <li>
 <h4><code><a title="scrapfly.client.ScrapflyClient" href="#scrapfly.client.ScrapflyClient">ScrapflyClient</a></code></h4>
 <ul class="">
+<li><code><a title="scrapfly.client.ScrapflyClient.CLOUD_BROWSER_API_HOST" href="#scrapfly.client.ScrapflyClient.CLOUD_BROWSER_API_HOST">CLOUD_BROWSER_API_HOST</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.CLOUD_BROWSER_HOST" href="#scrapfly.client.ScrapflyClient.CLOUD_BROWSER_HOST">CLOUD_BROWSER_HOST</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.CONCURRENCY_AUTO" href="#scrapfly.client.ScrapflyClient.CONCURRENCY_AUTO">CONCURRENCY_AUTO</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.DATETIME_FORMAT" href="#scrapfly.client.ScrapflyClient.DATETIME_FORMAT">DATETIME_FORMAT</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT" href="#scrapfly.client.ScrapflyClient.DEFAULT_CONNECT_TIMEOUT">DEFAULT_CONNECT_TIMEOUT</a></code></li>
@@ -2348,6 +3147,17 @@ print(f&quot;Crawler started: {response.uuid}&quot;)
 <li><code><a title="scrapfly.client.ScrapflyClient.brotli" href="#scrapfly.client.ScrapflyClient.brotli">brotli</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cancel_crawl" href="#scrapfly.client.ScrapflyClient.cancel_crawl">cancel_crawl</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.close" href="#scrapfly.client.ScrapflyClient.close">close</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser" href="#scrapfly.client.ScrapflyClient.cloud_browser">cloud_browser</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_extension_delete" href="#scrapfly.client.ScrapflyClient.cloud_browser_extension_delete">cloud_browser_extension_delete</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_extension_get" href="#scrapfly.client.ScrapflyClient.cloud_browser_extension_get">cloud_browser_extension_get</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_extension_list" href="#scrapfly.client.ScrapflyClient.cloud_browser_extension_list">cloud_browser_extension_list</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_extension_upload" href="#scrapfly.client.ScrapflyClient.cloud_browser_extension_upload">cloud_browser_extension_upload</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_extension_upload_from_url" href="#scrapfly.client.ScrapflyClient.cloud_browser_extension_upload_from_url">cloud_browser_extension_upload_from_url</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_playback" href="#scrapfly.client.ScrapflyClient.cloud_browser_playback">cloud_browser_playback</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_session_stop" href="#scrapfly.client.ScrapflyClient.cloud_browser_session_stop">cloud_browser_session_stop</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_sessions" href="#scrapfly.client.ScrapflyClient.cloud_browser_sessions">cloud_browser_sessions</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_unblock" href="#scrapfly.client.ScrapflyClient.cloud_browser_unblock">cloud_browser_unblock</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_video" href="#scrapfly.client.ScrapflyClient.cloud_browser_video">cloud_browser_video</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.concurrent_scrape" href="#scrapfly.client.ScrapflyClient.concurrent_scrape">concurrent_scrape</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.connect_timeout" href="#scrapfly.client.ScrapflyClient.connect_timeout">connect_timeout</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.debug" href="#scrapfly.client.ScrapflyClient.debug">debug</a></code></li>

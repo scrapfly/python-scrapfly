@@ -161,7 +161,7 @@ el.replaceWith(d);
 </dd>
 <dt id="scrapfly.extraction_config.ExtractionConfig"><code class="flex name class">
 <span>class <span class="ident">ExtractionConfig</span></span>
-<span>(</span><span>body: str | bytes,<br>content_type: str,<br>url: str | None = None,<br>charset: str | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>is_document_compressed: bool | None = None,<br>document_compression_format: <a title="scrapfly.extraction_config.CompressionFormat" href="#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a> | None = None,<br>webhook: str | None = None,<br>raise_on_upstream_error: bool = True,<br>template: str | None = None,<br>ephemeral_template: Dict | None = None)</span>
+<span>(</span><span>body: str | bytes,<br>content_type: str,<br>url: str | None = None,<br>charset: str | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>is_document_compressed: bool | None = None,<br>document_compression_format: <a title="scrapfly.extraction_config.CompressionFormat" href="#scrapfly.extraction_config.CompressionFormat">CompressionFormat</a> | None = None,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>raise_on_upstream_error: bool = True,<br>template: str | None = None,<br>ephemeral_template: Dict | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -180,6 +180,7 @@ el.replaceWith(d);
     is_document_compressed: Optional[bool] = None
     document_compression_format: Optional[CompressionFormat] = None
     webhook: Optional[str] = None
+    timeout: Optional[int] = None
     raise_on_upstream_error: bool = True
 
     # deprecated options
@@ -199,6 +200,7 @@ el.replaceWith(d);
         is_document_compressed: Optional[bool] = None,
         document_compression_format: Optional[CompressionFormat] = None,
         webhook: Optional[str] = None,
+        timeout: Optional[int] = None,
         raise_on_upstream_error: bool = True,
 
         # deprecated options
@@ -229,6 +231,7 @@ el.replaceWith(d);
         self.is_document_compressed = is_document_compressed
         self.document_compression_format = CompressionFormat(document_compression_format) if document_compression_format else None
         self.webhook = webhook
+        self.timeout = timeout
         self.raise_on_upstream_error = raise_on_upstream_error
 
         if isinstance(body, bytes) or document_compression_format:
@@ -292,8 +295,8 @@ el.replaceWith(d);
             params[&#39;extraction_template&#39;] = self.extraction_template
 
         if self.extraction_ephemeral_template:
-            self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
-            params[&#39;extraction_template&#39;] = &#39;ephemeral:&#39; + urlsafe_b64encode(self.extraction_ephemeral_template.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+            template_json = json.dumps(self.extraction_ephemeral_template)
+            params[&#39;extraction_template&#39;] = &#39;ephemeral:&#39; + urlsafe_b64encode(template_json.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
 
         if self.extraction_prompt:
             params[&#39;extraction_prompt&#39;] = quote_plus(self.extraction_prompt)
@@ -303,6 +306,9 @@ el.replaceWith(d);
 
         if self.webhook:
             params[&#39;webhook_name&#39;] = self.webhook
+
+        if self.timeout is not None:
+            params[&#39;timeout&#39;] = self.timeout
 
         return params
 
@@ -435,6 +441,10 @@ el.replaceWith(d);
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.extraction_config.ExtractionConfig.timeout"><code class="name">var <span class="ident">timeout</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.extraction_config.ExtractionConfig.url"><code class="name">var <span class="ident">url</span> : str | None</code></dt>
 <dd>
 <div class="desc"></div>
@@ -520,8 +530,8 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
         params[&#39;extraction_template&#39;] = self.extraction_template
 
     if self.extraction_ephemeral_template:
-        self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
-        params[&#39;extraction_template&#39;] = &#39;ephemeral:&#39; + urlsafe_b64encode(self.extraction_ephemeral_template.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
+        template_json = json.dumps(self.extraction_ephemeral_template)
+        params[&#39;extraction_template&#39;] = &#39;ephemeral:&#39; + urlsafe_b64encode(template_json.encode(&#39;utf-8&#39;)).decode(&#39;utf-8&#39;)
 
     if self.extraction_prompt:
         params[&#39;extraction_prompt&#39;] = quote_plus(self.extraction_prompt)
@@ -531,6 +541,9 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
 
     if self.webhook:
         params[&#39;webhook_name&#39;] = self.webhook
+
+    if self.timeout is not None:
+        params[&#39;timeout&#39;] = self.timeout
 
     return params</code></pre>
 </details>
@@ -651,6 +664,7 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.is_document_compressed" href="#scrapfly.extraction_config.ExtractionConfig.is_document_compressed">is_document_compressed</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.raise_on_upstream_error" href="#scrapfly.extraction_config.ExtractionConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.template" href="#scrapfly.extraction_config.ExtractionConfig.template">template</a></code></li>
+<li><code><a title="scrapfly.extraction_config.ExtractionConfig.timeout" href="#scrapfly.extraction_config.ExtractionConfig.timeout">timeout</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.to_api_params" href="#scrapfly.extraction_config.ExtractionConfig.to_api_params">to_api_params</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.to_dict" href="#scrapfly.extraction_config.ExtractionConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.extraction_config.ExtractionConfig.url" href="#scrapfly.extraction_config.ExtractionConfig.url">url</a></code></li>

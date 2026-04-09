@@ -94,7 +94,7 @@ def comparable_version(version: str) -&gt; int:
 <dl>
 <dt id="scrapfly.scrapy.FilesPipeline"><code class="flex name class">
 <span>class <span class="ident">FilesPipeline</span></span>
-<span>(</span><span>store_uri: str | PathLike[str],<br>download_func: Callable[[Request, Spider], Response] | None = None,<br>settings: Settings | dict[str, Any] | None = None,<br>*,<br>crawler: Crawler | None = None)</span>
+<span>(</span><span>store_uri: str | PathLike[str], download_func: None = None, *, crawler: Crawler)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -171,7 +171,7 @@ refresh it in case of change.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ImagesPipeline"><code class="flex name class">
 <span>class <span class="ident">ImagesPipeline</span></span>
-<span>(</span><span>store_uri: str | PathLike[str],<br>download_func: Callable[[Request, Spider], Response] | None = None,<br>settings: Settings | dict[str, Any] | None = None,<br>*,<br>crawler: Crawler | None = None)</span>
+<span>(</span><span>store_uri: str | PathLike[str], download_func: None = None, *, crawler: Crawler)</span>
 </code></dt>
 <dd>
 <details class="source">

@@ -50,7 +50,7 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.crawler.crawler_config.CrawlerConfig"><code class="flex name class">
 <span>class <span class="ident">CrawlerConfig</span></span>
-<span>(</span><span>url: str,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool = False,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool = False,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None)</span>
+<span>(</span><span>url: str,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool = False,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -125,6 +125,11 @@ el.replaceWith(d);
         ignore_base_path_restriction: bool = False,
         follow_external_links: bool = False,
         allowed_external_domains: Optional[List[str]] = None,
+        # Subdomain control (NEW — added in 0.8.28 to match the documented public API).
+        # Server-side default for follow_internal_subdomains is True; we leave the
+        # field unset by default so the server applies its own default.
+        follow_internal_subdomains: Optional[bool] = None,
+        allowed_internal_subdomains: Optional[List[str]] = None,
 
         # Request configuration
         headers: Optional[Dict[str, str]] = None,
@@ -135,7 +140,9 @@ el.replaceWith(d);
 
         # Crawl strategy options
         use_sitemaps: bool = False,
-        respect_robots_txt: bool = False,
+        # respect_robots_txt: server default is True. Leave unset (None) so the
+        # server applies its own default rather than forcing False on every request.
+        respect_robots_txt: Optional[bool] = None,
         ignore_no_follow: bool = False,
 
         # Cache options
@@ -229,6 +236,12 @@ el.replaceWith(d);
             params[&#39;follow_external_links&#39;] = True
         if allowed_external_domains:
             params[&#39;allowed_external_domains&#39;] = allowed_external_domains
+        # Subdomain control (NEW). Both fields are tri-state: None means
+        # &#34;unset&#34; (server default applies); explicit True/False / list overrides.
+        if follow_internal_subdomains is not None:
+            params[&#39;follow_internal_subdomains&#39;] = follow_internal_subdomains
+        if allowed_internal_subdomains:
+            params[&#39;allowed_internal_subdomains&#39;] = allowed_internal_subdomains
 
         # Request configuration
         if headers:
@@ -245,8 +258,10 @@ el.replaceWith(d);
         # Crawl strategy
         if use_sitemaps:
             params[&#39;use_sitemaps&#39;] = True
-        if respect_robots_txt:
-            params[&#39;respect_robots_txt&#39;] = True
+        # Tri-state: None = let server default win (default True). Explicit
+        # True/False overrides.
+        if respect_robots_txt is not None:
+            params[&#39;respect_robots_txt&#39;] = respect_robots_txt
         if ignore_no_follow:
             params[&#39;ignore_no_follow&#39;] = True
 

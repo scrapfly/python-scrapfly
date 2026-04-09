@@ -40,9 +40,9 @@ el.replaceWith(d);
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
-<dt><code class="name"><a title="scrapfly.reporter.SentryReporter" href="SentryReporter.html">scrapfly.reporter.SentryReporter</a></code></dt>
+<dt><code class="name"><a title="scrapfly.reporter.sentry" href="sentry.html">scrapfly.reporter.sentry</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Sentry integration for the Scrapfly Python SDK …</p></div>
 </dd>
 </dl>
 </section>
@@ -132,6 +132,70 @@ el.replaceWith(d);
 </details>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.reporter.SentryReporter"><code class="flex name class">
+<span>class <span class="ident">SentryReporter</span></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class SentryReporter:
+    &#34;&#34;&#34;
+    A reporter callable that forwards Scrapfly errors to Sentry with
+    contextual tags and extras.
+
+    Raises:
+        ImportError: If ``sentry-sdk`` is not installed when the reporter
+            is instantiated. Install with ``pip install sentry-sdk``.
+    &#34;&#34;&#34;
+
+    def __init__(self):
+        try:
+            import sentry_sdk  # noqa: F401  # validate the dependency is present
+        except ImportError as e:
+            raise ImportError(
+                &#34;SentryReporter requires the &#39;sentry-sdk&#39; package. &#34;
+                &#34;Install it with: pip install sentry-sdk&#34;
+            ) from e
+
+    def __call__(
+        self,
+        error: Optional[Exception] = None,
+        scrape_api_response: Optional[&#39;ScrapeApiResponse&#39;] = None,  # noqa: F821
+    ):
+        # Late import — already validated in __init__, safe to import here.
+        from sentry_sdk import capture_exception, push_scope
+
+        with push_scope() as scope:
+            if scrape_api_response is not None:
+                scope.set_tag(&#39;scrapfly_project&#39;, scrape_api_response.config[&#39;project&#39;])
+                scope.set_tag(&#39;scrapfly_env&#39;, scrape_api_response.config[&#39;env&#39;])
+                scope.set_extra(&#39;scrape_config&#39;, scrape_api_response.config)
+
+                if scrape_api_response.scrape_result:
+                    scope.set_extra(&#39;log_url&#39;, scrape_api_response.scrape_result[&#39;log_url&#39;])
+                    scope.set_extra(&#39;upstream_url&#39;, scrape_api_response.scrape_result[&#39;url&#39;])
+                    scope.set_tag(
+                        &#39;scrapfly_upstream_status_code&#39;,
+                        scrape_api_response.scrape_result[&#39;status_code&#39;],
+                    )
+
+                if scrape_api_response.error is not None:
+                    scope.set_tag(&#39;scrapfly_error_code&#39;, scrape_api_response.error[&#39;code&#39;])
+
+            if error is not None:
+                capture_exception(error)</code></pre>
+</details>
+<div class="desc"><p>A reporter callable that forwards Scrapfly errors to Sentry with
+contextual tags and extras.</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ImportError</code></dt>
+<dd>If <code>sentry-sdk</code> is not installed when the reporter
+is instantiated. Install with <code>pip install sentry-sdk</code>.</dd>
+</dl></div>
+</dd>
 </dl>
 </section>
 </article>
@@ -147,7 +211,7 @@ el.replaceWith(d);
 </li>
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
-<li><code><a title="scrapfly.reporter.SentryReporter" href="SentryReporter.html">scrapfly.reporter.SentryReporter</a></code></li>
+<li><code><a title="scrapfly.reporter.sentry" href="sentry.html">scrapfly.reporter.sentry</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
@@ -163,6 +227,9 @@ el.replaceWith(d);
 </li>
 <li>
 <h4><code><a title="scrapfly.reporter.PrintReporter" href="#scrapfly.reporter.PrintReporter">PrintReporter</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.reporter.SentryReporter" href="#scrapfly.reporter.SentryReporter">SentryReporter</a></code></h4>
 </li>
 </ul>
 </li>

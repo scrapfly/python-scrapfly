@@ -153,7 +153,7 @@ el.replaceWith(d);
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str,<br>retry: bool = True,<br>method: str = 'GET',<br>country: str | None = None,<br>render_js: bool = False,<br>cache: bool = False,<br>cache_clear: bool = False,<br>ssl: bool = False,<br>dns: bool = False,<br>asp: bool = False,<br>debug: bool = False,<br>raise_on_upstream_error: bool = True,<br>cache_ttl: int | None = None,<br>proxy_pool: str | None = None,<br>session: str | None = None,<br>tags: List[str] | Set[str] | None = None,<br>format: <a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a> | None = None,<br>format_options: List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>correlation_id: str | None = None,<br>cookies: requests.structures.CaseInsensitiveDict | None = None,<br>body: str | None = None,<br>data: Dict | None = None,<br>headers: requests.structures.CaseInsensitiveDict | Dict[str, str] | None = None,<br>js: str = None,<br>rendering_wait: int = None,<br>rendering_stage: Literal['complete', 'domcontentloaded'] = 'complete',<br>wait_for_selector: str | None = None,<br>screenshots: Dict | None = None,<br>screenshot_flags: List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None = None,<br>session_sticky_proxy: bool | None = None,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>js_scenario: List | None = None,<br>extract: Dict | None = None,<br>os: str | None = None,<br>lang: List[str] | None = None,<br>auto_scroll: bool | None = None,<br>cost_budget: int | None = None)</span>
+<span>(</span><span>url: str,<br>retry: bool = True,<br>method: str = 'GET',<br>country: str | None = None,<br>render_js: bool = False,<br>cache: bool = False,<br>cache_clear: bool = False,<br>ssl: bool = False,<br>dns: bool = False,<br>asp: bool = False,<br>debug: bool = False,<br>raise_on_upstream_error: bool = True,<br>cache_ttl: int | None = None,<br>proxy_pool: str | None = None,<br>session: str | None = None,<br>tags: List[str] | Set[str] | None = None,<br>format: <a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a> | None = None,<br>format_options: List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>correlation_id: str | None = None,<br>cookies: requests.structures.CaseInsensitiveDict | None = None,<br>body: str | None = None,<br>data: Dict | None = None,<br>headers: requests.structures.CaseInsensitiveDict | Dict[str, str] | None = None,<br>js: str = None,<br>rendering_wait: int = None,<br>rendering_stage: Literal['complete', 'domcontentloaded'] = 'complete',<br>wait_for_selector: str | None = None,<br>screenshots: Dict | None = None,<br>screenshot_flags: List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None = None,<br>session_sticky_proxy: bool | None = None,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>js_scenario: List | None = None,<br>extract: Dict | None = None,<br>os: str | None = None,<br>lang: List[str] | None = None,<br>auto_scroll: bool | None = None,<br>cost_budget: int | None = None,<br>browser_brand: str | None = None,<br>geolocation: str | None = None,<br>proxified_response: bool | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -207,6 +207,9 @@ el.replaceWith(d);
     os:Optional[str] = None
     auto_scroll:Optional[bool] = None
     cost_budget:Optional[int] = None
+    browser_brand:Optional[str] = None
+    geolocation:Optional[str] = None
+    proxified_response:Optional[bool] = None
 
     def __init__(
         self,
@@ -251,7 +254,10 @@ el.replaceWith(d);
         os:Optional[str] = None,
         lang:Optional[List[str]] = None,
         auto_scroll:Optional[bool] = None,
-        cost_budget:Optional[int] = None
+        cost_budget:Optional[int] = None,
+        browser_brand:Optional[str] = None,
+        geolocation:Optional[str] = None,
+        proxified_response:Optional[bool] = None
     ):
         assert(type(url) is str)
 
@@ -304,6 +310,9 @@ el.replaceWith(d);
         self.os = os
         self.auto_scroll = auto_scroll
         self.cost_budget = cost_budget
+        self.browser_brand = browser_brand
+        self.geolocation = geolocation
+        self.proxified_response = proxified_response
 
         if cookies:
             _cookies = []
@@ -360,6 +369,9 @@ el.replaceWith(d);
 
         if self.cost_budget is not None:
             params[&#39;cost_budget&#39;] = self.cost_budget
+
+        if self.proxified_response is not None:
+            params[&#39;proxified_response&#39;] = self._bool_to_http(self.proxified_response)
 
         if self.render_js is True:
             params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
@@ -483,6 +495,11 @@ el.replaceWith(d);
         if self.os is not None:
             params[&#39;os&#39;] = self.os
 
+        if self.browser_brand is not None:
+            params[&#39;browser_brand&#39;] = self.browser_brand
+        if self.geolocation is not None:
+            params[&#39;geolocation&#39;] = self.geolocation
+
         return params
 
     @staticmethod
@@ -580,6 +597,7 @@ el.replaceWith(d);
             &#39;os&#39;: self.os,
             &#39;auto_scroll&#39;: self.auto_scroll,
             &#39;cost_budget&#39;: self.cost_budget,
+            &#39;browser_brand&#39;: self.browser_brand,
         }
 
     @staticmethod
@@ -634,6 +652,7 @@ el.replaceWith(d);
         lang = scrape_config_dict.get(&#39;lang&#39;, None)
         auto_scroll = scrape_config_dict.get(&#39;auto_scroll&#39;, None)
         cost_budget = scrape_config_dict.get(&#39;cost_budget&#39;, None)
+        browser_brand = scrape_config_dict.get(&#39;browser_brand&#39;, None)
 
         return ScrapeConfig(
             url=url,
@@ -677,6 +696,7 @@ el.replaceWith(d);
             lang=lang,
             auto_scroll=auto_scroll,
             cost_budget=cost_budget,
+            browser_brand=browser_brand,
         )</code></pre>
 </details>
 <div class="desc"></div>
@@ -703,6 +723,10 @@ el.replaceWith(d);
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.body"><code class="name">var <span class="ident">body</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.browser_brand"><code class="name">var <span class="ident">browser_brand</span> : str | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -774,6 +798,10 @@ el.replaceWith(d);
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.geolocation"><code class="name">var <span class="ident">geolocation</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.headers"><code class="name">var <span class="ident">headers</span> : requests.structures.CaseInsensitiveDict | None</code></dt>
 <dd>
 <div class="desc"></div>
@@ -795,6 +823,10 @@ el.replaceWith(d);
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.os"><code class="name">var <span class="ident">os</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.proxified_response"><code class="name">var <span class="ident">proxified_response</span> : bool | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -925,6 +957,7 @@ def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
     lang = scrape_config_dict.get(&#39;lang&#39;, None)
     auto_scroll = scrape_config_dict.get(&#39;auto_scroll&#39;, None)
     cost_budget = scrape_config_dict.get(&#39;cost_budget&#39;, None)
+    browser_brand = scrape_config_dict.get(&#39;browser_brand&#39;, None)
 
     return ScrapeConfig(
         url=url,
@@ -968,6 +1001,7 @@ def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
         lang=lang,
         auto_scroll=auto_scroll,
         cost_budget=cost_budget,
+        browser_brand=browser_brand,
     )</code></pre>
 </details>
 <div class="desc"><p>Create a ScrapeConfig instance from a dictionary.</p></div>
@@ -1063,6 +1097,9 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
 
     if self.cost_budget is not None:
         params[&#39;cost_budget&#39;] = self.cost_budget
+
+    if self.proxified_response is not None:
+        params[&#39;proxified_response&#39;] = self._bool_to_http(self.proxified_response)
 
     if self.render_js is True:
         params[&#39;render_js&#39;] = self._bool_to_http(self.render_js)
@@ -1186,6 +1223,11 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     if self.os is not None:
         params[&#39;os&#39;] = self.os
 
+    if self.browser_brand is not None:
+        params[&#39;browser_brand&#39;] = self.browser_brand
+    if self.geolocation is not None:
+        params[&#39;geolocation&#39;] = self.geolocation
+
     return params</code></pre>
 </details>
 <div class="desc"></div>
@@ -1246,6 +1288,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         &#39;os&#39;: self.os,
         &#39;auto_scroll&#39;: self.auto_scroll,
         &#39;cost_budget&#39;: self.cost_budget,
+        &#39;browser_brand&#39;: self.browser_brand,
     }</code></pre>
 </details>
 <div class="desc"><p>Export the ScrapeConfig instance to a plain dictionary.
@@ -1378,6 +1421,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.asp" href="#scrapfly.scrape_config.ScrapeConfig.asp">asp</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.auto_scroll" href="#scrapfly.scrape_config.ScrapeConfig.auto_scroll">auto_scroll</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.body" href="#scrapfly.scrape_config.ScrapeConfig.body">body</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.browser_brand" href="#scrapfly.scrape_config.ScrapeConfig.browser_brand">browser_brand</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.cache" href="#scrapfly.scrape_config.ScrapeConfig.cache">cache</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.cache_clear" href="#scrapfly.scrape_config.ScrapeConfig.cache_clear">cache_clear</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.cache_ttl" href="#scrapfly.scrape_config.ScrapeConfig.cache_ttl">cache_ttl</a></code></li>
@@ -1397,12 +1441,14 @@ Useful for JSON-serialization or other external storage.</p></div>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.format_options" href="#scrapfly.scrape_config.ScrapeConfig.format_options">format_options</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.from_dict" href="#scrapfly.scrape_config.ScrapeConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.from_exported_config" href="#scrapfly.scrape_config.ScrapeConfig.from_exported_config">from_exported_config</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.geolocation" href="#scrapfly.scrape_config.ScrapeConfig.geolocation">geolocation</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.headers" href="#scrapfly.scrape_config.ScrapeConfig.headers">headers</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js" href="#scrapfly.scrape_config.ScrapeConfig.js">js</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.js_scenario" href="#scrapfly.scrape_config.ScrapeConfig.js_scenario">js_scenario</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.lang" href="#scrapfly.scrape_config.ScrapeConfig.lang">lang</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.method" href="#scrapfly.scrape_config.ScrapeConfig.method">method</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.os" href="#scrapfly.scrape_config.ScrapeConfig.os">os</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.proxified_response" href="#scrapfly.scrape_config.ScrapeConfig.proxified_response">proxified_response</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.proxy_pool" href="#scrapfly.scrape_config.ScrapeConfig.proxy_pool">proxy_pool</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error" href="#scrapfly.scrape_config.ScrapeConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.render_js" href="#scrapfly.scrape_config.ScrapeConfig.render_js">render_js</a></code></li>

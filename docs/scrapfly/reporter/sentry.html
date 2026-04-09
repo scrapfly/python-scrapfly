@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.6">
-<title>scrapfly.scrapy.pipelines API documentation</title>
-<meta name="description" content="">
+<title>scrapfly.reporter.sentry API documentation</title>
+<meta name="description" content="Sentry integration for the Scrapfly Python SDK …">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
@@ -33,9 +33,29 @@ el.replaceWith(d);
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>scrapfly.scrapy.pipelines</code></h1>
+<h1 class="title">Module <code>scrapfly.reporter.sentry</code></h1>
 </header>
 <section id="section-intro">
+<p>Sentry integration for the Scrapfly Python SDK.</p>
+<p>Provides a <code><a title="scrapfly.reporter.sentry.SentryReporter" href="#scrapfly.reporter.sentry.SentryReporter">SentryReporter</a></code> callable that captures scrape errors and tags
+them with Scrapfly metadata (project, env, log URL, upstream status, error
+code) for easier debugging in the Sentry UI.</p>
+<p>This module <strong>lazy-imports</strong> <code>sentry_sdk</code> so that simply having the
+<code><a title="scrapfly" href="../index.html">scrapfly</a></code> package installed does not force users to also install
+<code>sentry-sdk</code>. The import error is raised at instantiation time with a
+clear message instead of at module-load time.</p>
+<h2 id="example">Example</h2>
+<pre><code class="language-python-repl">&gt;&gt;&gt; import sentry_sdk
+&gt;&gt;&gt; sentry_sdk.init(dsn=&quot;https://...@sentry.io/...&quot;)
+&gt;&gt;&gt;
+&gt;&gt;&gt; from scrapfly import ScrapflyClient
+&gt;&gt;&gt; from scrapfly.reporter import SentryReporter, ChainReporter, PrintReporter
+&gt;&gt;&gt;
+&gt;&gt;&gt; client = ScrapflyClient(
+...     key=&quot;YOUR_API_KEY&quot;,
+...     reporter=ChainReporter(SentryReporter(), PrintReporter()),
+... )
+</code></pre>
 </section>
 <section>
 </section>
@@ -46,150 +66,69 @@ el.replaceWith(d);
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="scrapfly.scrapy.pipelines.FilesPipeline"><code class="flex name class">
-<span>class <span class="ident">FilesPipeline</span></span>
-<span>(</span><span>store_uri: str | PathLike[str], download_func: None = None, *, crawler: Crawler)</span>
+<dt id="scrapfly.reporter.sentry.SentryReporter"><code class="flex name class">
+<span>class <span class="ident">SentryReporter</span></span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class FilesPipeline(ScrapyFilesPipeline):
-    def get_media_requests(self, item, info):
-        scrape_configs = ItemAdapter(item).get(self.files_urls_field, [])
+<pre><code class="python">class SentryReporter:
+    &#34;&#34;&#34;
+    A reporter callable that forwards Scrapfly errors to Sentry with
+    contextual tags and extras.
 
-        requests = []
+    Raises:
+        ImportError: If ``sentry-sdk`` is not installed when the reporter
+            is instantiated. Install with ``pip install sentry-sdk``.
+    &#34;&#34;&#34;
 
-        for config in scrape_configs:
-            # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
-            # Auto migrate string url to ScrapeConfig object
-            if isinstance(config, str):
-                config = scrape_config=ScrapeConfig(url=config)
+    def __init__(self):
+        try:
+            import sentry_sdk  # noqa: F401  # validate the dependency is present
+        except ImportError as e:
+            raise ImportError(
+                &#34;SentryReporter requires the &#39;sentry-sdk&#39; package. &#34;
+                &#34;Install it with: pip install sentry-sdk&#34;
+            ) from e
 
-            if isinstance(config, ScrapeConfig):
-                requests.append(ScrapflyScrapyRequest(scrape_config=config))
-            else:
-                raise ValueError(&#39;FilesPipeline item must ScrapeConfig Object or string url&#39;)
+    def __call__(
+        self,
+        error: Optional[Exception] = None,
+        scrape_api_response: Optional[&#39;ScrapeApiResponse&#39;] = None,  # noqa: F821
+    ):
+        # Late import — already validated in __init__, safe to import here.
+        from sentry_sdk import capture_exception, push_scope
 
-        return requests</code></pre>
+        with push_scope() as scope:
+            if scrape_api_response is not None:
+                scope.set_tag(&#39;scrapfly_project&#39;, scrape_api_response.config[&#39;project&#39;])
+                scope.set_tag(&#39;scrapfly_env&#39;, scrape_api_response.config[&#39;env&#39;])
+                scope.set_extra(&#39;scrape_config&#39;, scrape_api_response.config)
+
+                if scrape_api_response.scrape_result:
+                    scope.set_extra(&#39;log_url&#39;, scrape_api_response.scrape_result[&#39;log_url&#39;])
+                    scope.set_extra(&#39;upstream_url&#39;, scrape_api_response.scrape_result[&#39;url&#39;])
+                    scope.set_tag(
+                        &#39;scrapfly_upstream_status_code&#39;,
+                        scrape_api_response.scrape_result[&#39;status_code&#39;],
+                    )
+
+                if scrape_api_response.error is not None:
+                    scope.set_tag(&#39;scrapfly_error_code&#39;, scrape_api_response.error[&#39;code&#39;])
+
+            if error is not None:
+                capture_exception(error)</code></pre>
 </details>
-<div class="desc"><p>Abstract pipeline that implement the file downloading</p>
-<p>This pipeline tries to minimize network transfers and file processing,
-doing stat of the files and determining if file is new, up-to-date or
-expired.</p>
-<p><code>new</code> files are those that pipeline never processed and needs to be
-downloaded from supplier site the first time.</p>
-<p><code>uptodate</code> files are the ones that the pipeline processed and are still
-valid files.</p>
-<p><code>expired</code> files are those that pipeline already processed but the last
-modification was made long time ago, so a reprocessing is recommended to
-refresh it in case of change.</p></div>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li>scrapy.pipelines.files.FilesPipeline</li>
-<li>scrapy.pipelines.media.MediaPipeline</li>
-<li>abc.ABC</li>
-</ul>
-<h3>Methods</h3>
+<div class="desc"><p>A reporter callable that forwards Scrapfly errors to Sentry with
+contextual tags and extras.</p>
+<h2 id="raises">Raises</h2>
 <dl>
-<dt id="scrapfly.scrapy.pipelines.FilesPipeline.get_media_requests"><code class="name flex">
-<span>def <span class="ident">get_media_requests</span></span>(<span>self, item, info)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_media_requests(self, item, info):
-    scrape_configs = ItemAdapter(item).get(self.files_urls_field, [])
-
-    requests = []
-
-    for config in scrape_configs:
-        # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
-        # Auto migrate string url to ScrapeConfig object
-        if isinstance(config, str):
-            config = scrape_config=ScrapeConfig(url=config)
-
-        if isinstance(config, ScrapeConfig):
-            requests.append(ScrapflyScrapyRequest(scrape_config=config))
-        else:
-            raise ValueError(&#39;FilesPipeline item must ScrapeConfig Object or string url&#39;)
-
-    return requests</code></pre>
-</details>
-<div class="desc"><p>Returns the media requests to download</p></div>
-</dd>
-</dl>
-</dd>
-<dt id="scrapfly.scrapy.pipelines.ImagesPipeline"><code class="flex name class">
-<span>class <span class="ident">ImagesPipeline</span></span>
-<span>(</span><span>store_uri: str | PathLike[str], download_func: None = None, *, crawler: Crawler)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class ImagesPipeline(ScrapyImagesPipeline):
-    def get_media_requests(self, item, info):
-        scrape_configs = ItemAdapter(item).get(self.images_urls_field, [])
-
-        requests = []
-
-        for config in scrape_configs:
-            # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
-            # Auto migrate string url to ScrapeConfig object
-            if isinstance(config, str):
-                config = scrape_config = ScrapeConfig(url=config)
-
-            if isinstance(config, ScrapeConfig):
-                requests.append(ScrapflyScrapyRequest(scrape_config=config))
-            else:
-                raise ValueError(&#39;ImagesPipeline item must ScrapeConfig Object or string url&#39;)
-
-        return requests</code></pre>
-</details>
-<div class="desc"><p>Abstract pipeline that implement the image thumbnail generation logic</p></div>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li>scrapy.pipelines.images.ImagesPipeline</li>
-<li>scrapy.pipelines.files.FilesPipeline</li>
-<li>scrapy.pipelines.media.MediaPipeline</li>
-<li>abc.ABC</li>
-</ul>
-<h3>Methods</h3>
-<dl>
-<dt id="scrapfly.scrapy.pipelines.ImagesPipeline.get_media_requests"><code class="name flex">
-<span>def <span class="ident">get_media_requests</span></span>(<span>self, item, info)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_media_requests(self, item, info):
-    scrape_configs = ItemAdapter(item).get(self.images_urls_field, [])
-
-    requests = []
-
-    for config in scrape_configs:
-        # If pipeline are not migrated to scrapfly - config is the url instead of ScrapeConfig object
-        # Auto migrate string url to ScrapeConfig object
-        if isinstance(config, str):
-            config = scrape_config = ScrapeConfig(url=config)
-
-        if isinstance(config, ScrapeConfig):
-            requests.append(ScrapflyScrapyRequest(scrape_config=config))
-        else:
-            raise ValueError(&#39;ImagesPipeline item must ScrapeConfig Object or string url&#39;)
-
-    return requests</code></pre>
-</details>
-<div class="desc"><p>Returns the media requests to download</p></div>
-</dd>
-</dl>
+<dt><code>ImportError</code></dt>
+<dd>If <code>sentry-sdk</code> is not installed when the reporter
+is instantiated. Install with <code>pip install sentry-sdk</code>.</dd>
+</dl></div>
 </dd>
 </dl>
 </section>
@@ -201,22 +140,13 @@ refresh it in case of change.</p></div>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="scrapfly.scrapy" href="index.html">scrapfly.scrapy</a></code></li>
+<li><code><a title="scrapfly.reporter" href="index.html">scrapfly.reporter</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="scrapfly.scrapy.pipelines.FilesPipeline" href="#scrapfly.scrapy.pipelines.FilesPipeline">FilesPipeline</a></code></h4>
-<ul class="">
-<li><code><a title="scrapfly.scrapy.pipelines.FilesPipeline.get_media_requests" href="#scrapfly.scrapy.pipelines.FilesPipeline.get_media_requests">get_media_requests</a></code></li>
-</ul>
-</li>
-<li>
-<h4><code><a title="scrapfly.scrapy.pipelines.ImagesPipeline" href="#scrapfly.scrapy.pipelines.ImagesPipeline">ImagesPipeline</a></code></h4>
-<ul class="">
-<li><code><a title="scrapfly.scrapy.pipelines.ImagesPipeline.get_media_requests" href="#scrapfly.scrapy.pipelines.ImagesPipeline.get_media_requests">get_media_requests</a></code></li>
-</ul>
+<h4><code><a title="scrapfly.reporter.sentry.SentryReporter" href="#scrapfly.reporter.sentry.SentryReporter">SentryReporter</a></code></h4>
 </li>
 </ul>
 </li>

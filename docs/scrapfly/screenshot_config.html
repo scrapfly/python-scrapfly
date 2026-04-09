@@ -170,7 +170,7 @@ el.replaceWith(d);
 </dd>
 <dt id="scrapfly.screenshot_config.ScreenshotConfig"><code class="flex name class">
 <span>class <span class="ident">ScreenshotConfig</span></span>
-<span>(</span><span>url: str,<br>format: <a title="scrapfly.screenshot_config.Format" href="#scrapfly.screenshot_config.Format">Format</a> | None = None,<br>capture: str | None = None,<br>resolution: str | None = None,<br>country: str | None = None,<br>timeout: int | None = None,<br>rendering_wait: int | None = None,<br>wait_for_selector: str | None = None,<br>options: List[<a title="scrapfly.screenshot_config.Options" href="#scrapfly.screenshot_config.Options">Options</a>] | None = None,<br>auto_scroll: bool | None = None,<br>js: str | None = None,<br>cache: bool | None = None,<br>cache_ttl: bool | None = None,<br>cache_clear: bool | None = None,<br>vision_deficiency: <a title="scrapfly.screenshot_config.VisionDeficiency" href="#scrapfly.screenshot_config.VisionDeficiency">VisionDeficiency</a> | None = None,<br>webhook: str | None = None,<br>raise_on_upstream_error: bool = True)</span>
+<span>(</span><span>url: str,<br>format: <a title="scrapfly.screenshot_config.Format" href="#scrapfly.screenshot_config.Format">Format</a> | None = None,<br>capture: str | None = None,<br>resolution: str | None = None,<br>country: str | None = None,<br>timeout: int | None = None,<br>rendering_wait: int | None = None,<br>wait_for_selector: str | None = None,<br>options: List[<a title="scrapfly.screenshot_config.Options" href="#scrapfly.screenshot_config.Options">Options</a>] | None = None,<br>auto_scroll: bool | None = None,<br>js: str | None = None,<br>cache: bool | None = None,<br>cache_ttl: int | None = None,<br>cache_clear: bool | None = None,<br>vision_deficiency: <a title="scrapfly.screenshot_config.VisionDeficiency" href="#scrapfly.screenshot_config.VisionDeficiency">VisionDeficiency</a> | None = None,<br>webhook: str | None = None,<br>raise_on_upstream_error: bool = True)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -190,7 +190,7 @@ el.replaceWith(d);
     auto_scroll: Optional[bool] = None
     js: Optional[str] = None
     cache: Optional[bool] = None
-    cache_ttl: Optional[bool] = None
+    cache_ttl: Optional[int] = None
     cache_clear: Optional[bool] = None
     webhook: Optional[str] = None
     raise_on_upstream_error: bool = True
@@ -209,7 +209,7 @@ el.replaceWith(d);
         auto_scroll: Optional[bool] = None,
         js: Optional[str] = None,
         cache: Optional[bool] = None,
-        cache_ttl: Optional[bool] = None,
+        cache_ttl: Optional[int] = None,
         cache_clear: Optional[bool] = None,
         vision_deficiency: Optional[VisionDeficiency] = None,
         webhook: Optional[str] = None,
@@ -274,9 +274,9 @@ el.replaceWith(d);
 
         if self.cache is not None:
             params[&#39;cache&#39;] = self._bool_to_http(self.cache)
-            
+
             if self.cache_ttl is not None:
-                params[&#39;cache_ttl&#39;] = self._bool_to_http(self.cache_ttl)
+                params[&#39;cache_ttl&#39;] = self.cache_ttl
 
             if self.cache_clear is not None:
                 params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
@@ -386,7 +386,7 @@ el.replaceWith(d);
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.screenshot_config.ScreenshotConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : bool | None</code></dt>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.cache_ttl"><code class="name">var <span class="ident">cache_ttl</span> : int | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -547,9 +547,9 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 
     if self.cache is not None:
         params[&#39;cache&#39;] = self._bool_to_http(self.cache)
-        
+
         if self.cache_ttl is not None:
-            params[&#39;cache_ttl&#39;] = self._bool_to_http(self.cache_ttl)
+            params[&#39;cache_ttl&#39;] = self.cache_ttl
 
         if self.cache_clear is not None:
             params[&#39;cache_clear&#39;] = self._bool_to_http(self.cache_clear)
