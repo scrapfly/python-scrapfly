@@ -283,18 +283,29 @@ class ScrapflyClient:
 
         return response.content.decode('utf-8')
 
-    def get_monitoring_metrics(self, format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED, period:Optional[str]=None, aggregation:Optional[List[MonitoringAggregation]]=None):
-        params = {'key': self.key, 'format': format}
+    # ── Monitoring API (Enterprise+ plan only) ──────────────────────
+    # The Monitoring API exposes per-product aggregates and per-target
+    # timeseries. Web Scraping / Screenshot / Extraction / Crawler share
+    # one shape (request-based) but live under different URL prefixes;
+    # Cloud Browser is session-based and exposes a distinct shape.
+    # See https://scrapfly.io/docs/monitoring#api
 
-        if period is not None:
-            params['period'] = period
+    @staticmethod
+    def _format_monitoring_dt(dt:datetime.datetime) -> str:
+        """Format a datetime in UTC as YYYY-MM-DD HH:MM:SS for the
+        Monitoring API. Naive datetimes are assumed to be UTC; aware
+        datetimes are converted via astimezone(timezone.utc) so SDK
+        behavior matches the Go/TypeScript SDKs (which always emit UTC)."""
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(datetime.timezone.utc)
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
 
-        if aggregation is not None:
-            params['aggregation'] = ','.join(aggregation)
-
+    def _monitoring_request(self, path:str, params:dict):
+        """Internal helper. Issues a GET against the Monitoring API and
+        decodes the response via the standard body_handler."""
         response = self._http_handler(
             method='GET',
-            url=self.host + '/scrape/monitoring/metrics',
+            url=self.host + path,
             params=params,
             timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
             verify=self.verify,
@@ -304,57 +315,198 @@ class ScrapflyClient:
                 'user-agent': self.ua
             },
         )
-
         response.raise_for_status()
-
         if self.body_handler.support(response.headers):
             return self.body_handler(response.content, response.headers['content-type'])
-
         return response.content.decode('utf-8')
 
-    def get_monitoring_target_metrics(
-            self,
-            domain:str,
-            group_subdomain:bool=False,
-            period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
-            start:Optional[datetime.datetime]=None,
-            end:Optional[datetime.datetime]=None,
-    ):
+    def _build_metrics_params(
+        self,
+        format:str,
+        period:Optional[str],
+        aggregation:Optional[List[MonitoringAggregation]],
+        include_webhook:bool,
+    ) -> dict:
+        params = {'key': self.key, 'format': format}
+        if period is not None:
+            params['period'] = period
+        if aggregation is not None:
+            params['aggregation'] = ','.join(aggregation)
+        if include_webhook:
+            params['include_webhook'] = 'true'
+        return params
+
+    def _build_target_params(
+        self,
+        domain:str,
+        group_subdomain:bool,
+        period:Optional[MonitoringTargetPeriod],
+        start:Optional[datetime.datetime],
+        end:Optional[datetime.datetime],
+        include_webhook:bool,
+    ) -> dict:
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError('You must provide both start and end date')
         params = {
             'key': self.key,
             'domain': domain,
-            'group_subdomain': group_subdomain
+            'group_subdomain': group_subdomain,
         }
-
-        if (start is not None and end is None) or (start is None and end is not None):
-            raise ValueError('You must provide both start and end date')
-
         if start is not None and end is not None:
-            params['start'] = start.strftime(self.DATETIME_FORMAT)
-            params['end'] = end.strftime(self.DATETIME_FORMAT)
+            params['start'] = self._format_monitoring_dt(start)
+            params['end'] = self._format_monitoring_dt(end)
             period = None
-
         params['period'] = period
+        if include_webhook:
+            params['include_webhook'] = 'true'
+        return params
 
-        response = self._http_handler(
-            method='GET',
-            url=self.host + '/scrape/monitoring/metrics/target',
-            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
-            params=params,
-            verify=self.verify,
-            headers={
-                'accept-encoding': self.body_handler.content_encoding,
-                'accept': self.body_handler.accept,
-                'user-agent': self.ua
-            },
+    # ── Web Scraping API ─────────────────────────────────────────────
+    def get_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            '/scrape/monitoring/metrics',
+            self._build_metrics_params(format, period, aggregation, include_webhook),
         )
 
-        response.raise_for_status()
+    def get_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            '/scrape/monitoring/metrics/target',
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        )
 
-        if self.body_handler.support(response.headers):
-            return self.body_handler(response.content, response.headers['content-type'])
+    # ── Screenshot API ───────────────────────────────────────────────
+    def get_screenshot_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            '/screenshot/monitoring/metrics',
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        )
 
-        return response.content.decode('utf-8')
+    def get_screenshot_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            '/screenshot/monitoring/metrics/target',
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        )
+
+    # ── Extraction API ───────────────────────────────────────────────
+    def get_extraction_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            '/extraction/monitoring/metrics',
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        )
+
+    def get_extraction_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            '/extraction/monitoring/metrics/target',
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        )
+
+    # ── Crawler API ──────────────────────────────────────────────────
+    def get_crawler_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            '/crawl/monitoring/metrics',
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        )
+
+    def get_crawler_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            '/crawl/monitoring/metrics/target',
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        )
+
+    # ── Cloud Browser API (session-based, distinct shape) ────────────
+    def get_browser_monitoring_metrics(
+        self,
+        period:Optional[str]=None,
+        proxy_pool:Optional[str]=None,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+    ):
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError('You must provide both start and end date')
+        params:dict = {'key': self.key}
+        if start is not None and end is not None:
+            params['start'] = self._format_monitoring_dt(start)
+            params['end'] = self._format_monitoring_dt(end)
+        elif period is not None:
+            params['period'] = period
+        if proxy_pool is not None:
+            params['proxy_pool'] = proxy_pool
+        return self._monitoring_request('/browser/monitoring/metrics', params)
+
+    def get_browser_monitoring_timeseries(
+        self,
+        period:Optional[str]=None,
+        proxy_pool:Optional[str]=None,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+    ):
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError('You must provide both start and end date')
+        params:dict = {'key': self.key}
+        if start is not None and end is not None:
+            params['start'] = self._format_monitoring_dt(start)
+            params['end'] = self._format_monitoring_dt(end)
+        elif period is not None:
+            params['period'] = period
+        if proxy_pool is not None:
+            params['proxy_pool'] = proxy_pool
+        return self._monitoring_request('/browser/monitoring/metrics/timeseries', params)
 
 
     def resilient_scrape(
