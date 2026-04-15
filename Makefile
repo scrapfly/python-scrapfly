@@ -18,6 +18,8 @@ release:
 	git branch | grep \* | cut -d ' ' -f2 | grep master || exit 1
 	git pull origin master
 	-rm dist/*
+	python -m compileall -q scrapfly
+	python setup.py sdist bdist_wheel
 	$(MAKE)	generate-docs
 	git add docs/*
 	-git commit -m "Update API documentation for version $(VERSION)"
