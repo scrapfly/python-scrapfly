@@ -43,6 +43,7 @@ class BrowserConfig(BaseApiConfig):
         unblock_timeout: Optional[int] = None,
         browser_brand: Optional[str] = None,
         byop_proxy: Optional[str] = None,
+        enable_mcp: Optional[bool] = None,
     ):
         if timeout is not None and timeout > 1800:
             raise ValueError('timeout cannot exceed 1800 seconds (30 minutes)')
@@ -81,6 +82,7 @@ class BrowserConfig(BaseApiConfig):
         # Requires a Custom plan subscription. See:
         # https://scrapfly.io/docs/cloud-browser-api/byop
         self.byop_proxy = byop_proxy
+        self.enable_mcp = enable_mcp
 
     def websocket_url(self, api_key: str, host: Optional[str] = None) -> str:
         params = {'api_key': api_key}
@@ -148,6 +150,9 @@ class BrowserConfig(BaseApiConfig):
         if self.byop_proxy is not None:
             params['byop_proxy'] = self.byop_proxy
 
+        if self.enable_mcp is not None:
+            params['enable_mcp'] = self._bool_to_http(self.enable_mcp)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + '?' + urlencode(params)
 
@@ -174,6 +179,7 @@ class BrowserConfig(BaseApiConfig):
             'unblock_timeout': self.unblock_timeout,
             'browser_brand': self.browser_brand,
             'byop_proxy': self.byop_proxy,
+            'enable_mcp': self.enable_mcp,
         }
 
     @staticmethod
@@ -208,4 +214,5 @@ class BrowserConfig(BaseApiConfig):
             unblock_timeout=browser_config_dict.get('unblock_timeout', None),
             browser_brand=browser_config_dict.get('browser_brand', None),
             byop_proxy=browser_config_dict.get('byop_proxy', None),
+            enable_mcp=browser_config_dict.get('enable_mcp', None),
         )
