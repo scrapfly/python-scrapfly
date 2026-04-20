@@ -16,7 +16,7 @@ from io import BytesIO
 import backoff
 from requests import Session, Response
 from requests import exceptions as RequestExceptions
-from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal, Tuple, Any
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal, Tuple, Any, Iterator
 import requests
 import urllib3
 import logging
@@ -35,6 +35,7 @@ from .api_response import ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
+from .classify import ClassifyResult
 from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse
 from .browser_config import BrowserConfig
 from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, HttpError, UpstreamHttpError
@@ -282,6 +283,61 @@ class ScrapflyClient:
             return self.body_handler(response.content, response.headers['content-type'])
 
         return response.content.decode('utf-8')
+
+    def classify(
+        self,
+        url: str,
+        status_code: int,
+        headers: Optional[Dict[str, str]] = None,
+        body: Optional[str] = None,
+        method: str = "GET",
+    ) -> ClassifyResult:
+        """Classify an already-fetched HTTP response for anti-bot blocking.
+
+        Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+        against a response you already have (from your own proxy, cache,
+        etc). 1 API credit per call. See
+        https://scrapfly.io/docs/scrape-api/classify for the full contract.
+        """
+        if not url:
+            raise ContentError("classify: url is required")
+        if not (100 <= int(status_code) <= 599):
+            raise ContentError(
+                "classify: status_code must be a valid HTTP status in [100, 599]"
+            )
+
+        payload: Dict[str, Any] = {
+            "url": url,
+            "status_code": int(status_code),
+            "method": method or "GET",
+        }
+        if headers:
+            payload["headers"] = {str(k): str(v) for k, v in headers.items()}
+        if body is not None:
+            payload["body"] = body
+
+        response = self._http_handler(
+            method="POST",
+            url=self.host + "/classify",
+            params={"key": self.key},
+            json=payload,
+            verify=self.verify,
+            headers={
+                "accept-encoding": self.body_handler.content_encoding,
+                "accept": self.body_handler.accept,
+                "user-agent": self.ua,
+                "content-type": "application/json",
+            },
+        )
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            data = self.body_handler(response.content, response.headers["content-type"])
+        else:
+            import json as _json
+            data = _json.loads(response.content.decode("utf-8"))
+
+        return ClassifyResult.from_dict(data)
 
     # ── Monitoring API (Enterprise+ plan only) ──────────────────────
     # The Monitoring API exposes per-product aggregates and per-target
@@ -850,6 +906,202 @@ class ScrapflyClient:
             logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
             raise    
 
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def scrape_batch(
+        self,
+        scrape_configs: List[ScrapeConfig],
+        format: Optional[Literal['json', 'msgpack']] = None,
+    ) -> Iterator[Tuple[str, Union[ScrapeApiResponse, ScrapflyError]]]:
+        """
+        Scrape up to 100 URLs in one batch request and stream results
+        back as each scrape completes. Iterator yields
+        ``(correlation_id, result)`` tuples where ``result`` is either
+        a :class:`ScrapeApiResponse` on success or a
+        :class:`ScrapflyError` on per-scrape failure.
+
+        Results arrive **out of order** — whichever scrape finishes
+        first is yielded first. Use ``correlation_id`` (set on every
+        ``ScrapeConfig``) to match parts back to the originating
+        config on the client side.
+
+        Every config MUST carry a unique ``correlation_id``; a
+        missing/duplicate value is detected client-side before the
+        batch is sent.
+
+        :param format: wire format for per-part response bodies. Defaults
+            to the SDK's negotiated format (``msgpack`` when the
+            ``msgpack`` package is installed, ``json`` otherwise). Pass
+            ``'json'`` or ``'msgpack'`` to override.
+        """
+        from .batch import iter_batch_parts, decode_part_body, _build_proxified_response_from_part
+
+        if not scrape_configs:
+            raise ScrapflyError(
+                "scrape_batch: configs list is empty",
+                code="ERR::SCRAPE::BATCH_CONFIG",
+                http_status_code=400,
+            )
+
+        if len(scrape_configs) > 100:
+            raise ScrapflyError(
+                f"scrape_batch: max 100 configs per batch (got {len(scrape_configs)})",
+                code="ERR::SCRAPE::BATCH_CONFIG",
+                http_status_code=400,
+            )
+
+        seen_correlations: Dict[str, int] = {}
+        body_configs: List[Dict[str, Any]] = []
+        config_by_correlation: Dict[str, ScrapeConfig] = {}
+
+        for idx, cfg in enumerate(scrape_configs):
+            if not getattr(cfg, "correlation_id", None):
+                raise ScrapflyError(
+                    f"scrape_batch: configs[{idx}] is missing correlation_id "
+                    "(required for matching streamed parts)",
+                    code="ERR::SCRAPE::BATCH_CONFIG",
+                    http_status_code=422,
+                )
+
+            if cfg.correlation_id in seen_correlations:
+                raise ScrapflyError(
+                    f"scrape_batch: correlation_id {cfg.correlation_id!r} reused by "
+                    f"configs[{seen_correlations[cfg.correlation_id]}] and configs[{idx}]",
+                    code="ERR::SCRAPE::BATCH_CONFIG",
+                    http_status_code=422,
+                )
+
+            seen_correlations[cfg.correlation_id] = idx
+            config_by_correlation[cfg.correlation_id] = cfg
+
+            # Drop `key` (batch key goes in the URL); pass everything
+            # else as a flat query-param dict. The server feeds each
+            # entry through NewScrapeConfigFromRequest identically to
+            # a /scrape call, so the wire contract is identical.
+            params = cfg.to_api_params(key=self.key)
+            params.pop("key", None)
+            body_configs.append(params)
+
+        import json as _json
+
+        payload = _json.dumps({"configs": body_configs}).encode("utf-8")
+
+        if format == 'msgpack':
+            accept_header = 'application/msgpack'
+        elif format == 'json':
+            accept_header = 'application/json'
+        else:
+            accept_header = self.body_handler.accept
+
+        request = {
+            "method": "POST",
+            "url": self.host + "/scrape/batch",
+            "params": {"key": self.key},
+            "data": payload,
+            "headers": {
+                "content-type": "application/json",
+                "accept-encoding": self.body_handler.content_encoding,
+                "accept": accept_header,
+                "user-agent": self.ua,
+            },
+            "timeout": (self.connect_timeout, self.web_scraping_api_read_timeout),
+            "verify": self.verify,
+            "stream": True,
+        }
+
+        batch_session = requests.Session()
+        batch_session.verify = self.verify
+
+        response = batch_session.request(
+            method=request["method"],
+            url=request["url"],
+            params=request["params"],
+            data=request["data"],
+            headers=request["headers"],
+            timeout=request["timeout"],
+            stream=request["stream"],
+        )
+
+        if response.status_code != 200:
+            # Batch-level error (plan gate, validation, insufficient
+            # concurrency, etc.). Response is a single JSON body, not
+            # multipart.
+            try:
+                body = response.json()
+            except Exception:
+                body = {"message": response.text, "code": "ERR::API::INTERNAL_ERROR"}
+            err_code = body.get("code", "ERR::API::INTERNAL_ERROR")
+            err_msg = body.get("message", "") or body.get("reason", "")
+            retry_after = None
+
+            try:
+                retry_after = int(response.headers.get("Retry-After", "0")) or None
+            except (TypeError, ValueError):
+                pass
+
+            raise HttpError(
+                request=response.request,
+                response=response,
+                code=err_code,
+                http_status_code=response.status_code,
+                message=err_msg,
+                is_retryable=body.get("retryable", False),
+                retry_delay=retry_after,
+            )
+
+        for part_headers, part_body in iter_batch_parts(response):
+            correlation_id = part_headers.get("x-scrapfly-correlation-id", "")
+            cfg = config_by_correlation.get(correlation_id, scrape_configs[0])
+
+            # Proxified-response parts: the part body is the raw
+            # upstream bytes, not a JSON envelope. Surface a native
+            # requests.Response synthesized from the part headers +
+            # body so callers get the same shape as a single
+            # proxified scrape.
+            if part_headers.get("x-scrapfly-proxified") == "true":
+                try:
+                    prox_response = _build_proxified_response_from_part(
+                        part_headers,
+                        part_body,
+                        originating_request=response.request,
+                    )
+                except Exception as prox_err:
+                    yield correlation_id, ScrapflyError(
+                        f"scrape_batch: failed to build proxified response for correlation_id={correlation_id!r}: {prox_err}",
+                        code="ERR::API::INTERNAL_ERROR",
+                        http_status_code=500,
+                    )
+
+                    continue
+
+                yield correlation_id, prox_response
+
+                continue
+
+            try:
+                parsed = decode_part_body(part_headers, part_body, self.body_handler)
+            except Exception as decode_err:
+                yield correlation_id, ScrapflyError(
+                    f"scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}",
+                    code="ERR::API::INTERNAL_ERROR",
+                )
+
+                continue
+
+            try:
+                api_response = ScrapeApiResponse(
+                    response=response,
+                    request=response.request,
+                    api_result=parsed,
+                    scrape_config=cfg,
+                    large_object_handler=self._handle_scrape_large_objects,
+                )
+                # Don't auto-raise on upstream error — per-part errors
+                # are surfaced via the yielded tuple, not exceptions.
+                api_response.raise_for_result(raise_on_upstream_error=False)
+                yield correlation_id, api_response
+            except ScrapflyError as scrape_err:
+                yield correlation_id, scrape_err
+
     def save_screenshot(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
         """
         Save a screenshot from a screenshot API response
@@ -1364,6 +1616,7 @@ class ScrapflyClient:
         headers: Optional[Dict] = None,
         body: Optional[str] = None,
         method: Optional[str] = None,
+        enable_mcp: Optional[bool] = None,
     ) -> Dict:
         """
         Bypass anti-bot protection and get a ready-to-use browser session.
@@ -1408,6 +1661,9 @@ class ScrapflyClient:
 
         if method is not None:
             json_body['method'] = method
+
+        if enable_mcp is not None:
+            json_body['enable_mcp'] = enable_mcp
 
         response = self._http_handler(
             method='POST',

@@ -54,6 +54,7 @@ from .crawler import (
     webhook_from_payload,
 )
 from .browser_config import BrowserConfig, ProxyPool, OperatingSystem
+from .classify import ClassifyResult
 
 
 __all__: Tuple[str, ...] = (
@@ -85,6 +86,7 @@ __all__: Tuple[str, ...] = (
     'ProxyPool',
     'OperatingSystem',
     'ExtractionConfig',
+    'ClassifyResult',
     'ScreenshotAPIError',
     'ExtractionAPIError',
     'CrawlerError',
