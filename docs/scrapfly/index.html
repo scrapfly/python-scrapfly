@@ -48,9 +48,17 @@ el.replaceWith(d);
 <dd>
 <div class="desc"></div>
 </dd>
+<dt><code class="name"><a title="scrapfly.batch" href="batch.html">scrapfly.batch</a></code></dt>
+<dd>
+<div class="desc"><p>Streaming multipart/mixed parser for the POST /scrape/batch endpoint …</p></div>
+</dd>
 <dt><code class="name"><a title="scrapfly.browser_config" href="browser_config.html">scrapfly.browser_config</a></code></dt>
 <dd>
 <div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="scrapfly.classify" href="classify.html">scrapfly.classify</a></code></dt>
+<dd>
+<div class="desc"><p>Classify API response model …</p></div>
 </dd>
 <dt><code class="name"><a title="scrapfly.client" href="client.html">scrapfly.client</a></code></dt>
 <dd>
@@ -328,7 +336,7 @@ signature verification.</dd>
 </dd>
 <dt id="scrapfly.BrowserConfig"><code class="flex name class">
 <span>class <span class="ident">BrowserConfig</span></span>
-<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="browser_config.html#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="browser_config.html#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None)</span>
+<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="browser_config.html#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="browser_config.html#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -362,6 +370,7 @@ signature verification.</dd>
         unblock_timeout: Optional[int] = None,
         browser_brand: Optional[str] = None,
         byop_proxy: Optional[str] = None,
+        enable_mcp: Optional[bool] = None,
     ):
         if timeout is not None and timeout &gt; 1800:
             raise ValueError(&#39;timeout cannot exceed 1800 seconds (30 minutes)&#39;)
@@ -400,6 +409,7 @@ signature verification.</dd>
         # Requires a Custom plan subscription. See:
         # https://scrapfly.io/docs/cloud-browser-api/byop
         self.byop_proxy = byop_proxy
+        self.enable_mcp = enable_mcp
 
     def websocket_url(self, api_key: str, host: Optional[str] = None) -&gt; str:
         params = {&#39;api_key&#39;: api_key}
@@ -467,6 +477,9 @@ signature verification.</dd>
         if self.byop_proxy is not None:
             params[&#39;byop_proxy&#39;] = self.byop_proxy
 
+        if self.enable_mcp is not None:
+            params[&#39;enable_mcp&#39;] = self._bool_to_http(self.enable_mcp)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + &#39;?&#39; + urlencode(params)
 
@@ -493,6 +506,7 @@ signature verification.</dd>
             &#39;unblock_timeout&#39;: self.unblock_timeout,
             &#39;browser_brand&#39;: self.browser_brand,
             &#39;byop_proxy&#39;: self.byop_proxy,
+            &#39;enable_mcp&#39;: self.enable_mcp,
         }
 
     @staticmethod
@@ -527,6 +541,7 @@ signature verification.</dd>
             unblock_timeout=browser_config_dict.get(&#39;unblock_timeout&#39;, None),
             browser_brand=browser_config_dict.get(&#39;browser_brand&#39;, None),
             byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
+            enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
         )</code></pre>
 </details>
 <div class="desc"></div>
@@ -583,6 +598,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         unblock_timeout=browser_config_dict.get(&#39;unblock_timeout&#39;, None),
         browser_brand=browser_config_dict.get(&#39;browser_brand&#39;, None),
         byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
+        enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
     )</code></pre>
 </details>
 <div class="desc"></div>
@@ -621,6 +637,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         &#39;unblock_timeout&#39;: self.unblock_timeout,
         &#39;browser_brand&#39;: self.browser_brand,
         &#39;byop_proxy&#39;: self.byop_proxy,
+        &#39;enable_mcp&#39;: self.enable_mcp,
     }</code></pre>
 </details>
 <div class="desc"></div>
@@ -699,9 +716,61 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
     if self.byop_proxy is not None:
         params[&#39;byop_proxy&#39;] = self.byop_proxy
 
+    if self.enable_mcp is not None:
+        params[&#39;enable_mcp&#39;] = self._bool_to_http(self.enable_mcp)
+
     base_host = host or self.CLOUD_BROWSER_HOST
     return base_host + &#39;?&#39; + urlencode(params)</code></pre>
 </details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.ClassifyResult"><code class="flex name class">
+<span>class <span class="ident">ClassifyResult</span></span>
+<span>(</span><span>blocked: bool, antibot: Optional[str], cost: int)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class ClassifyResult:
+    blocked: bool
+    antibot: Optional[str]
+    cost: int
+
+    @classmethod
+    def from_dict(cls, data: dict) -&gt; &#34;ClassifyResult&#34;:
+        return cls(
+            blocked=bool(data.get(&#34;blocked&#34;, False)),
+            antibot=data.get(&#34;antibot&#34;),
+            cost=int(data.get(&#34;cost&#34;, 0)),
+        )</code></pre>
+</details>
+<div class="desc"><p>ClassifyResult(blocked: 'bool', antibot: 'Optional[str]', cost: 'int')</p></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.ClassifyResult.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: dict) ‑> <a title="scrapfly.classify.ClassifyResult" href="classify.html#scrapfly.classify.ClassifyResult">ClassifyResult</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.ClassifyResult.antibot"><code class="name">var <span class="ident">antibot</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ClassifyResult.blocked"><code class="name">var <span class="ident">blocked</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ClassifyResult.cost"><code class="name">var <span class="ident">cost</span> : int</code></dt>
+<dd>
 <div class="desc"></div>
 </dd>
 </dl>
@@ -10260,18 +10329,84 @@ Useful for JSON-serialization or other external storage.</p></div>
 
         return response.content.decode(&#39;utf-8&#39;)
 
-    def get_monitoring_metrics(self, format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED, period:Optional[str]=None, aggregation:Optional[List[MonitoringAggregation]]=None):
-        params = {&#39;key&#39;: self.key, &#39;format&#39;: format}
+    def classify(
+        self,
+        url: str,
+        status_code: int,
+        headers: Optional[Dict[str, str]] = None,
+        body: Optional[str] = None,
+        method: str = &#34;GET&#34;,
+    ) -&gt; ClassifyResult:
+        &#34;&#34;&#34;Classify an already-fetched HTTP response for anti-bot blocking.
 
-        if period is not None:
-            params[&#39;period&#39;] = period
+        Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+        against a response you already have (from your own proxy, cache,
+        etc). 1 API credit per call. See
+        https://scrapfly.io/docs/scrape-api/classify for the full contract.
+        &#34;&#34;&#34;
+        if not url:
+            raise ContentError(&#34;classify: url is required&#34;)
+        if not (100 &lt;= int(status_code) &lt;= 599):
+            raise ContentError(
+                &#34;classify: status_code must be a valid HTTP status in [100, 599]&#34;
+            )
 
-        if aggregation is not None:
-            params[&#39;aggregation&#39;] = &#39;,&#39;.join(aggregation)
+        payload: Dict[str, Any] = {
+            &#34;url&#34;: url,
+            &#34;status_code&#34;: int(status_code),
+            &#34;method&#34;: method or &#34;GET&#34;,
+        }
+        if headers:
+            payload[&#34;headers&#34;] = {str(k): str(v) for k, v in headers.items()}
+        if body is not None:
+            payload[&#34;body&#34;] = body
 
         response = self._http_handler(
+            method=&#34;POST&#34;,
+            url=self.host + &#34;/classify&#34;,
+            params={&#34;key&#34;: self.key},
+            json=payload,
+            verify=self.verify,
+            headers={
+                &#34;accept-encoding&#34;: self.body_handler.content_encoding,
+                &#34;accept&#34;: self.body_handler.accept,
+                &#34;user-agent&#34;: self.ua,
+                &#34;content-type&#34;: &#34;application/json&#34;,
+            },
+        )
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            data = self.body_handler(response.content, response.headers[&#34;content-type&#34;])
+        else:
+            import json as _json
+            data = _json.loads(response.content.decode(&#34;utf-8&#34;))
+
+        return ClassifyResult.from_dict(data)
+
+    # ── Monitoring API (Enterprise+ plan only) ──────────────────────
+    # The Monitoring API exposes per-product aggregates and per-target
+    # timeseries. Web Scraping / Screenshot / Extraction / Crawler share
+    # one shape (request-based) but live under different URL prefixes;
+    # Cloud Browser is session-based and exposes a distinct shape.
+    # See https://scrapfly.io/docs/monitoring#api
+
+    @staticmethod
+    def _format_monitoring_dt(dt:datetime.datetime) -&gt; str:
+        &#34;&#34;&#34;Format a datetime in UTC as YYYY-MM-DD HH:MM:SS for the
+        Monitoring API. Naive datetimes are assumed to be UTC; aware
+        datetimes are converted via astimezone(timezone.utc) so SDK
+        behavior matches the Go/TypeScript SDKs (which always emit UTC).&#34;&#34;&#34;
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(datetime.timezone.utc)
+        return dt.strftime(&#39;%Y-%m-%d %H:%M:%S&#39;)
+
+    def _monitoring_request(self, path:str, params:dict):
+        &#34;&#34;&#34;Internal helper. Issues a GET against the Monitoring API and
+        decodes the response via the standard body_handler.&#34;&#34;&#34;
+        response = self._http_handler(
             method=&#39;GET&#39;,
-            url=self.host + &#39;/scrape/monitoring/metrics&#39;,
+            url=self.host + path,
             params=params,
             timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
             verify=self.verify,
@@ -10281,57 +10416,198 @@ Useful for JSON-serialization or other external storage.</p></div>
                 &#39;user-agent&#39;: self.ua
             },
         )
-
         response.raise_for_status()
-
         if self.body_handler.support(response.headers):
             return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
-
         return response.content.decode(&#39;utf-8&#39;)
 
-    def get_monitoring_target_metrics(
-            self,
-            domain:str,
-            group_subdomain:bool=False,
-            period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
-            start:Optional[datetime.datetime]=None,
-            end:Optional[datetime.datetime]=None,
-    ):
+    def _build_metrics_params(
+        self,
+        format:str,
+        period:Optional[str],
+        aggregation:Optional[List[MonitoringAggregation]],
+        include_webhook:bool,
+    ) -&gt; dict:
+        params = {&#39;key&#39;: self.key, &#39;format&#39;: format}
+        if period is not None:
+            params[&#39;period&#39;] = period
+        if aggregation is not None:
+            params[&#39;aggregation&#39;] = &#39;,&#39;.join(aggregation)
+        if include_webhook:
+            params[&#39;include_webhook&#39;] = &#39;true&#39;
+        return params
+
+    def _build_target_params(
+        self,
+        domain:str,
+        group_subdomain:bool,
+        period:Optional[MonitoringTargetPeriod],
+        start:Optional[datetime.datetime],
+        end:Optional[datetime.datetime],
+        include_webhook:bool,
+    ) -&gt; dict:
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError(&#39;You must provide both start and end date&#39;)
         params = {
             &#39;key&#39;: self.key,
             &#39;domain&#39;: domain,
-            &#39;group_subdomain&#39;: group_subdomain
+            &#39;group_subdomain&#39;: group_subdomain,
         }
-
-        if (start is not None and end is None) or (start is None and end is not None):
-            raise ValueError(&#39;You must provide both start and end date&#39;)
-
         if start is not None and end is not None:
-            params[&#39;start&#39;] = start.strftime(self.DATETIME_FORMAT)
-            params[&#39;end&#39;] = end.strftime(self.DATETIME_FORMAT)
+            params[&#39;start&#39;] = self._format_monitoring_dt(start)
+            params[&#39;end&#39;] = self._format_monitoring_dt(end)
             period = None
-
         params[&#39;period&#39;] = period
+        if include_webhook:
+            params[&#39;include_webhook&#39;] = &#39;true&#39;
+        return params
 
-        response = self._http_handler(
-            method=&#39;GET&#39;,
-            url=self.host + &#39;/scrape/monitoring/metrics/target&#39;,
-            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
-            params=params,
-            verify=self.verify,
-            headers={
-                &#39;accept-encoding&#39;: self.body_handler.content_encoding,
-                &#39;accept&#39;: self.body_handler.accept,
-                &#39;user-agent&#39;: self.ua
-            },
+    # ── Web Scraping API ─────────────────────────────────────────────
+    def get_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            &#39;/scrape/monitoring/metrics&#39;,
+            self._build_metrics_params(format, period, aggregation, include_webhook),
         )
 
-        response.raise_for_status()
+    def get_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            &#39;/scrape/monitoring/metrics/target&#39;,
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        )
 
-        if self.body_handler.support(response.headers):
-            return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
+    # ── Screenshot API ───────────────────────────────────────────────
+    def get_screenshot_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            &#39;/screenshot/monitoring/metrics&#39;,
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        )
 
-        return response.content.decode(&#39;utf-8&#39;)
+    def get_screenshot_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            &#39;/screenshot/monitoring/metrics/target&#39;,
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        )
+
+    # ── Extraction API ───────────────────────────────────────────────
+    def get_extraction_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            &#39;/extraction/monitoring/metrics&#39;,
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        )
+
+    def get_extraction_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            &#39;/extraction/monitoring/metrics/target&#39;,
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        )
+
+    # ── Crawler API ──────────────────────────────────────────────────
+    def get_crawler_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            &#39;/crawl/monitoring/metrics&#39;,
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        )
+
+    def get_crawler_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return self._monitoring_request(
+            &#39;/crawl/monitoring/metrics/target&#39;,
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        )
+
+    # ── Cloud Browser API (session-based, distinct shape) ────────────
+    def get_browser_monitoring_metrics(
+        self,
+        period:Optional[str]=None,
+        proxy_pool:Optional[str]=None,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+    ):
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError(&#39;You must provide both start and end date&#39;)
+        params:dict = {&#39;key&#39;: self.key}
+        if start is not None and end is not None:
+            params[&#39;start&#39;] = self._format_monitoring_dt(start)
+            params[&#39;end&#39;] = self._format_monitoring_dt(end)
+        elif period is not None:
+            params[&#39;period&#39;] = period
+        if proxy_pool is not None:
+            params[&#39;proxy_pool&#39;] = proxy_pool
+        return self._monitoring_request(&#39;/browser/monitoring/metrics&#39;, params)
+
+    def get_browser_monitoring_timeseries(
+        self,
+        period:Optional[str]=None,
+        proxy_pool:Optional[str]=None,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+    ):
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError(&#39;You must provide both start and end date&#39;)
+        params:dict = {&#39;key&#39;: self.key}
+        if start is not None and end is not None:
+            params[&#39;start&#39;] = self._format_monitoring_dt(start)
+            params[&#39;end&#39;] = self._format_monitoring_dt(end)
+        elif period is not None:
+            params[&#39;period&#39;] = period
+        if proxy_pool is not None:
+            params[&#39;proxy_pool&#39;] = proxy_pool
+        return self._monitoring_request(&#39;/browser/monitoring/metrics/timeseries&#39;, params)
 
 
     def resilient_scrape(
@@ -10373,8 +10649,16 @@ Useful for JSON-serialization or other external storage.</p></div>
             self.http_session.headers[&#39;user-agent&#39;] = self.ua
 
     def close(self):
-        self.http_session.close()
-        self.http_session = None
+        if self.http_session is not None:
+            self.http_session.close()
+            self.http_session = None
+        # The executor is created in __init__ and owns worker threads that
+        # outlive the HTTP session; shutting it down here prevents thread
+        # leaks for callers that reuse the client across open()/close()
+        # cycles or rely on GC to reclaim it.
+        if self.async_executor is not None:
+            self.async_executor.shutdown(wait=False)
+            self.async_executor = None
 
     def __enter__(self) -&gt; &#39;ScrapflyClient&#39;:
         self.open()
@@ -10674,6 +10958,208 @@ Useful for JSON-serialization or other external storage.</p></div>
         except ScrapflyError as e:
             logger.critical(&#39;&lt;-- %s | Docs: %s&#39; % (str(e), e.documentation_url))
             raise    
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def scrape_batch(
+        self,
+        scrape_configs: List[ScrapeConfig],
+        format: Optional[Literal[&#39;json&#39;, &#39;msgpack&#39;]] = None,
+    ) -&gt; Iterator[Tuple[str, Union[ScrapeApiResponse, ScrapflyError]]]:
+        &#34;&#34;&#34;
+        Scrape up to 100 URLs in one batch request and stream results
+        back as each scrape completes. Iterator yields
+        ``(correlation_id, result)`` tuples where ``result`` is either
+        a :class:`ScrapeApiResponse` on success or a
+        :class:`ScrapflyError` on per-scrape failure.
+
+        Results arrive **out of order** — whichever scrape finishes
+        first is yielded first. Use ``correlation_id`` (set on every
+        ``ScrapeConfig``) to match parts back to the originating
+        config on the client side.
+
+        Every config MUST carry a unique ``correlation_id``; a
+        missing/duplicate value is detected client-side before the
+        batch is sent.
+
+        :param format: wire format for per-part response bodies. Defaults
+            to the SDK&#39;s negotiated format (``msgpack`` when the
+            ``msgpack`` package is installed, ``json`` otherwise). Pass
+            ``&#39;json&#39;`` or ``&#39;msgpack&#39;`` to override.
+        &#34;&#34;&#34;
+        from .batch import iter_batch_parts, decode_part_body, _build_proxified_response_from_part
+
+        if not scrape_configs:
+            raise ScrapflyError(
+                &#34;scrape_batch: configs list is empty&#34;,
+                code=&#34;ERR::SCRAPE::BATCH_CONFIG&#34;,
+                http_status_code=400,
+            )
+
+        if len(scrape_configs) &gt; 100:
+            raise ScrapflyError(
+                f&#34;scrape_batch: max 100 configs per batch (got {len(scrape_configs)})&#34;,
+                code=&#34;ERR::SCRAPE::BATCH_CONFIG&#34;,
+                http_status_code=400,
+            )
+
+        seen_correlations: Dict[str, int] = {}
+        body_configs: List[Dict[str, Any]] = []
+        config_by_correlation: Dict[str, ScrapeConfig] = {}
+
+        for idx, cfg in enumerate(scrape_configs):
+            if not getattr(cfg, &#34;correlation_id&#34;, None):
+                raise ScrapflyError(
+                    f&#34;scrape_batch: configs[{idx}] is missing correlation_id &#34;
+                    &#34;(required for matching streamed parts)&#34;,
+                    code=&#34;ERR::SCRAPE::BATCH_CONFIG&#34;,
+                    http_status_code=422,
+                )
+
+            if cfg.correlation_id in seen_correlations:
+                raise ScrapflyError(
+                    f&#34;scrape_batch: correlation_id {cfg.correlation_id!r} reused by &#34;
+                    f&#34;configs[{seen_correlations[cfg.correlation_id]}] and configs[{idx}]&#34;,
+                    code=&#34;ERR::SCRAPE::BATCH_CONFIG&#34;,
+                    http_status_code=422,
+                )
+
+            seen_correlations[cfg.correlation_id] = idx
+            config_by_correlation[cfg.correlation_id] = cfg
+
+            # Drop `key` (batch key goes in the URL); pass everything
+            # else as a flat query-param dict. The server feeds each
+            # entry through NewScrapeConfigFromRequest identically to
+            # a /scrape call, so the wire contract is identical.
+            params = cfg.to_api_params(key=self.key)
+            params.pop(&#34;key&#34;, None)
+            body_configs.append(params)
+
+        import json as _json
+
+        payload = _json.dumps({&#34;configs&#34;: body_configs}).encode(&#34;utf-8&#34;)
+
+        if format == &#39;msgpack&#39;:
+            accept_header = &#39;application/msgpack&#39;
+        elif format == &#39;json&#39;:
+            accept_header = &#39;application/json&#39;
+        else:
+            accept_header = self.body_handler.accept
+
+        request = {
+            &#34;method&#34;: &#34;POST&#34;,
+            &#34;url&#34;: self.host + &#34;/scrape/batch&#34;,
+            &#34;params&#34;: {&#34;key&#34;: self.key},
+            &#34;data&#34;: payload,
+            &#34;headers&#34;: {
+                &#34;content-type&#34;: &#34;application/json&#34;,
+                &#34;accept-encoding&#34;: self.body_handler.content_encoding,
+                &#34;accept&#34;: accept_header,
+                &#34;user-agent&#34;: self.ua,
+            },
+            &#34;timeout&#34;: (self.connect_timeout, self.web_scraping_api_read_timeout),
+            &#34;verify&#34;: self.verify,
+            &#34;stream&#34;: True,
+        }
+
+        # Own the session for the life of the streaming batch so its
+        # connection pool closes whether the generator is fully consumed,
+        # errors mid-stream, or is abandoned (finally runs on GC/close()).
+        batch_session = requests.Session()
+        batch_session.verify = self.verify
+
+        try:
+            response = batch_session.request(
+                method=request[&#34;method&#34;],
+                url=request[&#34;url&#34;],
+                params=request[&#34;params&#34;],
+                data=request[&#34;data&#34;],
+                headers=request[&#34;headers&#34;],
+                timeout=request[&#34;timeout&#34;],
+                stream=request[&#34;stream&#34;],
+            )
+
+            if response.status_code != 200:
+                # Batch-level error (plan gate, validation, insufficient
+                # concurrency, etc.). Response is a single JSON body, not
+                # multipart.
+                try:
+                    body = response.json()
+                except Exception:
+                    body = {&#34;message&#34;: response.text, &#34;code&#34;: &#34;ERR::API::INTERNAL_ERROR&#34;}
+                err_code = body.get(&#34;code&#34;, &#34;ERR::API::INTERNAL_ERROR&#34;)
+                err_msg = body.get(&#34;message&#34;, &#34;&#34;) or body.get(&#34;reason&#34;, &#34;&#34;)
+                retry_after = None
+
+                try:
+                    retry_after = int(response.headers.get(&#34;Retry-After&#34;, &#34;0&#34;)) or None
+                except (TypeError, ValueError):
+                    pass
+
+                raise HttpError(
+                    request=response.request,
+                    response=response,
+                    code=err_code,
+                    http_status_code=response.status_code,
+                    message=err_msg,
+                    is_retryable=body.get(&#34;retryable&#34;, False),
+                    retry_delay=retry_after,
+                )
+
+            for part_headers, part_body in iter_batch_parts(response):
+                correlation_id = part_headers.get(&#34;x-scrapfly-correlation-id&#34;, &#34;&#34;)
+                cfg = config_by_correlation.get(correlation_id, scrape_configs[0])
+
+                # Proxified-response parts: the part body is the raw
+                # upstream bytes, not a JSON envelope. Surface a native
+                # requests.Response synthesized from the part headers +
+                # body so callers get the same shape as a single
+                # proxified scrape.
+                if part_headers.get(&#34;x-scrapfly-proxified&#34;) == &#34;true&#34;:
+                    try:
+                        prox_response = _build_proxified_response_from_part(
+                            part_headers,
+                            part_body,
+                            originating_request=response.request,
+                        )
+                    except Exception as prox_err:
+                        yield correlation_id, ScrapflyError(
+                            f&#34;scrape_batch: failed to build proxified response for correlation_id={correlation_id!r}: {prox_err}&#34;,
+                            code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                            http_status_code=500,
+                        )
+
+                        continue
+
+                    yield correlation_id, prox_response
+
+                    continue
+
+                try:
+                    parsed = decode_part_body(part_headers, part_body, self.body_handler)
+                except Exception as decode_err:
+                    yield correlation_id, ScrapflyError(
+                        f&#34;scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}&#34;,
+                        code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                    )
+
+                    continue
+
+                try:
+                    api_response = ScrapeApiResponse(
+                        response=response,
+                        request=response.request,
+                        api_result=parsed,
+                        scrape_config=cfg,
+                        large_object_handler=self._handle_scrape_large_objects,
+                    )
+                    # Don&#39;t auto-raise on upstream error — per-part errors
+                    # are surfaced via the yielded tuple, not exceptions.
+                    api_response.raise_for_result(raise_on_upstream_error=False)
+                    yield correlation_id, api_response
+                except ScrapflyError as scrape_err:
+                    yield correlation_id, scrape_err
+        finally:
+            batch_session.close()
 
     def save_screenshot(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
         &#34;&#34;&#34;
@@ -11189,6 +11675,7 @@ Useful for JSON-serialization or other external storage.</p></div>
         headers: Optional[Dict] = None,
         body: Optional[str] = None,
         method: Optional[str] = None,
+        enable_mcp: Optional[bool] = None,
     ) -&gt; Dict:
         &#34;&#34;&#34;
         Bypass anti-bot protection and get a ready-to-use browser session.
@@ -11233,6 +11720,9 @@ Useful for JSON-serialization or other external storage.</p></div>
 
         if method is not None:
             json_body[&#39;method&#39;] = method
+
+        if enable_mcp is not None:
+            json_body[&#39;enable_mcp&#39;] = enable_mcp
 
         response = self._http_handler(
             method=&#39;POST&#39;,
@@ -11718,6 +12208,75 @@ crawl = client.start_crawl(config)
 client.cancel_crawl(crawl.uuid)
 </code></pre></div>
 </dd>
+<dt id="scrapfly.ScrapflyClient.classify"><code class="name flex">
+<span>def <span class="ident">classify</span></span>(<span>self,<br>url: str,<br>status_code: int,<br>headers: Dict[str, str] | None = None,<br>body: str | None = None,<br>method: str = 'GET') ‑> <a title="scrapfly.classify.ClassifyResult" href="classify.html#scrapfly.classify.ClassifyResult">ClassifyResult</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def classify(
+    self,
+    url: str,
+    status_code: int,
+    headers: Optional[Dict[str, str]] = None,
+    body: Optional[str] = None,
+    method: str = &#34;GET&#34;,
+) -&gt; ClassifyResult:
+    &#34;&#34;&#34;Classify an already-fetched HTTP response for anti-bot blocking.
+
+    Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+    against a response you already have (from your own proxy, cache,
+    etc). 1 API credit per call. See
+    https://scrapfly.io/docs/scrape-api/classify for the full contract.
+    &#34;&#34;&#34;
+    if not url:
+        raise ContentError(&#34;classify: url is required&#34;)
+    if not (100 &lt;= int(status_code) &lt;= 599):
+        raise ContentError(
+            &#34;classify: status_code must be a valid HTTP status in [100, 599]&#34;
+        )
+
+    payload: Dict[str, Any] = {
+        &#34;url&#34;: url,
+        &#34;status_code&#34;: int(status_code),
+        &#34;method&#34;: method or &#34;GET&#34;,
+    }
+    if headers:
+        payload[&#34;headers&#34;] = {str(k): str(v) for k, v in headers.items()}
+    if body is not None:
+        payload[&#34;body&#34;] = body
+
+    response = self._http_handler(
+        method=&#34;POST&#34;,
+        url=self.host + &#34;/classify&#34;,
+        params={&#34;key&#34;: self.key},
+        json=payload,
+        verify=self.verify,
+        headers={
+            &#34;accept-encoding&#34;: self.body_handler.content_encoding,
+            &#34;accept&#34;: self.body_handler.accept,
+            &#34;user-agent&#34;: self.ua,
+            &#34;content-type&#34;: &#34;application/json&#34;,
+        },
+    )
+    response.raise_for_status()
+
+    if self.body_handler.support(response.headers):
+        data = self.body_handler(response.content, response.headers[&#34;content-type&#34;])
+    else:
+        import json as _json
+        data = _json.loads(response.content.decode(&#34;utf-8&#34;))
+
+    return ClassifyResult.from_dict(data)</code></pre>
+</details>
+<div class="desc"><p>Classify an already-fetched HTTP response for anti-bot blocking.</p>
+<p>Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+against a response you already have (from your own proxy, cache,
+etc). 1 API credit per call. See
+<a href="https://scrapfly.io/docs/scrape-api/classify">https://scrapfly.io/docs/scrape-api/classify</a> for the full contract.</p></div>
+</dd>
 <dt id="scrapfly.ScrapflyClient.close"><code class="name flex">
 <span>def <span class="ident">close</span></span>(<span>self)</span>
 </code></dt>
@@ -11727,8 +12286,16 @@ client.cancel_crawl(crawl.uuid)
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def close(self):
-    self.http_session.close()
-    self.http_session = None</code></pre>
+    if self.http_session is not None:
+        self.http_session.close()
+        self.http_session = None
+    # The executor is created in __init__ and owns worker threads that
+    # outlive the HTTP session; shutting it down here prevents thread
+    # leaks for callers that reuse the client across open()/close()
+    # cycles or rely on GC to reclaim it.
+    if self.async_executor is not None:
+        self.async_executor.shutdown(wait=False)
+        self.async_executor = None</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -12012,7 +12579,7 @@ URL-based extensions auto-update on each browser session start.
 :return: dict with 'sessions' list and 'total' count</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.cloud_browser_unblock"><code class="name flex">
-<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None) ‑> Dict</span>
+<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None) ‑> Dict</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -12030,6 +12597,7 @@ URL-based extensions auto-update on each browser session start.
     headers: Optional[Dict] = None,
     body: Optional[str] = None,
     method: Optional[str] = None,
+    enable_mcp: Optional[bool] = None,
 ) -&gt; Dict:
     &#34;&#34;&#34;
     Bypass anti-bot protection and get a ready-to-use browser session.
@@ -12074,6 +12642,9 @@ URL-based extensions auto-update on each browser session start.
 
     if method is not None:
         json_body[&#39;method&#39;] = method
+
+    if enable_mcp is not None:
+        json_body[&#39;enable_mcp&#39;] = enable_mcp
 
     response = self._http_handler(
         method=&#39;POST&#39;,
@@ -12266,6 +12837,64 @@ If the error is not none, you will get the following structure for example</p>
 'Checkout the related doc: <a href="https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'">https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'</a>
 }
 }</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.get_browser_monitoring_metrics"><code class="name flex">
+<span>def <span class="ident">get_browser_monitoring_metrics</span></span>(<span>self,<br>period: str | None = None,<br>proxy_pool: str | None = None,<br>start: datetime.datetime | None = None,<br>end: datetime.datetime | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_browser_monitoring_metrics(
+    self,
+    period:Optional[str]=None,
+    proxy_pool:Optional[str]=None,
+    start:Optional[datetime.datetime]=None,
+    end:Optional[datetime.datetime]=None,
+):
+    if (start is not None and end is None) or (start is None and end is not None):
+        raise ValueError(&#39;You must provide both start and end date&#39;)
+    params:dict = {&#39;key&#39;: self.key}
+    if start is not None and end is not None:
+        params[&#39;start&#39;] = self._format_monitoring_dt(start)
+        params[&#39;end&#39;] = self._format_monitoring_dt(end)
+    elif period is not None:
+        params[&#39;period&#39;] = period
+    if proxy_pool is not None:
+        params[&#39;proxy_pool&#39;] = proxy_pool
+    return self._monitoring_request(&#39;/browser/monitoring/metrics&#39;, params)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.get_browser_monitoring_timeseries"><code class="name flex">
+<span>def <span class="ident">get_browser_monitoring_timeseries</span></span>(<span>self,<br>period: str | None = None,<br>proxy_pool: str | None = None,<br>start: datetime.datetime | None = None,<br>end: datetime.datetime | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_browser_monitoring_timeseries(
+    self,
+    period:Optional[str]=None,
+    proxy_pool:Optional[str]=None,
+    start:Optional[datetime.datetime]=None,
+    end:Optional[datetime.datetime]=None,
+):
+    if (start is not None and end is None) or (start is None and end is not None):
+        raise ValueError(&#39;You must provide both start and end date&#39;)
+    params:dict = {&#39;key&#39;: self.key}
+    if start is not None and end is not None:
+        params[&#39;start&#39;] = self._format_monitoring_dt(start)
+        params[&#39;end&#39;] = self._format_monitoring_dt(end)
+    elif period is not None:
+        params[&#39;period&#39;] = period
+    if proxy_pool is not None:
+        params[&#39;proxy_pool&#39;] = proxy_pool
+    return self._monitoring_request(&#39;/browser/monitoring/metrics/timeseries&#39;, params)</code></pre>
+</details>
+<div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.get_crawl_artifact"><code class="name flex">
 <span>def <span class="ident">get_crawl_artifact</span></span>(<span>self, uuid: str, artifact_type: str = 'warc') ‑> <a title="scrapfly.crawler.crawler_response.CrawlerArtifactResponse" href="crawler/crawler_response.html#scrapfly.crawler.crawler_response.CrawlerArtifactResponse">CrawlerArtifactResponse</a></span>
@@ -12491,47 +13120,122 @@ if status.is_complete:
     print(&quot;Crawl completed!&quot;)
 </code></pre></div>
 </dd>
-<dt id="scrapfly.ScrapflyClient.get_monitoring_metrics"><code class="name flex">
-<span>def <span class="ident">get_monitoring_metrics</span></span>(<span>self,<br>format: str = 'structured',<br>period: str | None = None,<br>aggregation: List[Literal['account', 'project', 'target']] | None = None)</span>
+<dt id="scrapfly.ScrapflyClient.get_crawler_monitoring_metrics"><code class="name flex">
+<span>def <span class="ident">get_crawler_monitoring_metrics</span></span>(<span>self,<br>format: str = 'structured',<br>period: str | None = None,<br>aggregation: List[Literal['account', 'project', 'target']] | None = None,<br>include_webhook: bool = False)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_monitoring_metrics(self, format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED, period:Optional[str]=None, aggregation:Optional[List[MonitoringAggregation]]=None):
-    params = {&#39;key&#39;: self.key, &#39;format&#39;: format}
-
-    if period is not None:
-        params[&#39;period&#39;] = period
-
-    if aggregation is not None:
-        params[&#39;aggregation&#39;] = &#39;,&#39;.join(aggregation)
-
-    response = self._http_handler(
-        method=&#39;GET&#39;,
-        url=self.host + &#39;/scrape/monitoring/metrics&#39;,
-        params=params,
-        timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
-        verify=self.verify,
-        headers={
-            &#39;accept-encoding&#39;: self.body_handler.content_encoding,
-            &#39;accept&#39;: self.body_handler.accept,
-            &#39;user-agent&#39;: self.ua
-        },
-    )
-
-    response.raise_for_status()
-
-    if self.body_handler.support(response.headers):
-        return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
-
-    return response.content.decode(&#39;utf-8&#39;)</code></pre>
+<pre><code class="python">def get_crawler_monitoring_metrics(
+    self,
+    format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+    period:Optional[str]=None,
+    aggregation:Optional[List[MonitoringAggregation]]=None,
+    include_webhook:bool=False,
+):
+    return self._monitoring_request(
+        &#39;/crawl/monitoring/metrics&#39;,
+        self._build_metrics_params(format, period, aggregation, include_webhook),
+    )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.get_crawler_monitoring_target_metrics"><code class="name flex">
+<span>def <span class="ident">get_crawler_monitoring_target_metrics</span></span>(<span>self,<br>domain: str,<br>group_subdomain: bool = False,<br>period: Literal['subscription', 'last7d', 'last24h', 'last1h', 'last5m'] | None = 'last24h',<br>start: datetime.datetime | None = None,<br>end: datetime.datetime | None = None,<br>include_webhook: bool = False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_crawler_monitoring_target_metrics(
+    self,
+    domain:str,
+    group_subdomain:bool=False,
+    period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+    start:Optional[datetime.datetime]=None,
+    end:Optional[datetime.datetime]=None,
+    include_webhook:bool=False,
+):
+    return self._monitoring_request(
+        &#39;/crawl/monitoring/metrics/target&#39;,
+        self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+    )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.get_extraction_monitoring_metrics"><code class="name flex">
+<span>def <span class="ident">get_extraction_monitoring_metrics</span></span>(<span>self,<br>format: str = 'structured',<br>period: str | None = None,<br>aggregation: List[Literal['account', 'project', 'target']] | None = None,<br>include_webhook: bool = False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_extraction_monitoring_metrics(
+    self,
+    format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+    period:Optional[str]=None,
+    aggregation:Optional[List[MonitoringAggregation]]=None,
+    include_webhook:bool=False,
+):
+    return self._monitoring_request(
+        &#39;/extraction/monitoring/metrics&#39;,
+        self._build_metrics_params(format, period, aggregation, include_webhook),
+    )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.get_extraction_monitoring_target_metrics"><code class="name flex">
+<span>def <span class="ident">get_extraction_monitoring_target_metrics</span></span>(<span>self,<br>domain: str,<br>group_subdomain: bool = False,<br>period: Literal['subscription', 'last7d', 'last24h', 'last1h', 'last5m'] | None = 'last24h',<br>start: datetime.datetime | None = None,<br>end: datetime.datetime | None = None,<br>include_webhook: bool = False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_extraction_monitoring_target_metrics(
+    self,
+    domain:str,
+    group_subdomain:bool=False,
+    period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+    start:Optional[datetime.datetime]=None,
+    end:Optional[datetime.datetime]=None,
+    include_webhook:bool=False,
+):
+    return self._monitoring_request(
+        &#39;/extraction/monitoring/metrics/target&#39;,
+        self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+    )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.get_monitoring_metrics"><code class="name flex">
+<span>def <span class="ident">get_monitoring_metrics</span></span>(<span>self,<br>format: str = 'structured',<br>period: str | None = None,<br>aggregation: List[Literal['account', 'project', 'target']] | None = None,<br>include_webhook: bool = False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_monitoring_metrics(
+    self,
+    format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+    period:Optional[str]=None,
+    aggregation:Optional[List[MonitoringAggregation]]=None,
+    include_webhook:bool=False,
+):
+    return self._monitoring_request(
+        &#39;/scrape/monitoring/metrics&#39;,
+        self._build_metrics_params(format, period, aggregation, include_webhook),
+    )</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.get_monitoring_target_metrics"><code class="name flex">
-<span>def <span class="ident">get_monitoring_target_metrics</span></span>(<span>self,<br>domain: str,<br>group_subdomain: bool = False,<br>period: Literal['subscription', 'last7d', 'last24h', 'last1h', 'last5m'] | None = 'last24h',<br>start: datetime.datetime | None = None,<br>end: datetime.datetime | None = None)</span>
+<span>def <span class="ident">get_monitoring_target_metrics</span></span>(<span>self,<br>domain: str,<br>group_subdomain: bool = False,<br>period: Literal['subscription', 'last7d', 'last24h', 'last1h', 'last5m'] | None = 'last24h',<br>start: datetime.datetime | None = None,<br>end: datetime.datetime | None = None,<br>include_webhook: bool = False)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -12539,48 +13243,64 @@ if status.is_complete:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_monitoring_target_metrics(
-        self,
-        domain:str,
-        group_subdomain:bool=False,
-        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
-        start:Optional[datetime.datetime]=None,
-        end:Optional[datetime.datetime]=None,
+    self,
+    domain:str,
+    group_subdomain:bool=False,
+    period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+    start:Optional[datetime.datetime]=None,
+    end:Optional[datetime.datetime]=None,
+    include_webhook:bool=False,
 ):
-    params = {
-        &#39;key&#39;: self.key,
-        &#39;domain&#39;: domain,
-        &#39;group_subdomain&#39;: group_subdomain
-    }
-
-    if (start is not None and end is None) or (start is None and end is not None):
-        raise ValueError(&#39;You must provide both start and end date&#39;)
-
-    if start is not None and end is not None:
-        params[&#39;start&#39;] = start.strftime(self.DATETIME_FORMAT)
-        params[&#39;end&#39;] = end.strftime(self.DATETIME_FORMAT)
-        period = None
-
-    params[&#39;period&#39;] = period
-
-    response = self._http_handler(
-        method=&#39;GET&#39;,
-        url=self.host + &#39;/scrape/monitoring/metrics/target&#39;,
-        timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
-        params=params,
-        verify=self.verify,
-        headers={
-            &#39;accept-encoding&#39;: self.body_handler.content_encoding,
-            &#39;accept&#39;: self.body_handler.accept,
-            &#39;user-agent&#39;: self.ua
-        },
-    )
-
-    response.raise_for_status()
-
-    if self.body_handler.support(response.headers):
-        return self.body_handler(response.content, response.headers[&#39;content-type&#39;])
-
-    return response.content.decode(&#39;utf-8&#39;)</code></pre>
+    return self._monitoring_request(
+        &#39;/scrape/monitoring/metrics/target&#39;,
+        self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+    )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.get_screenshot_monitoring_metrics"><code class="name flex">
+<span>def <span class="ident">get_screenshot_monitoring_metrics</span></span>(<span>self,<br>format: str = 'structured',<br>period: str | None = None,<br>aggregation: List[Literal['account', 'project', 'target']] | None = None,<br>include_webhook: bool = False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_screenshot_monitoring_metrics(
+    self,
+    format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+    period:Optional[str]=None,
+    aggregation:Optional[List[MonitoringAggregation]]=None,
+    include_webhook:bool=False,
+):
+    return self._monitoring_request(
+        &#39;/screenshot/monitoring/metrics&#39;,
+        self._build_metrics_params(format, period, aggregation, include_webhook),
+    )</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.get_screenshot_monitoring_target_metrics"><code class="name flex">
+<span>def <span class="ident">get_screenshot_monitoring_target_metrics</span></span>(<span>self,<br>domain: str,<br>group_subdomain: bool = False,<br>period: Literal['subscription', 'last7d', 'last24h', 'last1h', 'last5m'] | None = 'last24h',<br>start: datetime.datetime | None = None,<br>end: datetime.datetime | None = None,<br>include_webhook: bool = False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_screenshot_monitoring_target_metrics(
+    self,
+    domain:str,
+    group_subdomain:bool=False,
+    period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+    start:Optional[datetime.datetime]=None,
+    end:Optional[datetime.datetime]=None,
+    include_webhook:bool=False,
+):
+    return self._monitoring_request(
+        &#39;/screenshot/monitoring/metrics/target&#39;,
+        self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+    )</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -12819,6 +13539,233 @@ If the error is not none, you will get the following structure for example</p>
 'Checkout ASP documentation': 'https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate', 'Related Error Doc': 'https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED'
 }
 }</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.scrape_batch"><code class="name flex">
+<span>def <span class="ident">scrape_batch</span></span>(<span>self,<br>scrape_configs: List[<a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>],<br>format: Literal['json', 'msgpack'] | None = None) ‑> Iterator[Tuple[str, <a title="scrapfly.api_response.ScrapeApiResponse" href="api_response.html#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a> | <a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a>]]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+def scrape_batch(
+    self,
+    scrape_configs: List[ScrapeConfig],
+    format: Optional[Literal[&#39;json&#39;, &#39;msgpack&#39;]] = None,
+) -&gt; Iterator[Tuple[str, Union[ScrapeApiResponse, ScrapflyError]]]:
+    &#34;&#34;&#34;
+    Scrape up to 100 URLs in one batch request and stream results
+    back as each scrape completes. Iterator yields
+    ``(correlation_id, result)`` tuples where ``result`` is either
+    a :class:`ScrapeApiResponse` on success or a
+    :class:`ScrapflyError` on per-scrape failure.
+
+    Results arrive **out of order** — whichever scrape finishes
+    first is yielded first. Use ``correlation_id`` (set on every
+    ``ScrapeConfig``) to match parts back to the originating
+    config on the client side.
+
+    Every config MUST carry a unique ``correlation_id``; a
+    missing/duplicate value is detected client-side before the
+    batch is sent.
+
+    :param format: wire format for per-part response bodies. Defaults
+        to the SDK&#39;s negotiated format (``msgpack`` when the
+        ``msgpack`` package is installed, ``json`` otherwise). Pass
+        ``&#39;json&#39;`` or ``&#39;msgpack&#39;`` to override.
+    &#34;&#34;&#34;
+    from .batch import iter_batch_parts, decode_part_body, _build_proxified_response_from_part
+
+    if not scrape_configs:
+        raise ScrapflyError(
+            &#34;scrape_batch: configs list is empty&#34;,
+            code=&#34;ERR::SCRAPE::BATCH_CONFIG&#34;,
+            http_status_code=400,
+        )
+
+    if len(scrape_configs) &gt; 100:
+        raise ScrapflyError(
+            f&#34;scrape_batch: max 100 configs per batch (got {len(scrape_configs)})&#34;,
+            code=&#34;ERR::SCRAPE::BATCH_CONFIG&#34;,
+            http_status_code=400,
+        )
+
+    seen_correlations: Dict[str, int] = {}
+    body_configs: List[Dict[str, Any]] = []
+    config_by_correlation: Dict[str, ScrapeConfig] = {}
+
+    for idx, cfg in enumerate(scrape_configs):
+        if not getattr(cfg, &#34;correlation_id&#34;, None):
+            raise ScrapflyError(
+                f&#34;scrape_batch: configs[{idx}] is missing correlation_id &#34;
+                &#34;(required for matching streamed parts)&#34;,
+                code=&#34;ERR::SCRAPE::BATCH_CONFIG&#34;,
+                http_status_code=422,
+            )
+
+        if cfg.correlation_id in seen_correlations:
+            raise ScrapflyError(
+                f&#34;scrape_batch: correlation_id {cfg.correlation_id!r} reused by &#34;
+                f&#34;configs[{seen_correlations[cfg.correlation_id]}] and configs[{idx}]&#34;,
+                code=&#34;ERR::SCRAPE::BATCH_CONFIG&#34;,
+                http_status_code=422,
+            )
+
+        seen_correlations[cfg.correlation_id] = idx
+        config_by_correlation[cfg.correlation_id] = cfg
+
+        # Drop `key` (batch key goes in the URL); pass everything
+        # else as a flat query-param dict. The server feeds each
+        # entry through NewScrapeConfigFromRequest identically to
+        # a /scrape call, so the wire contract is identical.
+        params = cfg.to_api_params(key=self.key)
+        params.pop(&#34;key&#34;, None)
+        body_configs.append(params)
+
+    import json as _json
+
+    payload = _json.dumps({&#34;configs&#34;: body_configs}).encode(&#34;utf-8&#34;)
+
+    if format == &#39;msgpack&#39;:
+        accept_header = &#39;application/msgpack&#39;
+    elif format == &#39;json&#39;:
+        accept_header = &#39;application/json&#39;
+    else:
+        accept_header = self.body_handler.accept
+
+    request = {
+        &#34;method&#34;: &#34;POST&#34;,
+        &#34;url&#34;: self.host + &#34;/scrape/batch&#34;,
+        &#34;params&#34;: {&#34;key&#34;: self.key},
+        &#34;data&#34;: payload,
+        &#34;headers&#34;: {
+            &#34;content-type&#34;: &#34;application/json&#34;,
+            &#34;accept-encoding&#34;: self.body_handler.content_encoding,
+            &#34;accept&#34;: accept_header,
+            &#34;user-agent&#34;: self.ua,
+        },
+        &#34;timeout&#34;: (self.connect_timeout, self.web_scraping_api_read_timeout),
+        &#34;verify&#34;: self.verify,
+        &#34;stream&#34;: True,
+    }
+
+    # Own the session for the life of the streaming batch so its
+    # connection pool closes whether the generator is fully consumed,
+    # errors mid-stream, or is abandoned (finally runs on GC/close()).
+    batch_session = requests.Session()
+    batch_session.verify = self.verify
+
+    try:
+        response = batch_session.request(
+            method=request[&#34;method&#34;],
+            url=request[&#34;url&#34;],
+            params=request[&#34;params&#34;],
+            data=request[&#34;data&#34;],
+            headers=request[&#34;headers&#34;],
+            timeout=request[&#34;timeout&#34;],
+            stream=request[&#34;stream&#34;],
+        )
+
+        if response.status_code != 200:
+            # Batch-level error (plan gate, validation, insufficient
+            # concurrency, etc.). Response is a single JSON body, not
+            # multipart.
+            try:
+                body = response.json()
+            except Exception:
+                body = {&#34;message&#34;: response.text, &#34;code&#34;: &#34;ERR::API::INTERNAL_ERROR&#34;}
+            err_code = body.get(&#34;code&#34;, &#34;ERR::API::INTERNAL_ERROR&#34;)
+            err_msg = body.get(&#34;message&#34;, &#34;&#34;) or body.get(&#34;reason&#34;, &#34;&#34;)
+            retry_after = None
+
+            try:
+                retry_after = int(response.headers.get(&#34;Retry-After&#34;, &#34;0&#34;)) or None
+            except (TypeError, ValueError):
+                pass
+
+            raise HttpError(
+                request=response.request,
+                response=response,
+                code=err_code,
+                http_status_code=response.status_code,
+                message=err_msg,
+                is_retryable=body.get(&#34;retryable&#34;, False),
+                retry_delay=retry_after,
+            )
+
+        for part_headers, part_body in iter_batch_parts(response):
+            correlation_id = part_headers.get(&#34;x-scrapfly-correlation-id&#34;, &#34;&#34;)
+            cfg = config_by_correlation.get(correlation_id, scrape_configs[0])
+
+            # Proxified-response parts: the part body is the raw
+            # upstream bytes, not a JSON envelope. Surface a native
+            # requests.Response synthesized from the part headers +
+            # body so callers get the same shape as a single
+            # proxified scrape.
+            if part_headers.get(&#34;x-scrapfly-proxified&#34;) == &#34;true&#34;:
+                try:
+                    prox_response = _build_proxified_response_from_part(
+                        part_headers,
+                        part_body,
+                        originating_request=response.request,
+                    )
+                except Exception as prox_err:
+                    yield correlation_id, ScrapflyError(
+                        f&#34;scrape_batch: failed to build proxified response for correlation_id={correlation_id!r}: {prox_err}&#34;,
+                        code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                        http_status_code=500,
+                    )
+
+                    continue
+
+                yield correlation_id, prox_response
+
+                continue
+
+            try:
+                parsed = decode_part_body(part_headers, part_body, self.body_handler)
+            except Exception as decode_err:
+                yield correlation_id, ScrapflyError(
+                    f&#34;scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}&#34;,
+                    code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                )
+
+                continue
+
+            try:
+                api_response = ScrapeApiResponse(
+                    response=response,
+                    request=response.request,
+                    api_result=parsed,
+                    scrape_config=cfg,
+                    large_object_handler=self._handle_scrape_large_objects,
+                )
+                # Don&#39;t auto-raise on upstream error — per-part errors
+                # are surfaced via the yielded tuple, not exceptions.
+                api_response.raise_for_result(raise_on_upstream_error=False)
+                yield correlation_id, api_response
+            except ScrapflyError as scrape_err:
+                yield correlation_id, scrape_err
+    finally:
+        batch_session.close()</code></pre>
+</details>
+<div class="desc"><p>Scrape up to 100 URLs in one batch request and stream results
+back as each scrape completes. Iterator yields
+<code>(correlation_id, result)</code> tuples where <code>result</code> is either
+a :class:<code><a title="scrapfly.ScrapeApiResponse" href="#scrapfly.ScrapeApiResponse">ScrapeApiResponse</a></code> on success or a
+:class:<code><a title="scrapfly.ScrapflyError" href="#scrapfly.ScrapflyError">ScrapflyError</a></code> on per-scrape failure.</p>
+<p>Results arrive <strong>out of order</strong> — whichever scrape finishes
+first is yielded first. Use <code>correlation_id</code> (set on every
+<code><a title="scrapfly.ScrapeConfig" href="#scrapfly.ScrapeConfig">ScrapeConfig</a></code>) to match parts back to the originating
+config on the client side.</p>
+<p>Every config MUST carry a unique <code>correlation_id</code>; a
+missing/duplicate value is detected client-side before the
+batch is sent.</p>
+<p>:param format: wire format for per-part response bodies. Defaults
+to the SDK's negotiated format (<code>msgpack</code> when the
+<code>msgpack</code> package is installed, <code>json</code> otherwise). Pass
+<code>'json'</code> or <code>'msgpack'</code> to override.</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.screenshot"><code class="name flex">
 <span>def <span class="ident">screenshot</span></span>(<span>self,<br>screenshot_config: <a title="scrapfly.screenshot_config.ScreenshotConfig" href="screenshot_config.html#scrapfly.screenshot_config.ScreenshotConfig">ScreenshotConfig</a>,<br>no_raise: bool = False) ‑> <a title="scrapfly.api_response.ScreenshotApiResponse" href="api_response.html#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></span>
@@ -14536,7 +15483,9 @@ HTTP transaction or metadata.</p></div>
 <ul>
 <li><code><a title="scrapfly.api_config" href="api_config.html">scrapfly.api_config</a></code></li>
 <li><code><a title="scrapfly.api_response" href="api_response.html">scrapfly.api_response</a></code></li>
+<li><code><a title="scrapfly.batch" href="batch.html">scrapfly.batch</a></code></li>
 <li><code><a title="scrapfly.browser_config" href="browser_config.html">scrapfly.browser_config</a></code></li>
+<li><code><a title="scrapfly.classify" href="classify.html">scrapfly.classify</a></code></li>
 <li><code><a title="scrapfly.client" href="client.html">scrapfly.client</a></code></li>
 <li><code><a title="scrapfly.crawler" href="crawler/index.html">scrapfly.crawler</a></code></li>
 <li><code><a title="scrapfly.errors" href="errors.html">scrapfly.errors</a></code></li>
@@ -14571,6 +15520,15 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.BrowserConfig.from_dict" href="#scrapfly.BrowserConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.BrowserConfig.to_dict" href="#scrapfly.BrowserConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.BrowserConfig.websocket_url" href="#scrapfly.BrowserConfig.websocket_url">websocket_url</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.ClassifyResult" href="#scrapfly.ClassifyResult">ClassifyResult</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ClassifyResult.antibot" href="#scrapfly.ClassifyResult.antibot">antibot</a></code></li>
+<li><code><a title="scrapfly.ClassifyResult.blocked" href="#scrapfly.ClassifyResult.blocked">blocked</a></code></li>
+<li><code><a title="scrapfly.ClassifyResult.cost" href="#scrapfly.ClassifyResult.cost">cost</a></code></li>
+<li><code><a title="scrapfly.ClassifyResult.from_dict" href="#scrapfly.ClassifyResult.from_dict">from_dict</a></code></li>
 </ul>
 </li>
 <li>
@@ -14981,6 +15939,7 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.ScrapflyClient.async_screenshot" href="#scrapfly.ScrapflyClient.async_screenshot">async_screenshot</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.brotli" href="#scrapfly.ScrapflyClient.brotli">brotli</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cancel_crawl" href="#scrapfly.ScrapflyClient.cancel_crawl">cancel_crawl</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.classify" href="#scrapfly.ScrapflyClient.classify">classify</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.close" href="#scrapfly.ScrapflyClient.close">close</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser" href="#scrapfly.ScrapflyClient.cloud_browser">cloud_browser</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_extension_delete" href="#scrapfly.ScrapflyClient.cloud_browser_extension_delete">cloud_browser_extension_delete</a></code></li>
@@ -15000,11 +15959,19 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.ScrapflyClient.distributed_mode" href="#scrapfly.ScrapflyClient.distributed_mode">distributed_mode</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.extract" href="#scrapfly.ScrapflyClient.extract">extract</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.extraction_api_read_timeout" href="#scrapfly.ScrapflyClient.extraction_api_read_timeout">extraction_api_read_timeout</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.get_browser_monitoring_metrics" href="#scrapfly.ScrapflyClient.get_browser_monitoring_metrics">get_browser_monitoring_metrics</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.get_browser_monitoring_timeseries" href="#scrapfly.ScrapflyClient.get_browser_monitoring_timeseries">get_browser_monitoring_timeseries</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.get_crawl_artifact" href="#scrapfly.ScrapflyClient.get_crawl_artifact">get_crawl_artifact</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.get_crawl_contents" href="#scrapfly.ScrapflyClient.get_crawl_contents">get_crawl_contents</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.get_crawl_status" href="#scrapfly.ScrapflyClient.get_crawl_status">get_crawl_status</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.get_crawler_monitoring_metrics" href="#scrapfly.ScrapflyClient.get_crawler_monitoring_metrics">get_crawler_monitoring_metrics</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.get_crawler_monitoring_target_metrics" href="#scrapfly.ScrapflyClient.get_crawler_monitoring_target_metrics">get_crawler_monitoring_target_metrics</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.get_extraction_monitoring_metrics" href="#scrapfly.ScrapflyClient.get_extraction_monitoring_metrics">get_extraction_monitoring_metrics</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.get_extraction_monitoring_target_metrics" href="#scrapfly.ScrapflyClient.get_extraction_monitoring_target_metrics">get_extraction_monitoring_target_metrics</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.get_monitoring_metrics" href="#scrapfly.ScrapflyClient.get_monitoring_metrics">get_monitoring_metrics</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.get_monitoring_target_metrics" href="#scrapfly.ScrapflyClient.get_monitoring_target_metrics">get_monitoring_target_metrics</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.get_screenshot_monitoring_metrics" href="#scrapfly.ScrapflyClient.get_screenshot_monitoring_metrics">get_screenshot_monitoring_metrics</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.get_screenshot_monitoring_target_metrics" href="#scrapfly.ScrapflyClient.get_screenshot_monitoring_target_metrics">get_screenshot_monitoring_target_metrics</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.host" href="#scrapfly.ScrapflyClient.host">host</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.http" href="#scrapfly.ScrapflyClient.http">http</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.key" href="#scrapfly.ScrapflyClient.key">key</a></code></li>
@@ -15017,6 +15984,7 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.ScrapflyClient.save_scrape_screenshot" href="#scrapfly.ScrapflyClient.save_scrape_screenshot">save_scrape_screenshot</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.save_screenshot" href="#scrapfly.ScrapflyClient.save_screenshot">save_screenshot</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.scrape" href="#scrapfly.ScrapflyClient.scrape">scrape</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.scrape_batch" href="#scrapfly.ScrapflyClient.scrape_batch">scrape_batch</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.screenshot" href="#scrapfly.ScrapflyClient.screenshot">screenshot</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.screenshot_api_read_timeout" href="#scrapfly.ScrapflyClient.screenshot_api_read_timeout">screenshot_api_read_timeout</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.sink" href="#scrapfly.ScrapflyClient.sink">sink</a></code></li>

@@ -48,7 +48,7 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.browser_config.BrowserConfig"><code class="flex name class">
 <span>class <span class="ident">BrowserConfig</span></span>
-<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None)</span>
+<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -82,6 +82,7 @@ el.replaceWith(d);
         unblock_timeout: Optional[int] = None,
         browser_brand: Optional[str] = None,
         byop_proxy: Optional[str] = None,
+        enable_mcp: Optional[bool] = None,
     ):
         if timeout is not None and timeout &gt; 1800:
             raise ValueError(&#39;timeout cannot exceed 1800 seconds (30 minutes)&#39;)
@@ -120,6 +121,7 @@ el.replaceWith(d);
         # Requires a Custom plan subscription. See:
         # https://scrapfly.io/docs/cloud-browser-api/byop
         self.byop_proxy = byop_proxy
+        self.enable_mcp = enable_mcp
 
     def websocket_url(self, api_key: str, host: Optional[str] = None) -&gt; str:
         params = {&#39;api_key&#39;: api_key}
@@ -187,6 +189,9 @@ el.replaceWith(d);
         if self.byop_proxy is not None:
             params[&#39;byop_proxy&#39;] = self.byop_proxy
 
+        if self.enable_mcp is not None:
+            params[&#39;enable_mcp&#39;] = self._bool_to_http(self.enable_mcp)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + &#39;?&#39; + urlencode(params)
 
@@ -213,6 +218,7 @@ el.replaceWith(d);
             &#39;unblock_timeout&#39;: self.unblock_timeout,
             &#39;browser_brand&#39;: self.browser_brand,
             &#39;byop_proxy&#39;: self.byop_proxy,
+            &#39;enable_mcp&#39;: self.enable_mcp,
         }
 
     @staticmethod
@@ -247,6 +253,7 @@ el.replaceWith(d);
             unblock_timeout=browser_config_dict.get(&#39;unblock_timeout&#39;, None),
             browser_brand=browser_config_dict.get(&#39;browser_brand&#39;, None),
             byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
+            enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
         )</code></pre>
 </details>
 <div class="desc"></div>
@@ -303,6 +310,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         unblock_timeout=browser_config_dict.get(&#39;unblock_timeout&#39;, None),
         browser_brand=browser_config_dict.get(&#39;browser_brand&#39;, None),
         byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
+        enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
     )</code></pre>
 </details>
 <div class="desc"></div>
@@ -341,6 +349,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         &#39;unblock_timeout&#39;: self.unblock_timeout,
         &#39;browser_brand&#39;: self.browser_brand,
         &#39;byop_proxy&#39;: self.byop_proxy,
+        &#39;enable_mcp&#39;: self.enable_mcp,
     }</code></pre>
 </details>
 <div class="desc"></div>
@@ -418,6 +427,9 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
 
     if self.byop_proxy is not None:
         params[&#39;byop_proxy&#39;] = self.byop_proxy
+
+    if self.enable_mcp is not None:
+        params[&#39;enable_mcp&#39;] = self._bool_to_http(self.enable_mcp)
 
     base_host = host or self.CLOUD_BROWSER_HOST
     return base_host + &#39;?&#39; + urlencode(params)</code></pre>
