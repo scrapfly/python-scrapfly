@@ -604,8 +604,16 @@ class ScrapflyClient:
             self.http_session.headers['user-agent'] = self.ua
 
     def close(self):
-        self.http_session.close()
-        self.http_session = None
+        if self.http_session is not None:
+            self.http_session.close()
+            self.http_session = None
+        # The executor is created in __init__ and owns worker threads that
+        # outlive the HTTP session; shutting it down here prevents thread
+        # leaks for callers that reuse the client across open()/close()
+        # cycles or rely on GC to reclaim it.
+        if self.async_executor is not None:
+            self.async_executor.shutdown(wait=False)
+            self.async_executor = None
 
     def __enter__(self) -> 'ScrapflyClient':
         self.open()
@@ -1008,99 +1016,105 @@ class ScrapflyClient:
             "stream": True,
         }
 
+        # Own the session for the life of the streaming batch so its
+        # connection pool closes whether the generator is fully consumed,
+        # errors mid-stream, or is abandoned (finally runs on GC/close()).
         batch_session = requests.Session()
         batch_session.verify = self.verify
 
-        response = batch_session.request(
-            method=request["method"],
-            url=request["url"],
-            params=request["params"],
-            data=request["data"],
-            headers=request["headers"],
-            timeout=request["timeout"],
-            stream=request["stream"],
-        )
-
-        if response.status_code != 200:
-            # Batch-level error (plan gate, validation, insufficient
-            # concurrency, etc.). Response is a single JSON body, not
-            # multipart.
-            try:
-                body = response.json()
-            except Exception:
-                body = {"message": response.text, "code": "ERR::API::INTERNAL_ERROR"}
-            err_code = body.get("code", "ERR::API::INTERNAL_ERROR")
-            err_msg = body.get("message", "") or body.get("reason", "")
-            retry_after = None
-
-            try:
-                retry_after = int(response.headers.get("Retry-After", "0")) or None
-            except (TypeError, ValueError):
-                pass
-
-            raise HttpError(
-                request=response.request,
-                response=response,
-                code=err_code,
-                http_status_code=response.status_code,
-                message=err_msg,
-                is_retryable=body.get("retryable", False),
-                retry_delay=retry_after,
+        try:
+            response = batch_session.request(
+                method=request["method"],
+                url=request["url"],
+                params=request["params"],
+                data=request["data"],
+                headers=request["headers"],
+                timeout=request["timeout"],
+                stream=request["stream"],
             )
 
-        for part_headers, part_body in iter_batch_parts(response):
-            correlation_id = part_headers.get("x-scrapfly-correlation-id", "")
-            cfg = config_by_correlation.get(correlation_id, scrape_configs[0])
-
-            # Proxified-response parts: the part body is the raw
-            # upstream bytes, not a JSON envelope. Surface a native
-            # requests.Response synthesized from the part headers +
-            # body so callers get the same shape as a single
-            # proxified scrape.
-            if part_headers.get("x-scrapfly-proxified") == "true":
+            if response.status_code != 200:
+                # Batch-level error (plan gate, validation, insufficient
+                # concurrency, etc.). Response is a single JSON body, not
+                # multipart.
                 try:
-                    prox_response = _build_proxified_response_from_part(
-                        part_headers,
-                        part_body,
-                        originating_request=response.request,
-                    )
-                except Exception as prox_err:
+                    body = response.json()
+                except Exception:
+                    body = {"message": response.text, "code": "ERR::API::INTERNAL_ERROR"}
+                err_code = body.get("code", "ERR::API::INTERNAL_ERROR")
+                err_msg = body.get("message", "") or body.get("reason", "")
+                retry_after = None
+
+                try:
+                    retry_after = int(response.headers.get("Retry-After", "0")) or None
+                except (TypeError, ValueError):
+                    pass
+
+                raise HttpError(
+                    request=response.request,
+                    response=response,
+                    code=err_code,
+                    http_status_code=response.status_code,
+                    message=err_msg,
+                    is_retryable=body.get("retryable", False),
+                    retry_delay=retry_after,
+                )
+
+            for part_headers, part_body in iter_batch_parts(response):
+                correlation_id = part_headers.get("x-scrapfly-correlation-id", "")
+                cfg = config_by_correlation.get(correlation_id, scrape_configs[0])
+
+                # Proxified-response parts: the part body is the raw
+                # upstream bytes, not a JSON envelope. Surface a native
+                # requests.Response synthesized from the part headers +
+                # body so callers get the same shape as a single
+                # proxified scrape.
+                if part_headers.get("x-scrapfly-proxified") == "true":
+                    try:
+                        prox_response = _build_proxified_response_from_part(
+                            part_headers,
+                            part_body,
+                            originating_request=response.request,
+                        )
+                    except Exception as prox_err:
+                        yield correlation_id, ScrapflyError(
+                            f"scrape_batch: failed to build proxified response for correlation_id={correlation_id!r}: {prox_err}",
+                            code="ERR::API::INTERNAL_ERROR",
+                            http_status_code=500,
+                        )
+
+                        continue
+
+                    yield correlation_id, prox_response
+
+                    continue
+
+                try:
+                    parsed = decode_part_body(part_headers, part_body, self.body_handler)
+                except Exception as decode_err:
                     yield correlation_id, ScrapflyError(
-                        f"scrape_batch: failed to build proxified response for correlation_id={correlation_id!r}: {prox_err}",
+                        f"scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}",
                         code="ERR::API::INTERNAL_ERROR",
-                        http_status_code=500,
                     )
 
                     continue
 
-                yield correlation_id, prox_response
-
-                continue
-
-            try:
-                parsed = decode_part_body(part_headers, part_body, self.body_handler)
-            except Exception as decode_err:
-                yield correlation_id, ScrapflyError(
-                    f"scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}",
-                    code="ERR::API::INTERNAL_ERROR",
-                )
-
-                continue
-
-            try:
-                api_response = ScrapeApiResponse(
-                    response=response,
-                    request=response.request,
-                    api_result=parsed,
-                    scrape_config=cfg,
-                    large_object_handler=self._handle_scrape_large_objects,
-                )
-                # Don't auto-raise on upstream error — per-part errors
-                # are surfaced via the yielded tuple, not exceptions.
-                api_response.raise_for_result(raise_on_upstream_error=False)
-                yield correlation_id, api_response
-            except ScrapflyError as scrape_err:
-                yield correlation_id, scrape_err
+                try:
+                    api_response = ScrapeApiResponse(
+                        response=response,
+                        request=response.request,
+                        api_result=parsed,
+                        scrape_config=cfg,
+                        large_object_handler=self._handle_scrape_large_objects,
+                    )
+                    # Don't auto-raise on upstream error — per-part errors
+                    # are surfaced via the yielded tuple, not exceptions.
+                    api_response.raise_for_result(raise_on_upstream_error=False)
+                    yield correlation_id, api_response
+                except ScrapflyError as scrape_err:
+                    yield correlation_id, scrape_err
+        finally:
+            batch_session.close()
 
     def save_screenshot(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
         """
