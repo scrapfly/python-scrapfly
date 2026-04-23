@@ -1631,6 +1631,7 @@ class ScrapflyClient:
         body: Optional[str] = None,
         method: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
+        solve_captcha: Optional[bool] = None,
     ) -> Dict:
         """
         Bypass anti-bot protection and get a ready-to-use browser session.
@@ -1678,6 +1679,9 @@ class ScrapflyClient:
 
         if enable_mcp is not None:
             json_body['enable_mcp'] = enable_mcp
+
+        if solve_captcha is not None:
+            json_body['solve_captcha'] = solve_captcha
 
         response = self._http_handler(
             method='POST',

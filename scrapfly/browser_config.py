@@ -44,6 +44,7 @@ class BrowserConfig(BaseApiConfig):
         browser_brand: Optional[str] = None,
         byop_proxy: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
+        solve_captcha: Optional[bool] = None,
     ):
         if timeout is not None and timeout > 1800:
             raise ValueError('timeout cannot exceed 1800 seconds (30 minutes)')
@@ -83,6 +84,12 @@ class BrowserConfig(BaseApiConfig):
         # https://scrapfly.io/docs/cloud-browser-api/byop
         self.byop_proxy = byop_proxy
         self.enable_mcp = enable_mcp
+        # SolveCaptcha: arm Scrapium's built-in captcha detector + solver on
+        # the first page attach. Turnstile, DataDome slider, reCAPTCHA,
+        # GeeTest, PerimeterX hold, and puzzle captchas are handled
+        # automatically. Billed per solve; failures cost nothing.
+        # https://scrapfly.io/docs/cloud-browser-api/captcha-solver
+        self.solve_captcha = solve_captcha
 
     def websocket_url(self, api_key: str, host: Optional[str] = None) -> str:
         params = {'api_key': api_key}
@@ -153,6 +160,9 @@ class BrowserConfig(BaseApiConfig):
         if self.enable_mcp is not None:
             params['enable_mcp'] = self._bool_to_http(self.enable_mcp)
 
+        if self.solve_captcha is not None:
+            params['solve_captcha'] = self._bool_to_http(self.solve_captcha)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + '?' + urlencode(params)
 
@@ -180,6 +190,7 @@ class BrowserConfig(BaseApiConfig):
             'browser_brand': self.browser_brand,
             'byop_proxy': self.byop_proxy,
             'enable_mcp': self.enable_mcp,
+            'solve_captcha': self.solve_captcha,
         }
 
     @staticmethod
@@ -215,4 +226,5 @@ class BrowserConfig(BaseApiConfig):
             browser_brand=browser_config_dict.get('browser_brand', None),
             byop_proxy=browser_config_dict.get('byop_proxy', None),
             enable_mcp=browser_config_dict.get('enable_mcp', None),
+            solve_captcha=browser_config_dict.get('solve_captcha', None),
         )
