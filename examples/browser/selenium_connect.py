@@ -9,11 +9,11 @@ For direct Playwright usage (recommended), see playwright_connect.py
 import requests
 from playwright.sync_api import sync_playwright
 
-API_KEY = 'scp-live-d8ac176c2f9d48b993b58675bdf71615'
+API_KEY = 'scp-live-YOUR_API_KEY_HERE'
 
 # Discover WebSocket URL via standard Chrome DevTools HTTP endpoint
 version_info = requests.get(
-    'https://browser.scrapfly.home/json/version',
+    'https://browser.scrapfly.local/json/version',
     params={
         'key': API_KEY,
         'proxy_pool': 'datacenter',

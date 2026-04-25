@@ -15,7 +15,7 @@ NEW in 0.8.28 — these tests cover the parity-gap fixes:
    nullable while the crawler is in ``PENDING``, populated once it runs
 
 Config-level tests and parsing tests are pure unit tests (no network).
-Integration tests hit ``api.scrapfly.home`` via the conftest fixtures.
+Integration tests hit ``api.scrapfly.local`` via the conftest fixtures.
 """
 
 import pytest
@@ -221,12 +221,12 @@ class TestCrawlerUrlsResponseFromText:
 
 
 # ---------------------------------------------------------------------------
-# Live integration tests (require api.scrapfly.home + a valid key)
+# Live integration tests (require api.scrapfly.local + a valid key)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
 class TestGetCrawlUrlsLive:
-    """End-to-end tests against the local k3d cluster."""
+    """End-to-end tests against the local self-hosted dev cluster."""
 
     def test_crawl_urls_visited(self, client, test_url):
         config = CrawlerConfig(url=test_url, page_limit=3)

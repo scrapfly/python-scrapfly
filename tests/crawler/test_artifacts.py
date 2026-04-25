@@ -7,7 +7,7 @@ Tests artifact retrieval and parsing:
 - Artifact downloading and parsing
 - Record iteration and extraction
 
-Based on: https://scrapfly.home/docs/crawler-api/results
+Based on: https://scrapfly.io/docs/crawler-api/results
 """
 import pytest
 import gzip

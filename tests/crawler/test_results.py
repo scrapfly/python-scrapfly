@@ -7,7 +7,7 @@ Tests all methods of retrieving and working with crawler results:
 - Artifact endpoint (WARC and HAR formats)
 - Content format options (html, markdown, text, etc.)
 
-Based on: https://scrapfly.home/docs/crawler-api/results
+Based on: https://scrapfly.io/docs/crawler-api/results
 """
 import pytest
 from scrapfly import Crawl, CrawlerConfig

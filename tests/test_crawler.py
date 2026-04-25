@@ -23,8 +23,8 @@ from scrapfly import (
 
 
 # Test configuration
-API_KEY = os.environ.get('SCRAPFLY_KEY', 'scp-live-d8ac176c2f9d48b993b58675bdf71615')
-API_HOST = os.environ.get('SCRAPFLY_API_HOST', 'https://api.scrapfly.home')
+API_KEY = os.environ.get('SCRAPFLY_KEY', 'scp-live-YOUR_API_KEY_HERE')
+API_HOST = os.environ.get('SCRAPFLY_API_HOST', 'https://api.scrapfly.local')
 
 
 @pytest.fixture

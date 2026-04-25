@@ -11,7 +11,7 @@ def my_reporter(error:Optional[Exception]=None, scrape_api_response:Optional[Scr
         # schedule retry for later, store some logs / metrics, anything you want
 
     if error is not None:
-        # All errors code are available here https://scrapfly.local/docs/scrape-api/errors#api_response
+        # All errors code are available here https://scrapfly.io/docs/scrape-api/errors#api_response
         if isinstance(error, ScrapflyError):
             # custom action regarding the error code
             if error.code in ['ERR::SCRAPE::OPERATION_TIMEOUT', 'ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST']:

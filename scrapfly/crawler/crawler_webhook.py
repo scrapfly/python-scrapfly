@@ -339,8 +339,9 @@ def webhook_from_payload(
     Args:
         payload: The full webhook body as a dict (i.e. what you get from
             ``request.json``).
-        signing_secrets: Optional tuple of signing secrets (hex strings) for
-            signature verification.
+        signing_secrets: Optional tuple of signing secrets for signature
+            verification. Pass each secret as it appears in the webhook
+            dashboard (UTF-8 string, not hex-encoded).
         signature: Optional webhook signature header value
             (``X-Scrapfly-Webhook-Signature``).
 
@@ -360,7 +361,7 @@ def webhook_from_payload(
         ... def handle_webhook():
         ...     wh = webhook_from_payload(
         ...         request.json,
-        ...         signing_secrets=('your-secret-hex',),
+        ...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
         ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
         ...     )
         ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == 'crawler_finished':

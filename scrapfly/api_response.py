@@ -1,5 +1,4 @@
 import base64
-import binascii
 import hashlib
 import hmac
 import re
@@ -100,7 +99,7 @@ class ResponseBodyHandler:
             _secrets = set()
 
             for signing_secret in signing_secrets:
-                _secrets.add(binascii.unhexlify(signing_secret))
+                _secrets.add(signing_secret.encode('utf-8'))
 
             self._signing_secret = tuple(_secrets)
 
@@ -126,7 +125,18 @@ class ResponseBodyHandler:
 
     def verify(self, message: bytes, signature: str) -> bool:
         for signing_secret in self._signing_secret:
-            if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
+            logger.debug(
+                'WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s',
+                len(signing_secret),
+                hashlib.sha256(signing_secret).hexdigest()[:16],
+                len(message),
+                hashlib.sha256(message).hexdigest()[:16],
+                computed,
+                signature,
+                computed == signature,
+            )
+            if computed == signature:
                 return True
 
         return False

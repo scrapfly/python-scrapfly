@@ -1,6 +1,6 @@
 # Getting Started with Scrapfly Crawler API
 
- The **Scrapfly Crawler API** enables recursive website crawling at scale. We leverage [WARC](https://scrapfly.home/docs/crawler-api/warc-format), Parquet format for large scale scraping and you can easily visualize using HAR artifact. Crawl entire websites with configurable limits, extract content in multiple formats simultaneously, and retrieve results as industry-standard artifacts.
+ The **Scrapfly Crawler API** enables recursive website crawling at scale. We leverage [WARC](https://scrapfly.io/docs/crawler-api/warc-format), Parquet format for large scale scraping and you can easily visualize using HAR artifact. Crawl entire websites with configurable limits, extract content in multiple formats simultaneously, and retrieve results as industry-standard artifacts.
 
   **Early Access Feature**The Crawler API is currently in early access. Features and API may evolve based on user feedback.
 
@@ -21,7 +21,7 @@
 1. **Schedule Crawl**Create a crawler with a single API call. The API returns immediately with a crawler UUID:
     
      ```
-    curl -X POST "https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58675bdf71615" \
+    curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
       -H 'Content-Type: application/json' \
       -d '{
         "url": "https://example.com",
@@ -47,7 +47,7 @@
 2. **Monitor Progress**Poll the status endpoint to track crawl progress:
     
      ```
-    curl https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b993b58675bdf71615
+    curl https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
     ```
     
      
@@ -116,13 +116,13 @@
     
      ```
     # Download WARC artifact (recommended for large crawls)
-    curl https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&type=warc -o crawl.warc.gz
+    curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc -o crawl.warc.gz
     
     # Query specific URL content
-    curl https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&url=https://example.com/page&format=markdown
+    curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com/page&format=markdown
     
     # Or batch retrieve multiple URLs (max 100 per request)
-    curl -X POST https://api.scrapfly.home/crawl/{uuid}/contents/batch?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&formats=markdown \
+    curl -X POST https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=scp-live-YOUR_API_KEY_HERE&formats=markdown \
       -H 'Content-Type: text/plain' \
       -d 'https://example.com/page1
     https://example.com/page2
@@ -139,7 +139,7 @@
     
      
     
-      For comprehensive retrieval options, see [Retrieving Crawler Results](https://scrapfly.home/docs/crawler-api/results).
+      For comprehensive retrieval options, see [Retrieving Crawler Results](https://scrapfly.io/docs/crawler-api/results).
  
  
 
@@ -149,14 +149,14 @@
 
   
 
-  **Webhook Setup Required** Before using webhooks, you must [configure a webhook](https://scrapfly.home/dashboard/webhook) in your dashboard with your endpoint URL and authentication. Then reference it by name in your API call.
+  **Webhook Setup Required** Before using webhooks, you must [configure a webhook](https://scrapfly.io/dashboard/webhook) in your dashboard with your endpoint URL and authentication. Then reference it by name in your API call.
 
  
 
 1. **Schedule Crawl with Webhook**Create a crawler and specify the webhook name configured in your dashboard:
     
      ```
-    curl -X POST "https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58675bdf71615" \
+    curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
       -H 'Content-Type: application/json' \
       -d '{
         "url": "https://example.com",
@@ -241,7 +241,7 @@
         return {'status': 'ok'}
     ```
  
-  For detailed webhook documentation and all available events, see [Crawler Webhook Documentation](https://scrapfly.home/docs/crawler-api/webhook).
+  For detailed webhook documentation and all available events, see [Crawler Webhook Documentation](https://scrapfly.io/docs/crawler-api/webhook).
 
  
 
@@ -259,7 +259,7 @@
 | `404` - Not Found | Crawler job not found |
 | `429` - Too Many Requests | Rate limit or concurrency limit exceeded |
 | `500` - Server Error | Internal server error |
-| See the [full error list](https://scrapfly.home/docs/crawler-api/errors) for more details. |
+| See the [full error list](https://scrapfly.io/docs/crawler-api/errors) for more details. |
 
  
 
@@ -275,7 +275,7 @@
 
    ### Create Crawler Job
 
- POST `https://api.scrapfly.home/crawl` 
+ POST `https://api.scrapfly.io/crawl` 
 
  Create a new crawler job with custom configuration. The API returns immediately with a crawler UUID that you can use to monitor progress and retrieve results.
 
@@ -297,7 +297,7 @@ required
 
  
 
- Your Scrapfly API key for authentication. You can find your key on your [dashboard](https://scrapfly.home/docs/project#api-keys). 
+ Your Scrapfly API key for authentication. You can find your key on your [dashboard](https://scrapfly.io/docs/project#api-keys). 
 
  Query Parameter Only **Must be passed as a URL query parameter** (e.g., `?key=YOUR_KEY`), **never in the POST request body**. This applies to all Crawler API endpoints. 
 
@@ -326,7 +326,7 @@ required
 
  
 
- Starting URL for the crawl. Must be a valid HTTP/HTTPS URL. The crawler will begin discovering and crawling linked pages from this seed URL. [ Must be URL encoded  ](https://scrapfly.home/web-scraping-tools/urlencode) 
+ Starting URL for the crawl. Must be a valid HTTP/HTTPS URL. The crawler will begin discovering and crawling linked pages from this seed URL. [ Must be URL encoded  ](https://scrapfly.io/web-scraping-tools/urlencode) 
 
  `url=https://example.com` `url=https://example.com/blog` 
 
@@ -515,7 +515,7 @@ popular
 
  
 
- Custom HTTP headers to send with each request. Pass as JSON object. [ Must be URL encoded  ](https://scrapfly.home/web-scraping-tools/urlencode) 
+ Custom HTTP headers to send with each request. Pass as JSON object. [ Must be URL encoded  ](https://scrapfly.io/web-scraping-tools/urlencode) 
 
  `headers={"Authorization": "Bearer token"}` 
 
@@ -732,7 +732,7 @@ popular
 - `model` - Pre-defined extraction model
 - `template` - Extraction template (name or JSON)
  
-  **Comprehensive Guide:** See the [Extraction Rules documentation](https://scrapfly.home/docs/crawler-api/extraction-rules) for detailed examples, pattern matching rules, and best practices. 
+  **Comprehensive Guide:** See the [Extraction Rules documentation](https://scrapfly.io/docs/crawler-api/extraction-rules) for detailed examples, pattern matching rules, and best practices. 
 
  
 
@@ -748,7 +748,7 @@ popular
 
  
 
- **Name reference** to a webhook configured in your [dashboard](https://scrapfly.home/dashboard/webhook). This is **NOT a URL** - it is the name you assigned when creating the webhook. 
+ **Name reference** to a webhook configured in your [dashboard](https://scrapfly.io/dashboard/webhook). This is **NOT a URL** - it is the name you assigned when creating the webhook. 
 
  **Two-step process:**1. **Create webhook in dashboard** - Configure URL, authentication, and events
 2. **Reference by name** - Use the webhook name in your API call
@@ -794,7 +794,7 @@ popular
 
  
 
- Select the proxy pool. A proxy pool is a network of proxies grouped by quality range and network type. The price varies based on the pool used. See [proxy dashboard](https://scrapfly.home/dashboard/proxy) for available pools. 
+ Select the proxy pool. A proxy pool is a network of proxies grouped by quality range and network type. The price varies based on the pool used. See [proxy dashboard](https://scrapfly.io/dashboard/proxy) for available pools. 
 
 - `proxy_pool=public_datacenter_pool`
 - `proxy_pool=public_residential_pool`
@@ -811,7 +811,7 @@ popular
 
  
 
- Proxy country location in ISO 3166-1 alpha-2 (2 letters) country codes. The available countries are listed on your [proxy dashboard](https://scrapfly.home/dashboard/proxy). Supports exclusions (minus prefix) and weighted distribution (colon suffix with weight 0-255). 
+ Proxy country location in ISO 3166-1 alpha-2 (2 letters) country codes. The available countries are listed on your [proxy dashboard](https://scrapfly.io/dashboard/proxy). Supports exclusions (minus prefix) and weighted distribution (colon suffix with weight 0-255). 
 
 - `country=us`
 - `country=us,ca,mx` (random distribution)
@@ -830,7 +830,7 @@ popular
 
  
 
- [Anti Scraping Protection](https://scrapfly.home/docs/scrape-api/anti-scraping-protection) - Enable advanced anti-bot bypass features including browser rendering, fingerprinting, and automatic retry with upgraded configurations. When enabled, the crawler will automatically use headless browsers and adapt to bypass protections. 
+ [Anti Scraping Protection](https://scrapfly.io/docs/scrape-api/anti-scraping-protection) - Enable advanced anti-bot bypass features including browser rendering, fingerprinting, and automatic retry with upgraded configurations. When enabled, the crawler will automatically use headless browsers and adapt to bypass protections. 
 
  Note When ASP is enabled, any custom `user_agent` parameter is ignored. ASP manages User-Agent headers automatically for optimal bypass performance. 
 
@@ -849,10 +849,10 @@ popular
 
  Retrieve the current status and progress of a crawler job. Use this endpoint to poll for updates while the crawler is running.
 
- GET `https://api.scrapfly.home/crawl/{uuid}/status` 
+ GET `https://api.scrapfly.io/crawl/{uuid}/status` 
 
  ```
-curl "https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b993b58675bdf71615"
+curl "https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE"
 ```
 
  
@@ -879,14 +879,14 @@ curl "https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b
 
  Retrieve a list of all URLs extracted and crawled during the job, with metadata about each URL.
 
- GET `https://api.scrapfly.home/crawl/{uuid}/urls` 
+ GET `https://api.scrapfly.io/crawl/{uuid}/urls` 
 
  ```
 # Get all visited URLs
-curl "https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&status=visited"
+curl "https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=visited"
 
 # Get failed URLs with pagination
-curl "https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&status=failed&page=1&per_page=100"
+curl "https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=failed&page=1&per_page=100"
 ```
 
  
@@ -912,14 +912,14 @@ curl "https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b99
 
 ### Single URL or All Pages (GET)
 
- GET `https://api.scrapfly.home/crawl/{uuid}/contents` 
+ GET `https://api.scrapfly.io/crawl/{uuid}/contents` 
 
  ```
 # Get all content in markdown format
-curl "https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&format=markdown"
+curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&format=markdown"
 
 # Get content for a specific URL
-curl "https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&format=html&url=https://example.com/page"
+curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&format=html&url=https://example.com/page"
 ```
 
  
@@ -940,13 +940,13 @@ curl "https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d4
  
 ### Batch Content Retrieval (POST)
 
- POST `https://api.scrapfly.home/crawl/{uuid}/contents/batch` 
+ POST `https://api.scrapfly.io/crawl/{uuid}/contents/batch` 
 
  Retrieve content for multiple specific URLs in a single request. More efficient than making individual GET requests for each URL. **Maximum 100 URLs per request.**
 
  ```
 # Batch retrieve content for multiple URLs
-curl -X POST "https://api.scrapfly.home/crawl/{uuid}/contents/batch?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&formats=markdown,text" \
+curl -X POST "https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=scp-live-YOUR_API_KEY_HERE&formats=markdown,text" \
   -H "Content-Type: text/plain" \
   -d "https://example.com/page1
 https://example.com/page2
@@ -980,7 +980,7 @@ https://example.com/page3"
 - `X-Scrapfly-Found-URLs` header - Number of URLs found in the crawl results
 - Each part contains `Content-Type` and `Content-Location` headers identifying the format and URL
  
-  **Efficient Streaming Format** The multipart format eliminates JSON escaping overhead, providing **~50% bandwidth savings** for text content and constant memory usage during streaming. See the [Results documentation](https://scrapfly.home/docs/crawler-api/results#query-content) for parsing examples in Python, JavaScript, and Go.
+  **Efficient Streaming Format** The multipart format eliminates JSON escaping overhead, providing **~50% bandwidth savings** for text content and constant memory usage during streaming. See the [Results documentation](https://scrapfly.io/docs/crawler-api/results#query-content) for parsing examples in Python, JavaScript, and Go.
 
  
 
@@ -988,14 +988,14 @@ https://example.com/page3"
 
  Download industry-standard archive files containing all crawled data, including HTTP requests, responses, headers, and extracted content. Perfect for storing bulk crawl results offline or in object storage (S3, Google Cloud Storage).
 
- GET `https://api.scrapfly.home/crawl/{uuid}/artifact` 
+ GET `https://api.scrapfly.io/crawl/{uuid}/artifact` 
 
  ```
 # Download WARC artifact (gzip compressed, recommended for large crawls)
-curl "https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&type=warc" -o crawl.warc.gz
+curl "https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc" -o crawl.warc.gz
 
 # Download HAR artifact (JSON format)
-curl "https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&type=har" -o crawl.har
+curl "https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=har" -o crawl.har
 ```
 
  
@@ -1019,7 +1019,7 @@ curl "https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d4
 
  Crawler API billing is simple: **the cost equals the sum of all Web Scraping API calls** made during the crawl. Each page crawled consumes credits based on enabled features (browser rendering, anti-scraping protection, proxy type, etc.).
 
- For detailed billing information, see [Crawler API Billing](https://scrapfly.home/docs/crawler-api/billing).
+ For detailed billing information, see [Crawler API Billing](https://scrapfly.io/docs/crawler-api/billing).
 
  # Retrieving Crawler Results
 
@@ -1126,7 +1126,7 @@ curl "https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d4
  Get a comprehensive list of all URLs extracted and crawled during the job, with detailed metadata for each URL including status codes, depth, and timestamps.
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993b58675bdf71615
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE
 ```
 
  
@@ -1143,10 +1143,10 @@ curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993
 
  ```
 # Get all visited URLs
-curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&status=visited
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=visited
 
 # Get all failed URLs
-curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&status=failed
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=failed
 ```
 
  
@@ -1217,7 +1217,7 @@ Response includes URL metadata:
 Retrieve content for one specific URL using the `url` query parameter:
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&url=https://example.com/page&format=markdown
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com/page&format=markdown
 ```
 
  
@@ -1262,7 +1262,7 @@ Return raw content directly without JSON wrapper by adding `plain=true`. Perfect
 
  ```
 # Get raw markdown content (no JSON wrapper)
-curl https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&url=https://example.com&formats=markdown&plain=true
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com&formats=markdown&plain=true
 
 # Direct output - pure markdown, no JSON parsing needed:
 # Homepage
@@ -1270,7 +1270,7 @@ curl https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48
 # Welcome to our site...
 
 # Pipe directly to file
-curl https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&url=https://example.com&formats=markdown&plain=true > page.md
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com&formats=markdown&plain=true > page.md
 ```
 
  
@@ -1296,7 +1296,7 @@ Request a multipart response for single URLs by setting the `Accept` header. Sam
 
  ```
 # Request multipart format for single URL
-curl "https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&url=https://example.com&formats=markdown,text" \
+curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com&formats=markdown,text" \
   -H "Accept: multipart/related; boundary=custom123"
 ```
 
@@ -1353,7 +1353,7 @@ Welcome to our site...
 Retrieve content for multiple URLs in a single request. Maximum **100 URLs per request**.
 
  ```
-curl -X POST "https://api.scrapfly.home/crawl/{uuid}/contents/batch?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&formats=markdown,text" \
+curl -X POST "https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=scp-live-YOUR_API_KEY_HERE&formats=markdown,text" \
   -H "Content-Type: text/plain" \
   -d "https://example.com/page1
 https://example.com/page2
@@ -1426,7 +1426,7 @@ from email.policy import HTTP
 import requests
 
 response = requests.post(
-    f"https://api.scrapfly.home/crawl/{uuid}/contents/batch",
+    f"https://api.scrapfly.io/crawl/{uuid}/contents/batch",
     params={"key": api_key, "formats": "markdown,text"},
     headers={"Content-Type": "text/plain"},
     data="https://example.com/page1\nhttps://example.com/page2"
@@ -1471,7 +1471,7 @@ import fetch from 'node-fetch';
 import { simpleParser } from 'mailparser';
 
 const response = await fetch(
-    `https://api.scrapfly.home/crawl/{uuid}/contents/batch?key=${apiKey}&formats=markdown,text`,
+    `https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=${apiKey}&formats=markdown,text`,
     {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
@@ -1524,7 +1524,7 @@ func fetchBatchContents(crawlerUUID, apiKey string, urls []string) error {
     body := strings.Join(urls, "\n")
 
     resp, err := http.Post(
-        "https://api.scrapfly.home/crawl/" + crawlerUUID + "/contents/batch?key=" + apiKey + "&formats=markdown,text",
+        "https://api.scrapfly.io/crawl/" + crawlerUUID + "/contents/batch?key=" + apiKey + "&formats=markdown,text",
         "text/plain",
         strings.NewReader(body),
     )
@@ -1623,7 +1623,7 @@ Each part in the multipart response contains:
  Retrieve all extracted contents in the specified format. Returns a JSON object mapping URLs to their extracted content in your chosen format.
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&format=markdown
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&format=markdown
 ```
 
  
@@ -1696,7 +1696,7 @@ Response contains contents mapped by URL:
  Industry-standard format for web archiving. Contains complete HTTP request/response pairs, headers, and extracted content. Compressed with gzip for efficient storage.
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&type=warc -o crawl.warc.gz
+curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc -o crawl.warc.gz
 ```
 
  
@@ -1711,7 +1711,7 @@ curl https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48
 
  **Use case:** Long-term archival, offline analysis with standard tools, research datasets.
 
-  **Learn More About WARC Format** See our [complete WARC format guide](https://scrapfly.home/docs/crawler-api/warc-format) for custom headers, reading libraries in multiple languages, and code examples.
+  **Learn More About WARC Format** See our [complete WARC format guide](https://scrapfly.io/docs/crawler-api/warc-format) for custom headers, reading libraries in multiple languages, and code examples.
 
  
 
@@ -1720,7 +1720,7 @@ curl https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48
  JSON-based format with detailed HTTP transaction data. Ideal for performance analysis, debugging, and browser replay tools.
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&type=har -o crawl.har
+curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=har -o crawl.har
 ```
 
  
@@ -1749,7 +1749,7 @@ curl https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48
 #!/bin/bash
 
 # Step 1: Create crawler
-RESPONSE=$(curl -X POST https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58675bdf71615 \
+RESPONSE=$(curl -X POST https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE \
   -H 'Content-Type: application/json' \
   -d '{
     "url": "https://web-scraping.dev/products",
@@ -1762,7 +1762,7 @@ echo "Crawler UUID: $UUID"
 
 # Step 2: Poll status until complete
 while true; do
-  RESPONSE=$(curl -s https://api.scrapfly.home/crawl/$UUID/status?key=scp-live-d8ac176c2f9d48b993b58675bdf71615)
+  RESPONSE=$(curl -s https://api.scrapfly.io/crawl/$UUID/status?key=scp-live-YOUR_API_KEY_HERE)
   IS_FINISHED=$(echo $RESPONSE | jq -r '.is_finished')
   IS_SUCCESS=$(echo $RESPONSE | jq -r '.is_success')
 
@@ -1783,10 +1783,10 @@ done
 
 # Step 3: Download results
 echo "Downloading WARC artifact..."
-curl https://api.scrapfly.home/crawl/$UUID/artifact?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&type=warc -o crawl.warc.gz
+curl https://api.scrapfly.io/crawl/$UUID/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc -o crawl.warc.gz
 
 echo "Getting markdown content..."
-curl https://api.scrapfly.home/crawl/$UUID/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&format=markdown > content.json
+curl https://api.scrapfly.io/crawl/$UUID/contents?key=scp-live-YOUR_API_KEY_HERE&format=markdown > content.json
 
 echo "Done!"
 ```
@@ -1807,8 +1807,8 @@ echo "Done!"
 import requests
 import time
 
-API_KEY = "scp-live-d8ac176c2f9d48b993b58675bdf71615"
-BASE_URL = "https://api.scrapfly.home"
+API_KEY = "scp-live-YOUR_API_KEY_HERE"
+BASE_URL = "https://api.scrapfly.io"
 
 # Step 1: Create crawler
 response = requests.post(
@@ -1879,8 +1879,8 @@ print("Done!")
  
 
  ```
-const API_KEY = "scp-live-d8ac176c2f9d48b993b58675bdf71615";
-const BASE_URL = "https://api.scrapfly.home";
+const API_KEY = "scp-live-YOUR_API_KEY_HERE";
+const BASE_URL = "https://api.scrapfly.io";
 
 async function runCrawler() {
     // Step 1: Create crawler
@@ -1962,9 +1962,9 @@ runCrawler().catch(console.error);
 
 ## Next Steps
 
-- Learn about [webhook integration](https://scrapfly.home/docs/crawler-api/webhook) for real-time notifications
-- Understand [billing and costs](https://scrapfly.home/docs/crawler-api/billing)
-- Review the [full API specification](https://scrapfly.home/docs/crawler-api/getting-started#spec)
+- Learn about [webhook integration](https://scrapfly.io/docs/crawler-api/webhook) for real-time notifications
+- Understand [billing and costs](https://scrapfly.io/docs/crawler-api/billing)
+- Review the [full API specification](https://scrapfly.io/docs/crawler-api/getting-started#spec)
 
 # WARC Format Reference
 
@@ -2076,7 +2076,7 @@ Date: Wed, 15 Jan 2025 10:30:45 GMT
  WARC files are available once your crawler completes (`is_finished: true`).
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/artifact?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&type=warc -o crawl.warc.gz
+curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc -o crawl.warc.gz
 ```
 
  
@@ -3339,10 +3339,10 @@ print(f"Found {len(us_results)} successful US requests")
 
 ## Next Steps
 
-- Learn about [all retrieval methods](https://scrapfly.home/docs/crawler-api/results) available for crawler results
-- Understand [crawler billing](https://scrapfly.home/docs/crawler-api/billing) and how WARC downloads are charged
-- Explore [crawler configuration options](https://scrapfly.home/docs/crawler-api/getting-started)
-- View the complete [crawler API specification](https://scrapfly.home/docs/crawler-api/getting-started#spec)
+- Learn about [all retrieval methods](https://scrapfly.io/docs/crawler-api/results) available for crawler results
+- Understand [crawler billing](https://scrapfly.io/docs/crawler-api/billing) and how WARC downloads are charged
+- Explore [crawler configuration options](https://scrapfly.io/docs/crawler-api/getting-started)
+- View the complete [crawler API specification](https://scrapfly.io/docs/crawler-api/getting-started#spec)
  
 ## External Resources
 
@@ -3418,7 +3418,7 @@ print(f"Found {len(us_results)} successful US requests")
 
 ## Extraction Methods
 
- Extraction rules support the same three extraction methods available in the [Extraction API](https://scrapfly.home/docs/extraction-api/getting-started):
+ Extraction rules support the same three extraction methods available in the [Extraction API](https://scrapfly.io/docs/extraction-api/getting-started):
 
  
 
@@ -3430,7 +3430,7 @@ print(f"Found {len(us_results)} successful US requests")
 
  **Value**: Model name (e.g., `"product"`, `"article"`, `"review_list"`)
 
- [ Auto Model Documentation](https://scrapfly.home/docs/extraction-api/automatic-ai)
+ [ Auto Model Documentation](https://scrapfly.io/docs/extraction-api/automatic-ai)
 
  
 
@@ -3446,7 +3446,7 @@ print(f"Found {len(us_results)} successful US requests")
 
  **Value**: Prompt text (max 10,000 characters)
 
- [ LLM Prompt Documentation](https://scrapfly.home/docs/extraction-api/llm-prompt)
+ [ LLM Prompt Documentation](https://scrapfly.io/docs/extraction-api/llm-prompt)
 
  
 
@@ -3462,7 +3462,7 @@ print(f"Found {len(us_results)} successful US requests")
 
  **Value**: `ephemeral:`
 
- [ Template Documentation](https://scrapfly.home/docs/extraction-api/rules-and-template)
+ [ Template Documentation](https://scrapfly.io/docs/extraction-api/rules-and-template)
 
  
 
@@ -3483,7 +3483,7 @@ print(f"Found {len(us_results)} successful US requests")
  Crawl an e-commerce site and extract structured data from different page types using pre-trained AI models:
 
  ```
-curl -X POST "https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58675bdf71615" \
+curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://web-scraping.dev/products",
@@ -3530,7 +3530,7 @@ curl -X POST "https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58
  Use LLM prompts to extract blog articles with custom metadata and content analysis:
 
  ```
-curl -X POST "https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58675bdf71615" \
+curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://scrapfly.io/blog/",
@@ -3576,7 +3576,7 @@ curl -X POST "https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58
  Combine auto models for standard pages and templates for complex nested structures:
 
  ```
-curl -X POST "https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58675bdf71615" \
+curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://web-scraping.dev/products",
@@ -3685,7 +3685,7 @@ curl -X POST "https://api.scrapfly.home/crawl?key=scp-live-d8ac176c2f9d48b993b58
 ### Query Extracted Content via API
 
  ```
-curl "https://api.scrapfly.home/crawl/{crawler_uuid}/contents?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&format=json"
+curl "https://api.scrapfly.io/crawl/{crawler_uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&format=json"
 ```
 
  
@@ -3743,7 +3743,7 @@ Response example:
  For large crawls, download extracted data as part of the WARC artifact. The extracted data is stored in `conversion` records with `Content-Type: application/json`.
 
  ```
-curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&type=warc" -o crawl.warc.gz
+curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc" -o crawl.warc.gz
 ```
 
  
@@ -3756,7 +3756,7 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
 
  
 
-  See [WARC Format](https://scrapfly.home/docs/crawler-api/warc-format) documentation for parsing WARC files with extracted data.
+  See [WARC Format](https://scrapfly.io/docs/crawler-api/warc-format) documentation for parsing WARC files with extracted data.
 
 ## Best Practices
 
@@ -3765,7 +3765,7 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
 - **Order patterns from specific to general**: Place more specific patterns before wildcards 
     Example: `"/products/featured"` before `"/products/*"`
 - **Use appropriate extraction methods**: Choose auto models for standard data types, prompts for custom fields, templates for complex structures
-- **Test extraction on sample URLs first**: Use the [standalone Extraction API](https://scrapfly.home/docs/extraction-api/getting-started) to validate extraction configs before crawling
+- **Test extraction on sample URLs first**: Use the [standalone Extraction API](https://scrapfly.io/docs/extraction-api/getting-started) to validate extraction configs before crawling
 - **Keep prompts focused**: Shorter, specific prompts yield better extraction results than lengthy instructions
 - **Monitor extraction success**: Check the `extracted_data` field in results to ensure extraction worked as expected
  
@@ -3775,7 +3775,7 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
 
 - **Pattern order matters**: The first matching pattern wins - avoid overlapping patterns where order is ambiguous
 - **URL encoding in patterns**: Patterns match decoded URL paths, not encoded ones
-- **Extraction adds cost**: Each extracted page uses additional API credits - see [billing documentation](https://scrapfly.home/docs/crawler-api/billing)
+- **Extraction adds cost**: Each extracted page uses additional API credits - see [billing documentation](https://scrapfly.io/docs/crawler-api/billing)
 - **Template complexity**: Very complex templates may slow down extraction - consider breaking into multiple simpler rules
  
  
@@ -3788,7 +3788,7 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
 - **LLM Prompt**: +10 credits per extracted page
 - **Template**: +1 credit per extracted page
  
-  Only pages matching extraction rules incur extraction costs. Non-matched pages are crawled at standard rates. For detailed pricing, see [Crawler API Billing](https://scrapfly.home/docs/crawler-api/billing).
+  Only pages matching extraction rules incur extraction costs. Non-matched pages are crawled at standard rates. For detailed pricing, see [Crawler API Billing](https://scrapfly.io/docs/crawler-api/billing).
 
 ## Limitations
 
@@ -3801,23 +3801,23 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
 
 ## Next Steps
 
-- Learn about [Auto Model extraction](https://scrapfly.home/docs/extraction-api/automatic-ai) and available models
-- Explore [LLM Prompt extraction](https://scrapfly.home/docs/extraction-api/llm-prompt) for custom data needs
-- Master [Template extraction](https://scrapfly.home/docs/extraction-api/rules-and-template) for precise control
-- Understand [how to retrieve crawler results](https://scrapfly.home/docs/crawler-api/results) with extracted data
-- Check [crawler billing](https://scrapfly.home/docs/crawler-api/billing) to optimize extraction costs
+- Learn about [Auto Model extraction](https://scrapfly.io/docs/extraction-api/automatic-ai) and available models
+- Explore [LLM Prompt extraction](https://scrapfly.io/docs/extraction-api/llm-prompt) for custom data needs
+- Master [Template extraction](https://scrapfly.io/docs/extraction-api/rules-and-template) for precise control
+- Understand [how to retrieve crawler results](https://scrapfly.io/docs/crawler-api/results) with extracted data
+- Check [crawler billing](https://scrapfly.io/docs/crawler-api/billing) to optimize extraction costs
  
 ## External Resources
 
 - [Guide: Web Scraping with AI and LLMs](https://scrapfly.io/blog/web-scraping-with-ai-and-llms/)
-- [Extraction API Documentation](https://scrapfly.home/docs/extraction-api/getting-started)
+- [Extraction API Documentation](https://scrapfly.io/docs/extraction-api/getting-started)
 - [Base64 Encoding Tool](https://scrapfly.io/dashboard/tools/base64) for template encoding
 
 # Webhook
 
- Scrapfly's [webhook](https://scrapfly.home/docs/crawler-api/getting-started?view=markdown#webhook_name) feature is ideal for managing crawler jobs asynchronously. When webhook is specified through the `webhook_name` parameter, Scrapfly will notify your HTTP endpoint about crawl events in real-time, eliminating the need for polling.
+ Scrapfly's [webhook](https://scrapfly.io/docs/crawler-api/getting-started?view=markdown#webhook_name) feature is ideal for managing crawler jobs asynchronously. When webhook is specified through the `webhook_name` parameter, Scrapfly will notify your HTTP endpoint about crawl events in real-time, eliminating the need for polling.
 
- To start using webhooks, first one must be created using the [webhook web interface](https://scrapfly.home/dashboard/webhook).
+ To start using webhooks, first one must be created using the [webhook web interface](https://scrapfly.io/dashboard/webhook).
 
     
 
@@ -3835,11 +3835,11 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
 > |---|---|---|---|---|
 > | 500 | 500 | 2,000 | 5,000 | 10,000 |
 
- [See in Your Dashboard](https://scrapfly.home/dashboard/webhook)
+ [See in Your Dashboard](https://scrapfly.io/dashboard/webhook)
 
 ## Scope
 
- Webhooks are scoped per Scrapfly [projects](https://scrapfly.home/docs/project?view=markdown) and environments. Make sure to create a webhook for each of your projects and environments (test/live).
+ Webhooks are scoped per Scrapfly [projects](https://scrapfly.io/docs/project?view=markdown) and environments. Make sure to create a webhook for each of your projects and environments (test/live).
 
 ## Usage
 
@@ -3849,7 +3849,7 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
 
  Note that your webhook endpoint must respond with a `2xx` status code for the webhook to be considered successful. The `3xx` redirect responses will be followed, and response codes `4xx` and `5xx` are considered failures and will be retried as per the retry policy.
 
-> The below examples assume you have a webhook named **my-crawler-webhook** registered. You can create webhooks via the [web dashboard](https://scrapfly.home/dashboard/webhook).
+> The below examples assume you have a webhook named **my-crawler-webhook** registered. You can create webhooks via the [web dashboard](https://scrapfly.io/dashboard/webhook).
 
 ## Webhook Events & Payloads
 
@@ -4256,7 +4256,7 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
             "stop_time": 1762951434.5287035
         },
         "links": {
-            "status": "https://api.scrapfly.home/crawl/d1f6f97a-c48d-440f-86ca-b21b254ba12f/status"
+            "status": "https://api.scrapfly.io/crawl/d1f6f97a-c48d-440f-86ca-b21b254ba12f/status"
         }
     }
 }
@@ -4347,18 +4347,24 @@ curl "https://api.scrapfly.home/crawl/{crawler_uuid}/artifact?key=scp-live-d8ac1
 import hmac
 import hashlib
 
-# Example secret key (replace with actual secret key from webhook settings)
-secret_key = b'my_secret_key'
+# Signing secret from your webhook settings (copy from the dashboard as-is)
+secret_key = 'YOUR-WEBHOOK-SIGNING-SECRET'
 
-# Example webhook payload (replace with actual payload)
+# Raw request body bytes (HTTP stacks like Flask/FastAPI auto-decompress
+# gzip/br for you; use those bytes directly — do NOT json.loads and
+# re-serialize, that would change the byte sequence).
 webhook_payload = b'{"event": "crawler_finished", "crawler_uuid": "..."}'
 
-# Compute HMAC-SHA256 signature
-computed_signature = hmac.new(secret_key, webhook_payload, hashlib.sha256).hexdigest()
+# Compute HMAC-SHA256 signature. Scrapfly emits the digest as UPPERCASE hex.
+computed_signature = hmac.new(
+    secret_key.encode('utf-8'),
+    webhook_payload,
+    hashlib.sha256,
+).hexdigest().upper()
 
-# Compare computed signature with received signature
+# Compare with the signature from the X-Scrapfly-Webhook-Signature header
 received_signature = '...'  # Extracted from X-Scrapfly-Webhook-Signature header
-if computed_signature == received_signature:
+if hmac.compare_digest(computed_signature, received_signature):
     print("Signature verification successful. Payload is authentic.")
 else:
     print("Signature verification failed. Payload may have been tampered with.")
@@ -4378,9 +4384,9 @@ else:
 
 ## Next Steps
 
-- Create your first webhook in the [webhook dashboard](https://scrapfly.home/dashboard/webhook)
-- Learn about [crawler configuration options](https://scrapfly.home/docs/crawler-api/getting-started)
-- Review [error handling](https://scrapfly.home/docs/crawler-api/errors) for webhook failures
+- Create your first webhook in the [webhook dashboard](https://scrapfly.io/dashboard/webhook)
+- Learn about [crawler configuration options](https://scrapfly.io/docs/crawler-api/getting-started)
+- Review [error handling](https://scrapfly.io/docs/crawler-api/errors) for webhook failures
 
 # Crawler API Billing
 
@@ -4400,10 +4406,10 @@ else:
 - **Proxy pool:** Datacenter (standard) or residential proxies
 - **Proxy country:** Geographic location of the proxy
 - **Screenshots:** If screenshots are captured
-- **Content extraction:** AI-powered extraction features (see [Extraction Rules](https://scrapfly.home/docs/crawler-api/extraction-rules))
+- **Content extraction:** AI-powered extraction features (see [Extraction Rules](https://scrapfly.io/docs/crawler-api/extraction-rules))
 - **Cache usage:** Cached pages cost 0 credits
  
- For detailed pricing rules and cost breakdown, see the [**Web Scraping API Billing documentation**](https://scrapfly.home/docs/scrape-api/billing).
+ For detailed pricing rules and cost breakdown, see the [**Web Scraping API Billing documentation**](https://scrapfly.io/docs/scrape-api/billing).
 
 ## Cost Examples 
 
@@ -4475,7 +4481,7 @@ else:
 
 **Cost:** 100 pages × (base cost + residential proxy cost) = **see Web Scraping API pricing**
 
-  **Calculate Your Costs** For exact pricing per feature, visit the [Web Scraping API Billing page](https://scrapfly.home/docs/scrape-api/billing) or check the [pricing page](https://scrapfly.home/pricing).
+  **Calculate Your Costs** For exact pricing per feature, visit the [Web Scraping API Billing page](https://scrapfly.io/docs/scrape-api/billing) or check the [pricing page](https://scrapfly.io/pricing).
 
  
 
@@ -4510,7 +4516,7 @@ else:
 
 ### Project Budget Limits
 
- Set crawler-specific budget limits in your [project settings](https://scrapfly.home/docs/project) to prevent unexpected costs:
+ Set crawler-specific budget limits in your [project settings](https://scrapfly.io/docs/project) to prevent unexpected costs:
 
 - Monthly crawler credit limit
 - Per-job credit limit
@@ -4558,7 +4564,7 @@ else:
 - **Screenshots:** Only capture if required (adds to cost)
 - **Content formats:** Extract only the formats you need
  
- For detailed cost optimization strategies, see: [Web Scraping API Cost Optimization](https://scrapfly.home/docs/scrape-api/billing#optimization)
+ For detailed cost optimization strategies, see: [Web Scraping API Cost Optimization](https://scrapfly.io/docs/scrape-api/billing#optimization)
 
 ## Billing Transparency 
 
@@ -4590,7 +4596,7 @@ The crawl status endpoint includes cost information:
 
 ### Dashboard Analytics
 
- View detailed cost breakdowns in your [monitoring dashboard](https://scrapfly.home/docs/monitoring):
+ View detailed cost breakdowns in your [monitoring dashboard](https://scrapfly.io/docs/monitoring):
 
 - Cost per crawl job
 - Cost per URL
@@ -4617,26 +4623,26 @@ The crawl status endpoint includes cost information:
 
 ### Q: Can I get a refund for a failed crawl?
 
- Failed crawls (system errors) are automatically not billed. For other issues, contact [support](https://scrapfly.home/docs/support).
+ Failed crawls (system errors) are automatically not billed. For other issues, contact [support](https://scrapfly.io/docs/support).
 
 ## Related Documentation 
 
-- [Web Scraping API Billing](https://scrapfly.home/docs/scrape-api/billing)
-- [Account Billing & Subscriptions](https://scrapfly.home/docs/billing)
-- [Project Budget Management](https://scrapfly.home/docs/project)
-- [Pricing Plans](https://scrapfly.home/pricing)
+- [Web Scraping API Billing](https://scrapfly.io/docs/scrape-api/billing)
+- [Account Billing & Subscriptions](https://scrapfly.io/docs/billing)
+- [Project Budget Management](https://scrapfly.io/docs/project)
+- [Pricing Plans](https://scrapfly.io/pricing)
 
 # Crawler API Errors
 
  The Crawler API returns standard HTTP status codes and detailed error information to help you troubleshoot issues. This page lists error codes specific to crawler operations and inherited errors from the Web Scraping API.
 
-  **Note:** Crawler API also inherits all error codes from the [Web Scraping API](https://scrapfly.home/docs/scrape-api/errors) since each crawled page is treated as a scrape request. 
+  **Note:** Crawler API also inherits all error codes from the [Web Scraping API](https://scrapfly.io/docs/scrape-api/errors) since each crawled page is treated as a scrape request. 
 
 ## Crawler-Specific Errors 
 
  The Crawler API has specific error codes that are unique to crawler operations:
 
-####  ERR::CRAWLER::ALREADY\_SCHEDULED [  ](https://scrapfly.home/docs/crawler-api/error/ERR::CRAWLER::ALREADY_SCHEDULED) 
+####  ERR::CRAWLER::ALREADY\_SCHEDULED [  ](https://scrapfly.io/docs/crawler-api/error/ERR::CRAWLER::ALREADY_SCHEDULED) 
 
 The given crawler uuid is already scheduled
 
@@ -4657,7 +4663,7 @@ The given crawler uuid is already scheduled
 
  
 
-####  ERR::CRAWLER::CONFIG\_ERROR [  ](https://scrapfly.home/docs/crawler-api/error/ERR::CRAWLER::CONFIG_ERROR) 
+####  ERR::CRAWLER::CONFIG\_ERROR [  ](https://scrapfly.io/docs/crawler-api/error/ERR::CRAWLER::CONFIG_ERROR) 
 
 Crawler configuration error
 
@@ -4691,11 +4697,11 @@ Crawler configuration error
 
 **Fatal error codes:**
 
-- [ `ERR::SCRAPE::PROJECT_QUOTA_LIMIT_REACHED` ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::PROJECT_QUOTA_LIMIT_REACHED) - Your project has reached its API credit limit
-- [ `ERR::SCRAPE::QUOTA_LIMIT_REACHED` ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::QUOTA_LIMIT_REACHED) - Your account has reached its API credit limit
-- [ `ERR::THROTTLE::MAX_API_CREDIT_BUDGET_EXCEEDED` ](https://scrapfly.home/docs/scrape-api/error/ERR::THROTTLE::MAX_API_CREDIT_BUDGET_EXCEEDED) - Monthly budget exceeded
-- [ `ERR::ACCOUNT::PAYMENT_REQUIRED` ](https://scrapfly.home/docs/scrape-api/error/ERR::ACCOUNT::PAYMENT_REQUIRED) - Payment required to continue service
-- [ `ERR::ACCOUNT::SUSPENDED` ](https://scrapfly.home/docs/scrape-api/error/ERR::ACCOUNT::SUSPENDED) - Account suspended
+- [ `ERR::SCRAPE::PROJECT_QUOTA_LIMIT_REACHED` ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::PROJECT_QUOTA_LIMIT_REACHED) - Your project has reached its API credit limit
+- [ `ERR::SCRAPE::QUOTA_LIMIT_REACHED` ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::QUOTA_LIMIT_REACHED) - Your account has reached its API credit limit
+- [ `ERR::THROTTLE::MAX_API_CREDIT_BUDGET_EXCEEDED` ](https://scrapfly.io/docs/scrape-api/error/ERR::THROTTLE::MAX_API_CREDIT_BUDGET_EXCEEDED) - Monthly budget exceeded
+- [ `ERR::ACCOUNT::PAYMENT_REQUIRED` ](https://scrapfly.io/docs/scrape-api/error/ERR::ACCOUNT::PAYMENT_REQUIRED) - Payment required to continue service
+- [ `ERR::ACCOUNT::SUSPENDED` ](https://scrapfly.io/docs/scrape-api/error/ERR::ACCOUNT::SUSPENDED) - Account suspended
  
 **What happens when a fatal error occurs:**
 
@@ -4712,10 +4718,10 @@ Crawler configuration error
 
 **Throttle error codes:**
 
-- [ `ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED` ](https://scrapfly.home/docs/scrape-api/error/ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED) - Request rate limit exceeded
-- [ `ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED` ](https://scrapfly.home/docs/scrape-api/error/ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED) - Concurrent request limit exceeded
-- [ `ERR::PROXY::RESOURCES_SATURATION` ](https://scrapfly.home/docs/scrape-api/error/ERR::PROXY::RESOURCES_SATURATION) - Proxy pool temporarily saturated
-- [ `ERR::SESSION::CONCURRENT_ACCESS` ](https://scrapfly.home/docs/scrape-api/error/ERR::SESSION::CONCURRENT_ACCESS) - Session concurrency limit reached
+- [ `ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED` ](https://scrapfly.io/docs/scrape-api/error/ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED) - Request rate limit exceeded
+- [ `ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED` ](https://scrapfly.io/docs/scrape-api/error/ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED) - Concurrent request limit exceeded
+- [ `ERR::PROXY::RESOURCES_SATURATION` ](https://scrapfly.io/docs/scrape-api/error/ERR::PROXY::RESOURCES_SATURATION) - Proxy pool temporarily saturated
+- [ `ERR::SESSION::CONCURRENT_ACCESS` ](https://scrapfly.io/docs/scrape-api/error/ERR::SESSION::CONCURRENT_ACCESS) - Session concurrency limit reached
  
 **What happens during throttling:**
 
@@ -4751,9 +4757,9 @@ Crawler configuration error
 
 **Monitored error codes:**
 
-- [ `ERR::ASP::SHIELD_ERROR` ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::SHIELD_ERROR) - Anti-scraping protection error
-- [ `ERR::ASP::SHIELD_PROTECTION_FAILED` ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED) - Failed to bypass anti-scraping protection
-- [ `ERR::API::INTERNAL_ERROR` ](https://scrapfly.home/docs/scrape-api/error/ERR::API::INTERNAL_ERROR) - Internal API error
+- [ `ERR::ASP::SHIELD_ERROR` ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_ERROR) - Anti-scraping protection error
+- [ `ERR::ASP::SHIELD_PROTECTION_FAILED` ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED) - Failed to bypass anti-scraping protection
+- [ `ERR::API::INTERNAL_ERROR` ](https://scrapfly.io/docs/scrape-api/error/ERR::API::INTERNAL_ERROR) - Internal API error
  
 **Failure rate threshold:**
 
@@ -4855,7 +4861,7 @@ Crawler configuration error
 
 ### Scraping Errors
 
-####  ERR::SCRAPE::BAD\_PROTOCOL [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::BAD_PROTOCOL) 
+####  ERR::SCRAPE::BAD\_PROTOCOL [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::BAD_PROTOCOL) 
 
 The protocol is not supported only http:// or https:// are supported
 
@@ -4874,7 +4880,7 @@ The protocol is not supported only http:// or https:// are supported
 
  
 
-####  ERR::SCRAPE::BAD\_UPSTREAM\_RESPONSE [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::BAD_UPSTREAM_RESPONSE) 
+####  ERR::SCRAPE::BAD\_UPSTREAM\_RESPONSE [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::BAD_UPSTREAM_RESPONSE) 
 
 The website you target respond with an unexpected status code (>400)
 
@@ -4893,7 +4899,7 @@ The website you target respond with an unexpected status code (>400)
 
  
 
-####  ERR::SCRAPE::CONFIG\_ERROR [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::CONFIG_ERROR) 
+####  ERR::SCRAPE::CONFIG\_ERROR [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::CONFIG_ERROR) 
 
 Scrape Configuration Error
 
@@ -4913,7 +4919,7 @@ Scrape Configuration Error
 
  
 
-####  ERR::SCRAPE::COST\_BUDGET\_LIMIT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::COST_BUDGET_LIMIT) 
+####  ERR::SCRAPE::COST\_BUDGET\_LIMIT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::COST_BUDGET_LIMIT) 
 
 Cost budget has been reached, you must increase the budget to pass this target
 
@@ -4933,7 +4939,7 @@ Cost budget has been reached, you must increase the budget to pass this target
 
  
 
-####  ERR::SCRAPE::COUNTRY\_NOT\_AVAILABLE\_FOR\_TARGET [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::COUNTRY_NOT_AVAILABLE_FOR_TARGET) 
+####  ERR::SCRAPE::COUNTRY\_NOT\_AVAILABLE\_FOR\_TARGET [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::COUNTRY_NOT_AVAILABLE_FOR_TARGET) 
 
 Country not available
 
@@ -4952,7 +4958,7 @@ Country not available
 
  
 
-####  ERR::SCRAPE::DNS\_NAME\_NOT\_RESOLVED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::DNS_NAME_NOT_RESOLVED) 
+####  ERR::SCRAPE::DNS\_NAME\_NOT\_RESOLVED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::DNS_NAME_NOT_RESOLVED) 
 
 The DNS of the targeted website is not resolving or not responding
 
@@ -4971,7 +4977,7 @@ The DNS of the targeted website is not resolving or not responding
 
  
 
-####  ERR::SCRAPE::DOMAIN\_NOT\_ALLOWED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::DOMAIN_NOT_ALLOWED) 
+####  ERR::SCRAPE::DOMAIN\_NOT\_ALLOWED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::DOMAIN_NOT_ALLOWED) 
 
 The Domain targeted is not allowed or restricted
 
@@ -4990,7 +4996,7 @@ The Domain targeted is not allowed or restricted
 
  
 
-####  ERR::SCRAPE::DOM\_SELECTOR\_INVALID [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::DOM_SELECTOR_INVALID) 
+####  ERR::SCRAPE::DOM\_SELECTOR\_INVALID [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::DOM_SELECTOR_INVALID) 
 
 The DOM Selector is invalid
 
@@ -5010,7 +5016,7 @@ The DOM Selector is invalid
 
  
 
-####  ERR::SCRAPE::DOM\_SELECTOR\_INVISIBLE [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::DOM_SELECTOR_INVISIBLE) 
+####  ERR::SCRAPE::DOM\_SELECTOR\_INVISIBLE [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::DOM_SELECTOR_INVISIBLE) 
 
 The requested DOM selected is invisible (Mostly issued when element is targeted for screenshot)
 
@@ -5030,7 +5036,7 @@ The requested DOM selected is invisible (Mostly issued when element is targeted 
 
  
 
-####  ERR::SCRAPE::DOM\_SELECTOR\_NOT\_FOUND [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::DOM_SELECTOR_NOT_FOUND) 
+####  ERR::SCRAPE::DOM\_SELECTOR\_NOT\_FOUND [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::DOM_SELECTOR_NOT_FOUND) 
 
 The requested DOM selected was not found in rendered content within 15s
 
@@ -5050,7 +5056,7 @@ The requested DOM selected was not found in rendered content within 15s
 
  
 
-####  ERR::SCRAPE::DRIVER\_CRASHED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::DRIVER_CRASHED) 
+####  ERR::SCRAPE::DRIVER\_CRASHED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::DRIVER_CRASHED) 
 
 Driver used to perform the scrape can crash for many reason
 
@@ -5069,7 +5075,7 @@ Driver used to perform the scrape can crash for many reason
 
  
 
-####  ERR::SCRAPE::DRIVER\_INSUFFICIENT\_RESOURCES [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::DRIVER_INSUFFICIENT_RESOURCES) 
+####  ERR::SCRAPE::DRIVER\_INSUFFICIENT\_RESOURCES [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::DRIVER_INSUFFICIENT_RESOURCES) 
 
 Driver do not have enough resource to render the page correctly
 
@@ -5088,7 +5094,7 @@ Driver do not have enough resource to render the page correctly
 
  
 
-####  ERR::SCRAPE::DRIVER\_TIMEOUT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::DRIVER_TIMEOUT) 
+####  ERR::SCRAPE::DRIVER\_TIMEOUT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::DRIVER_TIMEOUT) 
 
 Driver timeout - No response received
 
@@ -5107,7 +5113,7 @@ Driver timeout - No response received
 
  
 
-####  ERR::SCRAPE::FORMAT\_CONVERSION\_ERROR [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::FORMAT_CONVERSION_ERROR) 
+####  ERR::SCRAPE::FORMAT\_CONVERSION\_ERROR [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::FORMAT_CONVERSION_ERROR) 
 
 Response format conversion failed, unsupported input content type
 
@@ -5127,7 +5133,7 @@ Response format conversion failed, unsupported input content type
 
  
 
-####  ERR::SCRAPE::JAVASCRIPT\_EXECUTION [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::JAVASCRIPT_EXECUTION) 
+####  ERR::SCRAPE::JAVASCRIPT\_EXECUTION [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::JAVASCRIPT_EXECUTION) 
 
 The javascript to execute goes wrong, please read the associated message to figure out the problem
 
@@ -5147,7 +5153,7 @@ The javascript to execute goes wrong, please read the associated message to figu
 
  
 
-####  ERR::SCRAPE::NETWORK\_ERROR [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::NETWORK_ERROR) 
+####  ERR::SCRAPE::NETWORK\_ERROR [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::NETWORK_ERROR) 
 
 Network error happened between Scrapfly server and remote server
 
@@ -5166,7 +5172,7 @@ Network error happened between Scrapfly server and remote server
 
  
 
-####  ERR::SCRAPE::NETWORK\_SERVER\_DISCONNECTED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::NETWORK_SERVER_DISCONNECTED) 
+####  ERR::SCRAPE::NETWORK\_SERVER\_DISCONNECTED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::NETWORK_SERVER_DISCONNECTED) 
 
 Server of upstream website closed unexpectedly the connection
 
@@ -5185,7 +5191,7 @@ Server of upstream website closed unexpectedly the connection
 
  
 
-####  ERR::SCRAPE::NO\_BROWSER\_AVAILABLE [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::NO_BROWSER_AVAILABLE) 
+####  ERR::SCRAPE::NO\_BROWSER\_AVAILABLE [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::NO_BROWSER_AVAILABLE) 
 
 No browser available in the pool
 
@@ -5204,7 +5210,7 @@ No browser available in the pool
 
  
 
-####  ERR::SCRAPE::OPERATION\_TIMEOUT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::OPERATION_TIMEOUT) 
+####  ERR::SCRAPE::OPERATION\_TIMEOUT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::OPERATION_TIMEOUT) 
 
 This is a generic error for when timeout occur. It happened when internal operation took too much time
 
@@ -5224,7 +5230,7 @@ This is a generic error for when timeout occur. It happened when internal operat
 
  
 
-####  ERR::SCRAPE::PLATFORM\_NOT\_AVAILABLE\_FOR\_TARGET [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::PLATFORM_NOT_AVAILABLE_FOR_TARGET) 
+####  ERR::SCRAPE::PLATFORM\_NOT\_AVAILABLE\_FOR\_TARGET [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::PLATFORM_NOT_AVAILABLE_FOR_TARGET) 
 
 Platform not available
 
@@ -5243,7 +5249,7 @@ Platform not available
 
  
 
-####  ERR::SCRAPE::PROJECT\_QUOTA\_LIMIT\_REACHED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::PROJECT_QUOTA_LIMIT_REACHED) 
+####  ERR::SCRAPE::PROJECT\_QUOTA\_LIMIT\_REACHED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::PROJECT_QUOTA_LIMIT_REACHED) 
 
 The limit set to the current project has been reached
 
@@ -5264,7 +5270,7 @@ The limit set to the current project has been reached
 
  
 
-####  ERR::SCRAPE::QUOTA\_LIMIT\_REACHED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::QUOTA_LIMIT_REACHED) 
+####  ERR::SCRAPE::QUOTA\_LIMIT\_REACHED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::QUOTA_LIMIT_REACHED) 
 
 You reach your scrape quota plan for the month. You can upgrade your plan if you want increase the quota
 
@@ -5285,7 +5291,7 @@ You reach your scrape quota plan for the month. You can upgrade your plan if you
 
  
 
-####  ERR::SCRAPE::SCENARIO\_DEADLINE\_OVERFLOW [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::SCENARIO_DEADLINE_OVERFLOW) 
+####  ERR::SCRAPE::SCENARIO\_DEADLINE\_OVERFLOW [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::SCENARIO_DEADLINE_OVERFLOW) 
 
 Submitted scenario would require more than 30s to complete
 
@@ -5306,7 +5312,7 @@ Submitted scenario would require more than 30s to complete
 
  
 
-####  ERR::SCRAPE::SCENARIO\_EXECUTION [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::SCENARIO_EXECUTION) 
+####  ERR::SCRAPE::SCENARIO\_EXECUTION [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::SCENARIO_EXECUTION) 
 
 Javascript Scenario Failed
 
@@ -5325,7 +5331,7 @@ Javascript Scenario Failed
 
  
 
-####  ERR::SCRAPE::SCENARIO\_TIMEOUT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::SCENARIO_TIMEOUT) 
+####  ERR::SCRAPE::SCENARIO\_TIMEOUT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::SCENARIO_TIMEOUT) 
 
 Javascript Scenario Timeout
 
@@ -5346,7 +5352,7 @@ Javascript Scenario Timeout
 
  
 
-####  ERR::SCRAPE::SSL\_ERROR [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::SSL_ERROR) 
+####  ERR::SCRAPE::SSL\_ERROR [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::SSL_ERROR) 
 
 Upstream website have SSL error
 
@@ -5365,7 +5371,7 @@ Upstream website have SSL error
 
  
 
-####  ERR::SCRAPE::TOO\_MANY\_CONCURRENT\_REQUEST [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST) 
+####  ERR::SCRAPE::TOO\_MANY\_CONCURRENT\_REQUEST [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::TOO_MANY_CONCURRENT_REQUEST) 
 
 You reach concurrent limit of scrape request of your current plan or project if you set a concurrent limit at project level
 
@@ -5385,7 +5391,7 @@ You reach concurrent limit of scrape request of your current plan or project if 
 
  
 
-####  ERR::SCRAPE::UNABLE\_TO\_TAKE\_SCREENSHOT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::UNABLE_TO_TAKE_SCREENSHOT) 
+####  ERR::SCRAPE::UNABLE\_TO\_TAKE\_SCREENSHOT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::UNABLE_TO_TAKE_SCREENSHOT) 
 
 Unable to take screenshot
 
@@ -5404,7 +5410,7 @@ Unable to take screenshot
 
  
 
-####  ERR::SCRAPE::UPSTREAM\_TIMEOUT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::UPSTREAM_TIMEOUT) 
+####  ERR::SCRAPE::UPSTREAM\_TIMEOUT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::UPSTREAM_TIMEOUT) 
 
 The website you target made too much time to response
 
@@ -5423,7 +5429,7 @@ The website you target made too much time to response
 
  
 
-####  ERR::SCRAPE::UPSTREAM\_WEBSITE\_ERROR [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SCRAPE::UPSTREAM_WEBSITE_ERROR) 
+####  ERR::SCRAPE::UPSTREAM\_WEBSITE\_ERROR [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SCRAPE::UPSTREAM_WEBSITE_ERROR) 
 
 The website you tried to scrape have configuration or malformed response
 
@@ -5444,7 +5450,7 @@ The website you tried to scrape have configuration or malformed response
 
 ### Proxy Errors
 
-####  ERR::PROXY::POOL\_NOT\_AVAILABLE\_FOR\_TARGET [  ](https://scrapfly.home/docs/scrape-api/error/ERR::PROXY::POOL_NOT_AVAILABLE_FOR_TARGET) 
+####  ERR::PROXY::POOL\_NOT\_AVAILABLE\_FOR\_TARGET [  ](https://scrapfly.io/docs/scrape-api/error/ERR::PROXY::POOL_NOT_AVAILABLE_FOR_TARGET) 
 
 The desired proxy pool is not available for the given domain - mostly well known protected domain which require at least residential networks
 
@@ -5465,7 +5471,7 @@ The desired proxy pool is not available for the given domain - mostly well known
 
  
 
-####  ERR::PROXY::POOL\_NOT\_FOUND [  ](https://scrapfly.home/docs/scrape-api/error/ERR::PROXY::POOL_NOT_FOUND) 
+####  ERR::PROXY::POOL\_NOT\_FOUND [  ](https://scrapfly.io/docs/scrape-api/error/ERR::PROXY::POOL_NOT_FOUND) 
 
 Provided Proxy Pool Name do not exists
 
@@ -5486,7 +5492,7 @@ Provided Proxy Pool Name do not exists
 
  
 
-####  ERR::PROXY::POOL\_UNAVAILABLE\_COUNTRY [  ](https://scrapfly.home/docs/scrape-api/error/ERR::PROXY::POOL_UNAVAILABLE_COUNTRY) 
+####  ERR::PROXY::POOL\_UNAVAILABLE\_COUNTRY [  ](https://scrapfly.io/docs/scrape-api/error/ERR::PROXY::POOL_UNAVAILABLE_COUNTRY) 
 
 Country not available for given proxy pool
 
@@ -5507,7 +5513,7 @@ Country not available for given proxy pool
 
  
 
-####  ERR::PROXY::RESOURCES\_SATURATION [  ](https://scrapfly.home/docs/scrape-api/error/ERR::PROXY::RESOURCES_SATURATION) 
+####  ERR::PROXY::RESOURCES\_SATURATION [  ](https://scrapfly.io/docs/scrape-api/error/ERR::PROXY::RESOURCES_SATURATION) 
 
 Proxy are saturated for the desired country, you can try on other countries. They will come back as soon as possible
 
@@ -5526,7 +5532,7 @@ Proxy are saturated for the desired country, you can try on other countries. The
 
  
 
-####  ERR::PROXY::TIMEOUT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::PROXY::TIMEOUT) 
+####  ERR::PROXY::TIMEOUT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::PROXY::TIMEOUT) 
 
 Proxy connection or website was too slow and timeout
 
@@ -5546,7 +5552,7 @@ Proxy connection or website was too slow and timeout
 
  
 
-####  ERR::PROXY::UNAVAILABLE [  ](https://scrapfly.home/docs/scrape-api/error/ERR::PROXY::UNAVAILABLE) 
+####  ERR::PROXY::UNAVAILABLE [  ](https://scrapfly.io/docs/scrape-api/error/ERR::PROXY::UNAVAILABLE) 
 
 Proxy is unavailable - The domain (mainly gov website) is restricted, You are using session feature and the proxy is unreachable at the moment
 
@@ -5569,7 +5575,7 @@ Proxy is unavailable - The domain (mainly gov website) is restricted, You are us
 
 ### Throttle Errors
 
-####  ERR::THROTTLE::MAX\_API\_CREDIT\_BUDGET\_EXCEEDED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::THROTTLE::MAX_API_CREDIT_BUDGET_EXCEEDED) 
+####  ERR::THROTTLE::MAX\_API\_CREDIT\_BUDGET\_EXCEEDED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::THROTTLE::MAX_API_CREDIT_BUDGET_EXCEEDED) 
 
 Your scrape request has been throttled. API Credit Budget reached. If it's not expected, please check your throttle configuration for the given project and env.
 
@@ -5589,7 +5595,7 @@ Your scrape request has been throttled. API Credit Budget reached. If it's not e
 
  
 
-####  ERR::THROTTLE::MAX\_CONCURRENT\_REQUEST\_EXCEEDED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED) 
+####  ERR::THROTTLE::MAX\_CONCURRENT\_REQUEST\_EXCEEDED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED) 
 
 Your scrape request has been throttled. Too many concurrent access to the upstream. If it's not expected, please check your throttle configuration for the given project and env.
 
@@ -5609,7 +5615,7 @@ Your scrape request has been throttled. Too many concurrent access to the upstre
 
  
 
-####  ERR::THROTTLE::MAX\_REQUEST\_RATE\_EXCEEDED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED) 
+####  ERR::THROTTLE::MAX\_REQUEST\_RATE\_EXCEEDED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::THROTTLE::MAX_REQUEST_RATE_EXCEEDED) 
 
 Your scrape request as been throttle. Too much request during the 1m window. If it's not expected, please check your throttle configuration for the given project and env
 
@@ -5631,7 +5637,7 @@ Your scrape request as been throttle. Too much request during the 1m window. If 
 
 ### Anti Scraping Protection (ASP) Errors
 
-####  ERR::ASP::CAPTCHA\_ERROR [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::CAPTCHA_ERROR) 
+####  ERR::ASP::CAPTCHA\_ERROR [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::CAPTCHA_ERROR) 
 
 Something wrong happened with the captcha. We will figure out to fix the problem as soon as possible
 
@@ -5650,7 +5656,7 @@ Something wrong happened with the captcha. We will figure out to fix the problem
 
  
 
-####  ERR::ASP::CAPTCHA\_TIMEOUT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::CAPTCHA_TIMEOUT) 
+####  ERR::ASP::CAPTCHA\_TIMEOUT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::CAPTCHA_TIMEOUT) 
 
 The budgeted time to solve the captcha is reached
 
@@ -5669,7 +5675,7 @@ The budgeted time to solve the captcha is reached
 
  
 
-####  ERR::ASP::SHIELD\_ERROR [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::SHIELD_ERROR) 
+####  ERR::ASP::SHIELD\_ERROR [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_ERROR) 
 
 The ASP encounter an unexpected problem. We will fix it as soon as possible. Our team has been alerted
 
@@ -5689,7 +5695,7 @@ The ASP encounter an unexpected problem. We will fix it as soon as possible. Our
 
  
 
-####  ERR::ASP::SHIELD\_EXPIRED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::SHIELD_EXPIRED) 
+####  ERR::ASP::SHIELD\_EXPIRED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_EXPIRED) 
 
 The ASP shield previously set is expired, you must retry.
 
@@ -5706,7 +5712,7 @@ The ASP shield previously set is expired, you must retry.
 
  
 
-####  ERR::ASP::SHIELD\_NOT\_ELIGIBLE [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::SHIELD_NOT_ELIGIBLE) 
+####  ERR::ASP::SHIELD\_NOT\_ELIGIBLE [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_NOT_ELIGIBLE) 
 
 The feature requested is not eligible while using the ASP for the given protection/target
 
@@ -5725,7 +5731,7 @@ The feature requested is not eligible while using the ASP for the given protecti
 
  
 
-####  ERR::ASP::SHIELD\_PROTECTION\_FAILED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED) 
+####  ERR::ASP::SHIELD\_PROTECTION\_FAILED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED) 
 
 The ASP shield failed to solve the challenge against the anti scrapping protection
 
@@ -5745,7 +5751,7 @@ The ASP shield failed to solve the challenge against the anti scrapping protecti
 
  
 
-####  ERR::ASP::TIMEOUT [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::TIMEOUT) 
+####  ERR::ASP::TIMEOUT [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::TIMEOUT) 
 
 The ASP made too much time to solve or respond
 
@@ -5765,7 +5771,7 @@ The ASP made too much time to solve or respond
 
  
 
-####  ERR::ASP::UNABLE\_TO\_SOLVE\_CAPTCHA [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::UNABLE_TO_SOLVE_CAPTCHA) 
+####  ERR::ASP::UNABLE\_TO\_SOLVE\_CAPTCHA [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::UNABLE_TO_SOLVE_CAPTCHA) 
 
 Despite our effort, we were unable to solve the captcha. It can happened sporadically, please retry
 
@@ -5784,7 +5790,7 @@ Despite our effort, we were unable to solve the captcha. It can happened sporadi
 
  
 
-####  ERR::ASP::UPSTREAM\_UNEXPECTED\_RESPONSE [  ](https://scrapfly.home/docs/scrape-api/error/ERR::ASP::UPSTREAM_UNEXPECTED_RESPONSE) 
+####  ERR::ASP::UPSTREAM\_UNEXPECTED\_RESPONSE [  ](https://scrapfly.io/docs/scrape-api/error/ERR::ASP::UPSTREAM_UNEXPECTED_RESPONSE) 
 
 The response given by the upstream after challenge resolution is not expected. Our team has been alerted
 
@@ -5805,7 +5811,7 @@ The response given by the upstream after challenge resolution is not expected. O
 
 ### Webhook Errors
 
-####  ERR::WEBHOOK::DISABLED [  ](https://scrapfly.home/docs/scrape-api/error/ERR::WEBHOOK::DISABLED) 
+####  ERR::WEBHOOK::DISABLED [  ](https://scrapfly.io/docs/scrape-api/error/ERR::WEBHOOK::DISABLED) 
 
 Given webhook is disabled, please check out your webhook configuration for the current project / env
 
@@ -5825,7 +5831,7 @@ Given webhook is disabled, please check out your webhook configuration for the c
 
  
 
-####  ERR::WEBHOOK::ENDPOINT\_UNREACHABLE [  ](https://scrapfly.home/docs/scrape-api/error/ERR::WEBHOOK::ENDPOINT_UNREACHABLE) 
+####  ERR::WEBHOOK::ENDPOINT\_UNREACHABLE [  ](https://scrapfly.io/docs/scrape-api/error/ERR::WEBHOOK::ENDPOINT_UNREACHABLE) 
 
 We were not able to contact your endpoint
 
@@ -5845,7 +5851,7 @@ We were not able to contact your endpoint
 
  
 
-####  ERR::WEBHOOK::QUEUE\_FULL [  ](https://scrapfly.home/docs/scrape-api/error/ERR::WEBHOOK::QUEUE_FULL) 
+####  ERR::WEBHOOK::QUEUE\_FULL [  ](https://scrapfly.io/docs/scrape-api/error/ERR::WEBHOOK::QUEUE_FULL) 
 
 You reach the maximum concurrency limit
 
@@ -5865,7 +5871,7 @@ You reach the maximum concurrency limit
 
  
 
-####  ERR::WEBHOOK::MAX\_RETRY [  ](https://scrapfly.home/docs/scrape-api/error/ERR::WEBHOOK::MAX_RETRY) 
+####  ERR::WEBHOOK::MAX\_RETRY [  ](https://scrapfly.io/docs/scrape-api/error/ERR::WEBHOOK::MAX_RETRY) 
 
 Maximum retry exceeded on your webhook
 
@@ -5885,7 +5891,7 @@ Maximum retry exceeded on your webhook
 
  
 
-####  ERR::WEBHOOK::NOT\_FOUND [  ](https://scrapfly.home/docs/scrape-api/error/ERR::WEBHOOK::NOT_FOUND) 
+####  ERR::WEBHOOK::NOT\_FOUND [  ](https://scrapfly.io/docs/scrape-api/error/ERR::WEBHOOK::NOT_FOUND) 
 
 Unable to find the given webhook for the current project / env
 
@@ -5905,7 +5911,7 @@ Unable to find the given webhook for the current project / env
 
  
 
-####  ERR::WEBHOOK::QUEUE\_FULL [  ](https://scrapfly.home/docs/scrape-api/error/ERR::WEBHOOK::QUEUE_FULL) 
+####  ERR::WEBHOOK::QUEUE\_FULL [  ](https://scrapfly.io/docs/scrape-api/error/ERR::WEBHOOK::QUEUE_FULL) 
 
 You reach the limit of scheduled webhook - You must wait pending webhook are processed
 
@@ -5927,7 +5933,7 @@ You reach the limit of scheduled webhook - You must wait pending webhook are pro
 
 ### Session Errors
 
-####  ERR::SESSION::CONCURRENT\_ACCESS [  ](https://scrapfly.home/docs/scrape-api/error/ERR::SESSION::CONCURRENT_ACCESS) 
+####  ERR::SESSION::CONCURRENT\_ACCESS [  ](https://scrapfly.io/docs/scrape-api/error/ERR::SESSION::CONCURRENT_ACCESS) 
 
 Concurrent access to the session has been tried. If your spider run on distributed architecture, the same session name is currently used by another scrape
 
@@ -5947,7 +5953,7 @@ Concurrent access to the session has been tried. If your spider run on distribut
 
  
 
- For complete details on each inherited error, see the [Web Scraping API Error Reference](https://scrapfly.home/docs/scrape-api/errors).
+ For complete details on each inherited error, see the [Web Scraping API Error Reference](https://scrapfly.io/docs/scrape-api/errors).
 
 ## HTTP Status Codes 
 
@@ -6001,15 +6007,15 @@ All error responses include detailed information in a consistent format:
  
 ## Related Documentation 
 
-- [Web Scraping API Errors (Complete List)](https://scrapfly.home/docs/scrape-api/errors)
-- [Crawler API Getting Started](https://scrapfly.home/docs/crawler-api/getting-started)
-- [Contact Support](https://scrapfly.home/docs/support)
+- [Web Scraping API Errors (Complete List)](https://scrapfly.io/docs/scrape-api/errors)
+- [Crawler API Getting Started](https://scrapfly.io/docs/crawler-api/getting-started)
+- [Contact Support](https://scrapfly.io/docs/support)
 
 # Crawler API Troubleshooting
 
- This guide covers common issues when using the Crawler API and how to resolve them. For API errors and error codes, see the [Errors page](https://scrapfly.home/docs/crawler-api/errors).
+ This guide covers common issues when using the Crawler API and how to resolve them. For API errors and error codes, see the [Errors page](https://scrapfly.io/docs/crawler-api/errors).
 
-  **Pro Tip:** Always check the [monitoring dashboard](https://scrapfly.home/docs/monitoring) to inspect crawler status, failed URLs, and detailed error information. 
+  **Pro Tip:** Always check the [monitoring dashboard](https://scrapfly.io/docs/monitoring) to inspect crawler status, failed URLs, and detailed error information. 
 
 ## Crawler Not Discovering URLs 
 
@@ -6073,7 +6079,7 @@ The most common cause is overly restrictive `include_only_paths` or `exclude_pat
 
  ```
 # Get all failed URLs with error details
-curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&status=failed
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=failed
 ```
 
  
@@ -6090,12 +6096,12 @@ curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993
 
  | Error Pattern | Solution |
 |---|---|
-| [`ERR::ASP::SHIELD_PROTECTION_FAILED`](https://scrapfly.home/docs/crawler-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED) | Enable `asp=true` to bypass anti-bot protection  This activates Anti-Scraping Protection |
-| [`ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED`](https://scrapfly.home/docs/crawler-api/error/ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED) | Reduce `max_concurrency` to avoid overwhelming the target server  Try starting with max\_concurrency=2 or 3 |
-| [`ERR::SCRAPE::UPSTREAM_TIMEOUT`](https://scrapfly.home/docs/crawler-api/error/ERR::SCRAPE::UPSTREAM_TIMEOUT) | Increase `timeout` parameter or reduce `rendering_wait`  Default timeout is 30 seconds, increase if needed |
-| [`ERR::SCRAPE::BAD_UPSTREAM_RESPONSE`](https://scrapfly.home/docs/crawler-api/error/ERR::SCRAPE::BAD_UPSTREAM_RESPONSE) | Verify the target domain is accessible and DNS is working correctly  Check if the website is online |
+| [`ERR::ASP::SHIELD_PROTECTION_FAILED`](https://scrapfly.io/docs/crawler-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED) | Enable `asp=true` to bypass anti-bot protection  This activates Anti-Scraping Protection |
+| [`ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED`](https://scrapfly.io/docs/crawler-api/error/ERR::THROTTLE::MAX_CONCURRENT_REQUEST_EXCEEDED) | Reduce `max_concurrency` to avoid overwhelming the target server  Try starting with max\_concurrency=2 or 3 |
+| [`ERR::SCRAPE::UPSTREAM_TIMEOUT`](https://scrapfly.io/docs/crawler-api/error/ERR::SCRAPE::UPSTREAM_TIMEOUT) | Increase `timeout` parameter or reduce `rendering_wait`  Default timeout is 30 seconds, increase if needed |
+| [`ERR::SCRAPE::BAD_UPSTREAM_RESPONSE`](https://scrapfly.io/docs/crawler-api/error/ERR::SCRAPE::BAD_UPSTREAM_RESPONSE) | Verify the target domain is accessible and DNS is working correctly  Check if the website is online |
 
- For complete error definitions and solutions, see the [Crawler API Errors page](https://scrapfly.home/docs/crawler-api/errors).
+ For complete error definitions and solutions, see the [Crawler API Errors page](https://scrapfly.io/docs/crawler-api/errors).
 
 ## Crawler Taking Too Long 
 
@@ -6178,7 +6184,7 @@ This crawler will stop after spending 1000 credits or 10000 pages, whichever com
  Check the crawler status endpoint to see current credit usage:
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b993b58675bdf71615
+curl https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
 ```
 
  
@@ -6201,7 +6207,7 @@ curl https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b9
 - **Use stricter path filtering** to crawl only necessary pages
 - **Choose efficient formats** - markdown and text are cheaper than full HTML
  
- For detailed pricing information, see [Crawler API Billing](https://scrapfly.home/docs/crawler-api/billing).
+ For detailed pricing information, see [Crawler API Billing](https://scrapfly.io/docs/crawler-api/billing).
 
 ## Debugging Tips 
 
@@ -6210,7 +6216,7 @@ curl https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b9
  The status endpoint provides real-time information about your crawler:
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b993b58675bdf71615
+curl https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
 ```
 
  
@@ -6236,7 +6242,7 @@ curl https://api.scrapfly.home/crawl/{uuid}/status?key=scp-live-d8ac176c2f9d48b9
  Get detailed error information for failed pages:
 
  ```
-curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993b58675bdf71615&status=failed
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=failed
 ```
 
  
@@ -6262,14 +6268,14 @@ curl https://api.scrapfly.home/crawl/{uuid}/urls?key=scp-live-d8ac176c2f9d48b993
 
  If you're still experiencing issues after trying these solutions:
 
-- Check the [monitoring dashboard](https://scrapfly.home/docs/monitoring) for detailed logs
-- Review the [error codes reference](https://scrapfly.home/docs/crawler-api/errors) for specific errors
-- Contact [support](https://scrapfly.home/docs/support) with your crawler UUID for personalized assistance
+- Check the [monitoring dashboard](https://scrapfly.io/docs/monitoring) for detailed logs
+- Review the [error codes reference](https://scrapfly.io/docs/crawler-api/errors) for specific errors
+- Contact [support](https://scrapfly.io/docs/support) with your crawler UUID for personalized assistance
  
 ## Related Documentation 
 
-- [Crawler API Getting Started](https://scrapfly.home/docs/crawler-api/getting-started)
-- [Crawler API Errors](https://scrapfly.home/docs/crawler-api/errors)
-- [Crawler API Billing](https://scrapfly.home/docs/crawler-api/billing)
-- [Monitoring Dashboard](https://scrapfly.home/docs/monitoring)
+- [Crawler API Getting Started](https://scrapfly.io/docs/crawler-api/getting-started)
+- [Crawler API Errors](https://scrapfly.io/docs/crawler-api/errors)
+- [Crawler API Billing](https://scrapfly.io/docs/crawler-api/billing)
+- [Monitoring Dashboard](https://scrapfly.io/docs/monitoring)
 

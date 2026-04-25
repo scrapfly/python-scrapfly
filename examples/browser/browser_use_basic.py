@@ -12,8 +12,8 @@ from scrapfly import ScrapflyClient, BrowserConfig
 from browser_use import Browser, BrowserProfile
 
 scrapfly = ScrapflyClient(
-    key='scp-live-d8ac176c2f9d48b993b58675bdf71615',
-    cloud_browser_host='wss://browser.scrapfly.home',
+    key='scp-live-YOUR_API_KEY_HERE',
+    cloud_browser_host='wss://browser.scrapfly.local',
     verify=False,
 )
 

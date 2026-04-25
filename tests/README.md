@@ -31,7 +31,7 @@ pip install pytest pytest-asyncio
 Set environment variables (optional):
 ```bash
 export SCRAPFLY_KEY="your-api-key"
-export SCRAPFLY_API_HOST="https://api.scrapfly.home"
+export SCRAPFLY_API_HOST="https://api.scrapfly.local"
 ```
 
 ### Run All Tests

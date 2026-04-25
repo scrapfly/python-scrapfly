@@ -20,13 +20,13 @@ SDK brief:
 
 Required env vars (already loaded by conftest.py):
     SCRAPFLY_KEY        Dev API key (e.g. scp-live-...)
-    SCRAPFLY_API_HOST   Local Scrapfly API (e.g. https://api.scrapfly.home)
+    SCRAPFLY_API_HOST   Local Scrapfly API (e.g. https://api.scrapfly.local)
 
 Optional env var (this file only):
     WEB_SCRAPING_DEV_BASE   Trap app base URL.
                             Defaults to https://web-scraping.dev (public prod).
-                            Override to https://web-scraping-dev.home for the
-                            local k3d cluster.
+                            Override to https://web-scraping-dev.local for the
+                            local self-hosted dev cluster.
 
 Run:
     pytest tests/crawler/test_compliance.py -m compliance -xvs
@@ -42,7 +42,7 @@ from scrapfly import Crawl, CrawlerConfig
 from .conftest import assert_crawl_successful
 
 
-# Suppress the noisy InsecureRequestWarning from urllib3 — the local k3d
+# Suppress the noisy InsecureRequestWarning from urllib3 — the local dev cluster
 # Traefik certs are self-signed; the SDK fixture and our httpx clients all
 # use verify=False intentionally.
 warnings.filterwarnings("ignore", category=Warning, module="urllib3")

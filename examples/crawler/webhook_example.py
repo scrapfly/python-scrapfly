@@ -39,7 +39,7 @@ def example_flask_webhook():
     from flask import Flask, request
 
     app = Flask(__name__)
-    SIGNING_SECRETS = ('your-secret-hex-here',)
+    SIGNING_SECRETS = ('YOUR-WEBHOOK-SIGNING-SECRET',)  # copy as-is from the dashboard
 
     @app.route('/webhook', methods=['POST'])
     def webhook():

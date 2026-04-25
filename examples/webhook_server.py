@@ -10,7 +10,7 @@ from scrapfly.webhook import ResourceType
 #### Instructions
 # 1. Install dependencies: `pip install ngrok flask scrapfly`
 # 2. Export your authtoken from the ngrok dashboard https://dashboard.ngrok.com/get-started/your-authtoken  as NGROK_AUTHTOKEN in your terminal
-# 3. Create a webhook on your dashboard https://scrapfly.home/dashboard/webhook/create
+# 3. Create a webhook on your dashboard https://scrapfly.io/dashboard/webhook/create
 # 4. Retrieve your Webhook signing secret
 # 5. Run this script e.g: python webhook_server.py --signing-secret=<signing-secret>
 
