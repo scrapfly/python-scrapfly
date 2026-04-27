@@ -90,8 +90,9 @@ dataclass handles all four.</li>
     Args:
         payload: The full webhook body as a dict (i.e. what you get from
             ``request.json``).
-        signing_secrets: Optional tuple of signing secrets (hex strings) for
-            signature verification.
+        signing_secrets: Optional tuple of signing secrets for signature
+            verification. Pass each secret as it appears in the webhook
+            dashboard (UTF-8 string, not hex-encoded).
         signature: Optional webhook signature header value
             (``X-Scrapfly-Webhook-Signature``).
 
@@ -111,7 +112,7 @@ dataclass handles all four.</li>
         ... def handle_webhook():
         ...     wh = webhook_from_payload(
         ...         request.json,
-        ...         signing_secrets=(&#39;your-secret-hex&#39;,),
+        ...         signing_secrets=(&#39;YOUR-WEBHOOK-SIGNING-SECRET&#39;,),
         ...         signature=request.headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;),
         ...     )
         ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == &#39;crawler_finished&#39;:
@@ -151,8 +152,9 @@ dataclass — one of :data:<code>CrawlerWebhook</code>.</p>
 <dd>The full webhook body as a dict (i.e. what you get from
 <code>request.json</code>).</dd>
 <dt><strong><code>signing_secrets</code></strong></dt>
-<dd>Optional tuple of signing secrets (hex strings) for
-signature verification.</dd>
+<dd>Optional tuple of signing secrets for signature
+verification. Pass each secret as it appears in the webhook
+dashboard (UTF-8 string, not hex-encoded).</dd>
 <dt><strong><code>signature</code></strong></dt>
 <dd>Optional webhook signature header value
 (<code>X-Scrapfly-Webhook-Signature</code>).</dd>
@@ -176,7 +178,7 @@ signature verification.</dd>
 ... def handle_webhook():
 ...     wh = webhook_from_payload(
 ...         request.json,
-...         signing_secrets=('your-secret-hex',),
+...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
 ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
 ...     )
 ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == 'crawler_finished':

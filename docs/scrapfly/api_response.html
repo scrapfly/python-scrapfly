@@ -611,7 +611,7 @@ def extraction_success(self) -&gt; bool:
             _secrets = set()
 
             for signing_secret in signing_secrets:
-                _secrets.add(binascii.unhexlify(signing_secret))
+                _secrets.add(signing_secret.encode(&#39;utf-8&#39;))
 
             self._signing_secret = tuple(_secrets)
 
@@ -637,7 +637,18 @@ def extraction_success(self) -&gt; bool:
 
     def verify(self, message: bytes, signature: str) -&gt; bool:
         for signing_secret in self._signing_secret:
-            if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
+            logger.debug(
+                &#39;WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s&#39;,
+                len(signing_secret),
+                hashlib.sha256(signing_secret).hexdigest()[:16],
+                len(message),
+                hashlib.sha256(message).hexdigest()[:16],
+                computed,
+                signature,
+                computed == signature,
+            )
+            if computed == signature:
                 return True
 
         return False
@@ -819,7 +830,18 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </summary>
 <pre><code class="python">def verify(self, message: bytes, signature: str) -&gt; bool:
     for signing_secret in self._signing_secret:
-        if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+        computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
+        logger.debug(
+            &#39;WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s&#39;,
+            len(signing_secret),
+            hashlib.sha256(signing_secret).hexdigest()[:16],
+            len(message),
+            hashlib.sha256(message).hexdigest()[:16],
+            computed,
+            signature,
+            computed == signature,
+        )
+        if computed == signature:
             return True
 
     return False</code></pre>

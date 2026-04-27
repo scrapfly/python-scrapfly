@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>scrapfly.schedule API documentation</title>
+<meta name="description" content="Public schedule client for the Scrapfly API …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.schedule</code></h1>
+</header>
+<section id="section-intro">
+<p>Public schedule client for the Scrapfly API.</p>
+<p>This module wraps the /scrape/schedules, /screenshot/schedules,
+/crawl/schedules and cross-kind /schedules endpoints. It is intentionally
+a thin wrapper: the server returns fully-formed Schedule objects (dicts)
+and we surface them as-is so callers always see the live server shape.</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.schedule.CreateScheduleRequest"><code class="flex name class">
+<span>class <span class="ident">CreateScheduleRequest</span></span>
+<span>(</span><span>webhook_name: str = '',<br>recurrence: <a title="scrapfly.schedule.ScheduleRecurrence" href="#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a> | None = None,<br>scheduled_date: str | None = None,<br>allow_concurrency: bool = False,<br>retry_on_failure: bool = False,<br>max_retries: int | None = None,<br>notes: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CreateScheduleRequest:
+    &#34;&#34;&#34;Public-facing request envelope for creating a schedule.
+
+    The kind-specific configuration (scrape_config / screenshot_config /
+    crawler_config) is supplied as a separate argument by the matching
+    ``create_*_schedule`` method.
+    &#34;&#34;&#34;
+    webhook_name: str = &#34;&#34;
+    recurrence: Optional[ScheduleRecurrence] = None
+    scheduled_date: Optional[str] = None
+    allow_concurrency: bool = False
+    retry_on_failure: bool = False
+    max_retries: Optional[int] = None
+    notes: Optional[str] = None</code></pre>
+</details>
+<div class="desc"><p>Public-facing request envelope for creating a schedule.</p>
+<p>The kind-specific configuration (scrape_config / screenshot_config /
+crawler_config) is supplied as a separate argument by the matching
+<code>create_*_schedule</code> method.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.schedule.CreateScheduleRequest.allow_concurrency"><code class="name">var <span class="ident">allow_concurrency</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.CreateScheduleRequest.max_retries"><code class="name">var <span class="ident">max_retries</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.CreateScheduleRequest.notes"><code class="name">var <span class="ident">notes</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.CreateScheduleRequest.recurrence"><code class="name">var <span class="ident">recurrence</span> : <a title="scrapfly.schedule.ScheduleRecurrence" href="#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a> | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.CreateScheduleRequest.retry_on_failure"><code class="name">var <span class="ident">retry_on_failure</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.CreateScheduleRequest.scheduled_date"><code class="name">var <span class="ident">scheduled_date</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.CreateScheduleRequest.webhook_name"><code class="name">var <span class="ident">webhook_name</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.schedule.ListSchedulesOptions"><code class="flex name class">
+<span>class <span class="ident">ListSchedulesOptions</span></span>
+<span>(</span><span>kind: str | None = None, status: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class ListSchedulesOptions:
+    &#34;&#34;&#34;Filter options for list_schedules / list_&lt;kind&gt;_schedules. Use either
+    this dataclass or the equivalent keyword arguments interchangeably.&#34;&#34;&#34;
+    kind: Optional[str] = None  # &#34;api.scrape&#34; | &#34;api.screenshot&#34; | &#34;api.crawler&#34;
+    status: Optional[str] = None  # &#34;ACTIVE&#34; | &#34;PAUSED&#34; | &#34;CANCELLED&#34;</code></pre>
+</details>
+<div class="desc"><p>Filter options for list_schedules / list_<kind>_schedules. Use either
+this dataclass or the equivalent keyword arguments interchangeably.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.schedule.ListSchedulesOptions.kind"><code class="name">var <span class="ident">kind</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ListSchedulesOptions.status"><code class="name">var <span class="ident">status</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.schedule.ScheduleAPIError"><code class="flex name class">
+<span>class <span class="ident">ScheduleAPIError</span></span>
+<span>(</span><span>message: str, code: str, http_status_code: int, details: Any = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScheduleAPIError(Exception):
+    &#34;&#34;&#34;Raised on any non-2xx response from a /schedules/* endpoint.
+
+    The ``code`` attribute carries the public ``ERR::SCHEDULER::*`` identifier
+    so callers can branch on it without parsing the message string.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        message: str,
+        code: str,
+        http_status_code: int,
+        details: Any = None,
+    ) -&gt; None:
+        super().__init__(message)
+        self.code = code
+        self.http_status_code = http_status_code
+        self.details = details
+
+    def __str__(self) -&gt; str:  # noqa: D401
+        return f&#34;{self.code} ({self.http_status_code}): {self.args[0] if self.args else &#39;&#39;}&#34;</code></pre>
+</details>
+<div class="desc"><p>Raised on any non-2xx response from a /schedules/* endpoint.</p>
+<p>The <code>code</code> attribute carries the public <code>ERR::SCHEDULER::*</code> identifier
+so callers can branch on it without parsing the message string.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin"><code class="flex name class">
+<span>class <span class="ident">ScheduleClientMixin</span></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScheduleClientMixin:
+    &#34;&#34;&#34;Mixed into ScrapflyClient — provides the public schedule surface.
+
+    All methods funnel through ``_schedule_request``, which uses the same
+    ``self._http_handler`` and ``self.host`` / ``self.key`` as the rest of the
+    client so retries, verify, headers and timeouts behave identically.
+    &#34;&#34;&#34;
+
+    # Attributes provided by the concrete ``ScrapflyClient`` subclass. Declared
+    # here so type checkers can resolve them on the mixin without complaint.
+    key: str
+    host: str
+    verify: bool
+    ua: str
+    _http_handler: Callable[..., Any]
+
+    # ---- Create ---------------------------------------------------------
+
+    def create_scrape_schedule(
+        self,
+        scrape_config: Dict[str, Any],
+        request: CreateScheduleRequest,
+    ) -&gt; Schedule:
+        &#34;&#34;&#34;Create a Web Scraping API schedule. ``scrape_config`` is the same
+        dict you would pass to :meth:`scrape` (e.g. ``{&#34;url&#34;: &#34;...&#34;, &#34;render_js&#34;: True}``).&#34;&#34;&#34;
+        return self._create_schedule(&#34;/scrape/schedules&#34;, &#34;scrape_config&#34;, scrape_config, request)
+
+    def create_screenshot_schedule(
+        self,
+        screenshot_config: Dict[str, Any],
+        request: CreateScheduleRequest,
+    ) -&gt; Schedule:
+        &#34;&#34;&#34;Create a Screenshot API schedule.&#34;&#34;&#34;
+        return self._create_schedule(
+            &#34;/screenshot/schedules&#34;, &#34;screenshot_config&#34;, screenshot_config, request
+        )
+
+    def create_crawler_schedule(
+        self,
+        crawler_config: Dict[str, Any],
+        request: CreateScheduleRequest,
+    ) -&gt; Schedule:
+        &#34;&#34;&#34;Create a Crawler API schedule.&#34;&#34;&#34;
+        return self._create_schedule(
+            &#34;/crawl/schedules&#34;, &#34;crawler_config&#34;, crawler_config, request
+        )
+
+    # ---- Read -----------------------------------------------------------
+
+    def get_schedule(self, schedule_id: str) -&gt; Schedule:
+        &#34;&#34;&#34;Return a schedule by id (works across all kinds).&#34;&#34;&#34;
+        return self._schedule_request(&#34;GET&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))
+
+    def list_schedules(
+        self,
+        *,
+        kind: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -&gt; List[Schedule]:
+        &#34;&#34;&#34;List every schedule on the account, optionally filtered by kind or status.&#34;&#34;&#34;
+        params: Dict[str, str] = {}
+        if kind:
+            params[&#34;kind&#34;] = kind
+        if status:
+            params[&#34;status&#34;] = status
+        return self._schedule_request(&#34;GET&#34;, &#34;/schedules&#34;, query=params)
+
+    def list_scrape_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+        params = {&#34;status&#34;: status} if status else None
+        return self._schedule_request(&#34;GET&#34;, &#34;/scrape/schedules&#34;, query=params)
+
+    def list_screenshot_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+        params = {&#34;status&#34;: status} if status else None
+        return self._schedule_request(&#34;GET&#34;, &#34;/screenshot/schedules&#34;, query=params)
+
+    def list_crawler_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+        params = {&#34;status&#34;: status} if status else None
+        return self._schedule_request(&#34;GET&#34;, &#34;/crawl/schedules&#34;, query=params)
+
+    # ---- Mutate ---------------------------------------------------------
+
+    def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -&gt; Schedule:
+        &#34;&#34;&#34;Patch an active schedule. Only fields set in ``request`` change.&#34;&#34;&#34;
+        return self._schedule_request(
+            &#34;PATCH&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;), body=request.to_dict()
+        )
+
+    def cancel_schedule(self, schedule_id: str) -&gt; None:
+        &#34;&#34;&#34;Cancel a schedule. Cancellation is terminal (returns no body).&#34;&#34;&#34;
+        self._schedule_request(&#34;DELETE&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))
+
+    def pause_schedule(self, schedule_id: str) -&gt; Schedule:
+        return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/pause&#34;)
+
+    def resume_schedule(self, schedule_id: str) -&gt; Schedule:
+        return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/resume&#34;)
+
+    def execute_schedule(self, schedule_id: str) -&gt; Schedule:
+        &#34;&#34;&#34;Fire a schedule immediately, regardless of next_scheduled_date.&#34;&#34;&#34;
+        return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/execute&#34;)
+
+    # ---- Internals ------------------------------------------------------
+
+    def _create_schedule(
+        self,
+        path: str,
+        config_key: str,
+        config: Dict[str, Any],
+        request: CreateScheduleRequest,
+    ) -&gt; Schedule:
+        body: Dict[str, Any] = {
+            config_key: config,
+            &#34;webhook_name&#34;: request.webhook_name,
+            &#34;allow_concurrency&#34;: request.allow_concurrency,
+            &#34;retry_on_failure&#34;: request.retry_on_failure,
+        }
+        if request.recurrence is not None:
+            body[&#34;recurrence&#34;] = request.recurrence.to_dict()
+        if request.scheduled_date is not None:
+            body[&#34;scheduled_date&#34;] = request.scheduled_date
+        if request.max_retries is not None:
+            body[&#34;max_retries&#34;] = request.max_retries
+        if request.notes is not None:
+            body[&#34;notes&#34;] = request.notes
+        return self._schedule_request(&#34;POST&#34;, path, body=body)
+
+    def _schedule_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        query: Optional[Dict[str, str]] = None,
+        body: Optional[Dict[str, Any]] = None,
+    ) -&gt; Any:
+        params: Dict[str, str] = {&#34;key&#34;: self.key}
+        if query:
+            params.update(query)
+
+        kwargs: Dict[str, Any] = {
+            &#34;method&#34;: method,
+            &#34;url&#34;: self.host + path,
+            &#34;params&#34;: params,
+            &#34;verify&#34;: self.verify,
+            &#34;headers&#34;: {
+                &#34;user-agent&#34;: self.ua,
+                &#34;accept&#34;: &#34;application/json&#34;,
+            },
+        }
+        if body is not None:
+            kwargs[&#34;json&#34;] = body
+            kwargs[&#34;headers&#34;][&#34;content-type&#34;] = &#34;application/json&#34;
+
+        response = self._http_handler(**kwargs)
+
+        if response.status_code == 204:
+            return None
+        if response.status_code &gt;= 400:
+            self._raise_schedule_error(response)
+
+        if not response.content:
+            return None
+        return response.json()
+
+    def _raise_schedule_error(self, response) -&gt; None:
+        try:
+            envelope = response.json()
+        except Exception:
+            envelope = {}
+        code = envelope.get(&#34;error&#34;, &#34;ERR::SCHEDULER::BACKEND_ERROR&#34;)
+        message = envelope.get(&#34;message&#34;, &#34;&#34;)
+        reason = envelope.get(&#34;reason&#34;, &#34;&#34;)
+        details = envelope.get(&#34;details&#34;)
+        text = message
+        if reason:
+            text = f&#34;{message} ({reason})&#34; if message else reason
+        if not text:
+            text = response.text[:500] or f&#34;HTTP {response.status_code}&#34;
+
+        raise ScheduleAPIError(
+            message=text,
+            code=code,
+            http_status_code=response.status_code,
+            details=details,
+        )</code></pre>
+</details>
+<div class="desc"><p>Mixed into ScrapflyClient — provides the public schedule surface.</p>
+<p>All methods funnel through <code>_schedule_request</code>, which uses the same
+<code>self._http_handler</code> and <code>self.host</code> / <code>self.key</code> as the rest of the
+client so retries, verify, headers and timeouts behave identically.</p></div>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="scrapfly.client.ScrapflyClient" href="client.html#scrapfly.client.ScrapflyClient">ScrapflyClient</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.schedule.ScheduleClientMixin.host"><code class="name">var <span class="ident">host</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.key"><code class="name">var <span class="ident">key</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.ua"><code class="name">var <span class="ident">ua</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.verify"><code class="name">var <span class="ident">verify</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.schedule.ScheduleClientMixin.cancel_schedule"><code class="name flex">
+<span>def <span class="ident">cancel_schedule</span></span>(<span>self, schedule_id: str) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cancel_schedule(self, schedule_id: str) -&gt; None:
+    &#34;&#34;&#34;Cancel a schedule. Cancellation is terminal (returns no body).&#34;&#34;&#34;
+    self._schedule_request(&#34;DELETE&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))</code></pre>
+</details>
+<div class="desc"><p>Cancel a schedule. Cancellation is terminal (returns no body).</p></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.create_crawler_schedule"><code class="name flex">
+<span>def <span class="ident">create_crawler_schedule</span></span>(<span>self,<br>crawler_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_crawler_schedule(
+    self,
+    crawler_config: Dict[str, Any],
+    request: CreateScheduleRequest,
+) -&gt; Schedule:
+    &#34;&#34;&#34;Create a Crawler API schedule.&#34;&#34;&#34;
+    return self._create_schedule(
+        &#34;/crawl/schedules&#34;, &#34;crawler_config&#34;, crawler_config, request
+    )</code></pre>
+</details>
+<div class="desc"><p>Create a Crawler API schedule.</p></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule"><code class="name flex">
+<span>def <span class="ident">create_scrape_schedule</span></span>(<span>self,<br>scrape_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_scrape_schedule(
+    self,
+    scrape_config: Dict[str, Any],
+    request: CreateScheduleRequest,
+) -&gt; Schedule:
+    &#34;&#34;&#34;Create a Web Scraping API schedule. ``scrape_config`` is the same
+    dict you would pass to :meth:`scrape` (e.g. ``{&#34;url&#34;: &#34;...&#34;, &#34;render_js&#34;: True}``).&#34;&#34;&#34;
+    return self._create_schedule(&#34;/scrape/schedules&#34;, &#34;scrape_config&#34;, scrape_config, request)</code></pre>
+</details>
+<div class="desc"><p>Create a Web Scraping API schedule. <code>scrape_config</code> is the same
+dict you would pass to :meth:<code>scrape</code> (e.g. <code>{"url": "...", "render_js": True}</code>).</p></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule"><code class="name flex">
+<span>def <span class="ident">create_screenshot_schedule</span></span>(<span>self,<br>screenshot_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_screenshot_schedule(
+    self,
+    screenshot_config: Dict[str, Any],
+    request: CreateScheduleRequest,
+) -&gt; Schedule:
+    &#34;&#34;&#34;Create a Screenshot API schedule.&#34;&#34;&#34;
+    return self._create_schedule(
+        &#34;/screenshot/schedules&#34;, &#34;screenshot_config&#34;, screenshot_config, request
+    )</code></pre>
+</details>
+<div class="desc"><p>Create a Screenshot API schedule.</p></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.execute_schedule"><code class="name flex">
+<span>def <span class="ident">execute_schedule</span></span>(<span>self, schedule_id: str) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def execute_schedule(self, schedule_id: str) -&gt; Schedule:
+    &#34;&#34;&#34;Fire a schedule immediately, regardless of next_scheduled_date.&#34;&#34;&#34;
+    return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/execute&#34;)</code></pre>
+</details>
+<div class="desc"><p>Fire a schedule immediately, regardless of next_scheduled_date.</p></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.get_schedule"><code class="name flex">
+<span>def <span class="ident">get_schedule</span></span>(<span>self, schedule_id: str) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_schedule(self, schedule_id: str) -&gt; Schedule:
+    &#34;&#34;&#34;Return a schedule by id (works across all kinds).&#34;&#34;&#34;
+    return self._schedule_request(&#34;GET&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))</code></pre>
+</details>
+<div class="desc"><p>Return a schedule by id (works across all kinds).</p></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.list_crawler_schedules"><code class="name flex">
+<span>def <span class="ident">list_crawler_schedules</span></span>(<span>self, *, status: str | None = None) ‑> List[Dict[str, Any]]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_crawler_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+    params = {&#34;status&#34;: status} if status else None
+    return self._schedule_request(&#34;GET&#34;, &#34;/crawl/schedules&#34;, query=params)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.list_schedules"><code class="name flex">
+<span>def <span class="ident">list_schedules</span></span>(<span>self, *, kind: str | None = None, status: str | None = None) ‑> List[Dict[str, Any]]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_schedules(
+    self,
+    *,
+    kind: Optional[str] = None,
+    status: Optional[str] = None,
+) -&gt; List[Schedule]:
+    &#34;&#34;&#34;List every schedule on the account, optionally filtered by kind or status.&#34;&#34;&#34;
+    params: Dict[str, str] = {}
+    if kind:
+        params[&#34;kind&#34;] = kind
+    if status:
+        params[&#34;status&#34;] = status
+    return self._schedule_request(&#34;GET&#34;, &#34;/schedules&#34;, query=params)</code></pre>
+</details>
+<div class="desc"><p>List every schedule on the account, optionally filtered by kind or status.</p></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.list_scrape_schedules"><code class="name flex">
+<span>def <span class="ident">list_scrape_schedules</span></span>(<span>self, *, status: str | None = None) ‑> List[Dict[str, Any]]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_scrape_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+    params = {&#34;status&#34;: status} if status else None
+    return self._schedule_request(&#34;GET&#34;, &#34;/scrape/schedules&#34;, query=params)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.list_screenshot_schedules"><code class="name flex">
+<span>def <span class="ident">list_screenshot_schedules</span></span>(<span>self, *, status: str | None = None) ‑> List[Dict[str, Any]]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_screenshot_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+    params = {&#34;status&#34;: status} if status else None
+    return self._schedule_request(&#34;GET&#34;, &#34;/screenshot/schedules&#34;, query=params)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.pause_schedule"><code class="name flex">
+<span>def <span class="ident">pause_schedule</span></span>(<span>self, schedule_id: str) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pause_schedule(self, schedule_id: str) -&gt; Schedule:
+    return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/pause&#34;)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.resume_schedule"><code class="name flex">
+<span>def <span class="ident">resume_schedule</span></span>(<span>self, schedule_id: str) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def resume_schedule(self, schedule_id: str) -&gt; Schedule:
+    return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/resume&#34;)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleClientMixin.update_schedule"><code class="name flex">
+<span>def <span class="ident">update_schedule</span></span>(<span>self,<br>schedule_id: str,<br>request: <a title="scrapfly.schedule.UpdateScheduleRequest" href="#scrapfly.schedule.UpdateScheduleRequest">UpdateScheduleRequest</a>) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -&gt; Schedule:
+    &#34;&#34;&#34;Patch an active schedule. Only fields set in ``request`` change.&#34;&#34;&#34;
+    return self._schedule_request(
+        &#34;PATCH&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;), body=request.to_dict()
+    )</code></pre>
+</details>
+<div class="desc"><p>Patch an active schedule. Only fields set in <code>request</code> change.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.schedule.ScheduleEnd"><code class="flex name class">
+<span>class <span class="ident">ScheduleEnd</span></span>
+<span>(</span><span>type: str, date: str | None = None, count: int | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class ScheduleEnd:
+    &#34;&#34;&#34;Bounds a recurring schedule by either a date or a fire count.&#34;&#34;&#34;
+    type: str  # &#34;date&#34; | &#34;count&#34;
+    date: Optional[str] = None
+    count: Optional[int] = None</code></pre>
+</details>
+<div class="desc"><p>Bounds a recurring schedule by either a date or a fire count.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.schedule.ScheduleEnd.count"><code class="name">var <span class="ident">count</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleEnd.date"><code class="name">var <span class="ident">date</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleEnd.type"><code class="name">var <span class="ident">type</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.schedule.ScheduleRecurrence"><code class="flex name class">
+<span>class <span class="ident">ScheduleRecurrence</span></span>
+<span>(</span><span>cron: str | None = None,<br>interval: int | None = None,<br>unit: str | None = None,<br>days: List[str] | None = None,<br>ends: <a title="scrapfly.schedule.ScheduleEnd" href="#scrapfly.schedule.ScheduleEnd">ScheduleEnd</a> | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class ScheduleRecurrence:
+    &#34;&#34;&#34;When a schedule fires next.
+
+    Cron mode wins when ``cron`` is set; otherwise ``interval`` + ``unit``
+    drive the cadence. All times are interpreted in UTC server-side.
+    &#34;&#34;&#34;
+    cron: Optional[str] = None
+    interval: Optional[int] = None
+    unit: Optional[str] = None  # &#34;minute&#34; | &#34;hour&#34; | &#34;day&#34; | &#34;week&#34; | &#34;month&#34;
+    days: Optional[List[str]] = None
+    ends: Optional[ScheduleEnd] = None
+
+    def to_dict(self) -&gt; Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        if self.cron:
+            out[&#34;cron&#34;] = self.cron
+        if self.interval is not None:
+            out[&#34;interval&#34;] = self.interval
+        if self.unit:
+            out[&#34;unit&#34;] = self.unit
+        if self.days:
+            out[&#34;days&#34;] = self.days
+        if self.ends:
+            ends: Dict[str, Any] = {&#34;type&#34;: self.ends.type}
+            if self.ends.date:
+                ends[&#34;date&#34;] = self.ends.date
+            if self.ends.count is not None:
+                ends[&#34;count&#34;] = self.ends.count
+            out[&#34;ends&#34;] = ends
+        return out</code></pre>
+</details>
+<div class="desc"><p>When a schedule fires next.</p>
+<p>Cron mode wins when <code>cron</code> is set; otherwise <code>interval</code> + <code>unit</code>
+drive the cadence. All times are interpreted in UTC server-side.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.schedule.ScheduleRecurrence.cron"><code class="name">var <span class="ident">cron</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleRecurrence.days"><code class="name">var <span class="ident">days</span> : List[str] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleRecurrence.ends"><code class="name">var <span class="ident">ends</span> : <a title="scrapfly.schedule.ScheduleEnd" href="#scrapfly.schedule.ScheduleEnd">ScheduleEnd</a> | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleRecurrence.interval"><code class="name">var <span class="ident">interval</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.ScheduleRecurrence.unit"><code class="name">var <span class="ident">unit</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.schedule.ScheduleRecurrence.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    if self.cron:
+        out[&#34;cron&#34;] = self.cron
+    if self.interval is not None:
+        out[&#34;interval&#34;] = self.interval
+    if self.unit:
+        out[&#34;unit&#34;] = self.unit
+    if self.days:
+        out[&#34;days&#34;] = self.days
+    if self.ends:
+        ends: Dict[str, Any] = {&#34;type&#34;: self.ends.type}
+        if self.ends.date:
+            ends[&#34;date&#34;] = self.ends.date
+        if self.ends.count is not None:
+            ends[&#34;count&#34;] = self.ends.count
+        out[&#34;ends&#34;] = ends
+    return out</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest"><code class="flex name class">
+<span>class <span class="ident">UpdateScheduleRequest</span></span>
+<span>(</span><span>recurrence: <a title="scrapfly.schedule.ScheduleRecurrence" href="#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a> | None = None,<br>scheduled_date: str | None = None,<br>allow_concurrency: bool | None = None,<br>retry_on_failure: bool | None = None,<br>max_retries: int | None = None,<br>notes: str | None = None,<br>scrape_config: Dict[str, Any] | None = None,<br>screenshot_config: Dict[str, Any] | None = None,<br>crawler_config: Dict[str, Any] | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class UpdateScheduleRequest:
+    &#34;&#34;&#34;Patch payload. Only fields with a non-None value are forwarded.&#34;&#34;&#34;
+    recurrence: Optional[ScheduleRecurrence] = None
+    scheduled_date: Optional[str] = None
+    allow_concurrency: Optional[bool] = None
+    retry_on_failure: Optional[bool] = None
+    max_retries: Optional[int] = None
+    notes: Optional[str] = None
+    scrape_config: Optional[Dict[str, Any]] = None
+    screenshot_config: Optional[Dict[str, Any]] = None
+    crawler_config: Optional[Dict[str, Any]] = None
+
+    def to_dict(self) -&gt; Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        if self.recurrence is not None:
+            out[&#34;recurrence&#34;] = self.recurrence.to_dict()
+        if self.scheduled_date is not None:
+            out[&#34;scheduled_date&#34;] = self.scheduled_date
+        if self.allow_concurrency is not None:
+            out[&#34;allow_concurrency&#34;] = self.allow_concurrency
+        if self.retry_on_failure is not None:
+            out[&#34;retry_on_failure&#34;] = self.retry_on_failure
+        if self.max_retries is not None:
+            out[&#34;max_retries&#34;] = self.max_retries
+        if self.notes is not None:
+            out[&#34;notes&#34;] = self.notes
+        if self.scrape_config is not None:
+            out[&#34;scrape_config&#34;] = self.scrape_config
+        if self.screenshot_config is not None:
+            out[&#34;screenshot_config&#34;] = self.screenshot_config
+        if self.crawler_config is not None:
+            out[&#34;crawler_config&#34;] = self.crawler_config
+        return out</code></pre>
+</details>
+<div class="desc"><p>Patch payload. Only fields with a non-None value are forwarded.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.allow_concurrency"><code class="name">var <span class="ident">allow_concurrency</span> : bool | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.crawler_config"><code class="name">var <span class="ident">crawler_config</span> : Dict[str, Any] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.max_retries"><code class="name">var <span class="ident">max_retries</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.notes"><code class="name">var <span class="ident">notes</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.recurrence"><code class="name">var <span class="ident">recurrence</span> : <a title="scrapfly.schedule.ScheduleRecurrence" href="#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a> | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.retry_on_failure"><code class="name">var <span class="ident">retry_on_failure</span> : bool | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.scheduled_date"><code class="name">var <span class="ident">scheduled_date</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : Dict[str, Any] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.screenshot_config"><code class="name">var <span class="ident">screenshot_config</span> : Dict[str, Any] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.schedule.UpdateScheduleRequest.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    if self.recurrence is not None:
+        out[&#34;recurrence&#34;] = self.recurrence.to_dict()
+    if self.scheduled_date is not None:
+        out[&#34;scheduled_date&#34;] = self.scheduled_date
+    if self.allow_concurrency is not None:
+        out[&#34;allow_concurrency&#34;] = self.allow_concurrency
+    if self.retry_on_failure is not None:
+        out[&#34;retry_on_failure&#34;] = self.retry_on_failure
+    if self.max_retries is not None:
+        out[&#34;max_retries&#34;] = self.max_retries
+    if self.notes is not None:
+        out[&#34;notes&#34;] = self.notes
+    if self.scrape_config is not None:
+        out[&#34;scrape_config&#34;] = self.scrape_config
+    if self.screenshot_config is not None:
+        out[&#34;screenshot_config&#34;] = self.screenshot_config
+    if self.crawler_config is not None:
+        out[&#34;crawler_config&#34;] = self.crawler_config
+    return out</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly" href="index.html">scrapfly</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.schedule.CreateScheduleRequest.allow_concurrency" href="#scrapfly.schedule.CreateScheduleRequest.allow_concurrency">allow_concurrency</a></code></li>
+<li><code><a title="scrapfly.schedule.CreateScheduleRequest.max_retries" href="#scrapfly.schedule.CreateScheduleRequest.max_retries">max_retries</a></code></li>
+<li><code><a title="scrapfly.schedule.CreateScheduleRequest.notes" href="#scrapfly.schedule.CreateScheduleRequest.notes">notes</a></code></li>
+<li><code><a title="scrapfly.schedule.CreateScheduleRequest.recurrence" href="#scrapfly.schedule.CreateScheduleRequest.recurrence">recurrence</a></code></li>
+<li><code><a title="scrapfly.schedule.CreateScheduleRequest.retry_on_failure" href="#scrapfly.schedule.CreateScheduleRequest.retry_on_failure">retry_on_failure</a></code></li>
+<li><code><a title="scrapfly.schedule.CreateScheduleRequest.scheduled_date" href="#scrapfly.schedule.CreateScheduleRequest.scheduled_date">scheduled_date</a></code></li>
+<li><code><a title="scrapfly.schedule.CreateScheduleRequest.webhook_name" href="#scrapfly.schedule.CreateScheduleRequest.webhook_name">webhook_name</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.schedule.ListSchedulesOptions" href="#scrapfly.schedule.ListSchedulesOptions">ListSchedulesOptions</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.schedule.ListSchedulesOptions.kind" href="#scrapfly.schedule.ListSchedulesOptions.kind">kind</a></code></li>
+<li><code><a title="scrapfly.schedule.ListSchedulesOptions.status" href="#scrapfly.schedule.ListSchedulesOptions.status">status</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.schedule.ScheduleAPIError" href="#scrapfly.schedule.ScheduleAPIError">ScheduleAPIError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.schedule.ScheduleClientMixin" href="#scrapfly.schedule.ScheduleClientMixin">ScheduleClientMixin</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.cancel_schedule" href="#scrapfly.schedule.ScheduleClientMixin.cancel_schedule">cancel_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_crawler_schedule" href="#scrapfly.schedule.ScheduleClientMixin.create_crawler_schedule">create_crawler_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule" href="#scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule">create_scrape_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule" href="#scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule">create_screenshot_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.execute_schedule" href="#scrapfly.schedule.ScheduleClientMixin.execute_schedule">execute_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.get_schedule" href="#scrapfly.schedule.ScheduleClientMixin.get_schedule">get_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.host" href="#scrapfly.schedule.ScheduleClientMixin.host">host</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.key" href="#scrapfly.schedule.ScheduleClientMixin.key">key</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.list_crawler_schedules" href="#scrapfly.schedule.ScheduleClientMixin.list_crawler_schedules">list_crawler_schedules</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.list_schedules" href="#scrapfly.schedule.ScheduleClientMixin.list_schedules">list_schedules</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.list_scrape_schedules" href="#scrapfly.schedule.ScheduleClientMixin.list_scrape_schedules">list_scrape_schedules</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.list_screenshot_schedules" href="#scrapfly.schedule.ScheduleClientMixin.list_screenshot_schedules">list_screenshot_schedules</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.pause_schedule" href="#scrapfly.schedule.ScheduleClientMixin.pause_schedule">pause_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.resume_schedule" href="#scrapfly.schedule.ScheduleClientMixin.resume_schedule">resume_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.ua" href="#scrapfly.schedule.ScheduleClientMixin.ua">ua</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.update_schedule" href="#scrapfly.schedule.ScheduleClientMixin.update_schedule">update_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.verify" href="#scrapfly.schedule.ScheduleClientMixin.verify">verify</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.schedule.ScheduleEnd" href="#scrapfly.schedule.ScheduleEnd">ScheduleEnd</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.schedule.ScheduleEnd.count" href="#scrapfly.schedule.ScheduleEnd.count">count</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleEnd.date" href="#scrapfly.schedule.ScheduleEnd.date">date</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleEnd.type" href="#scrapfly.schedule.ScheduleEnd.type">type</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.schedule.ScheduleRecurrence" href="#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.schedule.ScheduleRecurrence.cron" href="#scrapfly.schedule.ScheduleRecurrence.cron">cron</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleRecurrence.days" href="#scrapfly.schedule.ScheduleRecurrence.days">days</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleRecurrence.ends" href="#scrapfly.schedule.ScheduleRecurrence.ends">ends</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleRecurrence.interval" href="#scrapfly.schedule.ScheduleRecurrence.interval">interval</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleRecurrence.to_dict" href="#scrapfly.schedule.ScheduleRecurrence.to_dict">to_dict</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleRecurrence.unit" href="#scrapfly.schedule.ScheduleRecurrence.unit">unit</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.schedule.UpdateScheduleRequest" href="#scrapfly.schedule.UpdateScheduleRequest">UpdateScheduleRequest</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.allow_concurrency" href="#scrapfly.schedule.UpdateScheduleRequest.allow_concurrency">allow_concurrency</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.crawler_config" href="#scrapfly.schedule.UpdateScheduleRequest.crawler_config">crawler_config</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.max_retries" href="#scrapfly.schedule.UpdateScheduleRequest.max_retries">max_retries</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.notes" href="#scrapfly.schedule.UpdateScheduleRequest.notes">notes</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.recurrence" href="#scrapfly.schedule.UpdateScheduleRequest.recurrence">recurrence</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.retry_on_failure" href="#scrapfly.schedule.UpdateScheduleRequest.retry_on_failure">retry_on_failure</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.scheduled_date" href="#scrapfly.schedule.UpdateScheduleRequest.scheduled_date">scheduled_date</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.scrape_config" href="#scrapfly.schedule.UpdateScheduleRequest.scrape_config">scrape_config</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.screenshot_config" href="#scrapfly.schedule.UpdateScheduleRequest.screenshot_config">screenshot_config</a></code></li>
+<li><code><a title="scrapfly.schedule.UpdateScheduleRequest.to_dict" href="#scrapfly.schedule.UpdateScheduleRequest.to_dict">to_dict</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

@@ -48,7 +48,7 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.browser_config.BrowserConfig"><code class="flex name class">
 <span>class <span class="ident">BrowserConfig</span></span>
-<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None)</span>
+<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -83,6 +83,7 @@ el.replaceWith(d);
         browser_brand: Optional[str] = None,
         byop_proxy: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
+        solve_captcha: Optional[bool] = None,
     ):
         if timeout is not None and timeout &gt; 1800:
             raise ValueError(&#39;timeout cannot exceed 1800 seconds (30 minutes)&#39;)
@@ -122,6 +123,12 @@ el.replaceWith(d);
         # https://scrapfly.io/docs/cloud-browser-api/byop
         self.byop_proxy = byop_proxy
         self.enable_mcp = enable_mcp
+        # SolveCaptcha: arm Scrapium&#39;s built-in captcha detector + solver on
+        # the first page attach. Turnstile, DataDome slider, reCAPTCHA,
+        # GeeTest, PerimeterX hold, and puzzle captchas are handled
+        # automatically. Billed per solve; failures cost nothing.
+        # https://scrapfly.io/docs/cloud-browser-api/captcha-solver
+        self.solve_captcha = solve_captcha
 
     def websocket_url(self, api_key: str, host: Optional[str] = None) -&gt; str:
         params = {&#39;api_key&#39;: api_key}
@@ -192,6 +199,9 @@ el.replaceWith(d);
         if self.enable_mcp is not None:
             params[&#39;enable_mcp&#39;] = self._bool_to_http(self.enable_mcp)
 
+        if self.solve_captcha is not None:
+            params[&#39;solve_captcha&#39;] = self._bool_to_http(self.solve_captcha)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + &#39;?&#39; + urlencode(params)
 
@@ -219,6 +229,7 @@ el.replaceWith(d);
             &#39;browser_brand&#39;: self.browser_brand,
             &#39;byop_proxy&#39;: self.byop_proxy,
             &#39;enable_mcp&#39;: self.enable_mcp,
+            &#39;solve_captcha&#39;: self.solve_captcha,
         }
 
     @staticmethod
@@ -254,6 +265,7 @@ el.replaceWith(d);
             browser_brand=browser_config_dict.get(&#39;browser_brand&#39;, None),
             byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
             enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
+            solve_captcha=browser_config_dict.get(&#39;solve_captcha&#39;, None),
         )</code></pre>
 </details>
 <div class="desc"></div>
@@ -311,6 +323,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         browser_brand=browser_config_dict.get(&#39;browser_brand&#39;, None),
         byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
         enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
+        solve_captcha=browser_config_dict.get(&#39;solve_captcha&#39;, None),
     )</code></pre>
 </details>
 <div class="desc"></div>
@@ -350,6 +363,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         &#39;browser_brand&#39;: self.browser_brand,
         &#39;byop_proxy&#39;: self.byop_proxy,
         &#39;enable_mcp&#39;: self.enable_mcp,
+        &#39;solve_captcha&#39;: self.solve_captcha,
     }</code></pre>
 </details>
 <div class="desc"></div>
@@ -430,6 +444,9 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
 
     if self.enable_mcp is not None:
         params[&#39;enable_mcp&#39;] = self._bool_to_http(self.enable_mcp)
+
+    if self.solve_captcha is not None:
+        params[&#39;solve_captcha&#39;] = self._bool_to_http(self.solve_captcha)
 
     base_host = host or self.CLOUD_BROWSER_HOST
     return base_host + &#39;?&#39; + urlencode(params)</code></pre>

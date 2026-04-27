@@ -123,7 +123,7 @@ el.replaceWith(d);
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyClient:
+<pre><code class="python">class ScrapflyClient(ScheduleClientMixin):
 
     HOST = &#39;https://api.scrapfly.io&#39;
     CLOUD_BROWSER_HOST = &#39;wss://browser.scrapfly.io&#39;
@@ -1674,6 +1674,7 @@ el.replaceWith(d);
         body: Optional[str] = None,
         method: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
+        solve_captcha: Optional[bool] = None,
     ) -&gt; Dict:
         &#34;&#34;&#34;
         Bypass anti-bot protection and get a ready-to-use browser session.
@@ -1721,6 +1722,9 @@ el.replaceWith(d);
 
         if enable_mcp is not None:
             json_body[&#39;enable_mcp&#39;] = enable_mcp
+
+        if solve_captcha is not None:
+            json_body[&#39;solve_captcha&#39;] = solve_captcha
 
         response = self._http_handler(
             method=&#39;POST&#39;,
@@ -1931,7 +1935,14 @@ el.replaceWith(d);
         response.raise_for_status()
         return response.json()</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Mixed into ScrapflyClient — provides the public schedule surface.</p>
+<p>All methods funnel through <code>_schedule_request</code>, which uses the same
+<code>self._http_handler</code> and <code>self.host</code> / <code>self.key</code> as the rest of the
+client so retries, verify, headers and timeouts behave identically.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.schedule.ScheduleClientMixin" href="schedule.html#scrapfly.schedule.ScheduleClientMixin">ScheduleClientMixin</a></li>
+</ul>
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.client.ScrapflyClient.CLOUD_BROWSER_API_HOST"><code class="name">var <span class="ident">CLOUD_BROWSER_API_HOST</span></code></dt>
@@ -2577,7 +2588,7 @@ URL-based extensions auto-update on each browser session start.
 :return: dict with 'sessions' list and 'total' count</p></div>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.cloud_browser_unblock"><code class="name flex">
-<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None) ‑> Dict</span>
+<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None) ‑> Dict</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -2596,6 +2607,7 @@ URL-based extensions auto-update on each browser session start.
     body: Optional[str] = None,
     method: Optional[str] = None,
     enable_mcp: Optional[bool] = None,
+    solve_captcha: Optional[bool] = None,
 ) -&gt; Dict:
     &#34;&#34;&#34;
     Bypass anti-bot protection and get a ready-to-use browser session.
@@ -2643,6 +2655,9 @@ URL-based extensions auto-update on each browser session start.
 
     if enable_mcp is not None:
         json_body[&#39;enable_mcp&#39;] = enable_mcp
+
+    if solve_captcha is not None:
+        json_body[&#39;solve_captcha&#39;] = solve_captcha
 
     response = self._http_handler(
         method=&#39;POST&#39;,
@@ -3973,6 +3988,21 @@ print(f&quot;Crawler started: {response.uuid}&quot;)
 </code></pre></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.schedule.ScheduleClientMixin" href="schedule.html#scrapfly.schedule.ScheduleClientMixin">ScheduleClientMixin</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.cancel_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.cancel_schedule">cancel_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_crawler_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.create_crawler_schedule">create_crawler_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule">create_scrape_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule">create_screenshot_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.execute_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.execute_schedule">execute_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.get_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.get_schedule">get_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.list_schedules" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.list_schedules">list_schedules</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.update_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.update_schedule">update_schedule</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 </dl>
 </section>

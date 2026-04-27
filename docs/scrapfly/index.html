@@ -88,6 +88,10 @@ el.replaceWith(d);
 <dd>
 <div class="desc"></div>
 </dd>
+<dt><code class="name"><a title="scrapfly.schedule" href="schedule.html">scrapfly.schedule</a></code></dt>
+<dd>
+<div class="desc"><p>Public schedule client for the Scrapfly API …</p></div>
+</dd>
 <dt><code class="name"><a title="scrapfly.scrape_config" href="scrape_config.html">scrapfly.scrape_config</a></code></dt>
 <dd>
 <div class="desc"></div>
@@ -184,8 +188,9 @@ for page in pages:
     Args:
         payload: The full webhook body as a dict (i.e. what you get from
             ``request.json``).
-        signing_secrets: Optional tuple of signing secrets (hex strings) for
-            signature verification.
+        signing_secrets: Optional tuple of signing secrets for signature
+            verification. Pass each secret as it appears in the webhook
+            dashboard (UTF-8 string, not hex-encoded).
         signature: Optional webhook signature header value
             (``X-Scrapfly-Webhook-Signature``).
 
@@ -205,7 +210,7 @@ for page in pages:
         ... def handle_webhook():
         ...     wh = webhook_from_payload(
         ...         request.json,
-        ...         signing_secrets=(&#39;your-secret-hex&#39;,),
+        ...         signing_secrets=(&#39;YOUR-WEBHOOK-SIGNING-SECRET&#39;,),
         ...         signature=request.headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;),
         ...     )
         ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == &#39;crawler_finished&#39;:
@@ -245,8 +250,9 @@ dataclass — one of :data:<code>CrawlerWebhook</code>.</p>
 <dd>The full webhook body as a dict (i.e. what you get from
 <code>request.json</code>).</dd>
 <dt><strong><code>signing_secrets</code></strong></dt>
-<dd>Optional tuple of signing secrets (hex strings) for
-signature verification.</dd>
+<dd>Optional tuple of signing secrets for signature
+verification. Pass each secret as it appears in the webhook
+dashboard (UTF-8 string, not hex-encoded).</dd>
 <dt><strong><code>signature</code></strong></dt>
 <dd>Optional webhook signature header value
 (<code>X-Scrapfly-Webhook-Signature</code>).</dd>
@@ -270,7 +276,7 @@ signature verification.</dd>
 ... def handle_webhook():
 ...     wh = webhook_from_payload(
 ...         request.json,
-...         signing_secrets=('your-secret-hex',),
+...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
 ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
 ...     )
 ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == 'crawler_finished':
@@ -336,7 +342,7 @@ signature verification.</dd>
 </dd>
 <dt id="scrapfly.BrowserConfig"><code class="flex name class">
 <span>class <span class="ident">BrowserConfig</span></span>
-<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="browser_config.html#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="browser_config.html#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None)</span>
+<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="browser_config.html#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="browser_config.html#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -371,6 +377,7 @@ signature verification.</dd>
         browser_brand: Optional[str] = None,
         byop_proxy: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
+        solve_captcha: Optional[bool] = None,
     ):
         if timeout is not None and timeout &gt; 1800:
             raise ValueError(&#39;timeout cannot exceed 1800 seconds (30 minutes)&#39;)
@@ -410,6 +417,12 @@ signature verification.</dd>
         # https://scrapfly.io/docs/cloud-browser-api/byop
         self.byop_proxy = byop_proxy
         self.enable_mcp = enable_mcp
+        # SolveCaptcha: arm Scrapium&#39;s built-in captcha detector + solver on
+        # the first page attach. Turnstile, DataDome slider, reCAPTCHA,
+        # GeeTest, PerimeterX hold, and puzzle captchas are handled
+        # automatically. Billed per solve; failures cost nothing.
+        # https://scrapfly.io/docs/cloud-browser-api/captcha-solver
+        self.solve_captcha = solve_captcha
 
     def websocket_url(self, api_key: str, host: Optional[str] = None) -&gt; str:
         params = {&#39;api_key&#39;: api_key}
@@ -480,6 +493,9 @@ signature verification.</dd>
         if self.enable_mcp is not None:
             params[&#39;enable_mcp&#39;] = self._bool_to_http(self.enable_mcp)
 
+        if self.solve_captcha is not None:
+            params[&#39;solve_captcha&#39;] = self._bool_to_http(self.solve_captcha)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + &#39;?&#39; + urlencode(params)
 
@@ -507,6 +523,7 @@ signature verification.</dd>
             &#39;browser_brand&#39;: self.browser_brand,
             &#39;byop_proxy&#39;: self.byop_proxy,
             &#39;enable_mcp&#39;: self.enable_mcp,
+            &#39;solve_captcha&#39;: self.solve_captcha,
         }
 
     @staticmethod
@@ -542,6 +559,7 @@ signature verification.</dd>
             browser_brand=browser_config_dict.get(&#39;browser_brand&#39;, None),
             byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
             enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
+            solve_captcha=browser_config_dict.get(&#39;solve_captcha&#39;, None),
         )</code></pre>
 </details>
 <div class="desc"></div>
@@ -599,6 +617,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         browser_brand=browser_config_dict.get(&#39;browser_brand&#39;, None),
         byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
         enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
+        solve_captcha=browser_config_dict.get(&#39;solve_captcha&#39;, None),
     )</code></pre>
 </details>
 <div class="desc"></div>
@@ -638,6 +657,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         &#39;browser_brand&#39;: self.browser_brand,
         &#39;byop_proxy&#39;: self.byop_proxy,
         &#39;enable_mcp&#39;: self.enable_mcp,
+        &#39;solve_captcha&#39;: self.solve_captcha,
     }</code></pre>
 </details>
 <div class="desc"></div>
@@ -718,6 +738,9 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
 
     if self.enable_mcp is not None:
         params[&#39;enable_mcp&#39;] = self._bool_to_http(self.enable_mcp)
+
+    if self.solve_captcha is not None:
+        params[&#39;solve_captcha&#39;] = self._bool_to_http(self.solve_captcha)
 
     base_host = host or self.CLOUD_BROWSER_HOST
     return base_host + &#39;?&#39; + urlencode(params)</code></pre>
@@ -6199,6 +6222,67 @@ class <code>WebhookEvents</code>. The scrape-engine is the source of truth.</p><
 </dd>
 </dl>
 </dd>
+<dt id="scrapfly.CreateScheduleRequest"><code class="flex name class">
+<span>class <span class="ident">CreateScheduleRequest</span></span>
+<span>(</span><span>webhook_name: str = '',<br>recurrence: <a title="scrapfly.schedule.ScheduleRecurrence" href="schedule.html#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a> | None = None,<br>scheduled_date: str | None = None,<br>allow_concurrency: bool = False,<br>retry_on_failure: bool = False,<br>max_retries: int | None = None,<br>notes: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CreateScheduleRequest:
+    &#34;&#34;&#34;Public-facing request envelope for creating a schedule.
+
+    The kind-specific configuration (scrape_config / screenshot_config /
+    crawler_config) is supplied as a separate argument by the matching
+    ``create_*_schedule`` method.
+    &#34;&#34;&#34;
+    webhook_name: str = &#34;&#34;
+    recurrence: Optional[ScheduleRecurrence] = None
+    scheduled_date: Optional[str] = None
+    allow_concurrency: bool = False
+    retry_on_failure: bool = False
+    max_retries: Optional[int] = None
+    notes: Optional[str] = None</code></pre>
+</details>
+<div class="desc"><p>Public-facing request envelope for creating a schedule.</p>
+<p>The kind-specific configuration (scrape_config / screenshot_config /
+crawler_config) is supplied as a separate argument by the matching
+<code>create_*_schedule</code> method.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.CreateScheduleRequest.allow_concurrency"><code class="name">var <span class="ident">allow_concurrency</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.CreateScheduleRequest.max_retries"><code class="name">var <span class="ident">max_retries</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.CreateScheduleRequest.notes"><code class="name">var <span class="ident">notes</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.CreateScheduleRequest.recurrence"><code class="name">var <span class="ident">recurrence</span> : <a title="scrapfly.schedule.ScheduleRecurrence" href="schedule.html#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a> | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.CreateScheduleRequest.retry_on_failure"><code class="name">var <span class="ident">retry_on_failure</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.CreateScheduleRequest.scheduled_date"><code class="name">var <span class="ident">scheduled_date</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.CreateScheduleRequest.webhook_name"><code class="name">var <span class="ident">webhook_name</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
 <dt id="scrapfly.EncoderError"><code class="flex name class">
 <span>class <span class="ident">EncoderError</span></span>
 <span>(</span><span>content: str)</span>
@@ -7818,6 +7902,36 @@ def url(self) -&gt; str:
 <li>scrapfly.errors.UpstreamHttpError</li>
 </ul>
 </dd>
+<dt id="scrapfly.ListSchedulesOptions"><code class="flex name class">
+<span>class <span class="ident">ListSchedulesOptions</span></span>
+<span>(</span><span>kind: str | None = None, status: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class ListSchedulesOptions:
+    &#34;&#34;&#34;Filter options for list_schedules / list_&lt;kind&gt;_schedules. Use either
+    this dataclass or the equivalent keyword arguments interchangeably.&#34;&#34;&#34;
+    kind: Optional[str] = None  # &#34;api.scrape&#34; | &#34;api.screenshot&#34; | &#34;api.crawler&#34;
+    status: Optional[str] = None  # &#34;ACTIVE&#34; | &#34;PAUSED&#34; | &#34;CANCELLED&#34;</code></pre>
+</details>
+<div class="desc"><p>Filter options for list_schedules / list_<kind>_schedules. Use either
+this dataclass or the equivalent keyword arguments interchangeably.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.ListSchedulesOptions.kind"><code class="name">var <span class="ident">kind</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ListSchedulesOptions.status"><code class="name">var <span class="ident">status</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
 <dt id="scrapfly.OperatingSystem"><code class="flex name class">
 <span>class <span class="ident">OperatingSystem</span></span>
 <span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
@@ -7929,7 +8043,7 @@ def url(self) -&gt; str:
             _secrets = set()
 
             for signing_secret in signing_secrets:
-                _secrets.add(binascii.unhexlify(signing_secret))
+                _secrets.add(signing_secret.encode(&#39;utf-8&#39;))
 
             self._signing_secret = tuple(_secrets)
 
@@ -7955,7 +8069,18 @@ def url(self) -&gt; str:
 
     def verify(self, message: bytes, signature: str) -&gt; bool:
         for signing_secret in self._signing_secret:
-            if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
+            logger.debug(
+                &#39;WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s&#39;,
+                len(signing_secret),
+                hashlib.sha256(signing_secret).hexdigest()[:16],
+                len(message),
+                hashlib.sha256(message).hexdigest()[:16],
+                computed,
+                signature,
+                computed == signature,
+            )
+            if computed == signature:
                 return True
 
         return False
@@ -8137,10 +8262,194 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 </summary>
 <pre><code class="python">def verify(self, message: bytes, signature: str) -&gt; bool:
     for signing_secret in self._signing_secret:
-        if hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper() == signature:
+        computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
+        logger.debug(
+            &#39;WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s&#39;,
+            len(signing_secret),
+            hashlib.sha256(signing_secret).hexdigest()[:16],
+            len(message),
+            hashlib.sha256(message).hexdigest()[:16],
+            computed,
+            signature,
+            computed == signature,
+        )
+        if computed == signature:
             return True
 
     return False</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.ScheduleAPIError"><code class="flex name class">
+<span>class <span class="ident">ScheduleAPIError</span></span>
+<span>(</span><span>message: str, code: str, http_status_code: int, details: Any = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScheduleAPIError(Exception):
+    &#34;&#34;&#34;Raised on any non-2xx response from a /schedules/* endpoint.
+
+    The ``code`` attribute carries the public ``ERR::SCHEDULER::*`` identifier
+    so callers can branch on it without parsing the message string.
+    &#34;&#34;&#34;
+
+    def __init__(
+        self,
+        message: str,
+        code: str,
+        http_status_code: int,
+        details: Any = None,
+    ) -&gt; None:
+        super().__init__(message)
+        self.code = code
+        self.http_status_code = http_status_code
+        self.details = details
+
+    def __str__(self) -&gt; str:  # noqa: D401
+        return f&#34;{self.code} ({self.http_status_code}): {self.args[0] if self.args else &#39;&#39;}&#34;</code></pre>
+</details>
+<div class="desc"><p>Raised on any non-2xx response from a /schedules/* endpoint.</p>
+<p>The <code>code</code> attribute carries the public <code>ERR::SCHEDULER::*</code> identifier
+so callers can branch on it without parsing the message string.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.ScheduleEnd"><code class="flex name class">
+<span>class <span class="ident">ScheduleEnd</span></span>
+<span>(</span><span>type: str, date: str | None = None, count: int | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class ScheduleEnd:
+    &#34;&#34;&#34;Bounds a recurring schedule by either a date or a fire count.&#34;&#34;&#34;
+    type: str  # &#34;date&#34; | &#34;count&#34;
+    date: Optional[str] = None
+    count: Optional[int] = None</code></pre>
+</details>
+<div class="desc"><p>Bounds a recurring schedule by either a date or a fire count.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.ScheduleEnd.count"><code class="name">var <span class="ident">count</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScheduleEnd.date"><code class="name">var <span class="ident">date</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScheduleEnd.type"><code class="name">var <span class="ident">type</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.ScheduleRecurrence"><code class="flex name class">
+<span>class <span class="ident">ScheduleRecurrence</span></span>
+<span>(</span><span>cron: str | None = None,<br>interval: int | None = None,<br>unit: str | None = None,<br>days: List[str] | None = None,<br>ends: <a title="scrapfly.schedule.ScheduleEnd" href="schedule.html#scrapfly.schedule.ScheduleEnd">ScheduleEnd</a> | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class ScheduleRecurrence:
+    &#34;&#34;&#34;When a schedule fires next.
+
+    Cron mode wins when ``cron`` is set; otherwise ``interval`` + ``unit``
+    drive the cadence. All times are interpreted in UTC server-side.
+    &#34;&#34;&#34;
+    cron: Optional[str] = None
+    interval: Optional[int] = None
+    unit: Optional[str] = None  # &#34;minute&#34; | &#34;hour&#34; | &#34;day&#34; | &#34;week&#34; | &#34;month&#34;
+    days: Optional[List[str]] = None
+    ends: Optional[ScheduleEnd] = None
+
+    def to_dict(self) -&gt; Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        if self.cron:
+            out[&#34;cron&#34;] = self.cron
+        if self.interval is not None:
+            out[&#34;interval&#34;] = self.interval
+        if self.unit:
+            out[&#34;unit&#34;] = self.unit
+        if self.days:
+            out[&#34;days&#34;] = self.days
+        if self.ends:
+            ends: Dict[str, Any] = {&#34;type&#34;: self.ends.type}
+            if self.ends.date:
+                ends[&#34;date&#34;] = self.ends.date
+            if self.ends.count is not None:
+                ends[&#34;count&#34;] = self.ends.count
+            out[&#34;ends&#34;] = ends
+        return out</code></pre>
+</details>
+<div class="desc"><p>When a schedule fires next.</p>
+<p>Cron mode wins when <code>cron</code> is set; otherwise <code>interval</code> + <code>unit</code>
+drive the cadence. All times are interpreted in UTC server-side.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.ScheduleRecurrence.cron"><code class="name">var <span class="ident">cron</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScheduleRecurrence.days"><code class="name">var <span class="ident">days</span> : List[str] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScheduleRecurrence.ends"><code class="name">var <span class="ident">ends</span> : <a title="scrapfly.schedule.ScheduleEnd" href="schedule.html#scrapfly.schedule.ScheduleEnd">ScheduleEnd</a> | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScheduleRecurrence.interval"><code class="name">var <span class="ident">interval</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.ScheduleRecurrence.unit"><code class="name">var <span class="ident">unit</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.ScheduleRecurrence.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    if self.cron:
+        out[&#34;cron&#34;] = self.cron
+    if self.interval is not None:
+        out[&#34;interval&#34;] = self.interval
+    if self.unit:
+        out[&#34;unit&#34;] = self.unit
+    if self.days:
+        out[&#34;days&#34;] = self.days
+    if self.ends:
+        ends: Dict[str, Any] = {&#34;type&#34;: self.ends.type}
+        if self.ends.date:
+            ends[&#34;date&#34;] = self.ends.date
+        if self.ends.count is not None:
+            ends[&#34;count&#34;] = self.ends.count
+        out[&#34;ends&#34;] = ends
+    return out</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -10125,7 +10434,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class ScrapflyClient:
+<pre><code class="python">class ScrapflyClient(ScheduleClientMixin):
 
     HOST = &#39;https://api.scrapfly.io&#39;
     CLOUD_BROWSER_HOST = &#39;wss://browser.scrapfly.io&#39;
@@ -11676,6 +11985,7 @@ Useful for JSON-serialization or other external storage.</p></div>
         body: Optional[str] = None,
         method: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
+        solve_captcha: Optional[bool] = None,
     ) -&gt; Dict:
         &#34;&#34;&#34;
         Bypass anti-bot protection and get a ready-to-use browser session.
@@ -11723,6 +12033,9 @@ Useful for JSON-serialization or other external storage.</p></div>
 
         if enable_mcp is not None:
             json_body[&#39;enable_mcp&#39;] = enable_mcp
+
+        if solve_captcha is not None:
+            json_body[&#39;solve_captcha&#39;] = solve_captcha
 
         response = self._http_handler(
             method=&#39;POST&#39;,
@@ -11933,7 +12246,14 @@ Useful for JSON-serialization or other external storage.</p></div>
         response.raise_for_status()
         return response.json()</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Mixed into ScrapflyClient — provides the public schedule surface.</p>
+<p>All methods funnel through <code>_schedule_request</code>, which uses the same
+<code>self._http_handler</code> and <code>self.host</code> / <code>self.key</code> as the rest of the
+client so retries, verify, headers and timeouts behave identically.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.schedule.ScheduleClientMixin" href="schedule.html#scrapfly.schedule.ScheduleClientMixin">ScheduleClientMixin</a></li>
+</ul>
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.ScrapflyClient.CLOUD_BROWSER_API_HOST"><code class="name">var <span class="ident">CLOUD_BROWSER_API_HOST</span></code></dt>
@@ -12579,7 +12899,7 @@ URL-based extensions auto-update on each browser session start.
 :return: dict with 'sessions' list and 'total' count</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.cloud_browser_unblock"><code class="name flex">
-<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None) ‑> Dict</span>
+<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None) ‑> Dict</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -12598,6 +12918,7 @@ URL-based extensions auto-update on each browser session start.
     body: Optional[str] = None,
     method: Optional[str] = None,
     enable_mcp: Optional[bool] = None,
+    solve_captcha: Optional[bool] = None,
 ) -&gt; Dict:
     &#34;&#34;&#34;
     Bypass anti-bot protection and get a ready-to-use browser session.
@@ -12645,6 +12966,9 @@ URL-based extensions auto-update on each browser session start.
 
     if enable_mcp is not None:
         json_body[&#39;enable_mcp&#39;] = enable_mcp
+
+    if solve_captcha is not None:
+        json_body[&#39;solve_captcha&#39;] = solve_captcha
 
     response = self._http_handler(
         method=&#39;POST&#39;,
@@ -13975,6 +14299,21 @@ print(f&quot;Crawler started: {response.uuid}&quot;)
 </code></pre></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.schedule.ScheduleClientMixin" href="schedule.html#scrapfly.schedule.ScheduleClientMixin">ScheduleClientMixin</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.cancel_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.cancel_schedule">cancel_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_crawler_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.create_crawler_schedule">create_crawler_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule">create_scrape_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule">create_screenshot_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.execute_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.execute_schedule">execute_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.get_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.get_schedule">get_schedule</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.list_schedules" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.list_schedules">list_schedules</a></code></li>
+<li><code><a title="scrapfly.schedule.ScheduleClientMixin.update_schedule" href="schedule.html#scrapfly.schedule.ScheduleClientMixin.update_schedule">update_schedule</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.ScrapflyCrawlerError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyCrawlerError</span></span>
@@ -14880,6 +15219,126 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 </dd>
 </dl>
 </dd>
+<dt id="scrapfly.UpdateScheduleRequest"><code class="flex name class">
+<span>class <span class="ident">UpdateScheduleRequest</span></span>
+<span>(</span><span>recurrence: <a title="scrapfly.schedule.ScheduleRecurrence" href="schedule.html#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a> | None = None,<br>scheduled_date: str | None = None,<br>allow_concurrency: bool | None = None,<br>retry_on_failure: bool | None = None,<br>max_retries: int | None = None,<br>notes: str | None = None,<br>scrape_config: Dict[str, Any] | None = None,<br>screenshot_config: Dict[str, Any] | None = None,<br>crawler_config: Dict[str, Any] | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class UpdateScheduleRequest:
+    &#34;&#34;&#34;Patch payload. Only fields with a non-None value are forwarded.&#34;&#34;&#34;
+    recurrence: Optional[ScheduleRecurrence] = None
+    scheduled_date: Optional[str] = None
+    allow_concurrency: Optional[bool] = None
+    retry_on_failure: Optional[bool] = None
+    max_retries: Optional[int] = None
+    notes: Optional[str] = None
+    scrape_config: Optional[Dict[str, Any]] = None
+    screenshot_config: Optional[Dict[str, Any]] = None
+    crawler_config: Optional[Dict[str, Any]] = None
+
+    def to_dict(self) -&gt; Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        if self.recurrence is not None:
+            out[&#34;recurrence&#34;] = self.recurrence.to_dict()
+        if self.scheduled_date is not None:
+            out[&#34;scheduled_date&#34;] = self.scheduled_date
+        if self.allow_concurrency is not None:
+            out[&#34;allow_concurrency&#34;] = self.allow_concurrency
+        if self.retry_on_failure is not None:
+            out[&#34;retry_on_failure&#34;] = self.retry_on_failure
+        if self.max_retries is not None:
+            out[&#34;max_retries&#34;] = self.max_retries
+        if self.notes is not None:
+            out[&#34;notes&#34;] = self.notes
+        if self.scrape_config is not None:
+            out[&#34;scrape_config&#34;] = self.scrape_config
+        if self.screenshot_config is not None:
+            out[&#34;screenshot_config&#34;] = self.screenshot_config
+        if self.crawler_config is not None:
+            out[&#34;crawler_config&#34;] = self.crawler_config
+        return out</code></pre>
+</details>
+<div class="desc"><p>Patch payload. Only fields with a non-None value are forwarded.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.UpdateScheduleRequest.allow_concurrency"><code class="name">var <span class="ident">allow_concurrency</span> : bool | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.UpdateScheduleRequest.crawler_config"><code class="name">var <span class="ident">crawler_config</span> : Dict[str, Any] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.UpdateScheduleRequest.max_retries"><code class="name">var <span class="ident">max_retries</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.UpdateScheduleRequest.notes"><code class="name">var <span class="ident">notes</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.UpdateScheduleRequest.recurrence"><code class="name">var <span class="ident">recurrence</span> : <a title="scrapfly.schedule.ScheduleRecurrence" href="schedule.html#scrapfly.schedule.ScheduleRecurrence">ScheduleRecurrence</a> | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.UpdateScheduleRequest.retry_on_failure"><code class="name">var <span class="ident">retry_on_failure</span> : bool | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.UpdateScheduleRequest.scheduled_date"><code class="name">var <span class="ident">scheduled_date</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.UpdateScheduleRequest.scrape_config"><code class="name">var <span class="ident">scrape_config</span> : Dict[str, Any] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.UpdateScheduleRequest.screenshot_config"><code class="name">var <span class="ident">screenshot_config</span> : Dict[str, Any] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.UpdateScheduleRequest.to_dict"><code class="name flex">
+<span>def <span class="ident">to_dict</span></span>(<span>self) ‑> Dict[str, Any]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_dict(self) -&gt; Dict[str, Any]:
+    out: Dict[str, Any] = {}
+    if self.recurrence is not None:
+        out[&#34;recurrence&#34;] = self.recurrence.to_dict()
+    if self.scheduled_date is not None:
+        out[&#34;scheduled_date&#34;] = self.scheduled_date
+    if self.allow_concurrency is not None:
+        out[&#34;allow_concurrency&#34;] = self.allow_concurrency
+    if self.retry_on_failure is not None:
+        out[&#34;retry_on_failure&#34;] = self.retry_on_failure
+    if self.max_retries is not None:
+        out[&#34;max_retries&#34;] = self.max_retries
+    if self.notes is not None:
+        out[&#34;notes&#34;] = self.notes
+    if self.scrape_config is not None:
+        out[&#34;scrape_config&#34;] = self.scrape_config
+    if self.screenshot_config is not None:
+        out[&#34;screenshot_config&#34;] = self.screenshot_config
+    if self.crawler_config is not None:
+        out[&#34;crawler_config&#34;] = self.crawler_config
+    return out</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
 <dt id="scrapfly.UpstreamHttpClientError"><code class="flex name class">
 <span>class <span class="ident">UpstreamHttpClientError</span></span>
 <span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
@@ -15493,6 +15952,7 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.frozen_dict" href="frozen_dict.html">scrapfly.frozen_dict</a></code></li>
 <li><code><a title="scrapfly.polyfill" href="polyfill/index.html">scrapfly.polyfill</a></code></li>
 <li><code><a title="scrapfly.reporter" href="reporter/index.html">scrapfly.reporter</a></code></li>
+<li><code><a title="scrapfly.schedule" href="schedule.html">scrapfly.schedule</a></code></li>
 <li><code><a title="scrapfly.scrape_config" href="scrape_config.html">scrapfly.scrape_config</a></code></li>
 <li><code><a title="scrapfly.scrapy" href="scrapy/index.html">scrapfly.scrapy</a></code></li>
 <li><code><a title="scrapfly.screenshot_config" href="screenshot_config.html">scrapfly.screenshot_config</a></code></li>
@@ -15716,6 +16176,18 @@ HTTP transaction or metadata.</p></div>
 </ul>
 </li>
 <li>
+<h4><code><a title="scrapfly.CreateScheduleRequest" href="#scrapfly.CreateScheduleRequest">CreateScheduleRequest</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.CreateScheduleRequest.allow_concurrency" href="#scrapfly.CreateScheduleRequest.allow_concurrency">allow_concurrency</a></code></li>
+<li><code><a title="scrapfly.CreateScheduleRequest.max_retries" href="#scrapfly.CreateScheduleRequest.max_retries">max_retries</a></code></li>
+<li><code><a title="scrapfly.CreateScheduleRequest.notes" href="#scrapfly.CreateScheduleRequest.notes">notes</a></code></li>
+<li><code><a title="scrapfly.CreateScheduleRequest.recurrence" href="#scrapfly.CreateScheduleRequest.recurrence">recurrence</a></code></li>
+<li><code><a title="scrapfly.CreateScheduleRequest.retry_on_failure" href="#scrapfly.CreateScheduleRequest.retry_on_failure">retry_on_failure</a></code></li>
+<li><code><a title="scrapfly.CreateScheduleRequest.scheduled_date" href="#scrapfly.CreateScheduleRequest.scheduled_date">scheduled_date</a></code></li>
+<li><code><a title="scrapfly.CreateScheduleRequest.webhook_name" href="#scrapfly.CreateScheduleRequest.webhook_name">webhook_name</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="scrapfly.EncoderError" href="#scrapfly.EncoderError">EncoderError</a></code></h4>
 </li>
 <li>
@@ -15799,6 +16271,13 @@ HTTP transaction or metadata.</p></div>
 <h4><code><a title="scrapfly.HttpError" href="#scrapfly.HttpError">HttpError</a></code></h4>
 </li>
 <li>
+<h4><code><a title="scrapfly.ListSchedulesOptions" href="#scrapfly.ListSchedulesOptions">ListSchedulesOptions</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ListSchedulesOptions.kind" href="#scrapfly.ListSchedulesOptions.kind">kind</a></code></li>
+<li><code><a title="scrapfly.ListSchedulesOptions.status" href="#scrapfly.ListSchedulesOptions.status">status</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="scrapfly.OperatingSystem" href="#scrapfly.OperatingSystem">OperatingSystem</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.OperatingSystem.LINUX" href="#scrapfly.OperatingSystem.LINUX">LINUX</a></code></li>
@@ -15822,6 +16301,28 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.ResponseBodyHandler.read" href="#scrapfly.ResponseBodyHandler.read">read</a></code></li>
 <li><code><a title="scrapfly.ResponseBodyHandler.support" href="#scrapfly.ResponseBodyHandler.support">support</a></code></li>
 <li><code><a title="scrapfly.ResponseBodyHandler.verify" href="#scrapfly.ResponseBodyHandler.verify">verify</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScheduleAPIError" href="#scrapfly.ScheduleAPIError">ScheduleAPIError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScheduleEnd" href="#scrapfly.ScheduleEnd">ScheduleEnd</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.ScheduleEnd.count" href="#scrapfly.ScheduleEnd.count">count</a></code></li>
+<li><code><a title="scrapfly.ScheduleEnd.date" href="#scrapfly.ScheduleEnd.date">date</a></code></li>
+<li><code><a title="scrapfly.ScheduleEnd.type" href="#scrapfly.ScheduleEnd.type">type</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScheduleRecurrence" href="#scrapfly.ScheduleRecurrence">ScheduleRecurrence</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.ScheduleRecurrence.cron" href="#scrapfly.ScheduleRecurrence.cron">cron</a></code></li>
+<li><code><a title="scrapfly.ScheduleRecurrence.days" href="#scrapfly.ScheduleRecurrence.days">days</a></code></li>
+<li><code><a title="scrapfly.ScheduleRecurrence.ends" href="#scrapfly.ScheduleRecurrence.ends">ends</a></code></li>
+<li><code><a title="scrapfly.ScheduleRecurrence.interval" href="#scrapfly.ScheduleRecurrence.interval">interval</a></code></li>
+<li><code><a title="scrapfly.ScheduleRecurrence.to_dict" href="#scrapfly.ScheduleRecurrence.to_dict">to_dict</a></code></li>
+<li><code><a title="scrapfly.ScheduleRecurrence.unit" href="#scrapfly.ScheduleRecurrence.unit">unit</a></code></li>
 </ul>
 </li>
 <li>
@@ -16066,6 +16567,21 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.ScreenshotConfig.url" href="#scrapfly.ScreenshotConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.wait_for_selector" href="#scrapfly.ScreenshotConfig.wait_for_selector">wait_for_selector</a></code></li>
 <li><code><a title="scrapfly.ScreenshotConfig.webhook" href="#scrapfly.ScreenshotConfig.webhook">webhook</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.UpdateScheduleRequest" href="#scrapfly.UpdateScheduleRequest">UpdateScheduleRequest</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.UpdateScheduleRequest.allow_concurrency" href="#scrapfly.UpdateScheduleRequest.allow_concurrency">allow_concurrency</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.crawler_config" href="#scrapfly.UpdateScheduleRequest.crawler_config">crawler_config</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.max_retries" href="#scrapfly.UpdateScheduleRequest.max_retries">max_retries</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.notes" href="#scrapfly.UpdateScheduleRequest.notes">notes</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.recurrence" href="#scrapfly.UpdateScheduleRequest.recurrence">recurrence</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.retry_on_failure" href="#scrapfly.UpdateScheduleRequest.retry_on_failure">retry_on_failure</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.scheduled_date" href="#scrapfly.UpdateScheduleRequest.scheduled_date">scheduled_date</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.scrape_config" href="#scrapfly.UpdateScheduleRequest.scrape_config">scrape_config</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.screenshot_config" href="#scrapfly.UpdateScheduleRequest.screenshot_config">screenshot_config</a></code></li>
+<li><code><a title="scrapfly.UpdateScheduleRequest.to_dict" href="#scrapfly.UpdateScheduleRequest.to_dict">to_dict</a></code></li>
 </ul>
 </li>
 <li>
