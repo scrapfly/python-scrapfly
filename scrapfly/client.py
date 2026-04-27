@@ -38,6 +38,14 @@ from .extraction_config import ExtractionConfig
 from .classify import ClassifyResult
 from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse
 from .browser_config import BrowserConfig
+from .schedule import (
+    ScheduleClientMixin,
+    CreateScheduleRequest,
+    UpdateScheduleRequest,
+    ScheduleRecurrence,
+    ScheduleEnd,
+    ScheduleAPIError,
+)
 from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, HttpError, UpstreamHttpError
 
 logger = logging.getLogger(__name__)
@@ -80,7 +88,7 @@ MonitoringAggregation = Literal[
     ScraperAPI.MONITORING_TARGET_AGGREGATION
 ]
 
-class ScrapflyClient:
+class ScrapflyClient(ScheduleClientMixin):
 
     HOST = 'https://api.scrapfly.io'
     CLOUD_BROWSER_HOST = 'wss://browser.scrapfly.io'
