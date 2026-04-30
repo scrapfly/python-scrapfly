@@ -62,7 +62,12 @@ class CrawlerConfig(BaseApiConfig):
 
     def __init__(
         self,
-        url: str,
+        url: Optional[str] = None,
+        # URL source — exactly one of url, url_list, remote_url_list must be set.
+        # url enables discovery (sitemaps/robots/links); url_list and
+        # remote_url_list crawl an explicit set of URLs with discovery off.
+        url_list: Optional[List[str]] = None,
+        remote_url_list: Optional[str] = None,
         # Crawl limits
         page_limit: Optional[int] = None,
         max_depth: Optional[int] = None,
@@ -162,9 +167,19 @@ class CrawlerConfig(BaseApiConfig):
         if exclude_paths and include_only_paths:
             raise ValueError("exclude_paths and include_only_paths are mutually exclusive")
 
-        params = {
-            'url': url,
-        }
+        sources_set = sum(1 for v in (url, url_list, remote_url_list) if v)
+        if sources_set == 0:
+            raise ValueError("Provide one of: url, url_list, remote_url_list")
+        if sources_set > 1:
+            raise ValueError("Only one of url, url_list, remote_url_list can be set")
+
+        params: Dict = {}
+        if url:
+            params['url'] = url
+        if url_list:
+            params['url_list'] = url_list
+        if remote_url_list:
+            params['remote_url_list'] = remote_url_list
 
         # Add optional parameters
         if page_limit is not None:
