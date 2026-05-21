@@ -128,7 +128,7 @@ setup(
         'Documentation': 'https://scrapfly.io/docs',
         'Source': 'https://github.com/scrapfly/python-sdk',
     },
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests', 'tests.*']),
     python_requires='>=3.6',
     install_requires=install_requires,
     extras_require=EXTRA_DEPENDENCIES,
