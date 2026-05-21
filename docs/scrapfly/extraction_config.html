@@ -292,7 +292,7 @@ el.replaceWith(d);
             raise ExtractionConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
 
         if self.extraction_template:
-            params[&#39;extraction_template&#39;] = self.extraction_template
+            params[&#39;extraction_template&#39;] = &#39;persistent:&#39; + self.extraction_template
 
         if self.extraction_ephemeral_template:
             template_json = json.dumps(self.extraction_ephemeral_template)
@@ -527,7 +527,7 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
         raise ExtractionConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
 
     if self.extraction_template:
-        params[&#39;extraction_template&#39;] = self.extraction_template
+        params[&#39;extraction_template&#39;] = &#39;persistent:&#39; + self.extraction_template
 
     if self.extraction_ephemeral_template:
         template_json = json.dumps(self.extraction_ephemeral_template)

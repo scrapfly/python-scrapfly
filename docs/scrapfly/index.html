@@ -342,7 +342,7 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 </dd>
 <dt id="scrapfly.BrowserConfig"><code class="flex name class">
 <span>class <span class="ident">BrowserConfig</span></span>
-<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="browser_config.html#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="browser_config.html#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None)</span>
+<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="browser_config.html#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="browser_config.html#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None,<br>vault: str | None = None,<br>vault_key: str | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -378,6 +378,8 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
         byop_proxy: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
         solve_captcha: Optional[bool] = None,
+        vault: Optional[str] = None,
+        vault_key: Optional[str] = None,
     ):
         if timeout is not None and timeout &gt; 1800:
             raise ValueError(&#39;timeout cannot exceed 1800 seconds (30 minutes)&#39;)
@@ -423,6 +425,15 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
         # automatically. Billed per solve; failures cost nothing.
         # https://scrapfly.io/docs/cloud-browser-api/captcha-solver
         self.solve_captcha = solve_captcha
+        # Cloud Browser Credential Vault binding. `vault` is the vault id
+        # (UUID) returned by POST /vault; `vault_key` is the base64 32-byte
+        # customer-held key returned (once) by POST /vault or POST
+        # /vault/&lt;id&gt;/rotate. Both are forwarded as query params on the
+        # wss:// URL — the server uses them to decrypt items into the
+        # session&#39;s secret broker. Treat `vault_key` as a credential: never
+        # log it, never persist it server-side.
+        self.vault = vault
+        self.vault_key = vault_key
 
     def websocket_url(self, api_key: str, host: Optional[str] = None) -&gt; str:
         params = {&#39;api_key&#39;: api_key}
@@ -443,7 +454,7 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
             params[&#39;auto_close&#39;] = self._bool_to_http(self.auto_close)
 
         if self.timeout is not None:
-            params[&#39;timeout&#39;] = self.timeout
+            params[&#39;timeout&#39;] = str(self.timeout)
 
         if self.debug is not None:
             params[&#39;debug&#39;] = self._bool_to_http(self.debug)
@@ -482,7 +493,7 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
             params[&#39;unblock&#39;] = self._bool_to_http(self.unblock)
 
         if self.unblock_timeout is not None:
-            params[&#39;unblock_timeout&#39;] = self.unblock_timeout
+            params[&#39;unblock_timeout&#39;] = str(self.unblock_timeout)
 
         if self.browser_brand is not None:
             params[&#39;browser_brand&#39;] = self.browser_brand
@@ -495,6 +506,12 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 
         if self.solve_captcha is not None:
             params[&#39;solve_captcha&#39;] = self._bool_to_http(self.solve_captcha)
+
+        if self.vault is not None:
+            params[&#39;vault&#39;] = self.vault
+
+        if self.vault_key is not None:
+            params[&#39;vault_key&#39;] = self.vault_key
 
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + &#39;?&#39; + urlencode(params)
@@ -524,6 +541,8 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
             &#39;byop_proxy&#39;: self.byop_proxy,
             &#39;enable_mcp&#39;: self.enable_mcp,
             &#39;solve_captcha&#39;: self.solve_captcha,
+            &#39;vault&#39;: self.vault,
+            &#39;vault_key&#39;: self.vault_key,
         }
 
     @staticmethod
@@ -560,6 +579,8 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
             byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
             enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
             solve_captcha=browser_config_dict.get(&#39;solve_captcha&#39;, None),
+            vault=browser_config_dict.get(&#39;vault&#39;, None),
+            vault_key=browser_config_dict.get(&#39;vault_key&#39;, None),
         )</code></pre>
 </details>
 <div class="desc"></div>
@@ -618,6 +639,8 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         byop_proxy=browser_config_dict.get(&#39;byop_proxy&#39;, None),
         enable_mcp=browser_config_dict.get(&#39;enable_mcp&#39;, None),
         solve_captcha=browser_config_dict.get(&#39;solve_captcha&#39;, None),
+        vault=browser_config_dict.get(&#39;vault&#39;, None),
+        vault_key=browser_config_dict.get(&#39;vault_key&#39;, None),
     )</code></pre>
 </details>
 <div class="desc"></div>
@@ -658,6 +681,8 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         &#39;byop_proxy&#39;: self.byop_proxy,
         &#39;enable_mcp&#39;: self.enable_mcp,
         &#39;solve_captcha&#39;: self.solve_captcha,
+        &#39;vault&#39;: self.vault,
+        &#39;vault_key&#39;: self.vault_key,
     }</code></pre>
 </details>
 <div class="desc"></div>
@@ -689,7 +714,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         params[&#39;auto_close&#39;] = self._bool_to_http(self.auto_close)
 
     if self.timeout is not None:
-        params[&#39;timeout&#39;] = self.timeout
+        params[&#39;timeout&#39;] = str(self.timeout)
 
     if self.debug is not None:
         params[&#39;debug&#39;] = self._bool_to_http(self.debug)
@@ -728,7 +753,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         params[&#39;unblock&#39;] = self._bool_to_http(self.unblock)
 
     if self.unblock_timeout is not None:
-        params[&#39;unblock_timeout&#39;] = self.unblock_timeout
+        params[&#39;unblock_timeout&#39;] = str(self.unblock_timeout)
 
     if self.browser_brand is not None:
         params[&#39;browser_brand&#39;] = self.browser_brand
@@ -741,6 +766,12 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
 
     if self.solve_captcha is not None:
         params[&#39;solve_captcha&#39;] = self._bool_to_http(self.solve_captcha)
+
+    if self.vault is not None:
+        params[&#39;vault&#39;] = self.vault
+
+    if self.vault_key is not None:
+        params[&#39;vault_key&#39;] = self.vault_key
 
     base_host = host or self.CLOUD_BROWSER_HOST
     return base_host + &#39;?&#39; + urlencode(params)</code></pre>
@@ -3461,7 +3492,7 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 </dd>
 <dt id="scrapfly.CrawlerConfig"><code class="flex name class">
 <span>class <span class="ident">CrawlerConfig</span></span>
-<span>(</span><span>url: str,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool = False,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None)</span>
+<span>(</span><span>url: str | None = None,<br>url_list: List[str] | None = None,<br>remote_url_list: str | None = None,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool = False,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -3522,7 +3553,12 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 
     def __init__(
         self,
-        url: str,
+        url: Optional[str] = None,
+        # URL source — exactly one of url, url_list, remote_url_list must be set.
+        # url enables discovery (sitemaps/robots/links); url_list and
+        # remote_url_list crawl an explicit set of URLs with discovery off.
+        url_list: Optional[List[str]] = None,
+        remote_url_list: Optional[str] = None,
         # Crawl limits
         page_limit: Optional[int] = None,
         max_depth: Optional[int] = None,
@@ -3622,9 +3658,19 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         if exclude_paths and include_only_paths:
             raise ValueError(&#34;exclude_paths and include_only_paths are mutually exclusive&#34;)
 
-        params = {
-            &#39;url&#39;: url,
-        }
+        sources_set = sum(1 for v in (url, url_list, remote_url_list) if v)
+        if sources_set == 0:
+            raise ValueError(&#34;Provide one of: url, url_list, remote_url_list&#34;)
+        if sources_set &gt; 1:
+            raise ValueError(&#34;Only one of url, url_list, remote_url_list can be set&#34;)
+
+        params: Dict = {}
+        if url:
+            params[&#39;url&#39;] = url
+        if url_list:
+            params[&#39;url_list&#39;] = url_list
+        if remote_url_list:
+            params[&#39;remote_url_list&#39;] = remote_url_list
 
         # Add optional parameters
         if page_limit is not None:
@@ -3725,7 +3771,26 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         params = self._params.copy()
         if key:
             params[&#39;key&#39;] = key
-        return params</code></pre>
+        return params
+
+    def to_multipart_parts(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Split the configuration into the two parts required by the
+        ``POST /crawl`` multipart endpoint:
+
+        - ``config``: a JSON object with every field except ``url_list``
+        - ``urls``: a newline-delimited text payload, one URL per line
+          (only present when an explicit URL list was provided)
+
+        :return: dict with keys ``config`` (dict) and ``urls`` (Optional[str])
+        &#34;&#34;&#34;
+        body = self._params.copy()
+        urls_blob: Optional[str] = None
+        if &#39;url_list&#39; in body:
+            urls = body.pop(&#39;url_list&#39;)
+            if urls:
+                urls_blob = &#34;\n&#34;.join(urls)
+        return {&#39;config&#39;: body, &#39;urls&#39;: urls_blob}</code></pre>
 </details>
 <div class="desc"><p>Configuration for Scrapfly Crawler API</p>
 <p>The Crawler API performs recursive website crawling with advanced
@@ -3880,6 +3945,42 @@ if status.is_complete:
 <div class="desc"><p>Convert config to API parameters</p>
 <p>:param key: API key (optional, can be added by client)
 :return: Dictionary of API parameters</p></div>
+</dd>
+<dt id="scrapfly.CrawlerConfig.to_multipart_parts"><code class="name flex">
+<span>def <span class="ident">to_multipart_parts</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_multipart_parts(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    Split the configuration into the two parts required by the
+    ``POST /crawl`` multipart endpoint:
+
+    - ``config``: a JSON object with every field except ``url_list``
+    - ``urls``: a newline-delimited text payload, one URL per line
+      (only present when an explicit URL list was provided)
+
+    :return: dict with keys ``config`` (dict) and ``urls`` (Optional[str])
+    &#34;&#34;&#34;
+    body = self._params.copy()
+    urls_blob: Optional[str] = None
+    if &#39;url_list&#39; in body:
+        urls = body.pop(&#39;url_list&#39;)
+        if urls:
+            urls_blob = &#34;\n&#34;.join(urls)
+    return {&#39;config&#39;: body, &#39;urls&#39;: urls_blob}</code></pre>
+</details>
+<div class="desc"><p>Split the configuration into the two parts required by the
+<code>POST /crawl</code> multipart endpoint:</p>
+<ul>
+<li><code>config</code>: a JSON object with every field except <code>url_list</code></li>
+<li><code>urls</code>: a newline-delimited text payload, one URL per line
+(only present when an explicit URL list was provided)</li>
+</ul>
+<p>:return: dict with keys <code>config</code> (dict) and <code>urls</code> (Optional[str])</p></div>
 </dd>
 </dl>
 </dd>
@@ -6872,7 +6973,7 @@ def extraction_success(self) -&gt; bool:
             raise ExtractionConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
 
         if self.extraction_template:
-            params[&#39;extraction_template&#39;] = self.extraction_template
+            params[&#39;extraction_template&#39;] = &#39;persistent:&#39; + self.extraction_template
 
         if self.extraction_ephemeral_template:
             template_json = json.dumps(self.extraction_ephemeral_template)
@@ -7107,7 +7208,7 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
         raise ExtractionConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
 
     if self.extraction_template:
-        params[&#39;extraction_template&#39;] = self.extraction_template
+        params[&#39;extraction_template&#39;] = &#39;persistent:&#39; + self.extraction_template
 
     if self.extraction_ephemeral_template:
         template_json = json.dumps(self.extraction_ephemeral_template)
@@ -9498,7 +9599,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
             raise ScrapeConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
 
         if self.extraction_template:
-            params[&#39;extraction_template&#39;] = self.extraction_template
+            params[&#39;extraction_template&#39;] = &#39;persistent:&#39; + self.extraction_template
 
         if self.extraction_ephemeral_template:
             self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
@@ -10226,7 +10327,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         raise ScrapeConfigError(&#39;You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose&#39;)
 
     if self.extraction_template:
-        params[&#39;extraction_template&#39;] = self.extraction_template
+        params[&#39;extraction_template&#39;] = &#39;persistent:&#39; + self.extraction_template
 
     if self.extraction_ephemeral_template:
         self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
@@ -11736,27 +11837,51 @@ Useful for JSON-serialization or other external storage.</p></div>
             print(f&#34;Crawler started: {response.uuid}&#34;)
             ```
         &#34;&#34;&#34;
-        # Get crawler config params (without key)
-        body_params = crawler_config.to_api_params()
-
-        # API key must be passed as query parameter, not in body
+        # POST /crawl accepts two body formats:
+        #   - application/json: the entire crawler configuration as JSON.
+        #     Used for seed-URL crawls and remote_url_list crawls.
+        #   - multipart/form-data: a &#39;config&#39; JSON part and a &#39;urls&#39; text part
+        #     (one URL per line). Used only when the caller provides an
+        #     in-memory url_list, so we can stream it as a file payload
+        #     instead of inlining it into the JSON body.
+        parts = crawler_config.to_multipart_parts()
+        urls_blob = parts[&#39;urls&#39;]
         query_params = {&#39;key&#39;: self.key}
-
         timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
-
         url = f&#39;{self.host}/crawl&#39;
-        logger.debug(f&#34;Crawler API POST {url}?key=***&#34;)
-        logger.debug(f&#34;Crawler API body: {body_params}&#34;)
 
-        response = self._http_handler(
-            method=&#39;POST&#39;,
-            url=url,
-            params=query_params,  # key as query param
-            json=body_params,      # config in body
-            timeout=timeout,
-            headers={&#39;User-Agent&#39;: self.ua},
-            verify=self.verify
-        )
+        logger.debug(f&#34;Crawler API POST {url}?key=***&#34;)
+
+        if urls_blob is not None:
+            config_body = json.dumps(parts[&#39;config&#39;]).encode(&#39;utf-8&#39;)
+            files = {
+                &#39;config&#39;: (&#39;config.json&#39;, config_body, &#39;application/json&#39;),
+                &#39;urls&#39;: (&#39;urls.txt&#39;, urls_blob.encode(&#39;utf-8&#39;), &#39;text/plain&#39;),
+            }
+            logger.debug(
+                f&#34;Crawler API multipart config: {parts[&#39;config&#39;]} ; &#34;
+                f&#34;urls part: {len(urls_blob.splitlines())} URL(s)&#34;
+            )
+            response = self._http_handler(
+                method=&#39;POST&#39;,
+                url=url,
+                params=query_params,
+                files=files,
+                timeout=timeout,
+                headers={&#39;User-Agent&#39;: self.ua},
+                verify=self.verify
+            )
+        else:
+            logger.debug(f&#34;Crawler API body: {parts[&#39;config&#39;]}&#34;)
+            response = self._http_handler(
+                method=&#39;POST&#39;,
+                url=url,
+                params=query_params,
+                json=parts[&#39;config&#39;],
+                timeout=timeout,
+                headers={&#39;User-Agent&#39;: self.ua},
+                verify=self.verify
+            )
 
         if response.status_code not in (200, 201):
             # Log error details for debugging
@@ -11986,6 +12111,7 @@ Useful for JSON-serialization or other external storage.</p></div>
         method: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
         solve_captcha: Optional[bool] = None,
+        debug: Optional[bool] = None,
     ) -&gt; Dict:
         &#34;&#34;&#34;
         Bypass anti-bot protection and get a ready-to-use browser session.
@@ -11998,6 +12124,10 @@ Useful for JSON-serialization or other external storage.</p></div>
         :param headers: Custom request headers
         :param body: Request body for POST/PUT/PATCH requests
         :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+        :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
+        :param solve_captcha: Arm Scrapium&#39;s built-in captcha solver
+        :param debug: When True, the session is recorded and accessible via
+            cloud_browser_playback / cloud_browser_video using the returned run_id
         :return: dict with ws_url, session_id, run_id
         &#34;&#34;&#34;
         proxy_pool_map = {
@@ -12036,6 +12166,9 @@ Useful for JSON-serialization or other external storage.</p></div>
 
         if solve_captcha is not None:
             json_body[&#39;solve_captcha&#39;] = solve_captcha
+
+        if debug is not None:
+            json_body[&#39;debug&#39;] = debug
 
         response = self._http_handler(
             method=&#39;POST&#39;,
@@ -12076,7 +12209,7 @@ Useful for JSON-serialization or other external storage.</p></div>
         &#34;&#34;&#34;
         Get playback info for a debug session recording.
         :param run_id: The unique run identifier
-        :return: dict with available, metadata, video_url
+        :return: dict with available, status, metadata, video_url, retry_after_ms
         &#34;&#34;&#34;
         response = self._http_handler(
             method=&#39;GET&#39;,
@@ -12092,6 +12225,39 @@ Useful for JSON-serialization or other external storage.</p></div>
         response.raise_for_status()
 
         return response.json()
+
+    def cloud_browser_wait_for_playback(
+        self,
+        run_id: str,
+        timeout: float = 180.0,
+        poll_interval_fallback: float = 3.0,
+    ) -&gt; Dict:
+        &#34;&#34;&#34;
+        Poll the playback endpoint until the recording resolves to a
+        terminal state (status=&#39;ready&#39; or status=&#39;unavailable&#39;) or the
+        timeout elapses. Honours the server-side retry_after_ms hint
+        whenever it is present.
+
+        :param run_id: The unique run identifier
+        :param timeout: Maximum seconds to wait for the recording to be ready
+        :param poll_interval_fallback: Delay (s) used when the server does
+            not return a retry_after_ms hint
+        :return: Final playback dict — the same shape as cloud_browser_playback
+        &#34;&#34;&#34;
+        import time
+
+        deadline = time.monotonic() + timeout
+        while True:
+            playback = self.cloud_browser_playback(run_id)
+            status = playback.get(&#39;status&#39;)
+            if status != &#39;uploading&#39;:
+                return playback
+            remaining = deadline - time.monotonic()
+            if remaining &lt;= 0:
+                return playback
+            retry_after_ms = playback.get(&#39;retry_after_ms&#39;) or int(poll_interval_fallback * 1000)
+            sleep_for = min(retry_after_ms / 1000.0, remaining)
+            time.sleep(sleep_for)
 
     def cloud_browser_video(self, run_id: str, save_path: Optional[str] = None) -&gt; bytes:
         &#34;&#34;&#34;
@@ -12235,6 +12401,335 @@ Useful for JSON-serialization or other external storage.</p></div>
         response = self._http_handler(
             method=&#39;GET&#39;,
             url=self.cloud_browser_api_host + &#39;/sessions&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    # --- Cloud Browser Credential Vault ---
+    #
+    # End-to-end encrypted credential storage for Cloud Browser sessions.
+    # The vault key is generated server-side at create + rotate time and
+    # returned in the response body exactly once. The server does NOT
+    # persist the key — clients must save it locally on receipt.
+    #
+    # SECURITY: NEVER log, print, or include vault_key in exception
+    # messages, debug output, repr, or any breadcrumb. The whole product
+    # property is &#34;Scrapfly receives the key transiently and zeros it.&#34;
+    # Any leak invalidates the SOC 2 / HIPAA story. See
+    # /root/scrapfly-apps/.../agent_secret_tokenization_boundary.md.
+
+    def cloud_browser_vault_create(self, name: str, description: Optional[str] = None) -&gt; Dict:
+        &#34;&#34;&#34;
+        Create a new credential vault. The response includes the freshly
+        generated vault key under the `key` field — this is the ONLY time
+        the server returns it. Save it immediately; it cannot be recovered.
+
+        :param name: Human-readable vault name
+        :param description: Optional description
+        :return: dict with `vault`, `key`, and `message`
+        &#34;&#34;&#34;
+        body: Dict[str, str] = {&#39;name&#39;: name}
+        if description is not None:
+            body[&#39;description&#39;] = description
+
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault&#39;,
+            params={&#39;key&#39;: self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;content-type&#39;: &#39;application/json&#39;,
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_list(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        List all credential vaults on the account (no secret material).
+        :return: dict with `vaults` list
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_get(self, vault_id: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Fetch metadata for a single vault (no secret material).
+        :param vault_id: The vault identifier
+        :return: dict with `vault` envelope
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_update(
+        self,
+        vault_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -&gt; Dict:
+        &#34;&#34;&#34;
+        Update vault metadata (name and/or description). Does NOT touch
+        encrypted material; X-Vault-Key is not required.
+
+        :param vault_id: The vault identifier
+        :param name: Optional new name
+        :param description: Optional new description
+        :return: server response dict
+        &#34;&#34;&#34;
+        body: Dict[str, str] = {}
+        if name is not None:
+            body[&#39;name&#39;] = name
+        if description is not None:
+            body[&#39;description&#39;] = description
+
+        response = self._http_handler(
+            method=&#39;PATCH&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id,
+            params={&#39;key&#39;: self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;content-type&#39;: &#39;application/json&#39;,
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_delete(self, vault_id: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Delete a vault and all its items.
+        :param vault_id: The vault identifier
+        :return: server response dict
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;DELETE&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_rotate(self, vault_id: str, current_vault_key: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Rotate the vault encryption key. Requires the CURRENT key in the
+        X-Vault-Key header. Server generates a fresh key, rewraps every
+        item, and returns the new key in the response body exactly once.
+        After this call, the old key cannot read any row in the vault.
+
+        :param vault_id: The vault identifier
+        :param current_vault_key: The current base64-encoded vault key
+            (forwarded as X-Vault-Key, never logged)
+        :return: dict with `key` and `message`
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/rotate&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua,
+                &#39;X-Vault-Key&#39;: current_vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_item_list(self, vault_id: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        List items in a vault (metadata only — no secret material).
+        :param vault_id: The vault identifier
+        :return: dict with `items` list
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;GET&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/item&#39;,
+            params={&#39;key&#39;: self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;user-agent&#39;: self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_item_create(
+        self,
+        vault_id: str,
+        vault_key: str,
+        type: str,
+        label: str,
+        origin: str,
+        secret: Dict,
+        username: Optional[str] = None,
+    ) -&gt; Dict:
+        &#34;&#34;&#34;
+        Add an item to a vault. Requires the vault key in X-Vault-Key —
+        the server uses it to wrap a per-row DEK that encrypts the secret.
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :param type: Item type (&#34;password&#34;, &#34;passkey&#34;, &#34;cookie&#34;, &#34;totp&#34;)
+        :param label: Human-readable label
+        :param origin: Origin URL the credential is bound to
+        :param secret: Typed secret payload, e.g. ``{&#34;password&#34;: &#34;hunter2&#34;}``
+        :param username: Optional username
+        :return: dict with `item` and `message`
+        &#34;&#34;&#34;
+        body: Dict = {
+            &#39;type&#39;: type,
+            &#39;label&#39;: label,
+            &#39;origin&#39;: origin,
+            &#39;secret&#39;: secret,
+        }
+        if username is not None:
+            body[&#39;username&#39;] = username
+
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/item&#39;,
+            params={&#39;key&#39;: self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                &#39;content-type&#39;: &#39;application/json&#39;,
+                &#39;user-agent&#39;: self.ua,
+                &#39;X-Vault-Key&#39;: vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_item_update(
+        self,
+        vault_id: str,
+        item_id: str,
+        vault_key: Optional[str] = None,
+        label: Optional[str] = None,
+        origin: Optional[str] = None,
+        username: Optional[str] = None,
+        secret: Optional[Dict] = None,
+        type: Optional[str] = None,
+    ) -&gt; Dict:
+        &#34;&#34;&#34;
+        Update an item. Metadata-only patches (label/origin/username) do
+        NOT require X-Vault-Key. Patching the secret triggers
+        re-encryption and REQUIRES both vault_key AND type (the server&#39;s
+        parseSecret() switches on type to route the typed payload).
+
+        :param vault_id: The vault identifier
+        :param item_id: The item identifier
+        :param vault_key: Required iff `secret` is not None. Forwarded as
+            X-Vault-Key; never logged.
+        :param label: Optional new label
+        :param origin: Optional new origin
+        :param username: Optional new username
+        :param secret: Optional new typed secret payload (rotates the
+            encrypted blob on the server)
+        :param type: Item type (&#34;password&#34;, &#34;passkey&#34;, &#34;cookie&#34;, &#34;totp&#34;),
+            required iff `secret` is not None.
+        :return: server response dict
+        &#34;&#34;&#34;
+        if secret is not None and not vault_key:
+            raise ValueError(
+                &#34;vault_key is required when secret is provided &#34;
+                &#34;(server requires X-Vault-Key for re-encryption)&#34;
+            )
+        if secret is not None and not type:
+            raise ValueError(
+                &#34;type is required when secret is provided &#34;
+                &#34;(server&#39;s parseSecret switches on it)&#34;
+            )
+
+        body: Dict = {}
+        if label is not None:
+            body[&#39;label&#39;] = label
+        if origin is not None:
+            body[&#39;origin&#39;] = origin
+        if username is not None:
+            body[&#39;username&#39;] = username
+        if secret is not None:
+            body[&#39;secret&#39;] = secret
+            body[&#39;type&#39;] = type
+
+        headers = {
+            &#39;content-type&#39;: &#39;application/json&#39;,
+            &#39;user-agent&#39;: self.ua,
+        }
+        if vault_key is not None:
+            headers[&#39;X-Vault-Key&#39;] = vault_key
+
+        response = self._http_handler(
+            method=&#39;PATCH&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/item/&#39; + item_id,
+            params={&#39;key&#39;: self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers=headers,
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_item_delete(self, vault_id: str, item_id: str) -&gt; Dict:
+        &#34;&#34;&#34;
+        Delete an item from a vault.
+        :param vault_id: The vault identifier
+        :param item_id: The item identifier
+        :return: server response dict
+        &#34;&#34;&#34;
+        response = self._http_handler(
+            method=&#39;DELETE&#39;,
+            url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/item/&#39; + item_id,
             params={&#39;key&#39;: self.key},
             verify=self.verify,
             timeout=(self.connect_timeout, self.default_read_timeout),
@@ -12818,7 +13313,7 @@ URL-based extensions auto-update on each browser session start.
     &#34;&#34;&#34;
     Get playback info for a debug session recording.
     :param run_id: The unique run identifier
-    :return: dict with available, metadata, video_url
+    :return: dict with available, status, metadata, video_url, retry_after_ms
     &#34;&#34;&#34;
     response = self._http_handler(
         method=&#39;GET&#39;,
@@ -12837,7 +13332,7 @@ URL-based extensions auto-update on each browser session start.
 </details>
 <div class="desc"><p>Get playback info for a debug session recording.
 :param run_id: The unique run identifier
-:return: dict with available, metadata, video_url</p></div>
+:return: dict with available, status, metadata, video_url, retry_after_ms</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.cloud_browser_session_stop"><code class="name flex">
 <span>def <span class="ident">cloud_browser_session_stop</span></span>(<span>self, session_id: str) ‑> None</span>
@@ -12899,7 +13394,7 @@ URL-based extensions auto-update on each browser session start.
 :return: dict with 'sessions' list and 'total' count</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.cloud_browser_unblock"><code class="name flex">
-<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None) ‑> Dict</span>
+<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None,<br>debug: bool | None = None) ‑> Dict</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -12919,6 +13414,7 @@ URL-based extensions auto-update on each browser session start.
     method: Optional[str] = None,
     enable_mcp: Optional[bool] = None,
     solve_captcha: Optional[bool] = None,
+    debug: Optional[bool] = None,
 ) -&gt; Dict:
     &#34;&#34;&#34;
     Bypass anti-bot protection and get a ready-to-use browser session.
@@ -12931,6 +13427,10 @@ URL-based extensions auto-update on each browser session start.
     :param headers: Custom request headers
     :param body: Request body for POST/PUT/PATCH requests
     :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+    :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
+    :param solve_captcha: Arm Scrapium&#39;s built-in captcha solver
+    :param debug: When True, the session is recorded and accessible via
+        cloud_browser_playback / cloud_browser_video using the returned run_id
     :return: dict with ws_url, session_id, run_id
     &#34;&#34;&#34;
     proxy_pool_map = {
@@ -12970,6 +13470,9 @@ URL-based extensions auto-update on each browser session start.
     if solve_captcha is not None:
         json_body[&#39;solve_captcha&#39;] = solve_captcha
 
+    if debug is not None:
+        json_body[&#39;debug&#39;] = debug
+
     response = self._http_handler(
         method=&#39;POST&#39;,
         url=self.cloud_browser_api_host + &#39;/unblock&#39;,
@@ -12997,7 +13500,479 @@ URL-based extensions auto-update on each browser session start.
 :param headers: Custom request headers
 :param body: Request body for POST/PUT/PATCH requests
 :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+:param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
+:param solve_captcha: Arm Scrapium's built-in captcha solver
+:param debug: When True, the session is recorded and accessible via
+cloud_browser_playback / cloud_browser_video using the returned run_id
 :return: dict with ws_url, session_id, run_id</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_create"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_create</span></span>(<span>self, name: str, description: str | None = None) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_create(self, name: str, description: Optional[str] = None) -&gt; Dict:
+    &#34;&#34;&#34;
+    Create a new credential vault. The response includes the freshly
+    generated vault key under the `key` field — this is the ONLY time
+    the server returns it. Save it immediately; it cannot be recovered.
+
+    :param name: Human-readable vault name
+    :param description: Optional description
+    :return: dict with `vault`, `key`, and `message`
+    &#34;&#34;&#34;
+    body: Dict[str, str] = {&#39;name&#39;: name}
+    if description is not None:
+        body[&#39;description&#39;] = description
+
+    response = self._http_handler(
+        method=&#39;POST&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault&#39;,
+        params={&#39;key&#39;: self.key},
+        json=body,
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;content-type&#39;: &#39;application/json&#39;,
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Create a new credential vault. The response includes the freshly
+generated vault key under the <code>key</code> field — this is the ONLY time
+the server returns it. Save it immediately; it cannot be recovered.</p>
+<p>:param name: Human-readable vault name
+:param description: Optional description
+:return: dict with <code>vault</code>, <code>key</code>, and <code>message</code></p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_delete"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_delete</span></span>(<span>self, vault_id: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_delete(self, vault_id: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Delete a vault and all its items.
+    :param vault_id: The vault identifier
+    :return: server response dict
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;DELETE&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Delete a vault and all its items.
+:param vault_id: The vault identifier
+:return: server response dict</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_get"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_get</span></span>(<span>self, vault_id: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_get(self, vault_id: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Fetch metadata for a single vault (no secret material).
+    :param vault_id: The vault identifier
+    :return: dict with `vault` envelope
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Fetch metadata for a single vault (no secret material).
+:param vault_id: The vault identifier
+:return: dict with <code>vault</code> envelope</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_item_create"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_item_create</span></span>(<span>self,<br>vault_id: str,<br>vault_key: str,<br>type: str,<br>label: str,<br>origin: str,<br>secret: Dict,<br>username: str | None = None) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_item_create(
+    self,
+    vault_id: str,
+    vault_key: str,
+    type: str,
+    label: str,
+    origin: str,
+    secret: Dict,
+    username: Optional[str] = None,
+) -&gt; Dict:
+    &#34;&#34;&#34;
+    Add an item to a vault. Requires the vault key in X-Vault-Key —
+    the server uses it to wrap a per-row DEK that encrypts the secret.
+
+    :param vault_id: The vault identifier
+    :param vault_key: The base64-encoded vault key (X-Vault-Key,
+        never logged)
+    :param type: Item type (&#34;password&#34;, &#34;passkey&#34;, &#34;cookie&#34;, &#34;totp&#34;)
+    :param label: Human-readable label
+    :param origin: Origin URL the credential is bound to
+    :param secret: Typed secret payload, e.g. ``{&#34;password&#34;: &#34;hunter2&#34;}``
+    :param username: Optional username
+    :return: dict with `item` and `message`
+    &#34;&#34;&#34;
+    body: Dict = {
+        &#39;type&#39;: type,
+        &#39;label&#39;: label,
+        &#39;origin&#39;: origin,
+        &#39;secret&#39;: secret,
+    }
+    if username is not None:
+        body[&#39;username&#39;] = username
+
+    response = self._http_handler(
+        method=&#39;POST&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/item&#39;,
+        params={&#39;key&#39;: self.key},
+        json=body,
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;content-type&#39;: &#39;application/json&#39;,
+            &#39;user-agent&#39;: self.ua,
+            &#39;X-Vault-Key&#39;: vault_key,
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Add an item to a vault. Requires the vault key in X-Vault-Key —
+the server uses it to wrap a per-row DEK that encrypts the secret.</p>
+<p>:param vault_id: The vault identifier
+:param vault_key: The base64-encoded vault key (X-Vault-Key,
+never logged)
+:param type: Item type ("password", "passkey", "cookie", "totp")
+:param label: Human-readable label
+:param origin: Origin URL the credential is bound to
+:param secret: Typed secret payload, e.g. <code>{"password": "hunter2"}</code>
+:param username: Optional username
+:return: dict with <code>item</code> and <code>message</code></p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_item_delete"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_item_delete</span></span>(<span>self, vault_id: str, item_id: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_item_delete(self, vault_id: str, item_id: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Delete an item from a vault.
+    :param vault_id: The vault identifier
+    :param item_id: The item identifier
+    :return: server response dict
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;DELETE&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/item/&#39; + item_id,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Delete an item from a vault.
+:param vault_id: The vault identifier
+:param item_id: The item identifier
+:return: server response dict</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_item_list"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_item_list</span></span>(<span>self, vault_id: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_item_list(self, vault_id: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    List items in a vault (metadata only — no secret material).
+    :param vault_id: The vault identifier
+    :return: dict with `items` list
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/item&#39;,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>List items in a vault (metadata only — no secret material).
+:param vault_id: The vault identifier
+:return: dict with <code>items</code> list</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_item_update"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_item_update</span></span>(<span>self,<br>vault_id: str,<br>item_id: str,<br>vault_key: str | None = None,<br>label: str | None = None,<br>origin: str | None = None,<br>username: str | None = None,<br>secret: Dict | None = None,<br>type: str | None = None) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_item_update(
+    self,
+    vault_id: str,
+    item_id: str,
+    vault_key: Optional[str] = None,
+    label: Optional[str] = None,
+    origin: Optional[str] = None,
+    username: Optional[str] = None,
+    secret: Optional[Dict] = None,
+    type: Optional[str] = None,
+) -&gt; Dict:
+    &#34;&#34;&#34;
+    Update an item. Metadata-only patches (label/origin/username) do
+    NOT require X-Vault-Key. Patching the secret triggers
+    re-encryption and REQUIRES both vault_key AND type (the server&#39;s
+    parseSecret() switches on type to route the typed payload).
+
+    :param vault_id: The vault identifier
+    :param item_id: The item identifier
+    :param vault_key: Required iff `secret` is not None. Forwarded as
+        X-Vault-Key; never logged.
+    :param label: Optional new label
+    :param origin: Optional new origin
+    :param username: Optional new username
+    :param secret: Optional new typed secret payload (rotates the
+        encrypted blob on the server)
+    :param type: Item type (&#34;password&#34;, &#34;passkey&#34;, &#34;cookie&#34;, &#34;totp&#34;),
+        required iff `secret` is not None.
+    :return: server response dict
+    &#34;&#34;&#34;
+    if secret is not None and not vault_key:
+        raise ValueError(
+            &#34;vault_key is required when secret is provided &#34;
+            &#34;(server requires X-Vault-Key for re-encryption)&#34;
+        )
+    if secret is not None and not type:
+        raise ValueError(
+            &#34;type is required when secret is provided &#34;
+            &#34;(server&#39;s parseSecret switches on it)&#34;
+        )
+
+    body: Dict = {}
+    if label is not None:
+        body[&#39;label&#39;] = label
+    if origin is not None:
+        body[&#39;origin&#39;] = origin
+    if username is not None:
+        body[&#39;username&#39;] = username
+    if secret is not None:
+        body[&#39;secret&#39;] = secret
+        body[&#39;type&#39;] = type
+
+    headers = {
+        &#39;content-type&#39;: &#39;application/json&#39;,
+        &#39;user-agent&#39;: self.ua,
+    }
+    if vault_key is not None:
+        headers[&#39;X-Vault-Key&#39;] = vault_key
+
+    response = self._http_handler(
+        method=&#39;PATCH&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/item/&#39; + item_id,
+        params={&#39;key&#39;: self.key},
+        json=body,
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers=headers,
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Update an item. Metadata-only patches (label/origin/username) do
+NOT require X-Vault-Key. Patching the secret triggers
+re-encryption and REQUIRES both vault_key AND type (the server's
+parseSecret() switches on type to route the typed payload).</p>
+<p>:param vault_id: The vault identifier
+:param item_id: The item identifier
+:param vault_key: Required iff <code>secret</code> is not None. Forwarded as
+X-Vault-Key; never logged.
+:param label: Optional new label
+:param origin: Optional new origin
+:param username: Optional new username
+:param secret: Optional new typed secret payload (rotates the
+encrypted blob on the server)
+:param type: Item type ("password", "passkey", "cookie", "totp"),
+required iff <code>secret</code> is not None.
+:return: server response dict</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_list"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_list</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_list(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    List all credential vaults on the account (no secret material).
+    :return: dict with `vaults` list
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;GET&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault&#39;,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>List all credential vaults on the account (no secret material).
+:return: dict with <code>vaults</code> list</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_rotate"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_rotate</span></span>(<span>self, vault_id: str, current_vault_key: str) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_rotate(self, vault_id: str, current_vault_key: str) -&gt; Dict:
+    &#34;&#34;&#34;
+    Rotate the vault encryption key. Requires the CURRENT key in the
+    X-Vault-Key header. Server generates a fresh key, rewraps every
+    item, and returns the new key in the response body exactly once.
+    After this call, the old key cannot read any row in the vault.
+
+    :param vault_id: The vault identifier
+    :param current_vault_key: The current base64-encoded vault key
+        (forwarded as X-Vault-Key, never logged)
+    :return: dict with `key` and `message`
+    &#34;&#34;&#34;
+    response = self._http_handler(
+        method=&#39;POST&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id + &#39;/rotate&#39;,
+        params={&#39;key&#39;: self.key},
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;user-agent&#39;: self.ua,
+            &#39;X-Vault-Key&#39;: current_vault_key,
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Rotate the vault encryption key. Requires the CURRENT key in the
+X-Vault-Key header. Server generates a fresh key, rewraps every
+item, and returns the new key in the response body exactly once.
+After this call, the old key cannot read any row in the vault.</p>
+<p>:param vault_id: The vault identifier
+:param current_vault_key: The current base64-encoded vault key
+(forwarded as X-Vault-Key, never logged)
+:return: dict with <code>key</code> and <code>message</code></p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vault_update"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vault_update</span></span>(<span>self, vault_id: str, name: str | None = None, description: str | None = None) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vault_update(
+    self,
+    vault_id: str,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+) -&gt; Dict:
+    &#34;&#34;&#34;
+    Update vault metadata (name and/or description). Does NOT touch
+    encrypted material; X-Vault-Key is not required.
+
+    :param vault_id: The vault identifier
+    :param name: Optional new name
+    :param description: Optional new description
+    :return: server response dict
+    &#34;&#34;&#34;
+    body: Dict[str, str] = {}
+    if name is not None:
+        body[&#39;name&#39;] = name
+    if description is not None:
+        body[&#39;description&#39;] = description
+
+    response = self._http_handler(
+        method=&#39;PATCH&#39;,
+        url=self.cloud_browser_api_host + &#39;/vault/&#39; + vault_id,
+        params={&#39;key&#39;: self.key},
+        json=body,
+        verify=self.verify,
+        timeout=(self.connect_timeout, self.default_read_timeout),
+        headers={
+            &#39;content-type&#39;: &#39;application/json&#39;,
+            &#39;user-agent&#39;: self.ua
+        },
+    )
+
+    response.raise_for_status()
+    return response.json()</code></pre>
+</details>
+<div class="desc"><p>Update vault metadata (name and/or description). Does NOT touch
+encrypted material; X-Vault-Key is not required.</p>
+<p>:param vault_id: The vault identifier
+:param name: Optional new name
+:param description: Optional new description
+:return: server response dict</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.cloud_browser_video"><code class="name flex">
 <span>def <span class="ident">cloud_browser_video</span></span>(<span>self, run_id: str, save_path: str | None = None) ‑> bytes</span>
@@ -13039,6 +14014,57 @@ URL-based extensions auto-update on each browser session start.
 :param run_id: The unique run identifier
 :param save_path: Optional file path to save the video (e.g. 'recording.webm')
 :return: bytes - raw video data</p></div>
+</dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_wait_for_playback"><code class="name flex">
+<span>def <span class="ident">cloud_browser_wait_for_playback</span></span>(<span>self, run_id: str, timeout: float = 180.0, poll_interval_fallback: float = 3.0) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_wait_for_playback(
+    self,
+    run_id: str,
+    timeout: float = 180.0,
+    poll_interval_fallback: float = 3.0,
+) -&gt; Dict:
+    &#34;&#34;&#34;
+    Poll the playback endpoint until the recording resolves to a
+    terminal state (status=&#39;ready&#39; or status=&#39;unavailable&#39;) or the
+    timeout elapses. Honours the server-side retry_after_ms hint
+    whenever it is present.
+
+    :param run_id: The unique run identifier
+    :param timeout: Maximum seconds to wait for the recording to be ready
+    :param poll_interval_fallback: Delay (s) used when the server does
+        not return a retry_after_ms hint
+    :return: Final playback dict — the same shape as cloud_browser_playback
+    &#34;&#34;&#34;
+    import time
+
+    deadline = time.monotonic() + timeout
+    while True:
+        playback = self.cloud_browser_playback(run_id)
+        status = playback.get(&#39;status&#39;)
+        if status != &#39;uploading&#39;:
+            return playback
+        remaining = deadline - time.monotonic()
+        if remaining &lt;= 0:
+            return playback
+        retry_after_ms = playback.get(&#39;retry_after_ms&#39;) or int(poll_interval_fallback * 1000)
+        sleep_for = min(retry_after_ms / 1000.0, remaining)
+        time.sleep(sleep_for)</code></pre>
+</details>
+<div class="desc"><p>Poll the playback endpoint until the recording resolves to a
+terminal state (status='ready' or status='unavailable') or the
+timeout elapses. Honours the server-side retry_after_ms hint
+whenever it is present.</p>
+<p>:param run_id: The unique run identifier
+:param timeout: Maximum seconds to wait for the recording to be ready
+:param poll_interval_fallback: Delay (s) used when the server does
+not return a retry_after_ms hint
+:return: Final playback dict — the same shape as cloud_browser_playback</p></div>
 </dd>
 <dt id="scrapfly.ScrapflyClient.concurrent_scrape"><code class="name flex">
 <span>async def <span class="ident">concurrent_scrape</span></span>(<span>self,<br>scrape_configs: List[<a title="scrapfly.scrape_config.ScrapeConfig" href="scrape_config.html#scrapfly.scrape_config.ScrapeConfig">ScrapeConfig</a>],<br>concurrency: int | None = None)</span>
@@ -14247,27 +15273,51 @@ def start_crawl(self, crawler_config: CrawlerConfig) -&gt; CrawlerStartResponse:
         print(f&#34;Crawler started: {response.uuid}&#34;)
         ```
     &#34;&#34;&#34;
-    # Get crawler config params (without key)
-    body_params = crawler_config.to_api_params()
-
-    # API key must be passed as query parameter, not in body
+    # POST /crawl accepts two body formats:
+    #   - application/json: the entire crawler configuration as JSON.
+    #     Used for seed-URL crawls and remote_url_list crawls.
+    #   - multipart/form-data: a &#39;config&#39; JSON part and a &#39;urls&#39; text part
+    #     (one URL per line). Used only when the caller provides an
+    #     in-memory url_list, so we can stream it as a file payload
+    #     instead of inlining it into the JSON body.
+    parts = crawler_config.to_multipart_parts()
+    urls_blob = parts[&#39;urls&#39;]
     query_params = {&#39;key&#39;: self.key}
-
     timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
-
     url = f&#39;{self.host}/crawl&#39;
-    logger.debug(f&#34;Crawler API POST {url}?key=***&#34;)
-    logger.debug(f&#34;Crawler API body: {body_params}&#34;)
 
-    response = self._http_handler(
-        method=&#39;POST&#39;,
-        url=url,
-        params=query_params,  # key as query param
-        json=body_params,      # config in body
-        timeout=timeout,
-        headers={&#39;User-Agent&#39;: self.ua},
-        verify=self.verify
-    )
+    logger.debug(f&#34;Crawler API POST {url}?key=***&#34;)
+
+    if urls_blob is not None:
+        config_body = json.dumps(parts[&#39;config&#39;]).encode(&#39;utf-8&#39;)
+        files = {
+            &#39;config&#39;: (&#39;config.json&#39;, config_body, &#39;application/json&#39;),
+            &#39;urls&#39;: (&#39;urls.txt&#39;, urls_blob.encode(&#39;utf-8&#39;), &#39;text/plain&#39;),
+        }
+        logger.debug(
+            f&#34;Crawler API multipart config: {parts[&#39;config&#39;]} ; &#34;
+            f&#34;urls part: {len(urls_blob.splitlines())} URL(s)&#34;
+        )
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=url,
+            params=query_params,
+            files=files,
+            timeout=timeout,
+            headers={&#39;User-Agent&#39;: self.ua},
+            verify=self.verify
+        )
+    else:
+        logger.debug(f&#34;Crawler API body: {parts[&#39;config&#39;]}&#34;)
+        response = self._http_handler(
+            method=&#39;POST&#39;,
+            url=url,
+            params=query_params,
+            json=parts[&#39;config&#39;],
+            timeout=timeout,
+            headers={&#39;User-Agent&#39;: self.ua},
+            verify=self.verify
+        )
 
     if response.status_code not in (200, 201):
         # Log error details for debugging
@@ -16044,6 +17094,7 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED" href="#scrapfly.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED">WEBHOOK_CRAWLER_URL_SKIPPED</a></code></li>
 <li><code><a title="scrapfly.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED" href="#scrapfly.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED">WEBHOOK_CRAWLER_URL_VISITED</a></code></li>
 <li><code><a title="scrapfly.CrawlerConfig.to_api_params" href="#scrapfly.CrawlerConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.CrawlerConfig.to_multipart_parts" href="#scrapfly.CrawlerConfig.to_multipart_parts">to_multipart_parts</a></code></li>
 </ul>
 </li>
 <li>
@@ -16452,7 +17503,18 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_session_stop" href="#scrapfly.ScrapflyClient.cloud_browser_session_stop">cloud_browser_session_stop</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_sessions" href="#scrapfly.ScrapflyClient.cloud_browser_sessions">cloud_browser_sessions</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_unblock" href="#scrapfly.ScrapflyClient.cloud_browser_unblock">cloud_browser_unblock</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_create" href="#scrapfly.ScrapflyClient.cloud_browser_vault_create">cloud_browser_vault_create</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_delete" href="#scrapfly.ScrapflyClient.cloud_browser_vault_delete">cloud_browser_vault_delete</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_get" href="#scrapfly.ScrapflyClient.cloud_browser_vault_get">cloud_browser_vault_get</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_item_create" href="#scrapfly.ScrapflyClient.cloud_browser_vault_item_create">cloud_browser_vault_item_create</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_item_delete" href="#scrapfly.ScrapflyClient.cloud_browser_vault_item_delete">cloud_browser_vault_item_delete</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_item_list" href="#scrapfly.ScrapflyClient.cloud_browser_vault_item_list">cloud_browser_vault_item_list</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_item_update" href="#scrapfly.ScrapflyClient.cloud_browser_vault_item_update">cloud_browser_vault_item_update</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_list" href="#scrapfly.ScrapflyClient.cloud_browser_vault_list">cloud_browser_vault_list</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_rotate" href="#scrapfly.ScrapflyClient.cloud_browser_vault_rotate">cloud_browser_vault_rotate</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_update" href="#scrapfly.ScrapflyClient.cloud_browser_vault_update">cloud_browser_vault_update</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_video" href="#scrapfly.ScrapflyClient.cloud_browser_video">cloud_browser_video</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_wait_for_playback" href="#scrapfly.ScrapflyClient.cloud_browser_wait_for_playback">cloud_browser_wait_for_playback</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.concurrent_scrape" href="#scrapfly.ScrapflyClient.concurrent_scrape">concurrent_scrape</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.connect_timeout" href="#scrapfly.ScrapflyClient.connect_timeout">connect_timeout</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.debug" href="#scrapfly.ScrapflyClient.debug">debug</a></code></li>

@@ -2920,7 +2920,7 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 </dd>
 <dt id="scrapfly.crawler.CrawlerConfig"><code class="flex name class">
 <span>class <span class="ident">CrawlerConfig</span></span>
-<span>(</span><span>url: str,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool = False,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None)</span>
+<span>(</span><span>url: str | None = None,<br>url_list: List[str] | None = None,<br>remote_url_list: str | None = None,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool = False,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -2981,7 +2981,12 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 
     def __init__(
         self,
-        url: str,
+        url: Optional[str] = None,
+        # URL source — exactly one of url, url_list, remote_url_list must be set.
+        # url enables discovery (sitemaps/robots/links); url_list and
+        # remote_url_list crawl an explicit set of URLs with discovery off.
+        url_list: Optional[List[str]] = None,
+        remote_url_list: Optional[str] = None,
         # Crawl limits
         page_limit: Optional[int] = None,
         max_depth: Optional[int] = None,
@@ -3081,9 +3086,19 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         if exclude_paths and include_only_paths:
             raise ValueError(&#34;exclude_paths and include_only_paths are mutually exclusive&#34;)
 
-        params = {
-            &#39;url&#39;: url,
-        }
+        sources_set = sum(1 for v in (url, url_list, remote_url_list) if v)
+        if sources_set == 0:
+            raise ValueError(&#34;Provide one of: url, url_list, remote_url_list&#34;)
+        if sources_set &gt; 1:
+            raise ValueError(&#34;Only one of url, url_list, remote_url_list can be set&#34;)
+
+        params: Dict = {}
+        if url:
+            params[&#39;url&#39;] = url
+        if url_list:
+            params[&#39;url_list&#39;] = url_list
+        if remote_url_list:
+            params[&#39;remote_url_list&#39;] = remote_url_list
 
         # Add optional parameters
         if page_limit is not None:
@@ -3184,7 +3199,26 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         params = self._params.copy()
         if key:
             params[&#39;key&#39;] = key
-        return params</code></pre>
+        return params
+
+    def to_multipart_parts(self) -&gt; Dict:
+        &#34;&#34;&#34;
+        Split the configuration into the two parts required by the
+        ``POST /crawl`` multipart endpoint:
+
+        - ``config``: a JSON object with every field except ``url_list``
+        - ``urls``: a newline-delimited text payload, one URL per line
+          (only present when an explicit URL list was provided)
+
+        :return: dict with keys ``config`` (dict) and ``urls`` (Optional[str])
+        &#34;&#34;&#34;
+        body = self._params.copy()
+        urls_blob: Optional[str] = None
+        if &#39;url_list&#39; in body:
+            urls = body.pop(&#39;url_list&#39;)
+            if urls:
+                urls_blob = &#34;\n&#34;.join(urls)
+        return {&#39;config&#39;: body, &#39;urls&#39;: urls_blob}</code></pre>
 </details>
 <div class="desc"><p>Configuration for Scrapfly Crawler API</p>
 <p>The Crawler API performs recursive website crawling with advanced
@@ -3339,6 +3373,42 @@ if status.is_complete:
 <div class="desc"><p>Convert config to API parameters</p>
 <p>:param key: API key (optional, can be added by client)
 :return: Dictionary of API parameters</p></div>
+</dd>
+<dt id="scrapfly.crawler.CrawlerConfig.to_multipart_parts"><code class="name flex">
+<span>def <span class="ident">to_multipart_parts</span></span>(<span>self) ‑> Dict</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_multipart_parts(self) -&gt; Dict:
+    &#34;&#34;&#34;
+    Split the configuration into the two parts required by the
+    ``POST /crawl`` multipart endpoint:
+
+    - ``config``: a JSON object with every field except ``url_list``
+    - ``urls``: a newline-delimited text payload, one URL per line
+      (only present when an explicit URL list was provided)
+
+    :return: dict with keys ``config`` (dict) and ``urls`` (Optional[str])
+    &#34;&#34;&#34;
+    body = self._params.copy()
+    urls_blob: Optional[str] = None
+    if &#39;url_list&#39; in body:
+        urls = body.pop(&#39;url_list&#39;)
+        if urls:
+            urls_blob = &#34;\n&#34;.join(urls)
+    return {&#39;config&#39;: body, &#39;urls&#39;: urls_blob}</code></pre>
+</details>
+<div class="desc"><p>Split the configuration into the two parts required by the
+<code>POST /crawl</code> multipart endpoint:</p>
+<ul>
+<li><code>config</code>: a JSON object with every field except <code>url_list</code></li>
+<li><code>urls</code>: a newline-delimited text payload, one URL per line
+(only present when an explicit URL list was provided)</li>
+</ul>
+<p>:return: dict with keys <code>config</code> (dict) and <code>urls</code> (Optional[str])</p></div>
 </dd>
 </dl>
 </dd>
@@ -6854,6 +6924,7 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.crawler.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED" href="#scrapfly.crawler.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED">WEBHOOK_CRAWLER_URL_SKIPPED</a></code></li>
 <li><code><a title="scrapfly.crawler.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED" href="#scrapfly.crawler.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED">WEBHOOK_CRAWLER_URL_VISITED</a></code></li>
 <li><code><a title="scrapfly.crawler.CrawlerConfig.to_api_params" href="#scrapfly.crawler.CrawlerConfig.to_api_params">to_api_params</a></code></li>
+<li><code><a title="scrapfly.crawler.CrawlerConfig.to_multipart_parts" href="#scrapfly.crawler.CrawlerConfig.to_multipart_parts">to_multipart_parts</a></code></li>
 </ul>
 </li>
 <li>
