@@ -281,3 +281,22 @@ class CrawlerConfig(BaseApiConfig):
         if key:
             params['key'] = key
         return params
+
+    def to_multipart_parts(self) -> Dict:
+        """
+        Split the configuration into the two parts required by the
+        ``POST /crawl`` multipart endpoint:
+
+        - ``config``: a JSON object with every field except ``url_list``
+        - ``urls``: a newline-delimited text payload, one URL per line
+          (only present when an explicit URL list was provided)
+
+        :return: dict with keys ``config`` (dict) and ``urls`` (Optional[str])
+        """
+        body = self._params.copy()
+        urls_blob: Optional[str] = None
+        if 'url_list' in body:
+            urls = body.pop('url_list')
+            if urls:
+                urls_blob = "\n".join(urls)
+        return {'config': body, 'urls': urls_blob}

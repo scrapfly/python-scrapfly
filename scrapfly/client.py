@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import datetime
 import warnings
@@ -1390,27 +1391,51 @@ class ScrapflyClient(ScheduleClientMixin):
             print(f"Crawler started: {response.uuid}")
             ```
         """
-        # Get crawler config params (without key)
-        body_params = crawler_config.to_api_params()
-
-        # API key must be passed as query parameter, not in body
+        # POST /crawl accepts two body formats:
+        #   - application/json: the entire crawler configuration as JSON.
+        #     Used for seed-URL crawls and remote_url_list crawls.
+        #   - multipart/form-data: a 'config' JSON part and a 'urls' text part
+        #     (one URL per line). Used only when the caller provides an
+        #     in-memory url_list, so we can stream it as a file payload
+        #     instead of inlining it into the JSON body.
+        parts = crawler_config.to_multipart_parts()
+        urls_blob = parts['urls']
         query_params = {'key': self.key}
-
         timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
-
         url = f'{self.host}/crawl'
-        logger.debug(f"Crawler API POST {url}?key=***")
-        logger.debug(f"Crawler API body: {body_params}")
 
-        response = self._http_handler(
-            method='POST',
-            url=url,
-            params=query_params,  # key as query param
-            json=body_params,      # config in body
-            timeout=timeout,
-            headers={'User-Agent': self.ua},
-            verify=self.verify
-        )
+        logger.debug(f"Crawler API POST {url}?key=***")
+
+        if urls_blob is not None:
+            config_body = json.dumps(parts['config']).encode('utf-8')
+            files = {
+                'config': ('config.json', config_body, 'application/json'),
+                'urls': ('urls.txt', urls_blob.encode('utf-8'), 'text/plain'),
+            }
+            logger.debug(
+                f"Crawler API multipart config: {parts['config']} ; "
+                f"urls part: {len(urls_blob.splitlines())} URL(s)"
+            )
+            response = self._http_handler(
+                method='POST',
+                url=url,
+                params=query_params,
+                files=files,
+                timeout=timeout,
+                headers={'User-Agent': self.ua},
+                verify=self.verify
+            )
+        else:
+            logger.debug(f"Crawler API body: {parts['config']}")
+            response = self._http_handler(
+                method='POST',
+                url=url,
+                params=query_params,
+                json=parts['config'],
+                timeout=timeout,
+                headers={'User-Agent': self.ua},
+                verify=self.verify
+            )
 
         if response.status_code not in (200, 201):
             # Log error details for debugging
@@ -1619,13 +1644,27 @@ class ScrapflyClient(ScheduleClientMixin):
     def cloud_browser(self, browser_config: Optional[BrowserConfig] = None) -> str:
         """
         Get the WebSocket URL for a Cloud Browser session.
+
         :param browser_config: Optional BrowserConfig - connection parameters
         :return: str - the full wss:// URL for CDP connection
+
+        On rejection, the server sends a JSON error frame followed by a
+        close frame with code 1008/1011/1013 and a "ERR::BROWSER::CODE:
+        reason" string. See the docs for read patterns:
+        https://scrapfly.io/docs/cloud-browser-api/errors#websocket-close-frame
         """
         if browser_config is None:
             browser_config = BrowserConfig()
 
         return browser_config.websocket_url(api_key=self.key, host=self.cloud_browser_host)
+
+    def cloud_browser_project_salt(self) -> str:
+        """Return the deterministic project salt for this client's api_key.
+        Matches the X-Browser-Project-Salt response header returned on a
+        successful Cloud Browser WebSocket upgrade. Useful for verifying
+        that an attach link belongs to your project before sharing it.
+        """
+        return BrowserConfig.project_salt(self.key)
 
     def cloud_browser_unblock(
         self,
@@ -1633,13 +1672,14 @@ class ScrapflyClient(ScheduleClientMixin):
         proxy_pool: Optional[str] = None,
         country: Optional[str] = None,
         os: Optional[str] = None,
+        browser_brand: Optional[str] = None,
         timeout: Optional[int] = None,
         browser_timeout: Optional[int] = None,
         headers: Optional[Dict] = None,
         body: Optional[str] = None,
         method: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
-        solve_captcha: Optional[bool] = None,
+        debug: Optional[bool] = None,
     ) -> Dict:
         """
         Bypass anti-bot protection and get a ready-to-use browser session.
@@ -1647,11 +1687,15 @@ class ScrapflyClient(ScheduleClientMixin):
         :param proxy_pool: Proxy pool: 'datacenter' or 'residential'
         :param country: ISO country code for proxy geolocation
         :param os: Operating system fingerprint: 'linux', 'windows', 'macos'
+        :param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
         :param timeout: Navigation timeout in seconds (max 300)
         :param browser_timeout: Browser session timeout in seconds (max 1800)
         :param headers: Custom request headers
         :param body: Request body for POST/PUT/PATCH requests
         :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
+        :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
+        :param debug: When True, the session is recorded and accessible via
+            cloud_browser_playback / cloud_browser_video using the returned run_id
         :return: dict with ws_url, session_id, run_id
         """
         proxy_pool_map = {
@@ -1669,6 +1713,9 @@ class ScrapflyClient(ScheduleClientMixin):
 
         if os is not None:
             json_body['os'] = os
+
+        if browser_brand is not None:
+            json_body['browser_brand'] = browser_brand
 
         if timeout is not None:
             json_body['timeout'] = timeout
@@ -1688,8 +1735,8 @@ class ScrapflyClient(ScheduleClientMixin):
         if enable_mcp is not None:
             json_body['enable_mcp'] = enable_mcp
 
-        if solve_captcha is not None:
-            json_body['solve_captcha'] = solve_captcha
+        if debug is not None:
+            json_body['debug'] = debug
 
         response = self._http_handler(
             method='POST',
@@ -1730,7 +1777,7 @@ class ScrapflyClient(ScheduleClientMixin):
         """
         Get playback info for a debug session recording.
         :param run_id: The unique run identifier
-        :return: dict with available, metadata, video_url
+        :return: dict with available, status, metadata, video_url, retry_after_ms
         """
         response = self._http_handler(
             method='GET',
@@ -1746,6 +1793,39 @@ class ScrapflyClient(ScheduleClientMixin):
         response.raise_for_status()
 
         return response.json()
+
+    def cloud_browser_wait_for_playback(
+        self,
+        run_id: str,
+        timeout: float = 180.0,
+        poll_interval_fallback: float = 3.0,
+    ) -> Dict:
+        """
+        Poll the playback endpoint until the recording resolves to a
+        terminal state (status='ready' or status='unavailable') or the
+        timeout elapses. Honours the server-side retry_after_ms hint
+        whenever it is present.
+
+        :param run_id: The unique run identifier
+        :param timeout: Maximum seconds to wait for the recording to be ready
+        :param poll_interval_fallback: Delay (s) used when the server does
+            not return a retry_after_ms hint
+        :return: Final playback dict — the same shape as cloud_browser_playback
+        """
+        import time
+
+        deadline = time.monotonic() + timeout
+        while True:
+            playback = self.cloud_browser_playback(run_id)
+            status = playback.get('status')
+            if status != 'uploading':
+                return playback
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return playback
+            retry_after_ms = playback.get('retry_after_ms') or int(poll_interval_fallback * 1000)
+            sleep_for = min(retry_after_ms / 1000.0, remaining)
+            time.sleep(sleep_for)
 
     def cloud_browser_video(self, run_id: str, save_path: Optional[str] = None) -> bytes:
         """
@@ -1889,6 +1969,335 @@ class ScrapflyClient(ScheduleClientMixin):
         response = self._http_handler(
             method='GET',
             url=self.cloud_browser_api_host + '/sessions',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    # --- Cloud Browser Credential Vault ---
+    #
+    # End-to-end encrypted credential storage for Cloud Browser sessions.
+    # The vault key is generated server-side at create + rotate time and
+    # returned in the response body exactly once. The server does NOT
+    # persist the key — clients must save it locally on receipt.
+    #
+    # SECURITY: NEVER log, print, or include vault_key in exception
+    # messages, debug output, repr, or any breadcrumb. The whole product
+    # property is "Scrapfly receives the key transiently and zeros it."
+    # Any leak invalidates the SOC 2 / HIPAA story. See
+    # /root/scrapfly-apps/.../agent_secret_tokenization_boundary.md.
+
+    def cloud_browser_vault_create(self, name: str, description: Optional[str] = None) -> Dict:
+        """
+        Create a new credential vault. The response includes the freshly
+        generated vault key under the `key` field — this is the ONLY time
+        the server returns it. Save it immediately; it cannot be recovered.
+
+        :param name: Human-readable vault name
+        :param description: Optional description
+        :return: dict with `vault`, `key`, and `message`
+        """
+        body: Dict[str, str] = {'name': name}
+        if description is not None:
+            body['description'] = description
+
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault',
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_list(self) -> Dict:
+        """
+        List all credential vaults on the account (no secret material).
+        :return: dict with `vaults` list
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/vault',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_get(self, vault_id: str) -> Dict:
+        """
+        Fetch metadata for a single vault (no secret material).
+        :param vault_id: The vault identifier
+        :return: dict with `vault` envelope
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_update(
+        self,
+        vault_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Dict:
+        """
+        Update vault metadata (name and/or description). Does NOT touch
+        encrypted material; X-Vault-Key is not required.
+
+        :param vault_id: The vault identifier
+        :param name: Optional new name
+        :param description: Optional new description
+        :return: server response dict
+        """
+        body: Dict[str, str] = {}
+        if name is not None:
+            body['name'] = name
+        if description is not None:
+            body['description'] = description
+
+        response = self._http_handler(
+            method='PATCH',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id,
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_delete(self, vault_id: str) -> Dict:
+        """
+        Delete a vault and all its items.
+        :param vault_id: The vault identifier
+        :return: server response dict
+        """
+        response = self._http_handler(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_rotate(self, vault_id: str, current_vault_key: str) -> Dict:
+        """
+        Rotate the vault encryption key. Requires the CURRENT key in the
+        X-Vault-Key header. Server generates a fresh key, rewraps every
+        item, and returns the new key in the response body exactly once.
+        After this call, the old key cannot read any row in the vault.
+
+        :param vault_id: The vault identifier
+        :param current_vault_key: The current base64-encoded vault key
+            (forwarded as X-Vault-Key, never logged)
+        :return: dict with `key` and `message`
+        """
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/rotate',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua,
+                'X-Vault-Key': current_vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_item_list(self, vault_id: str) -> Dict:
+        """
+        List items in a vault (metadata only — no secret material).
+        :param vault_id: The vault identifier
+        :return: dict with `items` list
+        """
+        response = self._http_handler(
+            method='GET',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/item',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_item_create(
+        self,
+        vault_id: str,
+        vault_key: str,
+        type: str,
+        label: str,
+        origin: str,
+        secret: Dict,
+        username: Optional[str] = None,
+    ) -> Dict:
+        """
+        Add an item to a vault. Requires the vault key in X-Vault-Key —
+        the server uses it to wrap a per-row DEK that encrypts the secret.
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :param type: Item type ("password", "passkey", "cookie", "totp")
+        :param label: Human-readable label
+        :param origin: Origin URL the credential is bound to
+        :param secret: Typed secret payload, e.g. ``{"password": "hunter2"}``
+        :param username: Optional username
+        :return: dict with `item` and `message`
+        """
+        body: Dict = {
+            'type': type,
+            'label': label,
+            'origin': origin,
+            'secret': secret,
+        }
+        if username is not None:
+            body['username'] = username
+
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/item',
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua,
+                'X-Vault-Key': vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_item_update(
+        self,
+        vault_id: str,
+        item_id: str,
+        vault_key: Optional[str] = None,
+        label: Optional[str] = None,
+        origin: Optional[str] = None,
+        username: Optional[str] = None,
+        secret: Optional[Dict] = None,
+        type: Optional[str] = None,
+    ) -> Dict:
+        """
+        Update an item. Metadata-only patches (label/origin/username) do
+        NOT require X-Vault-Key. Patching the secret triggers
+        re-encryption and REQUIRES both vault_key AND type (the server's
+        parseSecret() switches on type to route the typed payload).
+
+        :param vault_id: The vault identifier
+        :param item_id: The item identifier
+        :param vault_key: Required iff `secret` is not None. Forwarded as
+            X-Vault-Key; never logged.
+        :param label: Optional new label
+        :param origin: Optional new origin
+        :param username: Optional new username
+        :param secret: Optional new typed secret payload (rotates the
+            encrypted blob on the server)
+        :param type: Item type ("password", "passkey", "cookie", "totp"),
+            required iff `secret` is not None.
+        :return: server response dict
+        """
+        if secret is not None and not vault_key:
+            raise ValueError(
+                "vault_key is required when secret is provided "
+                "(server requires X-Vault-Key for re-encryption)"
+            )
+        if secret is not None and not type:
+            raise ValueError(
+                "type is required when secret is provided "
+                "(server's parseSecret switches on it)"
+            )
+
+        body: Dict = {}
+        if label is not None:
+            body['label'] = label
+        if origin is not None:
+            body['origin'] = origin
+        if username is not None:
+            body['username'] = username
+        if secret is not None:
+            body['secret'] = secret
+            body['type'] = type
+
+        headers = {
+            'content-type': 'application/json',
+            'user-agent': self.ua,
+        }
+        if vault_key is not None:
+            headers['X-Vault-Key'] = vault_key
+
+        response = self._http_handler(
+            method='PATCH',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/item/' + item_id,
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers=headers,
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_item_delete(self, vault_id: str, item_id: str) -> Dict:
+        """
+        Delete an item from a vault.
+        :param vault_id: The vault identifier
+        :param item_id: The item identifier
+        :return: server response dict
+        """
+        response = self._http_handler(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/item/' + item_id,
             params={'key': self.key},
             verify=self.verify,
             timeout=(self.connect_timeout, self.default_read_timeout),

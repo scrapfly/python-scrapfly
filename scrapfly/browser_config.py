@@ -1,3 +1,4 @@
+import hashlib
 from enum import Enum
 from typing import Optional, Union, Dict, List
 from urllib.parse import urlencode
@@ -45,6 +46,14 @@ class BrowserConfig(BaseApiConfig):
         byop_proxy: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
         solve_captcha: Optional[bool] = None,
+        vault: Optional[str] = None,
+        vault_key: Optional[str] = None,
+        enable_vnc: Optional[bool] = None,
+        vnc_password: Optional[str] = None,
+        enable_rtc: Optional[bool] = None,
+        rtc_username: Optional[str] = None,
+        rtc_password: Optional[str] = None,
+        hitl_allowed_networks: Optional[Union[str, List[str]]] = None,
     ):
         if timeout is not None and timeout > 1800:
             raise ValueError('timeout cannot exceed 1800 seconds (30 minutes)')
@@ -90,6 +99,33 @@ class BrowserConfig(BaseApiConfig):
         # automatically. Billed per solve; failures cost nothing.
         # https://scrapfly.io/docs/cloud-browser-api/captcha-solver
         self.solve_captcha = solve_captcha
+        # Cloud Browser Credential Vault binding. `vault` is the vault NAME
+        # (the human name you gave it at POST /vault — alphanumeric); the
+        # server resolves it to the underlying vault scoped to your api-key's
+        # project and environment. `vault_key` is the base64 32-byte
+        # customer-held key returned (once) by POST /vault or POST
+        # /vault/<id>/rotate. Both are forwarded as query params on the
+        # wss:// URL — the server uses them to decrypt items into the
+        # session's secret broker. Treat `vault_key` as a credential: never
+        # log it, never persist it server-side.
+        self.vault = vault
+        self.vault_key = vault_key
+        self.enable_vnc = enable_vnc
+        self.vnc_password = vnc_password
+        self.enable_rtc = enable_rtc
+        self.rtc_username = rtc_username
+        self.rtc_password = rtc_password
+        if isinstance(hitl_allowed_networks, list):
+            hitl_allowed_networks = ','.join(s.strip() for s in hitl_allowed_networks if s and s.strip())
+        self.hitl_allowed_networks = hitl_allowed_networks or None
+
+    @staticmethod
+    def project_salt(api_key: str) -> str:
+        """Return the deterministic project salt for an api_key:
+        sha256(api_key)[:8]. The server exposes the same value via the
+        X-Browser-Project-Salt response header on a successful WS upgrade.
+        """
+        return hashlib.sha256(api_key.encode('utf-8')).hexdigest()[:8]
 
     def websocket_url(self, api_key: str, host: Optional[str] = None) -> str:
         params = {'api_key': api_key}
@@ -110,7 +146,7 @@ class BrowserConfig(BaseApiConfig):
             params['auto_close'] = self._bool_to_http(self.auto_close)
 
         if self.timeout is not None:
-            params['timeout'] = self.timeout
+            params['timeout'] = str(self.timeout)
 
         if self.debug is not None:
             params['debug'] = self._bool_to_http(self.debug)
@@ -149,7 +185,7 @@ class BrowserConfig(BaseApiConfig):
             params['unblock'] = self._bool_to_http(self.unblock)
 
         if self.unblock_timeout is not None:
-            params['unblock_timeout'] = self.unblock_timeout
+            params['unblock_timeout'] = str(self.unblock_timeout)
 
         if self.browser_brand is not None:
             params['browser_brand'] = self.browser_brand
@@ -162,6 +198,30 @@ class BrowserConfig(BaseApiConfig):
 
         if self.solve_captcha is not None:
             params['solve_captcha'] = self._bool_to_http(self.solve_captcha)
+
+        if self.vault is not None:
+            params['vault'] = self.vault
+
+        if self.vault_key is not None:
+            params['vault_key'] = self.vault_key
+
+        if self.enable_vnc is not None:
+            params['enable_vnc'] = self._bool_to_http(self.enable_vnc)
+
+        if self.vnc_password is not None:
+            params['vnc_password'] = self.vnc_password
+
+        if self.enable_rtc is not None:
+            params['enable_rtc'] = self._bool_to_http(self.enable_rtc)
+
+        if self.rtc_username is not None:
+            params['rtc_username'] = self.rtc_username
+
+        if self.rtc_password is not None:
+            params['rtc_password'] = self.rtc_password
+
+        if self.hitl_allowed_networks is not None:
+            params['hitl_allowed_networks'] = self.hitl_allowed_networks
 
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + '?' + urlencode(params)
@@ -191,6 +251,14 @@ class BrowserConfig(BaseApiConfig):
             'byop_proxy': self.byop_proxy,
             'enable_mcp': self.enable_mcp,
             'solve_captcha': self.solve_captcha,
+            'vault': self.vault,
+            'vault_key': self.vault_key,
+            'enable_vnc': self.enable_vnc,
+            'vnc_password': self.vnc_password,
+            'enable_rtc': self.enable_rtc,
+            'rtc_username': self.rtc_username,
+            'rtc_password': self.rtc_password,
+            'hitl_allowed_networks': self.hitl_allowed_networks,
         }
 
     @staticmethod
@@ -227,4 +295,12 @@ class BrowserConfig(BaseApiConfig):
             byop_proxy=browser_config_dict.get('byop_proxy', None),
             enable_mcp=browser_config_dict.get('enable_mcp', None),
             solve_captcha=browser_config_dict.get('solve_captcha', None),
+            vault=browser_config_dict.get('vault', None),
+            vault_key=browser_config_dict.get('vault_key', None),
+            enable_vnc=browser_config_dict.get('enable_vnc', None),
+            vnc_password=browser_config_dict.get('vnc_password', None),
+            enable_rtc=browser_config_dict.get('enable_rtc', None),
+            rtc_username=browser_config_dict.get('rtc_username', None),
+            rtc_password=browser_config_dict.get('rtc_password', None),
+            hitl_allowed_networks=browser_config_dict.get('hitl_allowed_networks', None),
         )

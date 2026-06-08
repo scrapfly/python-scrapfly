@@ -150,7 +150,7 @@ class ExtractionConfig(BaseApiConfig):
             raise ExtractionConfigError('You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose')
 
         if self.extraction_template:
-            params['extraction_template'] = self.extraction_template
+            params['extraction_template'] = 'persistent:' + self.extraction_template
 
         if self.extraction_ephemeral_template:
             template_json = json.dumps(self.extraction_ephemeral_template)

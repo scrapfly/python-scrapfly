@@ -62,6 +62,7 @@ class ScrapeConfig(BaseApiConfig):
 
     PUBLIC_DATACENTER_POOL = 'public_datacenter_pool'
     PUBLIC_RESIDENTIAL_POOL = 'public_residential_pool'
+    PUBLIC_TOR_POOL = 'public_tor_pool'
 
     url: str
     retry: bool = True
@@ -144,7 +145,7 @@ class ScrapeConfig(BaseApiConfig):
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         screenshot_flags: Optional[List[ScreenshotFlag]] = None,
-        session_sticky_proxy:Optional[bool] = None,
+        session_sticky_proxy:bool = True,
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
         js_scenario:Optional[List] = None,
@@ -357,7 +358,7 @@ class ScrapeConfig(BaseApiConfig):
             raise ScrapeConfigError('You cannot pass both parameters extraction_template and extraction_ephemeral_template. You must choose')
 
         if self.extraction_template:
-            params['extraction_template'] = self.extraction_template
+            params['extraction_template'] = 'persistent:' + self.extraction_template
 
         if self.extraction_ephemeral_template:
             self.extraction_ephemeral_template = json.dumps(self.extraction_ephemeral_template)
@@ -375,7 +376,7 @@ class ScrapeConfig(BaseApiConfig):
         if self.session:
             params['session'] = self.session
 
-            if self.session_sticky_proxy is True: # false by default
+            if self.session_sticky_proxy is not None:
                 params['session_sticky_proxy'] = self._bool_to_http(self.session_sticky_proxy)
         else:
             if self.session_sticky_proxy:
@@ -541,7 +542,7 @@ class ScrapeConfig(BaseApiConfig):
         screenshot_flags = scrape_config_dict.get('screenshot_flags', [])
         screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
 
-        session_sticky_proxy = scrape_config_dict.get('session_sticky_proxy', False)
+        session_sticky_proxy = scrape_config_dict.get('session_sticky_proxy', True)
         webhook = scrape_config_dict.get('webhook', None)
         timeout = scrape_config_dict.get('timeout', None)
         js_scenario = scrape_config_dict.get('js_scenario', None)
