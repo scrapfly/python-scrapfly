@@ -1678,13 +1678,27 @@ el.replaceWith(d);
     def cloud_browser(self, browser_config: Optional[BrowserConfig] = None) -&gt; str:
         &#34;&#34;&#34;
         Get the WebSocket URL for a Cloud Browser session.
+
         :param browser_config: Optional BrowserConfig - connection parameters
         :return: str - the full wss:// URL for CDP connection
+
+        On rejection, the server sends a JSON error frame followed by a
+        close frame with code 1008/1011/1013 and a &#34;ERR::BROWSER::CODE:
+        reason&#34; string. See the docs for read patterns:
+        https://scrapfly.io/docs/cloud-browser-api/errors#websocket-close-frame
         &#34;&#34;&#34;
         if browser_config is None:
             browser_config = BrowserConfig()
 
         return browser_config.websocket_url(api_key=self.key, host=self.cloud_browser_host)
+
+    def cloud_browser_project_salt(self) -&gt; str:
+        &#34;&#34;&#34;Return the deterministic project salt for this client&#39;s api_key.
+        Matches the X-Browser-Project-Salt response header returned on a
+        successful Cloud Browser WebSocket upgrade. Useful for verifying
+        that an attach link belongs to your project before sharing it.
+        &#34;&#34;&#34;
+        return BrowserConfig.project_salt(self.key)
 
     def cloud_browser_unblock(
         self,
@@ -1692,13 +1706,13 @@ el.replaceWith(d);
         proxy_pool: Optional[str] = None,
         country: Optional[str] = None,
         os: Optional[str] = None,
+        browser_brand: Optional[str] = None,
         timeout: Optional[int] = None,
         browser_timeout: Optional[int] = None,
         headers: Optional[Dict] = None,
         body: Optional[str] = None,
         method: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
-        solve_captcha: Optional[bool] = None,
         debug: Optional[bool] = None,
     ) -&gt; Dict:
         &#34;&#34;&#34;
@@ -1707,13 +1721,13 @@ el.replaceWith(d);
         :param proxy_pool: Proxy pool: &#39;datacenter&#39; or &#39;residential&#39;
         :param country: ISO country code for proxy geolocation
         :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
+        :param browser_brand: Browser brand fingerprint: &#39;chrome&#39;, &#39;edge&#39;, &#39;brave&#39;, &#39;opera&#39;
         :param timeout: Navigation timeout in seconds (max 300)
         :param browser_timeout: Browser session timeout in seconds (max 1800)
         :param headers: Custom request headers
         :param body: Request body for POST/PUT/PATCH requests
         :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
         :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
-        :param solve_captcha: Arm Scrapium&#39;s built-in captcha solver
         :param debug: When True, the session is recorded and accessible via
             cloud_browser_playback / cloud_browser_video using the returned run_id
         :return: dict with ws_url, session_id, run_id
@@ -1734,6 +1748,9 @@ el.replaceWith(d);
         if os is not None:
             json_body[&#39;os&#39;] = os
 
+        if browser_brand is not None:
+            json_body[&#39;browser_brand&#39;] = browser_brand
+
         if timeout is not None:
             json_body[&#39;timeout&#39;] = timeout
 
@@ -1751,9 +1768,6 @@ el.replaceWith(d);
 
         if enable_mcp is not None:
             json_body[&#39;enable_mcp&#39;] = enable_mcp
-
-        if solve_captcha is not None:
-            json_body[&#39;solve_captcha&#39;] = solve_captcha
 
         if debug is not None:
             json_body[&#39;debug&#39;] = debug
@@ -2713,17 +2727,27 @@ etc). 1 API credit per call. See
 <pre><code class="python">def cloud_browser(self, browser_config: Optional[BrowserConfig] = None) -&gt; str:
     &#34;&#34;&#34;
     Get the WebSocket URL for a Cloud Browser session.
+
     :param browser_config: Optional BrowserConfig - connection parameters
     :return: str - the full wss:// URL for CDP connection
+
+    On rejection, the server sends a JSON error frame followed by a
+    close frame with code 1008/1011/1013 and a &#34;ERR::BROWSER::CODE:
+    reason&#34; string. See the docs for read patterns:
+    https://scrapfly.io/docs/cloud-browser-api/errors#websocket-close-frame
     &#34;&#34;&#34;
     if browser_config is None:
         browser_config = BrowserConfig()
 
     return browser_config.websocket_url(api_key=self.key, host=self.cloud_browser_host)</code></pre>
 </details>
-<div class="desc"><p>Get the WebSocket URL for a Cloud Browser session.
-:param browser_config: Optional BrowserConfig - connection parameters
-:return: str - the full wss:// URL for CDP connection</p></div>
+<div class="desc"><p>Get the WebSocket URL for a Cloud Browser session.</p>
+<p>:param browser_config: Optional BrowserConfig - connection parameters
+:return: str - the full wss:// URL for CDP connection</p>
+<p>On rejection, the server sends a JSON error frame followed by a
+close frame with code 1008/1011/1013 and a "ERR::BROWSER::CODE:
+reason" string. See the docs for read patterns:
+<a href="https://scrapfly.io/docs/cloud-browser-api/errors#websocket-close-frame">https://scrapfly.io/docs/cloud-browser-api/errors#websocket-close-frame</a></p></div>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.cloud_browser_extension_delete"><code class="name flex">
 <span>def <span class="ident">cloud_browser_extension_delete</span></span>(<span>self, extension_id: str) ‑> Dict</span>
@@ -2922,6 +2946,27 @@ URL-based extensions auto-update on each browser session start.
 :param run_id: The unique run identifier
 :return: dict with available, status, metadata, video_url, retry_after_ms</p></div>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_project_salt"><code class="name flex">
+<span>def <span class="ident">cloud_browser_project_salt</span></span>(<span>self) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_project_salt(self) -&gt; str:
+    &#34;&#34;&#34;Return the deterministic project salt for this client&#39;s api_key.
+    Matches the X-Browser-Project-Salt response header returned on a
+    successful Cloud Browser WebSocket upgrade. Useful for verifying
+    that an attach link belongs to your project before sharing it.
+    &#34;&#34;&#34;
+    return BrowserConfig.project_salt(self.key)</code></pre>
+</details>
+<div class="desc"><p>Return the deterministic project salt for this client's api_key.
+Matches the X-Browser-Project-Salt response header returned on a
+successful Cloud Browser WebSocket upgrade. Useful for verifying
+that an attach link belongs to your project before sharing it.</p></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.cloud_browser_session_stop"><code class="name flex">
 <span>def <span class="ident">cloud_browser_session_stop</span></span>(<span>self, session_id: str) ‑> None</span>
 </code></dt>
@@ -2982,7 +3027,7 @@ URL-based extensions auto-update on each browser session start.
 :return: dict with 'sessions' list and 'total' count</p></div>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.cloud_browser_unblock"><code class="name flex">
-<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None,<br>debug: bool | None = None) ‑> Dict</span>
+<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>browser_brand: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None,<br>debug: bool | None = None) ‑> Dict</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -2995,13 +3040,13 @@ URL-based extensions auto-update on each browser session start.
     proxy_pool: Optional[str] = None,
     country: Optional[str] = None,
     os: Optional[str] = None,
+    browser_brand: Optional[str] = None,
     timeout: Optional[int] = None,
     browser_timeout: Optional[int] = None,
     headers: Optional[Dict] = None,
     body: Optional[str] = None,
     method: Optional[str] = None,
     enable_mcp: Optional[bool] = None,
-    solve_captcha: Optional[bool] = None,
     debug: Optional[bool] = None,
 ) -&gt; Dict:
     &#34;&#34;&#34;
@@ -3010,13 +3055,13 @@ URL-based extensions auto-update on each browser session start.
     :param proxy_pool: Proxy pool: &#39;datacenter&#39; or &#39;residential&#39;
     :param country: ISO country code for proxy geolocation
     :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
+    :param browser_brand: Browser brand fingerprint: &#39;chrome&#39;, &#39;edge&#39;, &#39;brave&#39;, &#39;opera&#39;
     :param timeout: Navigation timeout in seconds (max 300)
     :param browser_timeout: Browser session timeout in seconds (max 1800)
     :param headers: Custom request headers
     :param body: Request body for POST/PUT/PATCH requests
     :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
     :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
-    :param solve_captcha: Arm Scrapium&#39;s built-in captcha solver
     :param debug: When True, the session is recorded and accessible via
         cloud_browser_playback / cloud_browser_video using the returned run_id
     :return: dict with ws_url, session_id, run_id
@@ -3037,6 +3082,9 @@ URL-based extensions auto-update on each browser session start.
     if os is not None:
         json_body[&#39;os&#39;] = os
 
+    if browser_brand is not None:
+        json_body[&#39;browser_brand&#39;] = browser_brand
+
     if timeout is not None:
         json_body[&#39;timeout&#39;] = timeout
 
@@ -3054,9 +3102,6 @@ URL-based extensions auto-update on each browser session start.
 
     if enable_mcp is not None:
         json_body[&#39;enable_mcp&#39;] = enable_mcp
-
-    if solve_captcha is not None:
-        json_body[&#39;solve_captcha&#39;] = solve_captcha
 
     if debug is not None:
         json_body[&#39;debug&#39;] = debug
@@ -3083,13 +3128,13 @@ URL-based extensions auto-update on each browser session start.
 :param proxy_pool: Proxy pool: 'datacenter' or 'residential'
 :param country: ISO country code for proxy geolocation
 :param os: Operating system fingerprint: 'linux', 'windows', 'macos'
+:param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
 :param timeout: Navigation timeout in seconds (max 300)
 :param browser_timeout: Browser session timeout in seconds (max 1800)
 :param headers: Custom request headers
 :param body: Request body for POST/PUT/PATCH requests
 :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
 :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
-:param solve_captcha: Arm Scrapium's built-in captcha solver
 :param debug: When True, the session is recorded and accessible via
 cloud_browser_playback / cloud_browser_video using the returned run_id
 :return: dict with ws_url, session_id, run_id</p></div>
@@ -5012,6 +5057,7 @@ print(f&quot;Crawler started: {response.uuid}&quot;)
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_extension_upload" href="#scrapfly.client.ScrapflyClient.cloud_browser_extension_upload">cloud_browser_extension_upload</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_extension_upload_from_url" href="#scrapfly.client.ScrapflyClient.cloud_browser_extension_upload_from_url">cloud_browser_extension_upload_from_url</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_playback" href="#scrapfly.client.ScrapflyClient.cloud_browser_playback">cloud_browser_playback</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_project_salt" href="#scrapfly.client.ScrapflyClient.cloud_browser_project_salt">cloud_browser_project_salt</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_session_stop" href="#scrapfly.client.ScrapflyClient.cloud_browser_session_stop">cloud_browser_session_stop</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_sessions" href="#scrapfly.client.ScrapflyClient.cloud_browser_sessions">cloud_browser_sessions</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_unblock" href="#scrapfly.client.ScrapflyClient.cloud_browser_unblock">cloud_browser_unblock</a></code></li>

@@ -153,7 +153,7 @@ el.replaceWith(d);
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str,<br>retry: bool = True,<br>method: str = 'GET',<br>country: str | None = None,<br>render_js: bool = False,<br>cache: bool = False,<br>cache_clear: bool = False,<br>ssl: bool = False,<br>dns: bool = False,<br>asp: bool = False,<br>debug: bool = False,<br>raise_on_upstream_error: bool = True,<br>cache_ttl: int | None = None,<br>proxy_pool: str | None = None,<br>session: str | None = None,<br>tags: List[str] | Set[str] | None = None,<br>format: <a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a> | None = None,<br>format_options: List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>correlation_id: str | None = None,<br>cookies: requests.structures.CaseInsensitiveDict | None = None,<br>body: str | None = None,<br>data: Dict | None = None,<br>headers: requests.structures.CaseInsensitiveDict | Dict[str, str] | None = None,<br>js: str = None,<br>rendering_wait: int = None,<br>rendering_stage: Literal['complete', 'domcontentloaded'] = 'complete',<br>wait_for_selector: str | None = None,<br>screenshots: Dict | None = None,<br>screenshot_flags: List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None = None,<br>session_sticky_proxy: bool | None = None,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>js_scenario: List | None = None,<br>extract: Dict | None = None,<br>os: str | None = None,<br>lang: List[str] | None = None,<br>auto_scroll: bool | None = None,<br>cost_budget: int | None = None,<br>browser_brand: str | None = None,<br>geolocation: str | None = None,<br>proxified_response: bool | None = None)</span>
+<span>(</span><span>url: str,<br>retry: bool = True,<br>method: str = 'GET',<br>country: str | None = None,<br>render_js: bool = False,<br>cache: bool = False,<br>cache_clear: bool = False,<br>ssl: bool = False,<br>dns: bool = False,<br>asp: bool = False,<br>debug: bool = False,<br>raise_on_upstream_error: bool = True,<br>cache_ttl: int | None = None,<br>proxy_pool: str | None = None,<br>session: str | None = None,<br>tags: List[str] | Set[str] | None = None,<br>format: <a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a> | None = None,<br>format_options: List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>correlation_id: str | None = None,<br>cookies: requests.structures.CaseInsensitiveDict | None = None,<br>body: str | None = None,<br>data: Dict | None = None,<br>headers: requests.structures.CaseInsensitiveDict | Dict[str, str] | None = None,<br>js: str = None,<br>rendering_wait: int = None,<br>rendering_stage: Literal['complete', 'domcontentloaded'] = 'complete',<br>wait_for_selector: str | None = None,<br>screenshots: Dict | None = None,<br>screenshot_flags: List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None = None,<br>session_sticky_proxy: bool = True,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>js_scenario: List | None = None,<br>extract: Dict | None = None,<br>os: str | None = None,<br>lang: List[str] | None = None,<br>auto_scroll: bool | None = None,<br>cost_budget: int | None = None,<br>browser_brand: str | None = None,<br>geolocation: str | None = None,<br>proxified_response: bool | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -164,6 +164,7 @@ el.replaceWith(d);
 
     PUBLIC_DATACENTER_POOL = &#39;public_datacenter_pool&#39;
     PUBLIC_RESIDENTIAL_POOL = &#39;public_residential_pool&#39;
+    PUBLIC_TOR_POOL = &#39;public_tor_pool&#39;
 
     url: str
     retry: bool = True
@@ -246,7 +247,7 @@ el.replaceWith(d);
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         screenshot_flags: Optional[List[ScreenshotFlag]] = None,
-        session_sticky_proxy:Optional[bool] = None,
+        session_sticky_proxy:bool = True,
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
         js_scenario:Optional[List] = None,
@@ -477,7 +478,7 @@ el.replaceWith(d);
         if self.session:
             params[&#39;session&#39;] = self.session
 
-            if self.session_sticky_proxy is True: # false by default
+            if self.session_sticky_proxy is not None:
                 params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
         else:
             if self.session_sticky_proxy:
@@ -643,7 +644,7 @@ el.replaceWith(d);
         screenshot_flags = scrape_config_dict.get(&#39;screenshot_flags&#39;, [])
         screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
 
-        session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, False)
+        session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, True)
         webhook = scrape_config_dict.get(&#39;webhook&#39;, None)
         timeout = scrape_config_dict.get(&#39;timeout&#39;, None)
         js_scenario = scrape_config_dict.get(&#39;js_scenario&#39;, None)
@@ -711,6 +712,10 @@ el.replaceWith(d);
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL"><code class="name">var <span class="ident">PUBLIC_RESIDENTIAL_POOL</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrape_config.ScrapeConfig.PUBLIC_TOR_POOL"><code class="name">var <span class="ident">PUBLIC_TOR_POOL</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -948,7 +953,7 @@ def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
     screenshot_flags = scrape_config_dict.get(&#39;screenshot_flags&#39;, [])
     screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
 
-    session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, False)
+    session_sticky_proxy = scrape_config_dict.get(&#39;session_sticky_proxy&#39;, True)
     webhook = scrape_config_dict.get(&#39;webhook&#39;, None)
     timeout = scrape_config_dict.get(&#39;timeout&#39;, None)
     js_scenario = scrape_config_dict.get(&#39;js_scenario&#39;, None)
@@ -1205,7 +1210,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     if self.session:
         params[&#39;session&#39;] = self.session
 
-        if self.session_sticky_proxy is True: # false by default
+        if self.session_sticky_proxy is not None:
             params[&#39;session_sticky_proxy&#39;] = self._bool_to_http(self.session_sticky_proxy)
     else:
         if self.session_sticky_proxy:
@@ -1418,6 +1423,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 <ul class="">
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.PUBLIC_DATACENTER_POOL" href="#scrapfly.scrape_config.ScrapeConfig.PUBLIC_DATACENTER_POOL">PUBLIC_DATACENTER_POOL</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL" href="#scrapfly.scrape_config.ScrapeConfig.PUBLIC_RESIDENTIAL_POOL">PUBLIC_RESIDENTIAL_POOL</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.PUBLIC_TOR_POOL" href="#scrapfly.scrape_config.ScrapeConfig.PUBLIC_TOR_POOL">PUBLIC_TOR_POOL</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.asp" href="#scrapfly.scrape_config.ScrapeConfig.asp">asp</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.auto_scroll" href="#scrapfly.scrape_config.ScrapeConfig.auto_scroll">auto_scroll</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.body" href="#scrapfly.scrape_config.ScrapeConfig.body">body</a></code></li>
