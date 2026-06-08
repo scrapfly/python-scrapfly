@@ -15,7 +15,7 @@ generate-docs:
 	pdoc --html scrapfly --force --output-dir docs
 
 release:
-	git branch | grep \* | cut -d ' ' -f2 | grep master || exit 1
+	@[ "$$(git rev-parse --abbrev-ref HEAD)" = master ] || { echo "release must run on master"; exit 1; }
 	git pull origin master
 	-rm dist/*
 	python -m compileall -q scrapfly
