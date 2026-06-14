@@ -1669,44 +1669,37 @@ class ScrapflyClient(ScheduleClientMixin):
     def cloud_browser_unblock(
         self,
         url: str,
-        proxy_pool: Optional[str] = None,
         country: Optional[str] = None,
         os: Optional[str] = None,
         browser_brand: Optional[str] = None,
+        session: Optional[str] = None,
         timeout: Optional[int] = None,
         browser_timeout: Optional[int] = None,
-        headers: Optional[Dict] = None,
-        body: Optional[str] = None,
-        method: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
         debug: Optional[bool] = None,
     ) -> Dict:
         """
         Bypass anti-bot protection and get a ready-to-use browser session.
+
+        Unblock always uses a residential proxy (no proxy pool selection) and
+        always performs a GET — the endpoint's purpose is to harvest cookies /
+        clearance tokens via an ASP-bypass navigation, not to proxy arbitrary
+        HTTP requests.
+
         :param url: Target URL to navigate to and bypass protection
-        :param proxy_pool: Proxy pool: 'datacenter' or 'residential'
-        :param country: ISO country code for proxy geolocation
+        :param country: ISO country code for residential proxy geolocation
         :param os: Operating system fingerprint: 'linux', 'windows', 'macos'
         :param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
+        :param session: Named session for reconnection — reuses the existing ASP
+            session when one exists and disables auto-close on disconnect
         :param timeout: Navigation timeout in seconds (max 300)
         :param browser_timeout: Browser session timeout in seconds (max 1800)
-        :param headers: Custom request headers
-        :param body: Request body for POST/PUT/PATCH requests
-        :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
         :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
         :param debug: When True, the session is recorded and accessible via
             cloud_browser_playback / cloud_browser_video using the returned run_id
         :return: dict with ws_url, session_id, run_id
         """
-        proxy_pool_map = {
-            'datacenter': 'public_datacenter_pool',
-            'residential': 'public_residential_pool',
-        }
-
         json_body = {'url': url}
-
-        if proxy_pool is not None:
-            json_body['proxy_pool'] = proxy_pool_map.get(proxy_pool, proxy_pool)
 
         if country is not None:
             json_body['country'] = country
@@ -1717,20 +1710,14 @@ class ScrapflyClient(ScheduleClientMixin):
         if browser_brand is not None:
             json_body['browser_brand'] = browser_brand
 
+        if session is not None:
+            json_body['session'] = session
+
         if timeout is not None:
             json_body['timeout'] = timeout
 
         if browser_timeout is not None:
             json_body['browser_timeout'] = browser_timeout
-
-        if headers is not None:
-            json_body['headers'] = headers
-
-        if body is not None:
-            json_body['body'] = body
-
-        if method is not None:
-            json_body['method'] = method
 
         if enable_mcp is not None:
             json_body['enable_mcp'] = enable_mcp
