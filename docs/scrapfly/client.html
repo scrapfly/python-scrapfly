@@ -1703,44 +1703,37 @@ el.replaceWith(d);
     def cloud_browser_unblock(
         self,
         url: str,
-        proxy_pool: Optional[str] = None,
         country: Optional[str] = None,
         os: Optional[str] = None,
         browser_brand: Optional[str] = None,
+        session: Optional[str] = None,
         timeout: Optional[int] = None,
         browser_timeout: Optional[int] = None,
-        headers: Optional[Dict] = None,
-        body: Optional[str] = None,
-        method: Optional[str] = None,
         enable_mcp: Optional[bool] = None,
         debug: Optional[bool] = None,
     ) -&gt; Dict:
         &#34;&#34;&#34;
         Bypass anti-bot protection and get a ready-to-use browser session.
+
+        Unblock always uses a residential proxy (no proxy pool selection) and
+        always performs a GET — the endpoint&#39;s purpose is to harvest cookies /
+        clearance tokens via an ASP-bypass navigation, not to proxy arbitrary
+        HTTP requests.
+
         :param url: Target URL to navigate to and bypass protection
-        :param proxy_pool: Proxy pool: &#39;datacenter&#39; or &#39;residential&#39;
-        :param country: ISO country code for proxy geolocation
+        :param country: ISO country code for residential proxy geolocation
         :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
         :param browser_brand: Browser brand fingerprint: &#39;chrome&#39;, &#39;edge&#39;, &#39;brave&#39;, &#39;opera&#39;
+        :param session: Named session for reconnection — reuses the existing ASP
+            session when one exists and disables auto-close on disconnect
         :param timeout: Navigation timeout in seconds (max 300)
         :param browser_timeout: Browser session timeout in seconds (max 1800)
-        :param headers: Custom request headers
-        :param body: Request body for POST/PUT/PATCH requests
-        :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
         :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
         :param debug: When True, the session is recorded and accessible via
             cloud_browser_playback / cloud_browser_video using the returned run_id
         :return: dict with ws_url, session_id, run_id
         &#34;&#34;&#34;
-        proxy_pool_map = {
-            &#39;datacenter&#39;: &#39;public_datacenter_pool&#39;,
-            &#39;residential&#39;: &#39;public_residential_pool&#39;,
-        }
-
         json_body = {&#39;url&#39;: url}
-
-        if proxy_pool is not None:
-            json_body[&#39;proxy_pool&#39;] = proxy_pool_map.get(proxy_pool, proxy_pool)
 
         if country is not None:
             json_body[&#39;country&#39;] = country
@@ -1751,20 +1744,14 @@ el.replaceWith(d);
         if browser_brand is not None:
             json_body[&#39;browser_brand&#39;] = browser_brand
 
+        if session is not None:
+            json_body[&#39;session&#39;] = session
+
         if timeout is not None:
             json_body[&#39;timeout&#39;] = timeout
 
         if browser_timeout is not None:
             json_body[&#39;browser_timeout&#39;] = browser_timeout
-
-        if headers is not None:
-            json_body[&#39;headers&#39;] = headers
-
-        if body is not None:
-            json_body[&#39;body&#39;] = body
-
-        if method is not None:
-            json_body[&#39;method&#39;] = method
 
         if enable_mcp is not None:
             json_body[&#39;enable_mcp&#39;] = enable_mcp
@@ -3027,7 +3014,7 @@ that an attach link belongs to your project before sharing it.</p></div>
 :return: dict with 'sessions' list and 'total' count</p></div>
 </dd>
 <dt id="scrapfly.client.ScrapflyClient.cloud_browser_unblock"><code class="name flex">
-<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>os: str | None = None,<br>browser_brand: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>headers: Dict | None = None,<br>body: str | None = None,<br>method: str | None = None,<br>enable_mcp: bool | None = None,<br>debug: bool | None = None) ‑> Dict</span>
+<span>def <span class="ident">cloud_browser_unblock</span></span>(<span>self,<br>url: str,<br>country: str | None = None,<br>os: str | None = None,<br>browser_brand: str | None = None,<br>session: str | None = None,<br>timeout: int | None = None,<br>browser_timeout: int | None = None,<br>enable_mcp: bool | None = None,<br>debug: bool | None = None) ‑> Dict</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -3037,44 +3024,37 @@ that an attach link belongs to your project before sharing it.</p></div>
 <pre><code class="python">def cloud_browser_unblock(
     self,
     url: str,
-    proxy_pool: Optional[str] = None,
     country: Optional[str] = None,
     os: Optional[str] = None,
     browser_brand: Optional[str] = None,
+    session: Optional[str] = None,
     timeout: Optional[int] = None,
     browser_timeout: Optional[int] = None,
-    headers: Optional[Dict] = None,
-    body: Optional[str] = None,
-    method: Optional[str] = None,
     enable_mcp: Optional[bool] = None,
     debug: Optional[bool] = None,
 ) -&gt; Dict:
     &#34;&#34;&#34;
     Bypass anti-bot protection and get a ready-to-use browser session.
+
+    Unblock always uses a residential proxy (no proxy pool selection) and
+    always performs a GET — the endpoint&#39;s purpose is to harvest cookies /
+    clearance tokens via an ASP-bypass navigation, not to proxy arbitrary
+    HTTP requests.
+
     :param url: Target URL to navigate to and bypass protection
-    :param proxy_pool: Proxy pool: &#39;datacenter&#39; or &#39;residential&#39;
-    :param country: ISO country code for proxy geolocation
+    :param country: ISO country code for residential proxy geolocation
     :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
     :param browser_brand: Browser brand fingerprint: &#39;chrome&#39;, &#39;edge&#39;, &#39;brave&#39;, &#39;opera&#39;
+    :param session: Named session for reconnection — reuses the existing ASP
+        session when one exists and disables auto-close on disconnect
     :param timeout: Navigation timeout in seconds (max 300)
     :param browser_timeout: Browser session timeout in seconds (max 1800)
-    :param headers: Custom request headers
-    :param body: Request body for POST/PUT/PATCH requests
-    :param method: HTTP method: GET, POST, PUT, PATCH, DELETE
     :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
     :param debug: When True, the session is recorded and accessible via
         cloud_browser_playback / cloud_browser_video using the returned run_id
     :return: dict with ws_url, session_id, run_id
     &#34;&#34;&#34;
-    proxy_pool_map = {
-        &#39;datacenter&#39;: &#39;public_datacenter_pool&#39;,
-        &#39;residential&#39;: &#39;public_residential_pool&#39;,
-    }
-
     json_body = {&#39;url&#39;: url}
-
-    if proxy_pool is not None:
-        json_body[&#39;proxy_pool&#39;] = proxy_pool_map.get(proxy_pool, proxy_pool)
 
     if country is not None:
         json_body[&#39;country&#39;] = country
@@ -3085,20 +3065,14 @@ that an attach link belongs to your project before sharing it.</p></div>
     if browser_brand is not None:
         json_body[&#39;browser_brand&#39;] = browser_brand
 
+    if session is not None:
+        json_body[&#39;session&#39;] = session
+
     if timeout is not None:
         json_body[&#39;timeout&#39;] = timeout
 
     if browser_timeout is not None:
         json_body[&#39;browser_timeout&#39;] = browser_timeout
-
-    if headers is not None:
-        json_body[&#39;headers&#39;] = headers
-
-    if body is not None:
-        json_body[&#39;body&#39;] = body
-
-    if method is not None:
-        json_body[&#39;method&#39;] = method
 
     if enable_mcp is not None:
         json_body[&#39;enable_mcp&#39;] = enable_mcp
@@ -3123,17 +3097,19 @@ that an attach link belongs to your project before sharing it.</p></div>
 
     return response.json()</code></pre>
 </details>
-<div class="desc"><p>Bypass anti-bot protection and get a ready-to-use browser session.
-:param url: Target URL to navigate to and bypass protection
-:param proxy_pool: Proxy pool: 'datacenter' or 'residential'
-:param country: ISO country code for proxy geolocation
+<div class="desc"><p>Bypass anti-bot protection and get a ready-to-use browser session.</p>
+<p>Unblock always uses a residential proxy (no proxy pool selection) and
+always performs a GET — the endpoint's purpose is to harvest cookies /
+clearance tokens via an ASP-bypass navigation, not to proxy arbitrary
+HTTP requests.</p>
+<p>:param url: Target URL to navigate to and bypass protection
+:param country: ISO country code for residential proxy geolocation
 :param os: Operating system fingerprint: 'linux', 'windows', 'macos'
 :param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
+:param session: Named session for reconnection — reuses the existing ASP
+session when one exists and disables auto-close on disconnect
 :param timeout: Navigation timeout in seconds (max 300)
 :param browser_timeout: Browser session timeout in seconds (max 1800)
-:param headers: Custom request headers
-:param body: Request body for POST/PUT/PATCH requests
-:param method: HTTP method: GET, POST, PUT, PATCH, DELETE
 :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
 :param debug: When True, the session is recorded and accessible via
 cloud_browser_playback / cloud_browser_video using the returned run_id
