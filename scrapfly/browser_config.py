@@ -27,6 +27,8 @@ class BrowserConfig(BaseApiConfig):
         os: Optional[Union[str, OperatingSystem]] = None,
         session: Optional[str] = None,
         country: Optional[str] = None,
+        lang: Optional[str] = None,
+        languages: Optional[Union[str, List[str]]] = None,
         auto_close: Optional[bool] = None,
         timeout: Optional[int] = None,
         debug: Optional[bool] = None,
@@ -68,6 +70,17 @@ class BrowserConfig(BaseApiConfig):
         self.os = os
         self.session = session
         self.country = country
+        # Browser UI language — the singular navigator.language base tag
+        # (e.g. "en"). When omitted, the server derives it from `country`.
+        self.lang = lang
+        # Ordered language preference list — drives navigator.languages and
+        # the q-weighted Accept-Language header (e.g. ["fr-FR", "fr", "en-US"]).
+        # Capped server-side at 3 entries; accept a list or a comma-separated
+        # string and normalize to a comma-separated string on the wire (the
+        # same shape `extensions` uses), so the API can split it back.
+        if isinstance(languages, list):
+            languages = ','.join(s.strip() for s in languages if s and s.strip())
+        self.languages = languages or None
         self.auto_close = auto_close
         self.timeout = timeout
         self.debug = debug
@@ -141,6 +154,12 @@ class BrowserConfig(BaseApiConfig):
 
         if self.country is not None:
             params['country'] = self.country
+
+        if self.lang is not None:
+            params['lang'] = self.lang
+
+        if self.languages is not None:
+            params['languages'] = self.languages
 
         if self.auto_close is not None:
             params['auto_close'] = self._bool_to_http(self.auto_close)
@@ -232,6 +251,8 @@ class BrowserConfig(BaseApiConfig):
             'os': self.os.value if isinstance(self.os, OperatingSystem) else self.os,
             'session': self.session,
             'country': self.country,
+            'lang': self.lang,
+            'languages': self.languages,
             'auto_close': self.auto_close,
             'timeout': self.timeout,
             'debug': self.debug,
@@ -276,6 +297,8 @@ class BrowserConfig(BaseApiConfig):
             os=os,
             session=browser_config_dict.get('session', None),
             country=browser_config_dict.get('country', None),
+            lang=browser_config_dict.get('lang', None),
+            languages=browser_config_dict.get('languages', None),
             auto_close=browser_config_dict.get('auto_close', None),
             timeout=browser_config_dict.get('timeout', None),
             debug=browser_config_dict.get('debug', None),
