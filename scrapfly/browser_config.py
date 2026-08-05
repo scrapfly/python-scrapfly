@@ -146,6 +146,19 @@ class BrowserConfig(BaseApiConfig):
         """
         return hashlib.sha256(api_key.encode('utf-8')).hexdigest()[:8]
 
+    def vnc_client_password(self, api_key: str) -> str:
+        """Return the password a native VNC client must type to attach to a
+        session created with this config: "<project_salt>-<vnc_password>".
+
+        Required by the VNC TCP endpoint (port 5901), which the server salts
+        at allocation. The WebSocket endpoint /run/<run_id>/vnc takes the raw
+        vnc_password instead.
+        """
+        if not self.enable_vnc or not self.vnc_password:
+            raise ValueError('enable_vnc and vnc_password must both be set on this BrowserConfig')
+
+        return f'{self.project_salt(api_key)}-{self.vnc_password}'
+
     def websocket_url(self, api_key: str, host: Optional[str] = None) -> str:
         params = {'api_key': api_key}
 
