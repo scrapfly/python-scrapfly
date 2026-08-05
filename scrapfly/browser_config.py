@@ -60,11 +60,17 @@ class BrowserConfig(BaseApiConfig):
         if timeout is not None and timeout > 1800:
             raise ValueError('timeout cannot exceed 1800 seconds (30 minutes)')
 
-        if proxy_pool is not None and isinstance(proxy_pool, str):
-            proxy_pool = ProxyPool(proxy_pool)
+        if isinstance(proxy_pool, str):
+            try:
+                proxy_pool = ProxyPool(proxy_pool)
+            except ValueError:
+                pass
 
-        if os is not None and isinstance(os, str):
-            os = OperatingSystem(os)
+        if isinstance(os, str):
+            try:
+                os = OperatingSystem(os)
+            except ValueError:
+                pass
 
         self.proxy_pool = proxy_pool
         self.os = os
@@ -284,17 +290,9 @@ class BrowserConfig(BaseApiConfig):
 
     @staticmethod
     def from_dict(browser_config_dict: Dict) -> 'BrowserConfig':
-        proxy_pool = browser_config_dict.get('proxy_pool', None)
-        if proxy_pool is not None:
-            proxy_pool = ProxyPool(proxy_pool)
-
-        os = browser_config_dict.get('os', None)
-        if os is not None:
-            os = OperatingSystem(os)
-
         return BrowserConfig(
-            proxy_pool=proxy_pool,
-            os=os,
+            proxy_pool=browser_config_dict.get('proxy_pool', None),
+            os=browser_config_dict.get('os', None),
             session=browser_config_dict.get('session', None),
             country=browser_config_dict.get('country', None),
             lang=browser_config_dict.get('lang', None),

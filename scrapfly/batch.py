@@ -208,6 +208,79 @@ def decode_part_body(
     return body_handler(content=body, content_type=content_type)
 
 
+def is_api_error_part(parsed, headers: Dict[str, str]) -> bool:
+    """Detect an API-generated error part (status >= 400, no scrape envelope)."""
+
+    if _safe_int(headers.get("x-scrapfly-scrape-status"), 0) < 400:
+        return False
+
+    return isinstance(parsed, dict) and "result" not in parsed and "config" not in parsed
+
+
+def error_from_api_error_part(parsed: Dict, headers: Dict[str, str], request):
+    """Build the typed per-part error for an API-generated error body."""
+    from .errors import ApiHttpClientError, ApiHttpServerError, ErrorFactory
+
+    code = parsed.get("code")
+    if not isinstance(code, str):
+        code = ""
+
+    message = parsed.get("message") or parsed.get("reason") or "API error"
+    if not isinstance(message, str):
+        message = str(message)
+
+    retryable = parsed.get("retryable") is True
+
+    http_code = parsed.get("http_code")
+    if not isinstance(http_code, int):
+        http_code = _safe_int(headers.get("x-scrapfly-scrape-status"), 500)
+
+    documentation_url = None
+    links = parsed.get("links")
+    if isinstance(links, dict) and links:
+        documentation_url = next((v for v in links.values() if isinstance(v, str)), None)
+    elif isinstance(links, list) and links:
+        documentation_url = links[0] if isinstance(links[0], str) else None
+
+    resource = None
+    code_parts = code.split("::")
+    if len(code_parts) == 3:
+        resource = code_parts[1]
+
+    is_scraper_resource = resource in ErrorFactory.RESOURCE_TO_ERROR
+
+    if http_code in ErrorFactory.HTTP_STATUS_TO_ERROR and not is_scraper_resource:
+        error_class = ErrorFactory.HTTP_STATUS_TO_ERROR[http_code]
+    elif is_scraper_resource:
+        error_class = ErrorFactory.RESOURCE_TO_ERROR[resource]
+    else:
+        error_class = ApiHttpServerError if http_code >= 500 else ApiHttpClientError
+
+    return error_class(
+        request=request,
+        response=_synthesize_part_response(request, http_code, parsed.get("reason")),
+        message=message,
+        code=code,
+        resource=resource,
+        http_status_code=http_code,
+        is_retryable=retryable,
+        documentation_url=documentation_url,
+    )
+
+
+def _synthesize_part_response(request, http_code: int, reason):
+    """Minimal Response reflecting the part's own status (a part has no HTTP response)."""
+    from requests import Response
+    from http.client import responses as status_reasons
+
+    response = Response()
+    response.status_code = http_code
+    response.reason = reason if isinstance(reason, str) else status_reasons.get(http_code, "")
+    response.request = request
+
+    return response
+
+
 # Header key prefix used by the server to forward upstream response
 # headers on a proxified batch part (avoids collision with the
 # multipart envelope's own headers).

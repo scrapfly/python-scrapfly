@@ -950,7 +950,13 @@ class ScrapflyClient(ScheduleClientMixin):
             ``msgpack`` package is installed, ``json`` otherwise). Pass
             ``'json'`` or ``'msgpack'`` to override.
         """
-        from .batch import iter_batch_parts, decode_part_body, _build_proxified_response_from_part
+        from .batch import (
+            iter_batch_parts,
+            decode_part_body,
+            is_api_error_part,
+            error_from_api_error_part,
+            _build_proxified_response_from_part,
+        )
 
         if not scrape_configs:
             raise ScrapflyError(
@@ -1098,15 +1104,35 @@ class ScrapflyClient(ScheduleClientMixin):
 
                     continue
 
+                # EncoderError subclasses BaseException — catch it explicitly.
                 try:
                     parsed = decode_part_body(part_headers, part_body, self.body_handler)
-                except Exception as decode_err:
+                except (EncoderError, Exception) as decode_err:
                     yield correlation_id, ScrapflyError(
                         f"scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}",
                         code="ERR::API::INTERNAL_ERROR",
+                        http_status_code=500,
                     )
 
                     continue
+
+                # API-generated error parts carry an error body instead of
+                # the scrape envelope — surface them as typed per-part errors.
+                if is_api_error_part(parsed, part_headers):
+                    try:
+                        part_error = error_from_api_error_part(parsed, part_headers, response.request)
+                    except Exception as factory_err:
+                        part_error = ScrapflyError(
+                            f"scrape_batch: malformed error part for correlation_id={correlation_id!r}: {factory_err}",
+                            code="ERR::API::INTERNAL_ERROR",
+                            http_status_code=500,
+                        )
+
+                    yield correlation_id, part_error
+
+                    continue
+
+                part_result = None
 
                 try:
                     api_response = ScrapeApiResponse(
@@ -1119,9 +1145,17 @@ class ScrapflyClient(ScheduleClientMixin):
                     # Don't auto-raise on upstream error — per-part errors
                     # are surfaced via the yielded tuple, not exceptions.
                     api_response.raise_for_result(raise_on_upstream_error=False)
-                    yield correlation_id, api_response
+                    part_result = api_response
                 except ScrapflyError as scrape_err:
-                    yield correlation_id, scrape_err
+                    part_result = scrape_err
+                except (EncoderError, Exception) as part_err:
+                    part_result = ScrapflyError(
+                        f"scrape_batch: failed to process part for correlation_id={correlation_id!r}: {part_err}",
+                        code="ERR::API::INTERNAL_ERROR",
+                        http_status_code=500,
+                    )
+
+                yield correlation_id, part_result
         finally:
             batch_session.close()
 

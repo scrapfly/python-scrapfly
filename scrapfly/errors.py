@@ -293,6 +293,7 @@ class ErrorFactory:
 
 
 __all__:Tuple[str, ...] = [
+    'EncoderError',
     'ScrapflyError',
     'ScrapflyAspError',
     'ScrapflyProxyError',
