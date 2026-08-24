@@ -1732,7 +1732,7 @@ class ScrapflyClient(ScheduleClientMixin):
 
         :param url: Target URL to navigate to and bypass protection
         :param country: ISO country code for residential proxy geolocation
-        :param os: Operating system fingerprint: 'linux', 'windows', 'macos'
+        :param os: Operating system fingerprint: 'linux', 'windows', 'macos', 'android', 'iphone', 'ipad'
         :param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
         :param session: Named session for reconnection — reuses the existing ASP
             session when one exists and disables auto-close on disconnect

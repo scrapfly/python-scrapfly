@@ -6,10 +6,13 @@
 
 You can also install extra dependencies
 
-* `pip install "scrapfly-sdk[seepdup]"` for performance improvement
-* `pip install "scrapfly-sdk[concurrency]"` for concurrency out of the box (asyncio / thread)
+* `pip install "scrapfly-sdk[speedups]"` for brotli compression and msgpack serialization
+* `pip install "scrapfly-sdk[parser]"` for the built-in HTML parser (lxml, beautifulsoup4, extruct)
 * `pip install "scrapfly-sdk[scrapy]"` for scrapy integration
-* `pip install "scrapfly-sdk[webhook-server]"` for have a native webhook server using flask
+* `pip install "scrapfly-sdk[browser]"` for the playwright based cloud browser helpers
+* `pip install "scrapfly-sdk[browser-use]"` for browser-use agent integration
+* `pip install "scrapfly-sdk[webhook-server]"` for a native webhook server using flask
+* `pip install "scrapfly-sdk[concurrency]"` kept for compatibility, concurrency needs no extra dependency
 * `pip install "scrapfly-sdk[all]"` Everything!
 
 For use of built-in HTML parser (via `ScrapeApiResponse.selector` property) additional requirement of either [parsel](https://pypi.org/project/parsel/) or [scrapy](https://pypi.org/project/Scrapy/) is required.

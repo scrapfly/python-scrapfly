@@ -79,6 +79,10 @@ EXTRA_DEPENDENCIES = {
     ],
     'webhook-server': [
         'flask',
+        # The read path decodes whatever the webhook is configured to send, and the
+        # dashboard offers brotli and msgpack; without these a valid delivery fails.
+        'brotlipy',
+        'msgpack',
     ],
     'concurrency': [],
     'browser': [
