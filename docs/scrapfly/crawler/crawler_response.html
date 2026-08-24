@@ -221,7 +221,8 @@ el.replaceWith(d);
 <p>Returned by ScrapflyClient.get_crawl_artifact() method.</p>
 <p>Provides high-level access to crawl results with automatic WARC/HAR parsing.
 Users don't need to understand WARC or HAR format to use this class.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get WARC artifact (default)
 artifact = client.get_crawl_artifact(uuid)
 
@@ -243,8 +244,9 @@ for record in artifact.iter_responses():
 artifact.save('crawl_results.warc.gz')
 </code></pre>
 <p>Initialize from artifact data</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>artifact_data</code></strong></dt>
 <dd>Raw artifact file bytes</dd>
 <dt><strong><code>artifact_type</code></strong></dt>
@@ -370,12 +372,14 @@ def warc_data(self) -&gt; bytes:
 <div class="desc"><p>Get all crawled pages as simple dictionaries</p>
 <p>This is the easiest way to access crawl results.
 Works with both WARC and HAR formats.</p>
-<h2 id="returns">Returns</h2>
 <dl>
+<dt>Returns</dt>
+<dt>-----=</dt>
 <dt><code>List</code> of <code>dicts with keys</code></dt>
 <dd>url, status_code, headers, content</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">pages = artifact.get_pages()
 for page in pages:
     print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
@@ -408,8 +412,9 @@ for page in pages:
 <div class="desc"><p>Iterate through all records</p>
 <p>For WARC: iterates through all WARC records
 For HAR: iterates through all HAR entries</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code>WarcRecord</code> or <code>HarEntry</code></dt>
 <dd>Each record in the artifact</dd>
 </dl></div>
@@ -443,8 +448,9 @@ For HAR: iterates through all HAR entries</p>
 <p>This is more memory-efficient than get_pages() for large crawls.</p>
 <p>For WARC: iterates through response records
 For HAR: iterates through all entries (HAR only contains responses)</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code>WarcRecord</code> or <code>HarEntry</code></dt>
 <dd>HTTP response records with url, status_code, headers, content</dd>
 </dl></div>
@@ -473,12 +479,14 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         f.write(self.warc_data)</code></pre>
 </details>
 <div class="desc"><p>Save WARC data to file</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>filepath</code></strong></dt>
 <dd>Path to save the WARC file</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">artifact.save('crawl_results.warc.gz')
 </code></pre></div>
 </dd>
@@ -542,16 +550,18 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 <p>Strict parsing: <code>uuid</code> and <code>status</code> are part of the documented contract
 and are required. A missing field raises <code>KeyError</code> so the caller knows
 immediately that the API contract changed.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Unique identifier for the crawler job</dd>
 <dt><strong><code>status</code></strong></dt>
 <dd>Initial status (typically 'PENDING')</dd>
 </dl>
 <p>Initialize from API response</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary</dd>
 </dl></div>
@@ -569,8 +579,7 @@ immediately that the API contract changed.</p>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -621,12 +630,12 @@ immediately that the API contract changed.</p>
         )</code></pre>
 </details>
 <div class="desc"><p>Nested <code>state</code> block of a crawler status response.</p>
-<p>Field names match the wire format emitted by the scrape-engine
-(<code>apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py</code>), which
+<p>Field names match the wire format emitted by Scrapfly, which
 is the single source of truth. Go and TypeScript SDKs expose the same
 names on their <code>status.state</code> object.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls_visited</code></strong></dt>
 <dd>Number of URLs successfully crawled.</dd>
 <dt><strong><code>urls_extracted</code></strong></dt>
@@ -663,8 +672,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -726,8 +734,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -789,8 +796,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -852,8 +858,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -915,8 +920,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -978,8 +982,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -1041,8 +1044,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -1104,8 +1106,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -1167,8 +1168,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -1230,8 +1230,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -1301,7 +1300,7 @@ or <code>None</code> while still running.</dd>
     Returned by :py:meth:`ScrapflyClient.get_crawl_status`. Provides real-time
     progress tracking for crawler jobs.
 
-    **Field names match the wire format.** The scrape-engine is the source of
+    **Field names match the wire format.** Scrapfly is the source of
     truth; the Go and TypeScript SDKs expose identical names. Access state
     counters via the nested ``state`` attribute:
 
@@ -1408,7 +1407,7 @@ or <code>None</code> while still running.</dd>
 <div class="desc"><p>Response from checking crawler job status.</p>
 <p>Returned by :py:meth:<code>ScrapflyClient.get_crawl_status</code>. Provides real-time
 progress tracking for crawler jobs.</p>
-<p><strong>Field names match the wire format.</strong> The scrape-engine is the source of
+<p><strong>Field names match the wire format.</strong> Scrapfly is the source of
 truth; the Go and TypeScript SDKs expose identical names. Access state
 counters via the nested <code>state</code> attribute:</p>
 <pre><code>&gt;&gt;&gt; status.state.urls_visited
@@ -1416,8 +1415,9 @@ counters via the nested <code>state</code> attribute:</p>
 &gt;&gt;&gt; status.state.urls_extracted
 34
 </code></pre>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Crawler job UUID.</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -1435,8 +1435,9 @@ counters via the nested <code>state</code> attribute:</p>
 metrics) are read with direct access so missing keys raise
 <code>KeyError</code> at parse time. This catches API contract drift loud and
 early.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary.</dd>
 </dl></div>
@@ -1586,8 +1587,9 @@ def progress_pct(self) -&gt; float:
 or <code>skipped</code> URLs the line is <code>url,reason</code>. Streaming text is used
 because this endpoint is expected to scale to millions of records per
 job — JSON is not a suitable wire format at that volume.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -1834,8 +1836,9 @@ line. This class parses that stream into a materialised <code>List</code> of
 <p>Pagination: the wire protocol carries no global <code>total</code>. <code>page</code> and
 <code>per_page</code> are echoes of the caller's request parameters — request
 further pages by incrementing <code>page</code> until the response has no records.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>List of :class:<code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry">CrawlerUrlEntry</a></code> records on this page</dd>
 <dt><strong><code>page</code></strong></dt>
@@ -1858,8 +1861,9 @@ further pages by incrementing <code>page</code> until the response has no record
 <code>visited</code>; the caller is expected to pass that as <code>status_hint</code>
 so every parsed record gets the right status tag.</li>
 </ul>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>body</code></strong></dt>
 <dd>Raw response body text.</dd>
 <dt><strong><code>status_hint</code></strong></dt>

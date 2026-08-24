@@ -37,12 +37,9 @@ el.replaceWith(d);
 </header>
 <section id="section-intro">
 <p>Crawler API Webhook Models</p>
-<p>Typed wrappers around the 8 real crawler webhook payloads emitted by the
-scrape-engine. This module is the Python-side mirror of the authoritative
-event list in
-<code>apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py</code>
-(class <code>WebhookEvents</code>) and the example payloads in
-<code>apps/scrapfly/web-app/src/Template/Docs/crawler-api/webhooks_example/*.json</code>.</p>
+<p>Typed wrappers around the 8 crawler webhook payloads Scrapfly emits. Field
+names and event names match the wire format documented in the Crawler API
+webhook reference.</p>
 <h2 id="design-notes">Design Notes</h2>
 <ul>
 <li>Every webhook has the envelope <code>{"event": &lt;name&gt;, "payload": {...}}</code>.
@@ -68,7 +65,7 @@ dataclass handles all four.</li>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="scrapfly.crawler.crawler_webhook.webhook_from_payload"><code class="name flex">
-<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict[str, Any],<br>signing_secrets: Tuple[str, ...] | None = None,<br>signature: str | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook">CrawlerUrlVisitedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook">CrawlerUrlSkippedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook">CrawlerUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook">CrawlerUrlFailedWebhook</a></span>
+<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict[str, Any] | None = None,<br>signing_secrets: Tuple[str, ...] | None = None,<br>signature: str | None = None,<br>raw_body: bytes | None = None,<br>content_encoding: str | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook">CrawlerUrlVisitedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook">CrawlerUrlSkippedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook">CrawlerUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook">CrawlerUrlFailedWebhook</a></span>
 </code></dt>
 <dd>
 <details class="source">
@@ -76,9 +73,11 @@ dataclass handles all four.</li>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def webhook_from_payload(
-    payload: Dict[str, Any],
+    payload: Optional[Dict[str, Any]] = None,
     signing_secrets: Optional[Tuple[str, ...]] = None,
     signature: Optional[str] = None,
+    raw_body: Optional[bytes] = None,
+    content_encoding: Optional[str] = None,
 ) -&gt; CrawlerWebhook:
     &#34;&#34;&#34;
     Parse a raw crawler webhook envelope into a typed dataclass.
@@ -89,20 +88,33 @@ dataclass handles all four.</li>
 
     Args:
         payload: The full webhook body as a dict (i.e. what you get from
-            ``request.json``).
+            ``request.json``). Ignored when ``signing_secrets`` is set, because
+            the envelope is then re-read from the verified bytes instead —
+            returning an object built from an unverified dict would make the
+            verification decorative.
         signing_secrets: Optional tuple of signing secrets for signature
             verification. Pass each secret as it appears in the webhook
             dashboard (UTF-8 string, not hex-encoded).
         signature: Optional webhook signature header value
             (``X-Scrapfly-Webhook-Signature``).
+        raw_body: The exact request bytes (``request.get_data()``). Required
+            when ``signing_secrets`` is set: the signature covers the bytes on
+            the wire, and re-serializing the parsed dict does not reproduce
+            them (separators, float repr, unicode escaping and key order are
+            all encoder-dependent).
+        content_encoding: The ``Content-Encoding`` header, when the webhook is
+            configured to compress. Signing happens before encoding, so a
+            compressed body has to be inflated before the digest matches.
 
     Returns:
         A typed webhook instance matching the event.
 
     Raises:
         KeyError: If the envelope is missing required fields.
-        ValueError: If ``event`` is not one of the known crawler events.
-        WebhookSignatureMissMatch: If signature verification fails.
+        ValueError: If ``event`` is not one of the known crawler events, if
+            ``signing_secrets`` is set without ``raw_body``, or if neither
+            ``payload`` nor ``signing_secrets`` is supplied.
+        WebhookSignatureMissMatch: If the signature is absent or does not match.
 
     Example:
         &gt;&gt;&gt; from flask import Flask, request
@@ -114,22 +126,39 @@ dataclass handles all four.</li>
         ...         request.json,
         ...         signing_secrets=(&#39;YOUR-WEBHOOK-SIGNING-SECRET&#39;,),
         ...         signature=request.headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;),
+        ...         raw_body=request.get_data(),
+        ...         content_encoding=request.headers.get(&#39;Content-Encoding&#39;),
         ...     )
         ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == &#39;crawler_finished&#39;:
         ...         print(f&#34;Crawl {wh.crawler_uuid} finished — &#34;
         ...               f&#34;{wh.state.urls_visited} URLs visited&#34;)
         ...     return &#39;&#39;, 200
     &#34;&#34;&#34;
-    if signing_secrets and signature:
-        from json import dumps
+    if signing_secrets:
+        # Imported here rather than at module scope to avoid a circular import.
+        from json import loads
 
-        from ..api_response import ResponseBodyHandler
+        from ..api_response import ResponseBodyHandler, decompress
         from ..errors import WebhookSignatureMissMatch
 
+        if raw_body is None:
+            raise ValueError(
+                &#34;signature verification requires raw_body (the exact request bytes); &#34;
+                &#34;the parsed payload cannot reproduce the signed message&#34;
+            )
+
         handler = ResponseBodyHandler(signing_secrets=signing_secrets)
-        message = dumps(payload, separators=(&#39;,&#39;, &#39;:&#39;)).encode(&#39;utf-8&#39;)
-        if not handler.verify(message, signature):
+        # Signing happens before Content-Encoding is applied.
+        verified = decompress(raw_body, content_encoding)
+
+        if not handler.verify(verified, signature):
             raise WebhookSignatureMissMatch()
+
+        # Parse what was actually signed. Building the result from the caller&#39;s
+        # dict would let unsigned fields ride in behind a valid signature.
+        payload = loads(verified)
+    elif payload is None:
+        raise ValueError(&#39;webhook_from_payload needs either payload or signing_secrets + raw_body&#39;)
 
     event = payload[&#39;event&#39;]
     inner = payload[&#39;payload&#39;]
@@ -146,11 +175,15 @@ dataclass handles all four.</li>
 <p>The envelope shape is <code>{"event": &lt;name&gt;, "payload": {...}}</code>. This
 function inspects <code>event</code> and returns the corresponding typed
 dataclass — one of :data:<code>CrawlerWebhook</code>.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>payload</code></strong></dt>
 <dd>The full webhook body as a dict (i.e. what you get from
-<code>request.json</code>).</dd>
+<code>request.json</code>). Ignored when <code>signing_secrets</code> is set, because
+the envelope is then re-read from the verified bytes instead —
+returning an object built from an unverified dict would make the
+verification decorative.</dd>
 <dt><strong><code>signing_secrets</code></strong></dt>
 <dd>Optional tuple of signing secrets for signature
 verification. Pass each secret as it appears in the webhook
@@ -158,19 +191,34 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 <dt><strong><code>signature</code></strong></dt>
 <dd>Optional webhook signature header value
 (<code>X-Scrapfly-Webhook-Signature</code>).</dd>
+<dt><strong><code>raw_body</code></strong></dt>
+<dd>The exact request bytes (<code>request.get_data()</code>). Required
+when <code>signing_secrets</code> is set: the signature covers the bytes on
+the wire, and re-serializing the parsed dict does not reproduce
+them (separators, float repr, unicode escaping and key order are
+all encoder-dependent).</dd>
+<dt><strong><code>content_encoding</code></strong></dt>
+<dd>The <code>Content-Encoding</code> header, when the webhook is
+configured to compress. Signing happens before encoding, so a
+compressed body has to be inflated before the digest matches.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>A typed webhook instance matching the event.</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+A typed webhook instance matching the event.</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>KeyError</code></dt>
 <dd>If the envelope is missing required fields.</dd>
 <dt><code>ValueError</code></dt>
-<dd>If <code>event</code> is not one of the known crawler events.</dd>
+<dd>If <code>event</code> is not one of the known crawler events, if
+<code>signing_secrets</code> is set without <code>raw_body</code>, or if neither
+<code>payload</code> nor <code>signing_secrets</code> is supplied.</dd>
 <dt><code>WebhookSignatureMissMatch</code></dt>
-<dd>If signature verification fails.</dd>
+<dd>If the signature is absent or does not match.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python-repl">&gt;&gt;&gt; from flask import Flask, request
 &gt;&gt;&gt; from scrapfly import webhook_from_payload, CrawlerLifecycleWebhook
 &gt;&gt;&gt; app = Flask(__name__)
@@ -180,6 +228,8 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 ...         request.json,
 ...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
 ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
+...         raw_body=request.get_data(),
+...         content_encoding=request.headers.get('Content-Encoding'),
 ...     )
 ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == 'crawler_finished':
 ...         print(f&quot;Crawl {wh.crawler_uuid} finished — &quot;
@@ -235,8 +285,9 @@ class CrawlerLifecycleWebhook(CrawlerWebhookBase):
 (crawler_uuid / project / env / action / state), and a <code>links.status</code>
 URL pointing at the crawl status endpoint. Disambiguate by inspecting
 <code>self.event</code> (use :class:<code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent">CrawlerWebhookEvent</a></code>).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>seed_url</code></strong></dt>
 <dd>The root URL the crawl was started from.</dd>
 <dt><strong><code>status_link</code></strong></dt>
@@ -309,8 +360,9 @@ class CrawlerScrapeResult:
         )</code></pre>
 </details>
 <div class="desc"><p>The <code>scrape</code> sub-object of a <code>crawler_url_visited</code> payload.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>status_code</code></strong></dt>
 <dd>HTTP status code returned by the target URL.</dd>
 <dt><strong><code>country</code></strong></dt>
@@ -394,8 +446,9 @@ class CrawlerUrlDiscoveredWebhook(CrawlerWebhookBase):
 </details>
 <div class="desc"><p>Payload for the <code>crawler_url_discovered</code> event.</p>
 <p>Emitted when the crawler extracts one or more new URLs from a source.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>origin</code></strong></dt>
 <dd>How the URLs were discovered (e.g. <code>"navigation"</code>,
 <code>"sitemap"</code>).</dd>
@@ -449,10 +502,10 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
         error: The scrapfly error code (e.g. ``ERR::SCRAPE::NETWORK_ERROR``).
         scrape_config: The scrape config that was used for the failed attempt.
         log_link: URL to the full scrape log for this failure. Can be
-            ``None`` — the scrape-engine emits ``null`` when no log was
+            ``None`` — Scrapfly emits ``null`` when no log was
             recorded (e.g. the failure happened before the request was ever
             executed). See
-            ``scrape_engine/crawler/webhook_manager.py::dispatch_url_failed``
+            the ``dispatch_url_failed`` event
             line 57.
         scrape_link: URL that re-runs the same scrape as a one-off. Always
             present on the wire (non-nullable). See line 58 of the engine.
@@ -479,8 +532,9 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
 <div class="desc"><p>Payload for the <code>crawler_url_failed</code> event.</p>
 <p>Emitted when a URL cannot be crawled (network error, scrape error,
 blocked, etc.).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL that failed.</dd>
 <dt><strong><code>error</code></strong></dt>
@@ -489,10 +543,10 @@ blocked, etc.).</p>
 <dd>The scrape config that was used for the failed attempt.</dd>
 <dt><strong><code>log_link</code></strong></dt>
 <dd>URL to the full scrape log for this failure. Can be
-<code>None</code> — the scrape-engine emits <code>null</code> when no log was
+<code>None</code> — Scrapfly emits <code>null</code> when no log was
 recorded (e.g. the failure happened before the request was ever
 executed). See
-<code>scrape_engine/crawler/webhook_manager.py::dispatch_url_failed</code>
+the <code>dispatch_url_failed</code> event
 line 57.</dd>
 <dt><strong><code>scrape_link</code></strong></dt>
 <dd>URL that re-runs the same scrape as a one-off. Always
@@ -569,8 +623,9 @@ class CrawlerUrlSkippedWebhook(CrawlerWebhookBase):
 <p>Emitted in a single batch when the crawler decides to skip a set of
 URLs (e.g. when reaching <code>page_limit</code> with discovered-but-unvisited
 URLs still in the queue).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>Mapping from URL to the reason it was skipped
 (e.g. <code>"page_limit"</code>, <code>"excluded"</code>, <code>"robots_txt"</code>).</dd>
@@ -631,8 +686,9 @@ class CrawlerUrlVisitedWebhook(CrawlerWebhookBase):
 </details>
 <div class="desc"><p>Payload for the <code>crawler_url_visited</code> event.</p>
 <p>Emitted after each URL has been successfully scraped.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL that was just visited.</dd>
 <dt><strong><code>scrape</code></strong></dt>
@@ -682,7 +738,7 @@ class CrawlerWebhookBase:
         crawler_uuid: The crawler job UUID.
         project: Project slug the crawler belongs to.
         env: Environment (``LIVE`` or ``TEST``).
-        action: Short action tag emitted by the scrape-engine
+        action: Short action tag emitted by Scrapfly
             (``started``, ``visited``, ``skipped``, ``url_discovery``,
             ``failed``, ``stopped``, ``cancelled``, ``finished``).
         state: Nested state counters at the moment the webhook was emitted.
@@ -711,8 +767,9 @@ class CrawlerWebhookBase:
         }</code></pre>
 </details>
 <div class="desc"><p>Common fields carried by every crawler webhook payload.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>event</code></strong></dt>
 <dd>The wire event name (<code>crawler_started</code>, etc.).</dd>
 <dt><strong><code>crawler_uuid</code></strong></dt>
@@ -722,7 +779,7 @@ class CrawlerWebhookBase:
 <dt><strong><code>env</code></strong></dt>
 <dd>Environment (<code>LIVE</code> or <code>TEST</code>).</dd>
 <dt><strong><code>action</code></strong></dt>
-<dd>Short action tag emitted by the scrape-engine
+<dd>Short action tag emitted by Scrapfly
 (<code>started</code>, <code>visited</code>, <code>skipped</code>, <code>url_discovery</code>,
 <code>failed</code>, <code>stopped</code>, <code>cancelled</code>, <code>finished</code>).</dd>
 <dt><strong><code>state</code></strong></dt>
@@ -778,8 +835,7 @@ class CrawlerWebhookBase:
     Crawler webhook event names.
 
     These MUST stay in sync with
-    ``apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py``
-    class ``WebhookEvents``. The scrape-engine is the source of truth.
+    class ``WebhookEvents``. Scrapfly is the source of truth.
     &#34;&#34;&#34;
 
     CRAWLER_STARTED = &#39;crawler_started&#39;
@@ -793,8 +849,7 @@ class CrawlerWebhookBase:
 </details>
 <div class="desc"><p>Crawler webhook event names.</p>
 <p>These MUST stay in sync with
-<code>apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py</code>
-class <code>WebhookEvents</code>. The scrape-engine is the source of truth.</p></div>
+class <code>WebhookEvents</code>. Scrapfly is the source of truth.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>builtins.str</li>

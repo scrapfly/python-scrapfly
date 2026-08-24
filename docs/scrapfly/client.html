@@ -984,7 +984,13 @@ el.replaceWith(d);
             ``msgpack`` package is installed, ``json`` otherwise). Pass
             ``&#39;json&#39;`` or ``&#39;msgpack&#39;`` to override.
         &#34;&#34;&#34;
-        from .batch import iter_batch_parts, decode_part_body, _build_proxified_response_from_part
+        from .batch import (
+            iter_batch_parts,
+            decode_part_body,
+            is_api_error_part,
+            error_from_api_error_part,
+            _build_proxified_response_from_part,
+        )
 
         if not scrape_configs:
             raise ScrapflyError(
@@ -1132,15 +1138,35 @@ el.replaceWith(d);
 
                     continue
 
+                # EncoderError subclasses BaseException — catch it explicitly.
                 try:
                     parsed = decode_part_body(part_headers, part_body, self.body_handler)
-                except Exception as decode_err:
+                except (EncoderError, Exception) as decode_err:
                     yield correlation_id, ScrapflyError(
                         f&#34;scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}&#34;,
                         code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                        http_status_code=500,
                     )
 
                     continue
+
+                # API-generated error parts carry an error body instead of
+                # the scrape envelope — surface them as typed per-part errors.
+                if is_api_error_part(parsed, part_headers):
+                    try:
+                        part_error = error_from_api_error_part(parsed, part_headers, response.request)
+                    except Exception as factory_err:
+                        part_error = ScrapflyError(
+                            f&#34;scrape_batch: malformed error part for correlation_id={correlation_id!r}: {factory_err}&#34;,
+                            code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                            http_status_code=500,
+                        )
+
+                    yield correlation_id, part_error
+
+                    continue
+
+                part_result = None
 
                 try:
                     api_response = ScrapeApiResponse(
@@ -1153,9 +1179,17 @@ el.replaceWith(d);
                     # Don&#39;t auto-raise on upstream error — per-part errors
                     # are surfaced via the yielded tuple, not exceptions.
                     api_response.raise_for_result(raise_on_upstream_error=False)
-                    yield correlation_id, api_response
+                    part_result = api_response
                 except ScrapflyError as scrape_err:
-                    yield correlation_id, scrape_err
+                    part_result = scrape_err
+                except (EncoderError, Exception) as part_err:
+                    part_result = ScrapflyError(
+                        f&#34;scrape_batch: failed to process part for correlation_id={correlation_id!r}: {part_err}&#34;,
+                        code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                        http_status_code=500,
+                    )
+
+                yield correlation_id, part_result
         finally:
             batch_session.close()
 
@@ -1700,6 +1734,16 @@ el.replaceWith(d);
         &#34;&#34;&#34;
         return BrowserConfig.project_salt(self.key)
 
+    def cloud_browser_vnc_password(self, browser_config: BrowserConfig) -&gt; str:
+        &#34;&#34;&#34;Return the password a native VNC client must type to attach to a
+        session created with this config: &#34;&lt;project_salt&gt;-&lt;vnc_password&gt;&#34;.
+
+        Copy this value into your VNC client when connecting to the TCP
+        endpoint (port 5901). The WebSocket endpoint /run/&lt;run_id&gt;/vnc takes
+        the raw vnc_password instead.
+        &#34;&#34;&#34;
+        return browser_config.vnc_client_password(self.key)
+
     def cloud_browser_unblock(
         self,
         url: str,
@@ -1722,7 +1766,7 @@ el.replaceWith(d);
 
         :param url: Target URL to navigate to and bypass protection
         :param country: ISO country code for residential proxy geolocation
-        :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
+        :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;, &#39;android&#39;, &#39;iphone&#39;, &#39;ipad&#39;
         :param browser_brand: Browser brand fingerprint: &#39;chrome&#39;, &#39;edge&#39;, &#39;brave&#39;, &#39;opera&#39;
         :param session: Named session for reconnection — reuses the existing ASP
             session when one exists and disables auto-close on disconnect
@@ -2604,7 +2648,8 @@ def ua(self) -&gt; str:
 <div class="desc"><p>Cancel a running crawler job</p>
 <p>:param crawl_uuid: Crawler job UUID to cancel
 :return: True if cancelled successfully</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Start a crawl
 crawl = client.start_crawl(config)
 
@@ -3043,7 +3088,7 @@ that an attach link belongs to your project before sharing it.</p></div>
 
     :param url: Target URL to navigate to and bypass protection
     :param country: ISO country code for residential proxy geolocation
-    :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
+    :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;, &#39;android&#39;, &#39;iphone&#39;, &#39;ipad&#39;
     :param browser_brand: Browser brand fingerprint: &#39;chrome&#39;, &#39;edge&#39;, &#39;brave&#39;, &#39;opera&#39;
     :param session: Named session for reconnection — reuses the existing ASP
         session when one exists and disables auto-close on disconnect
@@ -3104,7 +3149,7 @@ clearance tokens via an ASP-bypass navigation, not to proxy arbitrary
 HTTP requests.</p>
 <p>:param url: Target URL to navigate to and bypass protection
 :param country: ISO country code for residential proxy geolocation
-:param os: Operating system fingerprint: 'linux', 'windows', 'macos'
+:param os: Operating system fingerprint: 'linux', 'windows', 'macos', 'android', 'iphone', 'ipad'
 :param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
 :param session: Named session for reconnection — reuses the existing ASP
 session when one exists and disables auto-close on disconnect
@@ -3624,6 +3669,30 @@ encrypted material; X-Vault-Key is not required.</p>
 :param save_path: Optional file path to save the video (e.g. 'recording.webm')
 :return: bytes - raw video data</p></div>
 </dd>
+<dt id="scrapfly.client.ScrapflyClient.cloud_browser_vnc_password"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vnc_password</span></span>(<span>self,<br>browser_config: <a title="scrapfly.browser_config.BrowserConfig" href="browser_config.html#scrapfly.browser_config.BrowserConfig">BrowserConfig</a>) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vnc_password(self, browser_config: BrowserConfig) -&gt; str:
+    &#34;&#34;&#34;Return the password a native VNC client must type to attach to a
+    session created with this config: &#34;&lt;project_salt&gt;-&lt;vnc_password&gt;&#34;.
+
+    Copy this value into your VNC client when connecting to the TCP
+    endpoint (port 5901). The WebSocket endpoint /run/&lt;run_id&gt;/vnc takes
+    the raw vnc_password instead.
+    &#34;&#34;&#34;
+    return browser_config.vnc_client_password(self.key)</code></pre>
+</details>
+<div class="desc"><p>Return the password a native VNC client must type to attach to a
+session created with this config: "<project_salt>-<vnc_password>".</p>
+<p>Copy this value into your VNC client when connecting to the TCP
+endpoint (port 5901). The WebSocket endpoint /run/<run_id>/vnc takes
+the raw vnc_password instead.</p></div>
+</dd>
 <dt id="scrapfly.client.ScrapflyClient.cloud_browser_wait_for_playback"><code class="name flex">
 <span>def <span class="ident">cloud_browser_wait_for_playback</span></span>(<span>self, run_id: str, timeout: float = 180.0, poll_interval_fallback: float = 3.0) ‑> Dict</span>
 </code></dt>
@@ -3924,7 +3993,8 @@ def get_crawl_artifact(
 <p>:param uuid: Crawler job UUID
 :param artifact_type: Artifact type ('warc' or 'har')
 :return: CrawlerArtifactResponse with WARC data and parsing utilities</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Wait for crawl to complete
 while True:
     status = client.get_crawl_status(uuid)
@@ -4012,7 +4082,8 @@ in your crawl configuration (via content_formats parameter).</p>
 :param format: Content format - 'html', 'clean_html', 'markdown', 'json', 'text',
 'extracted_data', 'page_metadata'
 :return: Dictionary with format {"contents": {url: content, &hellip;}, "links": {&hellip;}}</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get all content in markdown format
 result = client.get_crawl_contents(uuid, format='markdown')
 contents = result['contents']
@@ -4069,7 +4140,8 @@ def get_crawl_status(self, uuid: str) -&gt; CrawlerStatusResponse:
 <div class="desc"><p>Get crawler job status</p>
 <p>:param uuid: Crawler job UUID
 :return: CrawlerStatusResponse with progress information</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">status = client.get_crawl_status(uuid)
 print(f&quot;Status: {status.status}&quot;)
 print(f&quot;Progress: {status.progress_pct:.1f}%&quot;)
@@ -4534,7 +4606,13 @@ def scrape_batch(
         ``msgpack`` package is installed, ``json`` otherwise). Pass
         ``&#39;json&#39;`` or ``&#39;msgpack&#39;`` to override.
     &#34;&#34;&#34;
-    from .batch import iter_batch_parts, decode_part_body, _build_proxified_response_from_part
+    from .batch import (
+        iter_batch_parts,
+        decode_part_body,
+        is_api_error_part,
+        error_from_api_error_part,
+        _build_proxified_response_from_part,
+    )
 
     if not scrape_configs:
         raise ScrapflyError(
@@ -4682,15 +4760,35 @@ def scrape_batch(
 
                 continue
 
+            # EncoderError subclasses BaseException — catch it explicitly.
             try:
                 parsed = decode_part_body(part_headers, part_body, self.body_handler)
-            except Exception as decode_err:
+            except (EncoderError, Exception) as decode_err:
                 yield correlation_id, ScrapflyError(
                     f&#34;scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}&#34;,
                     code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                    http_status_code=500,
                 )
 
                 continue
+
+            # API-generated error parts carry an error body instead of
+            # the scrape envelope — surface them as typed per-part errors.
+            if is_api_error_part(parsed, part_headers):
+                try:
+                    part_error = error_from_api_error_part(parsed, part_headers, response.request)
+                except Exception as factory_err:
+                    part_error = ScrapflyError(
+                        f&#34;scrape_batch: malformed error part for correlation_id={correlation_id!r}: {factory_err}&#34;,
+                        code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                        http_status_code=500,
+                    )
+
+                yield correlation_id, part_error
+
+                continue
+
+            part_result = None
 
             try:
                 api_response = ScrapeApiResponse(
@@ -4703,9 +4801,17 @@ def scrape_batch(
                 # Don&#39;t auto-raise on upstream error — per-part errors
                 # are surfaced via the yielded tuple, not exceptions.
                 api_response.raise_for_result(raise_on_upstream_error=False)
-                yield correlation_id, api_response
+                part_result = api_response
             except ScrapflyError as scrape_err:
-                yield correlation_id, scrape_err
+                part_result = scrape_err
+            except (EncoderError, Exception) as part_err:
+                part_result = ScrapflyError(
+                    f&#34;scrape_batch: failed to process part for correlation_id={correlation_id!r}: {part_err}&#34;,
+                    code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                    http_status_code=500,
+                )
+
+            yield correlation_id, part_result
     finally:
         batch_session.close()</code></pre>
 </details>
@@ -4943,7 +5049,8 @@ def start_crawl(self, crawler_config: CrawlerConfig) -&gt; CrawlerStartResponse:
 <div class="desc"><p>Start a crawler job</p>
 <p>:param crawler_config: CrawlerConfig
 :return: CrawlerStartResponse with UUID and initial status</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig
 
 client = ScrapflyClient(key='YOUR_API_KEY')
@@ -5048,6 +5155,7 @@ print(f&quot;Crawler started: {response.uuid}&quot;)
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_vault_rotate" href="#scrapfly.client.ScrapflyClient.cloud_browser_vault_rotate">cloud_browser_vault_rotate</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_vault_update" href="#scrapfly.client.ScrapflyClient.cloud_browser_vault_update">cloud_browser_vault_update</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_video" href="#scrapfly.client.ScrapflyClient.cloud_browser_video">cloud_browser_video</a></code></li>
+<li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_vnc_password" href="#scrapfly.client.ScrapflyClient.cloud_browser_vnc_password">cloud_browser_vnc_password</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.cloud_browser_wait_for_playback" href="#scrapfly.client.ScrapflyClient.cloud_browser_wait_for_playback">cloud_browser_wait_for_playback</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.concurrent_scrape" href="#scrapfly.client.ScrapflyClient.concurrent_scrape">concurrent_scrape</a></code></li>
 <li><code><a title="scrapfly.client.ScrapflyClient.connect_timeout" href="#scrapfly.client.ScrapflyClient.connect_timeout">connect_timeout</a></code></li>

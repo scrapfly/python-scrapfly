@@ -830,7 +830,7 @@ of a crawler job, making it easy to start, monitor, and retrieve results.</p>
         status = self.status(refresh=False)
 
         # Basic stats from status — uses the wire field names as defined by
-        # the scrape-engine source of truth.
+        # Scrapfly source of truth.
         stats_dict = {
             &#39;uuid&#39;: self._uuid,
             &#39;status&#39;: status.status,
@@ -884,7 +884,8 @@ of a crawler job, making it easy to start, monitor, and retrieve results.</p>
 <div class="desc"><p>High-level abstraction for managing a crawler job</p>
 <p>The Crawl object maintains the state of a crawler job and provides
 convenient methods for managing its lifecycle.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig, Crawl
 
 client = ScrapflyClient(key='your-key')
@@ -906,8 +907,9 @@ for page in pages:
 html = crawl.read('https://example.com/page1', format='html')
 </code></pre>
 <p>Initialize a Crawl object</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>client</code></strong></dt>
 <dd>ScrapflyClient instance</dd>
 <dt><strong><code>config</code></strong></dt>
@@ -981,14 +983,17 @@ def uuid(self) -&gt; Optional[str]:
     return self._client.cancel_crawl(self._uuid)</code></pre>
 </details>
 <div class="desc"><p>Cancel the running crawler job</p>
-<h2 id="returns">Returns</h2>
-<p>True if cancelled successfully</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+True if cancelled successfully</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Start a crawl
 crawl = Crawl(client, config).crawl()
 
@@ -1032,14 +1037,17 @@ crawl.cancel()
     return self</code></pre>
 </details>
 <div class="desc"><p>Start the crawler job</p>
-<h2 id="returns">Returns</h2>
-<p>Self for method chaining</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+Self for method chaining</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler already started</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">crawl = Crawl(client, config)
 crawl.crawl()  # Start crawling
 </code></pre></div>
@@ -1089,14 +1097,17 @@ crawl.crawl()  # Start crawling
     )</code></pre>
 </details>
 <div class="desc"><p>Download the crawler artifact in HAR (HTTP Archive) format</p>
-<h2 id="returns">Returns</h2>
-<p>CrawlerArtifactResponse with parsed HAR data</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerArtifactResponse with parsed HAR data</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get HAR artifact
 artifact = crawl.har()
 
@@ -1236,17 +1247,20 @@ for entry in artifact.iter_responses():
         return None</code></pre>
 </details>
 <div class="desc"><p>Read content from a specific URL in the crawl results</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL to retrieve content for</dd>
 <dt><strong><code>format</code></strong></dt>
 <dd>Content format - 'html', 'markdown', 'text', 'clean_html', 'json',
 'extracted_data', 'page_metadata'</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlContent object with content and metadata, or None if URL not found</p>
-<h2 id="example">Example</h2>
+<p>Returns
+-----=
+CrawlContent object with content and metadata, or None if URL not found</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get HTML content for a specific URL
 content = crawl.read('https://example.com/page1')
 if content:
@@ -1440,16 +1454,18 @@ if crawl.read('https://example.com/missing') is None:
 <div class="desc"><p>Retrieve content for multiple URLs in a single batch request</p>
 <p>This is more efficient than calling read() multiple times as it retrieves
 all content in a single API call. Maximum 100 URLs per request.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>List of URLs to retrieve (max 100)</dd>
 <dt><strong><code>formats</code></strong></dt>
 <dd>List of content formats to retrieve (e.g., ['markdown', 'text'])
 If None, defaults to ['html']</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>Dictionary mapping URLs to their content in requested formats:
+<p>Returns
+-----=
+Dictionary mapping URLs to their content in requested formats:
 {
 'https://example.com/page1': {
 'markdown': '# Page 1&hellip;',
@@ -1460,7 +1476,8 @@ If None, defaults to ['html']</dd>
 'text': 'Page 2&hellip;'
 }
 }</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get markdown and text for multiple URLs
 urls = ['https://example.com/page1', 'https://example.com/page2']
 contents = crawl.read_batch(urls, formats=['markdown', 'text'])
@@ -1470,8 +1487,9 @@ for url, formats in contents.items():
     text = formats.get('text', '')
     print(f&quot;{url}: {len(markdown)} chars markdown, {len(text)} chars text&quot;)
 </code></pre>
-<h2 id="raises">Raises</h2>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ValueError</code></dt>
 <dd>If more than 100 URLs are provided</dd>
 <dt><code>ScrapflyCrawlerError</code></dt>
@@ -1601,17 +1619,20 @@ for url, formats in contents.items():
 </details>
 <div class="desc"><p>Iterate through URLs matching a pattern and yield their content</p>
 <p>Supports wildcard patterns using * and ? for flexible URL matching.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>pattern</code></strong></dt>
 <dd>URL pattern with wildcards (<em> matches any characters, ? matches one)
 Examples: "/products?page=</em>", "https://example.com/<em>/detail", "</em>/product/*"</dd>
 <dt><strong><code>format</code></strong></dt>
 <dd>Content format to retrieve</dd>
 </dl>
-<h2 id="yields">Yields</h2>
-<p>CrawlContent objects for each matching URL</p>
-<h2 id="example">Example</h2>
+<p>Yields
+-----=
+CrawlContent objects for each matching URL</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get all product pages in markdown
 for content in crawl.read_iter(pattern=&quot;*/products?page=*&quot;, format=&quot;markdown&quot;):
     print(f&quot;{content.url}: {len(content.content)} chars&quot;)
@@ -1654,7 +1675,7 @@ for content in crawl.read_iter(pattern=&quot;*/detail/*&quot;):
     status = self.status(refresh=False)
 
     # Basic stats from status — uses the wire field names as defined by
-    # the scrape-engine source of truth.
+    # Scrapfly source of truth.
     stats_dict = {
         &#39;uuid&#39;: self._uuid,
         &#39;status&#39;: status.status,
@@ -1695,9 +1716,11 @@ for content in crawl.read_iter(pattern=&quot;*/detail/*&quot;):
     return stats_dict</code></pre>
 </details>
 <div class="desc"><p>Get comprehensive statistics about the crawl</p>
-<h2 id="returns">Returns</h2>
-<p>Dictionary with crawl statistics</p>
-<h2 id="example">Example</h2>
+<p>Returns
+-----=
+Dictionary with crawl statistics</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python">stats = crawl.stats()
 print(f&quot;URLs extracted: {stats['urls_extracted']}&quot;)
 print(f&quot;URLs visited: {stats['urls_visited']}&quot;)
@@ -1746,19 +1769,23 @@ print(f&quot;Total size: {stats['total_size_kb']:.2f} KB&quot;)
     return self._status_cache</code></pre>
 </details>
 <div class="desc"><p>Get current crawler status</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>refresh</code></strong></dt>
 <dd>If True, fetch fresh status from API. If False, return cached status.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerStatusResponse with current status</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerStatusResponse with current status</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">status = crawl.status()
 print(f&quot;Progress: {status.progress_pct}%&quot;)
 print(f&quot;URLs visited: {status.state.urls_visited}&quot;)
@@ -1819,8 +1846,9 @@ print(f&quot;URLs visited: {status.state.urls_visited}&quot;)
 <div class="desc"><p>List the crawled URLs (paginated, optionally filtered by status).</p>
 <p>NEW in 0.8.28 — convenience wrapper around
 :meth:<code>ScrapflyClient.get_crawl_urls</code> that pre-fills the crawler UUID.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>status</code></strong></dt>
 <dd>Filter by URL status — 'visited', 'pending', or 'failed'.
 When None, the server defaults to 'visited'.</dd>
@@ -1829,14 +1857,17 @@ When None, the server defaults to 'visited'.</dd>
 <dt><strong><code>per_page</code></strong></dt>
 <dd>Page size (default 100, max 1000)</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerUrlsResponse with the URL records, total count and pagination metadata.</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerUrlsResponse with the URL records, total count and pagination metadata.</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>if the crawler has not been started yet.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">crawl = Crawl(client, config).crawl().wait()
 for entry in crawl.urls(status='visited'):
     print(f&quot;{entry.url} ({entry.status})&quot;)
@@ -1947,8 +1978,9 @@ for entry in crawl.urls(status='visited'):
 </details>
 <div class="desc"><p>Wait for crawler to complete</p>
 <p>Polls the status endpoint until the crawler finishes.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>poll_interval</code></strong></dt>
 <dd>Seconds between status checks (default: 5)</dd>
 <dt><strong><code>max_wait</code></strong></dt>
@@ -1963,15 +1995,18 @@ cancellation. Defaults to False (raises ScrapflyCrawlerError
 with code='CANCELLED' on user_cancelled), preserving prior
 behavior for callers that observe external cancellations.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>Self for method chaining</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+Self for method chaining</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>If crawler not started, failed, or timed out.
 Also raised on cancellation when <code>allow_cancelled=False</code>.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Wait with progress updates
 crawl.crawl().wait(verbose=True)
 
@@ -2033,19 +2068,23 @@ crawl.wait(allow_cancelled=True)
     return self._artifact_cache</code></pre>
 </details>
 <div class="desc"><p>Download the crawler artifact (WARC file)</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>artifact_type</code></strong></dt>
 <dd>Type of artifact to download (default: 'warc')</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerArtifactResponse with parsed WARC data</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerArtifactResponse with parsed WARC data</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get WARC artifact
 artifact = crawl.warc()
 

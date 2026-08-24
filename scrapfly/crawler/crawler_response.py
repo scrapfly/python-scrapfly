@@ -58,8 +58,7 @@ class CrawlerState:
     """
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -117,7 +116,7 @@ class CrawlerStatusResponse:
     Returned by :py:meth:`ScrapflyClient.get_crawl_status`. Provides real-time
     progress tracking for crawler jobs.
 
-    **Field names match the wire format.** The scrape-engine is the source of
+    **Field names match the wire format.** Scrapfly is the source of
     truth; the Go and TypeScript SDKs expose identical names. Access state
     counters via the nested ``state`` attribute:
 

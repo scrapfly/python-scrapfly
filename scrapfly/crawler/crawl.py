@@ -803,7 +803,7 @@ class Crawl:
         status = self.status(refresh=False)
 
         # Basic stats from status — uses the wire field names as defined by
-        # the scrape-engine source of truth.
+        # Scrapfly source of truth.
         stats_dict = {
             'uuid': self._uuid,
             'status': status.status,

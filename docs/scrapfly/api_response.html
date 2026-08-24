@@ -42,6 +42,82 @@ el.replaceWith(d);
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="scrapfly.api_response.decompress"><code class="name flex">
+<span>def <span class="ident">decompress</span></span>(<span>content: bytes, content_encoding: str | None, limit: int = 268435456) ‑> bytes</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def decompress(content: bytes, content_encoding: Optional[str], limit: int = MAX_DECOMPRESSED_SIZE) -&gt; bytes:
+    &#34;&#34;&#34;
+    Reverse the Content-Encoding applied to a webhook body.
+
+    Every branch stops as soon as `limit` is passed.
+    &#34;&#34;&#34;
+    encoding = (content_encoding or &#39;&#39;).lower()
+
+    if encoding in (&#39;&#39;, &#39;none&#39;, &#39;identity&#39;):
+        return content
+
+    if encoding in (&#39;gzip&#39;, &#39;gz&#39;):
+        import gzip
+
+        with gzip.GzipFile(fileobj=BytesIO(content)) as decoder:
+            return _bounded(iter(lambda: decoder.read(_DECOMPRESS_CHUNK), b&#39;&#39;), limit)
+
+    if encoding == &#39;deflate&#39;:
+        import zlib
+
+        decoder = zlib.decompressobj()
+
+        def deflate_chunks():
+            data = content
+            while data:
+                yield decoder.decompress(data, _DECOMPRESS_CHUNK)
+                data = decoder.unconsumed_tail
+
+            yield decoder.flush()
+
+        return _bounded(deflate_chunks(), limit)
+
+    if encoding in (&#39;brotli&#39;, &#39;br&#39;):
+        try:
+            import brotlicffi as brotli
+        except ImportError:
+            import brotli
+
+        decoder = brotli.Decompressor()
+
+        return _bounded(
+            (decoder.decompress(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)),
+            limit,
+        )
+
+    if encoding == &#39;zstd&#39;:
+        try:
+            from compression import zstd as _zstd  # Python 3.14+
+
+            decoder = _zstd.ZstdDecompressor()
+        except ImportError:
+            import zstandard
+
+            decoder = zstandard.ZstdDecompressor().decompressobj()
+
+        return _bounded(
+            (decoder.decompress(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)),
+            limit,
+        )
+
+    raise ValueError(&#39;unsupported webhook content encoding: %s&#39; % content_encoding)</code></pre>
+</details>
+<div class="desc"><p>Reverse the Content-Encoding applied to a webhook body.</p>
+<p>Every branch stops as soon as <code>limit</code> is passed.</p></div>
+</dd>
+</dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
@@ -567,7 +643,7 @@ def extraction_success(self) -&gt; bool:
 </dd>
 <dt id="scrapfly.api_response.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
-<span>(</span><span>use_brotli: bool = False, signing_secrets: Tuple[str] | None = None)</span>
+<span>(</span><span>use_brotli: bool = False,<br>signing_secrets: str | Tuple[str, ...] | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -585,7 +661,7 @@ def extraction_success(self) -&gt; bool:
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None):
+    def __init__(self, use_brotli: bool = False, signing_secrets: Optional[Union[str, Tuple[str, ...]]] = None):
         if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -607,11 +683,21 @@ def extraction_success(self) -&gt; bool:
         self.content_encoding: str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret: Optional[Tuple[str]] = None
 
-        if signing_secrets:
+        if signing_secrets is not None:
+            # A bare str is iterable: without this it yields one HMAC key per character.
+            if isinstance(signing_secrets, (str, bytes)):
+                signing_secrets = (signing_secrets,)
+
             _secrets = set()
 
             for signing_secret in signing_secrets:
+                if not isinstance(signing_secret, str) or not signing_secret:
+                    raise ValueError(&#39;signing_secrets must be non-empty strings, as shown in the webhook dashboard&#39;)
+
                 _secrets.add(signing_secret.encode(&#39;utf-8&#39;))
+
+            if not _secrets:
+                raise ValueError(&#39;signing_secrets was empty; omit it entirely to build a handler that does not verify&#39;)
 
             self._signing_secret = tuple(_secrets)
 
@@ -635,45 +721,45 @@ def extraction_success(self) -&gt; bool:
 
         return False
 
-    def verify(self, message: bytes, signature: str) -&gt; bool:
+    def verify(self, message: bytes, signature: Optional[str]) -&gt; bool:
+        if self._signing_secret is None:
+            raise ValueError(&#39;no signing secret configured; pass signing_secrets to ResponseBodyHandler&#39;)
+
+        # An absent header is a failed verification, not a programming error.
+        if not signature:
+            return False
+
+        # The digest is sent as upper hex; the -Lowercase header carries the same value.
+        received = signature.strip().upper().encode(&#39;utf-8&#39;)
+
         for signing_secret in self._signing_secret:
-            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
-            logger.debug(
-                &#39;WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s&#39;,
-                len(signing_secret),
-                hashlib.sha256(signing_secret).hexdigest()[:16],
-                len(message),
-                hashlib.sha256(message).hexdigest()[:16],
-                computed,
-                signature,
-                computed == signature,
-            )
-            if computed == signature:
+            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper().encode(&#39;ascii&#39;)
+
+            if hmac.compare_digest(computed, received):
                 return True
 
         return False
 
-    def read(self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) -&gt; Dict:
-        if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
-            import gzip
-            content = gzip.decompress(content)
-        elif content_encoding == &#39;deflate&#39;:
-            import zlib
-            content = zlib.decompress(content)
-        elif content_encoding == &#39;brotli&#39; or content_encoding == &#39;br&#39;:
-            import brotli
-            content = brotli.decompress(content)
-        elif content_encoding == &#39;zstd&#39;:
-            try:
-                from compression import zstd as _zstd  # Python 3.14+
-                content = _zstd.decompress(content)
-            except ImportError:
-                import zstandard
-                content = zstandard.decompress(content)
+    def read(
+        self,
+        content: bytes,
+        content_encoding: str,
+        content_type: str,
+        signature: Optional[str],
+        max_decompressed_size: int = MAX_DECOMPRESSED_SIZE,
+        signature_message: Optional[bytes] = None,
+    ) -&gt; Dict:
+        # Signing happens before Content-Encoding is applied, so the body is inflated
+        # before it can be verified. Bound the output: this runs pre-authentication.
+        content = decompress(content, content_encoding, max_decompressed_size)
 
-        if self._signing_secret is not None and signature is not None:
-            if not self.verify(content, signature):
+        # Gate on the secret being configured, never on the header being supplied:
+        # an absent signature is a forgery, not an exemption.
+        if self._signing_secret is not None:
+            if not self.verify(content if signature_message is None else signature_message, signature):
                 raise WebhookSignatureMissMatch()
+
+        content_type = content_type or &#39;&#39;
 
         if content_type.startswith(&#39;application/json&#39;):
             content = loads(content, cls=self.JSONDateTimeDecoder)
@@ -761,34 +847,33 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.api_response.ResponseBodyHandler.read"><code class="name flex">
-<span>def <span class="ident">read</span></span>(<span>self,<br>content: bytes,<br>content_encoding: str,<br>content_type: str,<br>signature: str | None) ‑> Dict</span>
+<span>def <span class="ident">read</span></span>(<span>self,<br>content: bytes,<br>content_encoding: str,<br>content_type: str,<br>signature: str | None,<br>max_decompressed_size: int = 268435456,<br>signature_message: bytes | None = None) ‑> Dict</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def read(self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) -&gt; Dict:
-    if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
-        import gzip
-        content = gzip.decompress(content)
-    elif content_encoding == &#39;deflate&#39;:
-        import zlib
-        content = zlib.decompress(content)
-    elif content_encoding == &#39;brotli&#39; or content_encoding == &#39;br&#39;:
-        import brotli
-        content = brotli.decompress(content)
-    elif content_encoding == &#39;zstd&#39;:
-        try:
-            from compression import zstd as _zstd  # Python 3.14+
-            content = _zstd.decompress(content)
-        except ImportError:
-            import zstandard
-            content = zstandard.decompress(content)
+<pre><code class="python">def read(
+    self,
+    content: bytes,
+    content_encoding: str,
+    content_type: str,
+    signature: Optional[str],
+    max_decompressed_size: int = MAX_DECOMPRESSED_SIZE,
+    signature_message: Optional[bytes] = None,
+) -&gt; Dict:
+    # Signing happens before Content-Encoding is applied, so the body is inflated
+    # before it can be verified. Bound the output: this runs pre-authentication.
+    content = decompress(content, content_encoding, max_decompressed_size)
 
-    if self._signing_secret is not None and signature is not None:
-        if not self.verify(content, signature):
+    # Gate on the secret being configured, never on the header being supplied:
+    # an absent signature is a forgery, not an exemption.
+    if self._signing_secret is not None:
+        if not self.verify(content if signature_message is None else signature_message, signature):
             raise WebhookSignatureMissMatch()
+
+    content_type = content_type or &#39;&#39;
 
     if content_type.startswith(&#39;application/json&#39;):
         content = loads(content, cls=self.JSONDateTimeDecoder)
@@ -821,27 +906,28 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.api_response.ResponseBodyHandler.verify"><code class="name flex">
-<span>def <span class="ident">verify</span></span>(<span>self, message: bytes, signature: str) ‑> bool</span>
+<span>def <span class="ident">verify</span></span>(<span>self, message: bytes, signature: str | None) ‑> bool</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def verify(self, message: bytes, signature: str) -&gt; bool:
+<pre><code class="python">def verify(self, message: bytes, signature: Optional[str]) -&gt; bool:
+    if self._signing_secret is None:
+        raise ValueError(&#39;no signing secret configured; pass signing_secrets to ResponseBodyHandler&#39;)
+
+    # An absent header is a failed verification, not a programming error.
+    if not signature:
+        return False
+
+    # The digest is sent as upper hex; the -Lowercase header carries the same value.
+    received = signature.strip().upper().encode(&#39;utf-8&#39;)
+
     for signing_secret in self._signing_secret:
-        computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
-        logger.debug(
-            &#39;WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s&#39;,
-            len(signing_secret),
-            hashlib.sha256(signing_secret).hexdigest()[:16],
-            len(message),
-            hashlib.sha256(message).hexdigest()[:16],
-            computed,
-            signature,
-            computed == signature,
-        )
-        if computed == signature:
+        computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper().encode(&#39;ascii&#39;)
+
+        if hmac.compare_digest(computed, received):
             return True
 
     return False</code></pre>
@@ -1770,6 +1856,26 @@ def screenshot_success(self) -&gt; bool:
 </li>
 </ul>
 </dd>
+<dt id="scrapfly.api_response.WebhookBodyTooLarge"><code class="flex name class">
+<span>class <span class="ident">WebhookBodyTooLarge</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class WebhookBodyTooLarge(ValueError):
+    &#34;&#34;&#34;Raised when a body inflates past the allowed size.&#34;&#34;&#34;</code></pre>
+</details>
+<div class="desc"><p>Raised when a body inflates past the allowed size.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.ValueError</li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
 </dl>
 </section>
 </article>
@@ -1781,6 +1887,11 @@ def screenshot_success(self) -&gt; bool:
 <li><h3>Super-module</h3>
 <ul>
 <li><code><a title="scrapfly" href="index.html">scrapfly</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="scrapfly.api_response.decompress" href="#scrapfly.api_response.decompress">decompress</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
@@ -1852,6 +1963,9 @@ def screenshot_success(self) -&gt; bool:
 <li><code><a title="scrapfly.api_response.ScreenshotApiResponse.raise_for_result" href="#scrapfly.api_response.ScreenshotApiResponse.raise_for_result">raise_for_result</a></code></li>
 <li><code><a title="scrapfly.api_response.ScreenshotApiResponse.screenshot_success" href="#scrapfly.api_response.ScreenshotApiResponse.screenshot_success">screenshot_success</a></code></li>
 </ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.api_response.WebhookBodyTooLarge" href="#scrapfly.api_response.WebhookBodyTooLarge">WebhookBodyTooLarge</a></code></h4>
 </li>
 </ul>
 </li>

@@ -121,6 +121,33 @@ el.replaceWith(d);
 <li><a title="scrapfly.errors.ScrapflyCrawlerError" href="#scrapfly.errors.ScrapflyCrawlerError">ScrapflyCrawlerError</a></li>
 </ul>
 </dd>
+<dt id="scrapfly.errors.EncoderError"><code class="flex name class">
+<span>class <span class="ident">EncoderError</span></span>
+<span>(</span><span>content: str)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class EncoderError(BaseException):
+
+    def __init__(self, content:str):
+        self.content = content
+        super().__init__()
+
+    def __str__(self) -&gt; str:
+        return self.content
+
+    def __repr__(self):
+        return &#34;Invalid payload: %s&#34; % self.content</code></pre>
+</details>
+<div class="desc"><p>Common base class for all exceptions</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.BaseException</li>
+</ul>
+</dd>
 <dt id="scrapfly.errors.ScrapflyAspError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyAspError</span></span>
 <span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
@@ -474,6 +501,9 @@ el.replaceWith(d);
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.CrawlerError" href="#scrapfly.errors.CrawlerError">CrawlerError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.errors.EncoderError" href="#scrapfly.errors.EncoderError">EncoderError</a></code></h4>
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.ScrapflyAspError" href="#scrapfly.errors.ScrapflyAspError">ScrapflyAspError</a></code></h4>

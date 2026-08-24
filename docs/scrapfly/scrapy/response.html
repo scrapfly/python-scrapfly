@@ -197,12 +197,91 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.response.ScrapflyScrapyResponse.status"><code class="name">var <span class="ident">status</span> : str</code></dt>
+<dt id="scrapfly.scrapy.response.ScrapflyScrapyResponse.success"><code class="name">var <span class="ident">success</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.response.ScrapflyScrapyResponse.success"><code class="name">var <span class="ident">success</span> : bool</code></dt>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.scrapy.response.ScrapflyScrapyResponse.status"><code class="name">var <span class="ident">status</span> : str</code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyScrapyResponse(TextResponse):
+
+    content:Union[str, BytesIO]
+    scrape_api_response:ScrapeApiResponse
+
+    context:Dict
+    scrape_config:ScrapeConfig
+    log_url:str
+    status:str
+    config:Dict
+    success:bool
+    duration:float
+    format:str
+    screenshots:Dict
+    dns:Optional[Dict]
+    ssl:Optional[Dict]
+    iframes:Dict
+    browser_data:Dict
+    error:Optional[Dict]
+
+    DEFAULT_ENCODING = &#39;utf-8&#39;
+
+    def __init__(self, request:ScrapflyScrapyRequest, scrape_api_response:ScrapeApiResponse):
+        self.scrape_api_response = scrape_api_response
+        self.content = self.scrape_api_response.scrape_result[&#39;content&#39;]
+
+        self.context = self.scrape_api_response.context
+        self.scrape_config = self.scrape_api_response.scrape_config
+        self.log_url = self.scrape_api_response.scrape_result[&#39;log_url&#39;]
+        self.status = self.scrape_api_response.scrape_result[&#39;status&#39;]
+        self.success = self.scrape_api_response.scrape_result[&#39;success&#39;]
+        self.duration = self.scrape_api_response.scrape_result[&#39;duration&#39;]
+        self.format = self.scrape_api_response.scrape_result[&#39;format&#39;]
+        self.screenshots = self.scrape_api_response.scrape_result[&#39;screenshots&#39;]
+        self.dns = self.scrape_api_response.scrape_result[&#39;dns&#39;]
+        self.ssl = self.scrape_api_response.scrape_result[&#39;ssl&#39;]
+        self.iframes = self.scrape_api_response.scrape_result[&#39;iframes&#39;]
+        self.browser_data = self.scrape_api_response.scrape_result[&#39;browser_data&#39;]
+        self.error = self.scrape_api_response.scrape_result[&#39;error&#39;]
+        self.ip_address = None
+
+        if isinstance(self.content, str):
+            content = self.content.encode(&#39;utf-8&#39;)
+        elif isinstance(self.content, (BytesIO, TextIO)):
+            content = self.content.read()
+        else:
+            raise RuntimeError(&#39;Unsupported body %s&#39; % type(self.content))
+
+        TextResponse.__init__(
+            self,
+            url=self.scrape_api_response.scrape_result[&#39;url&#39;],
+            status=self.scrape_api_response.scrape_result[&#39;status_code&#39;],
+            headers=self.scrape_api_response.scrape_result[&#39;response_headers&#39;],
+            body=content,
+            request=request,
+            ip_address=None
+        )
+
+    @property
+    def __class__(self):
+        response_headers = self.scrape_api_response.scrape_result[&#39;response_headers&#39;]
+
+        if &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;text/html&#39;) &gt;= 0:
+            return HtmlResponse
+        elif &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;application/xml&#39;) &gt;= 0:
+            return XmlResponse
+        else:
+            return TextResponse
+
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+        self.scrape_api_response.sink(path=path, name=name, file=file)</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 </dl>

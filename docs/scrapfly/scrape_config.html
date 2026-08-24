@@ -69,8 +69,9 @@ el.replaceWith(d);
     MARKDOWN = &#34;markdown&#34;
     CLEAN_HTML = &#34;clean_html&#34;</code></pre>
 </details>
-<div class="desc"><h2 id="attributes">Attributes</h2>
-<dl>
+<div class="desc"><dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>JSON</code></strong></dt>
 <dd>JSON format.</dd>
 <dt><strong><code>TEXT</code></strong></dt>
@@ -124,8 +125,9 @@ el.replaceWith(d);
     NO_LINKS = &#34;no_links&#34;
     ONLY_CONTENT = &#34;only_content&#34;</code></pre>
 </details>
-<div class="desc"><h2 id="attributes">Attributes</h2>
-<dl>
+<div class="desc"><dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>NO_IMAGES</code></strong></dt>
 <dd>exlude images from <code>markdown</code> format</dd>
 <dt><strong><code>NO_LINKS</code></strong></dt>
@@ -508,7 +510,7 @@ el.replaceWith(d);
         try:
             from msgpack import loads as msgpack_loads
         except ImportError as e:
-            print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[seepdup] or pip install msgpack&#39;)
+            print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[speedups]&#34; or pip install msgpack&#39;)
             raise
 
         data = msgpack_loads(base64.b64decode(config))
@@ -1024,7 +1026,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     try:
         from msgpack import loads as msgpack_loads
     except ImportError as e:
-        print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[seepdup] or pip install msgpack&#39;)
+        print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[speedups]&#34; or pip install msgpack&#39;)
         raise
 
     data = msgpack_loads(base64.b64decode(config))
@@ -1345,8 +1347,9 @@ Useful for JSON-serialization or other external storage.</p></div>
     HIGH_QUALITY = &#34;high_quality&#34;
     PRINT_MEDIA_FORMAT = &#34;print_media_format&#34;</code></pre>
 </details>
-<div class="desc"><h2 id="attributes">Attributes</h2>
-<dl>
+<div class="desc"><dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>LOAD_IMAGES</code></strong></dt>
 <dd>Enable image rendering with the request, add extra usage for the bandwidth consumed.</dd>
 <dt><strong><code>DARK_MODE</code></strong></dt>

@@ -146,17 +146,18 @@ el.replaceWith(d);
     return WarcParser(warc_data)</code></pre>
 </details>
 <div class="desc"><p>Convenience function to create a WARC parser</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>warc_data</code></strong></dt>
 <dd>WARC data as bytes or file-like object</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
+<dt>Returns</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.WarcParser" href="#scrapfly.WarcParser">WarcParser</a></code></dt>
 <dd>Parser instance</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import parse_warc
 
 # Quick way to get all pages
@@ -166,7 +167,7 @@ for page in pages:
 </code></pre></div>
 </dd>
 <dt id="scrapfly.webhook_from_payload"><code class="name flex">
-<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict[str, Any],<br>signing_secrets: Tuple[str, ...] | None = None,<br>signature: str | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook">CrawlerUrlVisitedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook">CrawlerUrlSkippedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook">CrawlerUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook">CrawlerUrlFailedWebhook</a></span>
+<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict[str, Any] | None = None,<br>signing_secrets: Tuple[str, ...] | None = None,<br>signature: str | None = None,<br>raw_body: bytes | None = None,<br>content_encoding: str | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook">CrawlerUrlVisitedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook">CrawlerUrlSkippedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook">CrawlerUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook" href="crawler/crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook">CrawlerUrlFailedWebhook</a></span>
 </code></dt>
 <dd>
 <details class="source">
@@ -174,9 +175,11 @@ for page in pages:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def webhook_from_payload(
-    payload: Dict[str, Any],
+    payload: Optional[Dict[str, Any]] = None,
     signing_secrets: Optional[Tuple[str, ...]] = None,
     signature: Optional[str] = None,
+    raw_body: Optional[bytes] = None,
+    content_encoding: Optional[str] = None,
 ) -&gt; CrawlerWebhook:
     &#34;&#34;&#34;
     Parse a raw crawler webhook envelope into a typed dataclass.
@@ -187,20 +190,33 @@ for page in pages:
 
     Args:
         payload: The full webhook body as a dict (i.e. what you get from
-            ``request.json``).
+            ``request.json``). Ignored when ``signing_secrets`` is set, because
+            the envelope is then re-read from the verified bytes instead —
+            returning an object built from an unverified dict would make the
+            verification decorative.
         signing_secrets: Optional tuple of signing secrets for signature
             verification. Pass each secret as it appears in the webhook
             dashboard (UTF-8 string, not hex-encoded).
         signature: Optional webhook signature header value
             (``X-Scrapfly-Webhook-Signature``).
+        raw_body: The exact request bytes (``request.get_data()``). Required
+            when ``signing_secrets`` is set: the signature covers the bytes on
+            the wire, and re-serializing the parsed dict does not reproduce
+            them (separators, float repr, unicode escaping and key order are
+            all encoder-dependent).
+        content_encoding: The ``Content-Encoding`` header, when the webhook is
+            configured to compress. Signing happens before encoding, so a
+            compressed body has to be inflated before the digest matches.
 
     Returns:
         A typed webhook instance matching the event.
 
     Raises:
         KeyError: If the envelope is missing required fields.
-        ValueError: If ``event`` is not one of the known crawler events.
-        WebhookSignatureMissMatch: If signature verification fails.
+        ValueError: If ``event`` is not one of the known crawler events, if
+            ``signing_secrets`` is set without ``raw_body``, or if neither
+            ``payload`` nor ``signing_secrets`` is supplied.
+        WebhookSignatureMissMatch: If the signature is absent or does not match.
 
     Example:
         &gt;&gt;&gt; from flask import Flask, request
@@ -212,22 +228,39 @@ for page in pages:
         ...         request.json,
         ...         signing_secrets=(&#39;YOUR-WEBHOOK-SIGNING-SECRET&#39;,),
         ...         signature=request.headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;),
+        ...         raw_body=request.get_data(),
+        ...         content_encoding=request.headers.get(&#39;Content-Encoding&#39;),
         ...     )
         ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == &#39;crawler_finished&#39;:
         ...         print(f&#34;Crawl {wh.crawler_uuid} finished — &#34;
         ...               f&#34;{wh.state.urls_visited} URLs visited&#34;)
         ...     return &#39;&#39;, 200
     &#34;&#34;&#34;
-    if signing_secrets and signature:
-        from json import dumps
+    if signing_secrets:
+        # Imported here rather than at module scope to avoid a circular import.
+        from json import loads
 
-        from ..api_response import ResponseBodyHandler
+        from ..api_response import ResponseBodyHandler, decompress
         from ..errors import WebhookSignatureMissMatch
 
+        if raw_body is None:
+            raise ValueError(
+                &#34;signature verification requires raw_body (the exact request bytes); &#34;
+                &#34;the parsed payload cannot reproduce the signed message&#34;
+            )
+
         handler = ResponseBodyHandler(signing_secrets=signing_secrets)
-        message = dumps(payload, separators=(&#39;,&#39;, &#39;:&#39;)).encode(&#39;utf-8&#39;)
-        if not handler.verify(message, signature):
+        # Signing happens before Content-Encoding is applied.
+        verified = decompress(raw_body, content_encoding)
+
+        if not handler.verify(verified, signature):
             raise WebhookSignatureMissMatch()
+
+        # Parse what was actually signed. Building the result from the caller&#39;s
+        # dict would let unsigned fields ride in behind a valid signature.
+        payload = loads(verified)
+    elif payload is None:
+        raise ValueError(&#39;webhook_from_payload needs either payload or signing_secrets + raw_body&#39;)
 
     event = payload[&#39;event&#39;]
     inner = payload[&#39;payload&#39;]
@@ -244,11 +277,15 @@ for page in pages:
 <p>The envelope shape is <code>{"event": &lt;name&gt;, "payload": {...}}</code>. This
 function inspects <code>event</code> and returns the corresponding typed
 dataclass — one of :data:<code>CrawlerWebhook</code>.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>payload</code></strong></dt>
 <dd>The full webhook body as a dict (i.e. what you get from
-<code>request.json</code>).</dd>
+<code>request.json</code>). Ignored when <code>signing_secrets</code> is set, because
+the envelope is then re-read from the verified bytes instead —
+returning an object built from an unverified dict would make the
+verification decorative.</dd>
 <dt><strong><code>signing_secrets</code></strong></dt>
 <dd>Optional tuple of signing secrets for signature
 verification. Pass each secret as it appears in the webhook
@@ -256,19 +293,34 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 <dt><strong><code>signature</code></strong></dt>
 <dd>Optional webhook signature header value
 (<code>X-Scrapfly-Webhook-Signature</code>).</dd>
+<dt><strong><code>raw_body</code></strong></dt>
+<dd>The exact request bytes (<code>request.get_data()</code>). Required
+when <code>signing_secrets</code> is set: the signature covers the bytes on
+the wire, and re-serializing the parsed dict does not reproduce
+them (separators, float repr, unicode escaping and key order are
+all encoder-dependent).</dd>
+<dt><strong><code>content_encoding</code></strong></dt>
+<dd>The <code>Content-Encoding</code> header, when the webhook is
+configured to compress. Signing happens before encoding, so a
+compressed body has to be inflated before the digest matches.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>A typed webhook instance matching the event.</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+A typed webhook instance matching the event.</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>KeyError</code></dt>
 <dd>If the envelope is missing required fields.</dd>
 <dt><code>ValueError</code></dt>
-<dd>If <code>event</code> is not one of the known crawler events.</dd>
+<dd>If <code>event</code> is not one of the known crawler events, if
+<code>signing_secrets</code> is set without <code>raw_body</code>, or if neither
+<code>payload</code> nor <code>signing_secrets</code> is supplied.</dd>
 <dt><code>WebhookSignatureMissMatch</code></dt>
-<dd>If signature verification fails.</dd>
+<dd>If the signature is absent or does not match.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python-repl">&gt;&gt;&gt; from flask import Flask, request
 &gt;&gt;&gt; from scrapfly import webhook_from_payload, CrawlerLifecycleWebhook
 &gt;&gt;&gt; app = Flask(__name__)
@@ -278,6 +330,8 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 ...         request.json,
 ...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
 ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
+...         raw_body=request.get_data(),
+...         content_encoding=request.headers.get('Content-Encoding'),
 ...     )
 ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == 'crawler_finished':
 ...         print(f&quot;Crawl {wh.crawler_uuid} finished — &quot;
@@ -342,7 +396,7 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 </dd>
 <dt id="scrapfly.BrowserConfig"><code class="flex name class">
 <span>class <span class="ident">BrowserConfig</span></span>
-<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="browser_config.html#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="browser_config.html#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None,<br>vault: str | None = None,<br>vault_key: str | None = None,<br>enable_vnc: bool | None = None,<br>vnc_password: str | None = None,<br>enable_rtc: bool | None = None,<br>rtc_username: str | None = None,<br>rtc_password: str | None = None,<br>hitl_allowed_networks: str | List[str] | None = None)</span>
+<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="browser_config.html#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="browser_config.html#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>lang: str | None = None,<br>languages: str | List[str] | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None,<br>vault: str | None = None,<br>vault_key: str | None = None,<br>enable_vnc: bool | None = None,<br>vnc_password: str | None = None,<br>enable_rtc: bool | None = None,<br>rtc_username: str | None = None,<br>rtc_password: str | None = None,<br>hitl_allowed_networks: str | List[str] | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -359,6 +413,8 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
         os: Optional[Union[str, OperatingSystem]] = None,
         session: Optional[str] = None,
         country: Optional[str] = None,
+        lang: Optional[str] = None,
+        languages: Optional[Union[str, List[str]]] = None,
         auto_close: Optional[bool] = None,
         timeout: Optional[int] = None,
         debug: Optional[bool] = None,
@@ -390,16 +446,33 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
         if timeout is not None and timeout &gt; 1800:
             raise ValueError(&#39;timeout cannot exceed 1800 seconds (30 minutes)&#39;)
 
-        if proxy_pool is not None and isinstance(proxy_pool, str):
-            proxy_pool = ProxyPool(proxy_pool)
+        if isinstance(proxy_pool, str):
+            try:
+                proxy_pool = ProxyPool(proxy_pool)
+            except ValueError:
+                pass
 
-        if os is not None and isinstance(os, str):
-            os = OperatingSystem(os)
+        if isinstance(os, str):
+            try:
+                os = OperatingSystem(os)
+            except ValueError:
+                pass
 
         self.proxy_pool = proxy_pool
         self.os = os
         self.session = session
         self.country = country
+        # Browser UI language — the singular navigator.language base tag
+        # (e.g. &#34;en&#34;). When omitted, the server derives it from `country`.
+        self.lang = lang
+        # Ordered language preference list — drives navigator.languages and
+        # the q-weighted Accept-Language header (e.g. [&#34;fr-FR&#34;, &#34;fr&#34;, &#34;en-US&#34;]).
+        # Capped server-side at 3 entries; accept a list or a comma-separated
+        # string and normalize to a comma-separated string on the wire (the
+        # same shape `extensions` uses), so the API can split it back.
+        if isinstance(languages, list):
+            languages = &#39;,&#39;.join(s.strip() for s in languages if s and s.strip())
+        self.languages = languages or None
         self.auto_close = auto_close
         self.timeout = timeout
         self.debug = debug
@@ -459,6 +532,19 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
         &#34;&#34;&#34;
         return hashlib.sha256(api_key.encode(&#39;utf-8&#39;)).hexdigest()[:8]
 
+    def vnc_client_password(self, api_key: str) -&gt; str:
+        &#34;&#34;&#34;Return the password a native VNC client must type to attach to a
+        session created with this config: &#34;&lt;project_salt&gt;-&lt;vnc_password&gt;&#34;.
+
+        Required by the VNC TCP endpoint (port 5901), which the server salts
+        at allocation. The WebSocket endpoint /run/&lt;run_id&gt;/vnc takes the raw
+        vnc_password instead.
+        &#34;&#34;&#34;
+        if not self.enable_vnc or not self.vnc_password:
+            raise ValueError(&#39;enable_vnc and vnc_password must both be set on this BrowserConfig&#39;)
+
+        return f&#39;{self.project_salt(api_key)}-{self.vnc_password}&#39;
+
     def websocket_url(self, api_key: str, host: Optional[str] = None) -&gt; str:
         params = {&#39;api_key&#39;: api_key}
 
@@ -473,6 +559,12 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 
         if self.country is not None:
             params[&#39;country&#39;] = self.country
+
+        if self.lang is not None:
+            params[&#39;lang&#39;] = self.lang
+
+        if self.languages is not None:
+            params[&#39;languages&#39;] = self.languages
 
         if self.auto_close is not None:
             params[&#39;auto_close&#39;] = self._bool_to_http(self.auto_close)
@@ -564,6 +656,8 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
             &#39;os&#39;: self.os.value if isinstance(self.os, OperatingSystem) else self.os,
             &#39;session&#39;: self.session,
             &#39;country&#39;: self.country,
+            &#39;lang&#39;: self.lang,
+            &#39;languages&#39;: self.languages,
             &#39;auto_close&#39;: self.auto_close,
             &#39;timeout&#39;: self.timeout,
             &#39;debug&#39;: self.debug,
@@ -595,19 +689,13 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 
     @staticmethod
     def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
-        proxy_pool = browser_config_dict.get(&#39;proxy_pool&#39;, None)
-        if proxy_pool is not None:
-            proxy_pool = ProxyPool(proxy_pool)
-
-        os = browser_config_dict.get(&#39;os&#39;, None)
-        if os is not None:
-            os = OperatingSystem(os)
-
         return BrowserConfig(
-            proxy_pool=proxy_pool,
-            os=os,
+            proxy_pool=browser_config_dict.get(&#39;proxy_pool&#39;, None),
+            os=browser_config_dict.get(&#39;os&#39;, None),
             session=browser_config_dict.get(&#39;session&#39;, None),
             country=browser_config_dict.get(&#39;country&#39;, None),
+            lang=browser_config_dict.get(&#39;lang&#39;, None),
+            languages=browser_config_dict.get(&#39;languages&#39;, None),
             auto_close=browser_config_dict.get(&#39;auto_close&#39;, None),
             timeout=browser_config_dict.get(&#39;timeout&#39;, None),
             debug=browser_config_dict.get(&#39;debug&#39;, None),
@@ -661,19 +749,13 @@ dashboard (UTF-8 string, not hex-encoded).</dd>
 </summary>
 <pre><code class="python">@staticmethod
 def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
-    proxy_pool = browser_config_dict.get(&#39;proxy_pool&#39;, None)
-    if proxy_pool is not None:
-        proxy_pool = ProxyPool(proxy_pool)
-
-    os = browser_config_dict.get(&#39;os&#39;, None)
-    if os is not None:
-        os = OperatingSystem(os)
-
     return BrowserConfig(
-        proxy_pool=proxy_pool,
-        os=os,
+        proxy_pool=browser_config_dict.get(&#39;proxy_pool&#39;, None),
+        os=browser_config_dict.get(&#39;os&#39;, None),
         session=browser_config_dict.get(&#39;session&#39;, None),
         country=browser_config_dict.get(&#39;country&#39;, None),
+        lang=browser_config_dict.get(&#39;lang&#39;, None),
+        languages=browser_config_dict.get(&#39;languages&#39;, None),
         auto_close=browser_config_dict.get(&#39;auto_close&#39;, None),
         timeout=browser_config_dict.get(&#39;timeout&#39;, None),
         debug=browser_config_dict.get(&#39;debug&#39;, None),
@@ -742,6 +824,8 @@ X-Browser-Project-Salt response header on a successful WS upgrade.</p></div>
         &#39;os&#39;: self.os.value if isinstance(self.os, OperatingSystem) else self.os,
         &#39;session&#39;: self.session,
         &#39;country&#39;: self.country,
+        &#39;lang&#39;: self.lang,
+        &#39;languages&#39;: self.languages,
         &#39;auto_close&#39;: self.auto_close,
         &#39;timeout&#39;: self.timeout,
         &#39;debug&#39;: self.debug,
@@ -773,6 +857,33 @@ X-Browser-Project-Salt response header on a successful WS upgrade.</p></div>
 </details>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.BrowserConfig.vnc_client_password"><code class="name flex">
+<span>def <span class="ident">vnc_client_password</span></span>(<span>self, api_key: str) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def vnc_client_password(self, api_key: str) -&gt; str:
+    &#34;&#34;&#34;Return the password a native VNC client must type to attach to a
+    session created with this config: &#34;&lt;project_salt&gt;-&lt;vnc_password&gt;&#34;.
+
+    Required by the VNC TCP endpoint (port 5901), which the server salts
+    at allocation. The WebSocket endpoint /run/&lt;run_id&gt;/vnc takes the raw
+    vnc_password instead.
+    &#34;&#34;&#34;
+    if not self.enable_vnc or not self.vnc_password:
+        raise ValueError(&#39;enable_vnc and vnc_password must both be set on this BrowserConfig&#39;)
+
+    return f&#39;{self.project_salt(api_key)}-{self.vnc_password}&#39;</code></pre>
+</details>
+<div class="desc"><p>Return the password a native VNC client must type to attach to a
+session created with this config: "<project_salt>-<vnc_password>".</p>
+<p>Required by the VNC TCP endpoint (port 5901), which the server salts
+at allocation. The WebSocket endpoint /run/<run_id>/vnc takes the raw
+vnc_password instead.</p></div>
+</dd>
 <dt id="scrapfly.BrowserConfig.websocket_url"><code class="name flex">
 <span>def <span class="ident">websocket_url</span></span>(<span>self, api_key: str, host: str | None = None) ‑> str</span>
 </code></dt>
@@ -795,6 +906,12 @@ X-Browser-Project-Salt response header on a successful WS upgrade.</p></div>
 
     if self.country is not None:
         params[&#39;country&#39;] = self.country
+
+    if self.lang is not None:
+        params[&#39;lang&#39;] = self.lang
+
+    if self.languages is not None:
+        params[&#39;languages&#39;] = self.languages
 
     if self.auto_close is not None:
         params[&#39;auto_close&#39;] = self._bool_to_http(self.auto_close)
@@ -1714,7 +1831,7 @@ class ClassifyResult:
         status = self.status(refresh=False)
 
         # Basic stats from status — uses the wire field names as defined by
-        # the scrape-engine source of truth.
+        # Scrapfly source of truth.
         stats_dict = {
             &#39;uuid&#39;: self._uuid,
             &#39;status&#39;: status.status,
@@ -1768,7 +1885,8 @@ class ClassifyResult:
 <div class="desc"><p>High-level abstraction for managing a crawler job</p>
 <p>The Crawl object maintains the state of a crawler job and provides
 convenient methods for managing its lifecycle.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig, Crawl
 
 client = ScrapflyClient(key='your-key')
@@ -1790,8 +1908,9 @@ for page in pages:
 html = crawl.read('https://example.com/page1', format='html')
 </code></pre>
 <p>Initialize a Crawl object</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>client</code></strong></dt>
 <dd>ScrapflyClient instance</dd>
 <dt><strong><code>config</code></strong></dt>
@@ -1865,14 +1984,17 @@ def uuid(self) -&gt; Optional[str]:
     return self._client.cancel_crawl(self._uuid)</code></pre>
 </details>
 <div class="desc"><p>Cancel the running crawler job</p>
-<h2 id="returns">Returns</h2>
-<p>True if cancelled successfully</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+True if cancelled successfully</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.ScrapflyCrawlerError" href="#scrapfly.ScrapflyCrawlerError">ScrapflyCrawlerError</a></code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Start a crawl
 crawl = Crawl(client, config).crawl()
 
@@ -1916,14 +2038,17 @@ crawl.cancel()
     return self</code></pre>
 </details>
 <div class="desc"><p>Start the crawler job</p>
-<h2 id="returns">Returns</h2>
-<p>Self for method chaining</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+Self for method chaining</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler already started</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">crawl = Crawl(client, config)
 crawl.crawl()  # Start crawling
 </code></pre></div>
@@ -1973,14 +2098,17 @@ crawl.crawl()  # Start crawling
     )</code></pre>
 </details>
 <div class="desc"><p>Download the crawler artifact in HAR (HTTP Archive) format</p>
-<h2 id="returns">Returns</h2>
-<p>CrawlerArtifactResponse with parsed HAR data</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerArtifactResponse with parsed HAR data</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get HAR artifact
 artifact = crawl.har()
 
@@ -2120,17 +2248,20 @@ for entry in artifact.iter_responses():
         return None</code></pre>
 </details>
 <div class="desc"><p>Read content from a specific URL in the crawl results</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL to retrieve content for</dd>
 <dt><strong><code>format</code></strong></dt>
 <dd>Content format - 'html', 'markdown', 'text', 'clean_html', 'json',
 'extracted_data', 'page_metadata'</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlContent object with content and metadata, or None if URL not found</p>
-<h2 id="example">Example</h2>
+<p>Returns
+-----=
+CrawlContent object with content and metadata, or None if URL not found</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get HTML content for a specific URL
 content = crawl.read('https://example.com/page1')
 if content:
@@ -2324,16 +2455,18 @@ if crawl.read('https://example.com/missing') is None:
 <div class="desc"><p>Retrieve content for multiple URLs in a single batch request</p>
 <p>This is more efficient than calling read() multiple times as it retrieves
 all content in a single API call. Maximum 100 URLs per request.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>List of URLs to retrieve (max 100)</dd>
 <dt><strong><code>formats</code></strong></dt>
 <dd>List of content formats to retrieve (e.g., ['markdown', 'text'])
 If None, defaults to ['html']</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>Dictionary mapping URLs to their content in requested formats:
+<p>Returns
+-----=
+Dictionary mapping URLs to their content in requested formats:
 {
 'https://example.com/page1': {
 'markdown': '# Page 1&hellip;',
@@ -2344,7 +2477,8 @@ If None, defaults to ['html']</dd>
 'text': 'Page 2&hellip;'
 }
 }</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get markdown and text for multiple URLs
 urls = ['https://example.com/page1', 'https://example.com/page2']
 contents = crawl.read_batch(urls, formats=['markdown', 'text'])
@@ -2354,8 +2488,9 @@ for url, formats in contents.items():
     text = formats.get('text', '')
     print(f&quot;{url}: {len(markdown)} chars markdown, {len(text)} chars text&quot;)
 </code></pre>
-<h2 id="raises">Raises</h2>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ValueError</code></dt>
 <dd>If more than 100 URLs are provided</dd>
 <dt><code><a title="scrapfly.ScrapflyCrawlerError" href="#scrapfly.ScrapflyCrawlerError">ScrapflyCrawlerError</a></code></dt>
@@ -2485,17 +2620,20 @@ for url, formats in contents.items():
 </details>
 <div class="desc"><p>Iterate through URLs matching a pattern and yield their content</p>
 <p>Supports wildcard patterns using * and ? for flexible URL matching.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>pattern</code></strong></dt>
 <dd>URL pattern with wildcards (<em> matches any characters, ? matches one)
 Examples: "/products?page=</em>", "https://example.com/<em>/detail", "</em>/product/*"</dd>
 <dt><strong><code>format</code></strong></dt>
 <dd>Content format to retrieve</dd>
 </dl>
-<h2 id="yields">Yields</h2>
-<p>CrawlContent objects for each matching URL</p>
-<h2 id="example">Example</h2>
+<p>Yields
+-----=
+CrawlContent objects for each matching URL</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get all product pages in markdown
 for content in crawl.read_iter(pattern=&quot;*/products?page=*&quot;, format=&quot;markdown&quot;):
     print(f&quot;{content.url}: {len(content.content)} chars&quot;)
@@ -2538,7 +2676,7 @@ for content in crawl.read_iter(pattern=&quot;*/detail/*&quot;):
     status = self.status(refresh=False)
 
     # Basic stats from status — uses the wire field names as defined by
-    # the scrape-engine source of truth.
+    # Scrapfly source of truth.
     stats_dict = {
         &#39;uuid&#39;: self._uuid,
         &#39;status&#39;: status.status,
@@ -2579,9 +2717,11 @@ for content in crawl.read_iter(pattern=&quot;*/detail/*&quot;):
     return stats_dict</code></pre>
 </details>
 <div class="desc"><p>Get comprehensive statistics about the crawl</p>
-<h2 id="returns">Returns</h2>
-<p>Dictionary with crawl statistics</p>
-<h2 id="example">Example</h2>
+<p>Returns
+-----=
+Dictionary with crawl statistics</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python">stats = crawl.stats()
 print(f&quot;URLs extracted: {stats['urls_extracted']}&quot;)
 print(f&quot;URLs visited: {stats['urls_visited']}&quot;)
@@ -2630,19 +2770,23 @@ print(f&quot;Total size: {stats['total_size_kb']:.2f} KB&quot;)
     return self._status_cache</code></pre>
 </details>
 <div class="desc"><p>Get current crawler status</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>refresh</code></strong></dt>
 <dd>If True, fetch fresh status from API. If False, return cached status.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerStatusResponse with current status</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerStatusResponse with current status</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">status = crawl.status()
 print(f&quot;Progress: {status.progress_pct}%&quot;)
 print(f&quot;URLs visited: {status.state.urls_visited}&quot;)
@@ -2703,8 +2847,9 @@ print(f&quot;URLs visited: {status.state.urls_visited}&quot;)
 <div class="desc"><p>List the crawled URLs (paginated, optionally filtered by status).</p>
 <p>NEW in 0.8.28 — convenience wrapper around
 :meth:<code>ScrapflyClient.get_crawl_urls</code> that pre-fills the crawler UUID.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>status</code></strong></dt>
 <dd>Filter by URL status — 'visited', 'pending', or 'failed'.
 When None, the server defaults to 'visited'.</dd>
@@ -2713,14 +2858,17 @@ When None, the server defaults to 'visited'.</dd>
 <dt><strong><code>per_page</code></strong></dt>
 <dd>Page size (default 100, max 1000)</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerUrlsResponse with the URL records, total count and pagination metadata.</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerUrlsResponse with the URL records, total count and pagination metadata.</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.ScrapflyCrawlerError" href="#scrapfly.ScrapflyCrawlerError">ScrapflyCrawlerError</a></code></dt>
 <dd>if the crawler has not been started yet.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">crawl = Crawl(client, config).crawl().wait()
 for entry in crawl.urls(status='visited'):
     print(f&quot;{entry.url} ({entry.status})&quot;)
@@ -2831,8 +2979,9 @@ for entry in crawl.urls(status='visited'):
 </details>
 <div class="desc"><p>Wait for crawler to complete</p>
 <p>Polls the status endpoint until the crawler finishes.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>poll_interval</code></strong></dt>
 <dd>Seconds between status checks (default: 5)</dd>
 <dt><strong><code>max_wait</code></strong></dt>
@@ -2847,15 +2996,18 @@ cancellation. Defaults to False (raises ScrapflyCrawlerError
 with code='CANCELLED' on user_cancelled), preserving prior
 behavior for callers that observe external cancellations.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>Self for method chaining</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+Self for method chaining</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.ScrapflyCrawlerError" href="#scrapfly.ScrapflyCrawlerError">ScrapflyCrawlerError</a></code></dt>
 <dd>If crawler not started, failed, or timed out.
 Also raised on cancellation when <code>allow_cancelled=False</code>.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Wait with progress updates
 crawl.crawl().wait(verbose=True)
 
@@ -2917,19 +3069,23 @@ crawl.wait(allow_cancelled=True)
     return self._artifact_cache</code></pre>
 </details>
 <div class="desc"><p>Download the crawler artifact (WARC file)</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>artifact_type</code></strong></dt>
 <dd>Type of artifact to download (default: 'warc')</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerArtifactResponse with parsed WARC data</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerArtifactResponse with parsed WARC data</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get WARC artifact
 artifact = crawl.warc()
 
@@ -3054,8 +3210,9 @@ for record in artifact.iter_responses():
 <div class="desc"><p>Response object for a single crawled URL</p>
 <p>Provides access to content and metadata for a crawled page.
 Similar to ScrapeApiResponse but for crawler results.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL (mandatory)</dd>
 <dt><strong><code>content</code></strong></dt>
@@ -3073,7 +3230,8 @@ Similar to ScrapeApiResponse but for crawler results.</p>
 <dt><strong><code>country</code></strong></dt>
 <dd>Country the request was made from (optional)</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get content for a URL
 content = crawl.read('https://example.com', format='markdown')
 
@@ -3087,8 +3245,9 @@ if content.log_url:
     print(f&quot;View logs: {content.log_url}&quot;)
 </code></pre>
 <p>Initialize CrawlContent</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL</dd>
 <dt><strong><code>content</code></strong></dt>
@@ -3140,8 +3299,9 @@ def log_url(self) -&gt; Optional[str]:
     return None</code></pre>
 </details>
 <div class="desc"><p>Get URL to view scrape logs</p>
-<h2 id="returns">Returns</h2>
-<p>Log URL if log_id is available, None otherwise</p></div>
+<p>Returns
+-----=
+Log URL if log_id is available, None otherwise</p></div>
 </dd>
 <dt id="scrapfly.CrawlContent.success"><code class="name">prop <span class="ident">success</span> : bool</code></dt>
 <dd>
@@ -3331,7 +3491,8 @@ def success(self) -&gt; bool:
 <p>Returned by ScrapflyClient.get_crawl_artifact() method.</p>
 <p>Provides high-level access to crawl results with automatic WARC/HAR parsing.
 Users don't need to understand WARC or HAR format to use this class.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get WARC artifact (default)
 artifact = client.get_crawl_artifact(uuid)
 
@@ -3353,8 +3514,9 @@ for record in artifact.iter_responses():
 artifact.save('crawl_results.warc.gz')
 </code></pre>
 <p>Initialize from artifact data</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>artifact_data</code></strong></dt>
 <dd>Raw artifact file bytes</dd>
 <dt><strong><code>artifact_type</code></strong></dt>
@@ -3480,12 +3642,14 @@ def warc_data(self) -&gt; bytes:
 <div class="desc"><p>Get all crawled pages as simple dictionaries</p>
 <p>This is the easiest way to access crawl results.
 Works with both WARC and HAR formats.</p>
-<h2 id="returns">Returns</h2>
 <dl>
+<dt>Returns</dt>
+<dt>-----=</dt>
 <dt><code>List</code> of <code>dicts with keys</code></dt>
 <dd>url, status_code, headers, content</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">pages = artifact.get_pages()
 for page in pages:
     print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
@@ -3518,8 +3682,9 @@ for page in pages:
 <div class="desc"><p>Iterate through all records</p>
 <p>For WARC: iterates through all WARC records
 For HAR: iterates through all HAR entries</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.WarcRecord" href="#scrapfly.WarcRecord">WarcRecord</a></code> or <code><a title="scrapfly.HarEntry" href="#scrapfly.HarEntry">HarEntry</a></code></dt>
 <dd>Each record in the artifact</dd>
 </dl></div>
@@ -3553,8 +3718,9 @@ For HAR: iterates through all HAR entries</p>
 <p>This is more memory-efficient than get_pages() for large crawls.</p>
 <p>For WARC: iterates through response records
 For HAR: iterates through all entries (HAR only contains responses)</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.WarcRecord" href="#scrapfly.WarcRecord">WarcRecord</a></code> or <code><a title="scrapfly.HarEntry" href="#scrapfly.HarEntry">HarEntry</a></code></dt>
 <dd>HTTP response records with url, status_code, headers, content</dd>
 </dl></div>
@@ -3583,12 +3749,14 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         f.write(self.warc_data)</code></pre>
 </details>
 <div class="desc"><p>Save WARC data to file</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>filepath</code></strong></dt>
 <dd>Path to save the WARC file</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">artifact.save('crawl_results.warc.gz')
 </code></pre></div>
 </dd>
@@ -3899,7 +4067,8 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 <div class="desc"><p>Configuration for Scrapfly Crawler API</p>
 <p>The Crawler API performs recursive website crawling with advanced
 configuration, content extraction, and artifact storage.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig
 client = ScrapflyClient(key='YOUR_API_KEY')
 config = CrawlerConfig(
@@ -3922,8 +4091,9 @@ if status.is_complete:
     pages = artifact.get_pages()
 </code></pre>
 <p>Initialize a CrawlerConfig</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>Starting URL for the crawl (required)</dd>
 <dt><strong><code>page_limit</code></strong></dt>
@@ -4156,8 +4326,9 @@ class CrawlerLifecycleWebhook(CrawlerWebhookBase):
 (crawler_uuid / project / env / action / state), and a <code>links.status</code>
 URL pointing at the crawl status endpoint. Disambiguate by inspecting
 <code>self.event</code> (use :class:<code><a title="scrapfly.CrawlerWebhookEvent" href="#scrapfly.CrawlerWebhookEvent">CrawlerWebhookEvent</a></code>).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>seed_url</code></strong></dt>
 <dd>The root URL the crawl was started from.</dd>
 <dt><strong><code>status_link</code></strong></dt>
@@ -4230,8 +4401,9 @@ class CrawlerScrapeResult:
         )</code></pre>
 </details>
 <div class="desc"><p>The <code>scrape</code> sub-object of a <code>crawler_url_visited</code> payload.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>status_code</code></strong></dt>
 <dd>HTTP status code returned by the target URL.</dd>
 <dt><strong><code>country</code></strong></dt>
@@ -4337,16 +4509,18 @@ in <code>content_formats</code>.</dd>
 <p>Strict parsing: <code>uuid</code> and <code>status</code> are part of the documented contract
 and are required. A missing field raises <code>KeyError</code> so the caller knows
 immediately that the API contract changed.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Unique identifier for the crawler job</dd>
 <dt><strong><code>status</code></strong></dt>
 <dd>Initial status (typically 'PENDING')</dd>
 </dl>
 <p>Initialize from API response</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary</dd>
 </dl></div>
@@ -4364,8 +4538,7 @@ immediately that the API contract changed.</p>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4416,12 +4589,12 @@ immediately that the API contract changed.</p>
         )</code></pre>
 </details>
 <div class="desc"><p>Nested <code>state</code> block of a crawler status response.</p>
-<p>Field names match the wire format emitted by the scrape-engine
-(<code>apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py</code>), which
+<p>Field names match the wire format emitted by Scrapfly, which
 is the single source of truth. Go and TypeScript SDKs expose the same
 names on their <code>status.state</code> object.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls_visited</code></strong></dt>
 <dd>Number of URLs successfully crawled.</dd>
 <dt><strong><code>urls_extracted</code></strong></dt>
@@ -4458,8 +4631,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4521,8 +4693,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4584,8 +4755,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4647,8 +4817,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4710,8 +4879,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4773,8 +4941,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4836,8 +5003,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4899,8 +5065,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -4962,8 +5127,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -5025,8 +5189,7 @@ or <code>None</code> while still running.</dd>
     &#34;&#34;&#34;
     Nested ``state`` block of a crawler status response.
 
-    Field names match the wire format emitted by the scrape-engine
-    (``apps/scrapfly/scrape-engine/scrape_engine/crawler/config.py``), which
+    Field names match the wire format emitted by Scrapfly, which
     is the single source of truth. Go and TypeScript SDKs expose the same
     names on their ``status.state`` object.
 
@@ -5096,7 +5259,7 @@ or <code>None</code> while still running.</dd>
     Returned by :py:meth:`ScrapflyClient.get_crawl_status`. Provides real-time
     progress tracking for crawler jobs.
 
-    **Field names match the wire format.** The scrape-engine is the source of
+    **Field names match the wire format.** Scrapfly is the source of
     truth; the Go and TypeScript SDKs expose identical names. Access state
     counters via the nested ``state`` attribute:
 
@@ -5203,7 +5366,7 @@ or <code>None</code> while still running.</dd>
 <div class="desc"><p>Response from checking crawler job status.</p>
 <p>Returned by :py:meth:<code><a title="scrapfly.ScrapflyClient.get_crawl_status" href="#scrapfly.ScrapflyClient.get_crawl_status">ScrapflyClient.get_crawl_status()</a></code>. Provides real-time
 progress tracking for crawler jobs.</p>
-<p><strong>Field names match the wire format.</strong> The scrape-engine is the source of
+<p><strong>Field names match the wire format.</strong> Scrapfly is the source of
 truth; the Go and TypeScript SDKs expose identical names. Access state
 counters via the nested <code>state</code> attribute:</p>
 <pre><code>&gt;&gt;&gt; status.state.urls_visited
@@ -5211,8 +5374,9 @@ counters via the nested <code>state</code> attribute:</p>
 &gt;&gt;&gt; status.state.urls_extracted
 34
 </code></pre>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Crawler job UUID.</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -5230,8 +5394,9 @@ counters via the nested <code>state</code> attribute:</p>
 metrics) are read with direct access so missing keys raise
 <code>KeyError</code> at parse time. This catches API contract drift loud and
 early.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary.</dd>
 </dl></div>
@@ -5366,8 +5531,9 @@ class CrawlerUrlDiscoveredWebhook(CrawlerWebhookBase):
 </details>
 <div class="desc"><p>Payload for the <code>crawler_url_discovered</code> event.</p>
 <p>Emitted when the crawler extracts one or more new URLs from a source.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>origin</code></strong></dt>
 <dd>How the URLs were discovered (e.g. <code>"navigation"</code>,
 <code>"sitemap"</code>).</dd>
@@ -5450,8 +5616,9 @@ class CrawlerUrlDiscoveredWebhook(CrawlerWebhookBase):
 or <code>skipped</code> URLs the line is <code>url,reason</code>. Streaming text is used
 because this endpoint is expected to scale to millions of records per
 job — JSON is not a suitable wire format at that volume.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -5619,10 +5786,10 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
         error: The scrapfly error code (e.g. ``ERR::SCRAPE::NETWORK_ERROR``).
         scrape_config: The scrape config that was used for the failed attempt.
         log_link: URL to the full scrape log for this failure. Can be
-            ``None`` — the scrape-engine emits ``null`` when no log was
+            ``None`` — Scrapfly emits ``null`` when no log was
             recorded (e.g. the failure happened before the request was ever
             executed). See
-            ``scrape_engine/crawler/webhook_manager.py::dispatch_url_failed``
+            the ``dispatch_url_failed`` event
             line 57.
         scrape_link: URL that re-runs the same scrape as a one-off. Always
             present on the wire (non-nullable). See line 58 of the engine.
@@ -5649,8 +5816,9 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
 <div class="desc"><p>Payload for the <code>crawler_url_failed</code> event.</p>
 <p>Emitted when a URL cannot be crawled (network error, scrape error,
 blocked, etc.).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL that failed.</dd>
 <dt><strong><code>error</code></strong></dt>
@@ -5659,10 +5827,10 @@ blocked, etc.).</p>
 <dd>The scrape config that was used for the failed attempt.</dd>
 <dt><strong><code>log_link</code></strong></dt>
 <dd>URL to the full scrape log for this failure. Can be
-<code>None</code> — the scrape-engine emits <code>null</code> when no log was
+<code>None</code> — Scrapfly emits <code>null</code> when no log was
 recorded (e.g. the failure happened before the request was ever
 executed). See
-<code>scrape_engine/crawler/webhook_manager.py::dispatch_url_failed</code>
+the <code>dispatch_url_failed</code> event
 line 57.</dd>
 <dt><strong><code>scrape_link</code></strong></dt>
 <dd>URL that re-runs the same scrape as a one-off. Always
@@ -5739,8 +5907,9 @@ class CrawlerUrlSkippedWebhook(CrawlerWebhookBase):
 <p>Emitted in a single batch when the crawler decides to skip a set of
 URLs (e.g. when reaching <code>page_limit</code> with discovered-but-unvisited
 URLs still in the queue).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>Mapping from URL to the reason it was skipped
 (e.g. <code>"page_limit"</code>, <code>"excluded"</code>, <code>"robots_txt"</code>).</dd>
@@ -5801,8 +5970,9 @@ class CrawlerUrlVisitedWebhook(CrawlerWebhookBase):
 </details>
 <div class="desc"><p>Payload for the <code>crawler_url_visited</code> event.</p>
 <p>Emitted after each URL has been successfully scraped.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL that was just visited.</dd>
 <dt><strong><code>scrape</code></strong></dt>
@@ -5934,8 +6104,9 @@ line. This class parses that stream into a materialised <code>List</code> of
 <p>Pagination: the wire protocol carries no global <code>total</code>. <code>page</code> and
 <code>per_page</code> are echoes of the caller's request parameters — request
 further pages by incrementing <code>page</code> until the response has no records.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>List of :class:<code><a title="scrapfly.CrawlerUrlEntry" href="#scrapfly.CrawlerUrlEntry">CrawlerUrlEntry</a></code> records on this page</dd>
 <dt><strong><code>page</code></strong></dt>
@@ -5958,8 +6129,9 @@ further pages by incrementing <code>page</code> until the response has no record
 <code>visited</code>; the caller is expected to pass that as <code>status_hint</code>
 so every parsed record gets the right status tag.</li>
 </ul>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>body</code></strong></dt>
 <dd>Raw response body text.</dd>
 <dt><strong><code>status_hint</code></strong></dt>
@@ -6273,7 +6445,7 @@ class CrawlerWebhookBase:
         crawler_uuid: The crawler job UUID.
         project: Project slug the crawler belongs to.
         env: Environment (``LIVE`` or ``TEST``).
-        action: Short action tag emitted by the scrape-engine
+        action: Short action tag emitted by Scrapfly
             (``started``, ``visited``, ``skipped``, ``url_discovery``,
             ``failed``, ``stopped``, ``cancelled``, ``finished``).
         state: Nested state counters at the moment the webhook was emitted.
@@ -6302,8 +6474,9 @@ class CrawlerWebhookBase:
         }</code></pre>
 </details>
 <div class="desc"><p>Common fields carried by every crawler webhook payload.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>event</code></strong></dt>
 <dd>The wire event name (<code>crawler_started</code>, etc.).</dd>
 <dt><strong><code>crawler_uuid</code></strong></dt>
@@ -6313,7 +6486,7 @@ class CrawlerWebhookBase:
 <dt><strong><code>env</code></strong></dt>
 <dd>Environment (<code>LIVE</code> or <code>TEST</code>).</dd>
 <dt><strong><code>action</code></strong></dt>
-<dd>Short action tag emitted by the scrape-engine
+<dd>Short action tag emitted by Scrapfly
 (<code>started</code>, <code>visited</code>, <code>skipped</code>, <code>url_discovery</code>,
 <code>failed</code>, <code>stopped</code>, <code>cancelled</code>, <code>finished</code>).</dd>
 <dt><strong><code>state</code></strong></dt>
@@ -6369,8 +6542,7 @@ class CrawlerWebhookBase:
     Crawler webhook event names.
 
     These MUST stay in sync with
-    ``apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py``
-    class ``WebhookEvents``. The scrape-engine is the source of truth.
+    class ``WebhookEvents``. Scrapfly is the source of truth.
     &#34;&#34;&#34;
 
     CRAWLER_STARTED = &#39;crawler_started&#39;
@@ -6384,8 +6556,7 @@ class CrawlerWebhookBase:
 </details>
 <div class="desc"><p>Crawler webhook event names.</p>
 <p>These MUST stay in sync with
-<code>apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py</code>
-class <code>WebhookEvents</code>. The scrape-engine is the source of truth.</p></div>
+class <code>WebhookEvents</code>. Scrapfly is the source of truth.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>builtins.str</li>
@@ -7537,8 +7708,9 @@ def from_dict(extraction_config_dict: Dict) -&gt; &#39;ExtractionConfig&#39;:
 </details>
 <div class="desc"><p>Parser and accessor for HAR (HTTP Archive) format data</p>
 <p>Initialize HAR archive from bytes</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>har_data</code></strong></dt>
 <dd>HAR file content as bytes (JSON format, may be gzipped)</dd>
 </dl></div>
@@ -7608,13 +7780,15 @@ def version(self) -&gt; str:
             if content_type.lower() in entry.content_type.lower()]</code></pre>
 </details>
 <div class="desc"><p>Filter entries by content type (substring match)</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>content_type</code></strong></dt>
 <dd>Content type to filter by (e.g., 'text/html')</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>List of matching HarEntry objects</p></div>
+<p>Returns
+-----=
+List of matching HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.HarArchive.filter_by_status"><code class="name flex">
 <span>def <span class="ident">filter_by_status</span></span>(<span>self, status_code: int) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="crawler/har_utils.html#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -7638,13 +7812,15 @@ def version(self) -&gt; str:
             if entry.status_code == status_code]</code></pre>
 </details>
 <div class="desc"><p>Filter entries by status code</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>status_code</code></strong></dt>
 <dd>HTTP status code to filter by</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>List of matching HarEntry objects</p></div>
+<p>Returns
+-----=
+List of matching HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.HarArchive.find_by_url"><code class="name flex">
 <span>def <span class="ident">find_by_url</span></span>(<span>self, url: str) ‑> <a title="scrapfly.crawler.har_utils.HarEntry" href="crawler/har_utils.html#scrapfly.crawler.har_utils.HarEntry">HarEntry</a> | None</span>
@@ -7670,13 +7846,15 @@ def version(self) -&gt; str:
     return None</code></pre>
 </details>
 <div class="desc"><p>Find entry by exact URL match</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>URL to search for</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>First matching HarEntry or None</p></div>
+<p>Returns
+-----=
+First matching HarEntry or None</p></div>
 </dd>
 <dt id="scrapfly.HarArchive.get_entries"><code class="name flex">
 <span>def <span class="ident">get_entries</span></span>(<span>self) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="crawler/har_utils.html#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -7696,8 +7874,9 @@ def version(self) -&gt; str:
     return [HarEntry(entry) for entry in self._entries]</code></pre>
 </details>
 <div class="desc"><p>Get all entries as list</p>
-<h2 id="returns">Returns</h2>
-<p>List of HarEntry objects</p></div>
+<p>Returns
+-----=
+List of HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.HarArchive.get_urls"><code class="name flex">
 <span>def <span class="ident">get_urls</span></span>(<span>self) ‑> List[str]</span>
@@ -7722,8 +7901,9 @@ def version(self) -&gt; str:
     return urls</code></pre>
 </details>
 <div class="desc"><p>Get all URLs in the archive</p>
-<h2 id="returns">Returns</h2>
-<p>List of unique URLs</p></div>
+<p>Returns
+-----=
+List of unique URLs</p></div>
 </dd>
 <dt id="scrapfly.HarArchive.iter_entries"><code class="name flex">
 <span>def <span class="ident">iter_entries</span></span>(<span>self) ‑> Iterator[<a title="scrapfly.crawler.har_utils.HarEntry" href="crawler/har_utils.html#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -7744,8 +7924,9 @@ def version(self) -&gt; str:
         yield HarEntry(entry)</code></pre>
 </details>
 <div class="desc"><p>Iterate through all HAR entries</p>
-<h2 id="yields">Yields</h2>
-<p>HarEntry objects</p></div>
+<p>Yields
+-----=
+HarEntry objects</p></div>
 </dd>
 </dl>
 </dd>
@@ -7865,8 +8046,9 @@ def version(self) -&gt; str:
 </details>
 <div class="desc"><p>Represents a single HAR entry (HTTP request/response pair)</p>
 <p>Initialize from HAR entry dict</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>entry_data</code></strong></dt>
 <dd>HAR entry dictionary</dd>
 </dl></div>
@@ -8149,7 +8331,10 @@ this dataclass or the equivalent keyword arguments interchangeably.</p></div>
 <pre><code class="python">class OperatingSystem(Enum):
     LINUX = &#34;linux&#34;
     WINDOWS = &#34;windows&#34;
-    MACOS = &#34;macos&#34;</code></pre>
+    MACOS = &#34;macos&#34;
+    ANDROID = &#34;android&#34;
+    IPHONE = &#34;iphone&#34;
+    IPAD = &#34;ipad&#34;</code></pre>
 </details>
 <div class="desc"><p>An enumeration.</p></div>
 <h3>Ancestors</h3>
@@ -8158,6 +8343,18 @@ this dataclass or the equivalent keyword arguments interchangeably.</p></div>
 </ul>
 <h3>Class variables</h3>
 <dl>
+<dt id="scrapfly.OperatingSystem.ANDROID"><code class="name">var <span class="ident">ANDROID</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.OperatingSystem.IPAD"><code class="name">var <span class="ident">IPAD</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.OperatingSystem.IPHONE"><code class="name">var <span class="ident">IPHONE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.OperatingSystem.LINUX"><code class="name">var <span class="ident">LINUX</span></code></dt>
 <dd>
 <div class="desc"></div>
@@ -8204,7 +8401,7 @@ this dataclass or the equivalent keyword arguments interchangeably.</p></div>
 </dd>
 <dt id="scrapfly.ResponseBodyHandler"><code class="flex name class">
 <span>class <span class="ident">ResponseBodyHandler</span></span>
-<span>(</span><span>use_brotli: bool = False, signing_secrets: Tuple[str] | None = None)</span>
+<span>(</span><span>use_brotli: bool = False,<br>signing_secrets: str | Tuple[str, ...] | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -8222,7 +8419,7 @@ this dataclass or the equivalent keyword arguments interchangeably.</p></div>
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None):
+    def __init__(self, use_brotli: bool = False, signing_secrets: Optional[Union[str, Tuple[str, ...]]] = None):
         if use_brotli is True and &#39;br&#39; not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -8244,11 +8441,21 @@ this dataclass or the equivalent keyword arguments interchangeably.</p></div>
         self.content_encoding: str = &#39;, &#39;.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret: Optional[Tuple[str]] = None
 
-        if signing_secrets:
+        if signing_secrets is not None:
+            # A bare str is iterable: without this it yields one HMAC key per character.
+            if isinstance(signing_secrets, (str, bytes)):
+                signing_secrets = (signing_secrets,)
+
             _secrets = set()
 
             for signing_secret in signing_secrets:
+                if not isinstance(signing_secret, str) or not signing_secret:
+                    raise ValueError(&#39;signing_secrets must be non-empty strings, as shown in the webhook dashboard&#39;)
+
                 _secrets.add(signing_secret.encode(&#39;utf-8&#39;))
+
+            if not _secrets:
+                raise ValueError(&#39;signing_secrets was empty; omit it entirely to build a handler that does not verify&#39;)
 
             self._signing_secret = tuple(_secrets)
 
@@ -8272,45 +8479,45 @@ this dataclass or the equivalent keyword arguments interchangeably.</p></div>
 
         return False
 
-    def verify(self, message: bytes, signature: str) -&gt; bool:
+    def verify(self, message: bytes, signature: Optional[str]) -&gt; bool:
+        if self._signing_secret is None:
+            raise ValueError(&#39;no signing secret configured; pass signing_secrets to ResponseBodyHandler&#39;)
+
+        # An absent header is a failed verification, not a programming error.
+        if not signature:
+            return False
+
+        # The digest is sent as upper hex; the -Lowercase header carries the same value.
+        received = signature.strip().upper().encode(&#39;utf-8&#39;)
+
         for signing_secret in self._signing_secret:
-            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
-            logger.debug(
-                &#39;WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s&#39;,
-                len(signing_secret),
-                hashlib.sha256(signing_secret).hexdigest()[:16],
-                len(message),
-                hashlib.sha256(message).hexdigest()[:16],
-                computed,
-                signature,
-                computed == signature,
-            )
-            if computed == signature:
+            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper().encode(&#39;ascii&#39;)
+
+            if hmac.compare_digest(computed, received):
                 return True
 
         return False
 
-    def read(self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) -&gt; Dict:
-        if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
-            import gzip
-            content = gzip.decompress(content)
-        elif content_encoding == &#39;deflate&#39;:
-            import zlib
-            content = zlib.decompress(content)
-        elif content_encoding == &#39;brotli&#39; or content_encoding == &#39;br&#39;:
-            import brotli
-            content = brotli.decompress(content)
-        elif content_encoding == &#39;zstd&#39;:
-            try:
-                from compression import zstd as _zstd  # Python 3.14+
-                content = _zstd.decompress(content)
-            except ImportError:
-                import zstandard
-                content = zstandard.decompress(content)
+    def read(
+        self,
+        content: bytes,
+        content_encoding: str,
+        content_type: str,
+        signature: Optional[str],
+        max_decompressed_size: int = MAX_DECOMPRESSED_SIZE,
+        signature_message: Optional[bytes] = None,
+    ) -&gt; Dict:
+        # Signing happens before Content-Encoding is applied, so the body is inflated
+        # before it can be verified. Bound the output: this runs pre-authentication.
+        content = decompress(content, content_encoding, max_decompressed_size)
 
-        if self._signing_secret is not None and signature is not None:
-            if not self.verify(content, signature):
+        # Gate on the secret being configured, never on the header being supplied:
+        # an absent signature is a forgery, not an exemption.
+        if self._signing_secret is not None:
+            if not self.verify(content if signature_message is None else signature_message, signature):
                 raise WebhookSignatureMissMatch()
+
+        content_type = content_type or &#39;&#39;
 
         if content_type.startswith(&#39;application/json&#39;):
             content = loads(content, cls=self.JSONDateTimeDecoder)
@@ -8398,34 +8605,33 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.ResponseBodyHandler.read"><code class="name flex">
-<span>def <span class="ident">read</span></span>(<span>self,<br>content: bytes,<br>content_encoding: str,<br>content_type: str,<br>signature: str | None) ‑> Dict</span>
+<span>def <span class="ident">read</span></span>(<span>self,<br>content: bytes,<br>content_encoding: str,<br>content_type: str,<br>signature: str | None,<br>max_decompressed_size: int = 268435456,<br>signature_message: bytes | None = None) ‑> Dict</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def read(self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) -&gt; Dict:
-    if content_encoding == &#39;gzip&#39; or content_encoding == &#39;gz&#39;:
-        import gzip
-        content = gzip.decompress(content)
-    elif content_encoding == &#39;deflate&#39;:
-        import zlib
-        content = zlib.decompress(content)
-    elif content_encoding == &#39;brotli&#39; or content_encoding == &#39;br&#39;:
-        import brotli
-        content = brotli.decompress(content)
-    elif content_encoding == &#39;zstd&#39;:
-        try:
-            from compression import zstd as _zstd  # Python 3.14+
-            content = _zstd.decompress(content)
-        except ImportError:
-            import zstandard
-            content = zstandard.decompress(content)
+<pre><code class="python">def read(
+    self,
+    content: bytes,
+    content_encoding: str,
+    content_type: str,
+    signature: Optional[str],
+    max_decompressed_size: int = MAX_DECOMPRESSED_SIZE,
+    signature_message: Optional[bytes] = None,
+) -&gt; Dict:
+    # Signing happens before Content-Encoding is applied, so the body is inflated
+    # before it can be verified. Bound the output: this runs pre-authentication.
+    content = decompress(content, content_encoding, max_decompressed_size)
 
-    if self._signing_secret is not None and signature is not None:
-        if not self.verify(content, signature):
+    # Gate on the secret being configured, never on the header being supplied:
+    # an absent signature is a forgery, not an exemption.
+    if self._signing_secret is not None:
+        if not self.verify(content if signature_message is None else signature_message, signature):
             raise WebhookSignatureMissMatch()
+
+    content_type = content_type or &#39;&#39;
 
     if content_type.startswith(&#39;application/json&#39;):
         content = loads(content, cls=self.JSONDateTimeDecoder)
@@ -8458,27 +8664,28 @@ their corresponding <code>float</code> values, which is outside the JSON spec.</
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.ResponseBodyHandler.verify"><code class="name flex">
-<span>def <span class="ident">verify</span></span>(<span>self, message: bytes, signature: str) ‑> bool</span>
+<span>def <span class="ident">verify</span></span>(<span>self, message: bytes, signature: str | None) ‑> bool</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def verify(self, message: bytes, signature: str) -&gt; bool:
+<pre><code class="python">def verify(self, message: bytes, signature: Optional[str]) -&gt; bool:
+    if self._signing_secret is None:
+        raise ValueError(&#39;no signing secret configured; pass signing_secrets to ResponseBodyHandler&#39;)
+
+    # An absent header is a failed verification, not a programming error.
+    if not signature:
+        return False
+
+    # The digest is sent as upper hex; the -Lowercase header carries the same value.
+    received = signature.strip().upper().encode(&#39;utf-8&#39;)
+
     for signing_secret in self._signing_secret:
-        computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
-        logger.debug(
-            &#39;WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s&#39;,
-            len(signing_secret),
-            hashlib.sha256(signing_secret).hexdigest()[:16],
-            len(message),
-            hashlib.sha256(message).hexdigest()[:16],
-            computed,
-            signature,
-            computed == signature,
-        )
-        if computed == signature:
+        computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper().encode(&#39;ascii&#39;)
+
+        if hmac.compare_digest(computed, received):
             return True
 
     return False</code></pre>
@@ -9752,7 +9959,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
         try:
             from msgpack import loads as msgpack_loads
         except ImportError as e:
-            print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[seepdup] or pip install msgpack&#39;)
+            print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[speedups]&#34; or pip install msgpack&#39;)
             raise
 
         data = msgpack_loads(base64.b64decode(config))
@@ -10268,7 +10475,7 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     try:
         from msgpack import loads as msgpack_loads
     except ImportError as e:
-        print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[seepdup] or pip install msgpack&#39;)
+        print(&#39;You must install msgpack package - run: pip install &#34;scrapfly-sdk[speedups]&#34; or pip install msgpack&#39;)
         raise
 
     data = msgpack_loads(base64.b64decode(config))
@@ -11505,7 +11712,13 @@ Useful for JSON-serialization or other external storage.</p></div>
             ``msgpack`` package is installed, ``json`` otherwise). Pass
             ``&#39;json&#39;`` or ``&#39;msgpack&#39;`` to override.
         &#34;&#34;&#34;
-        from .batch import iter_batch_parts, decode_part_body, _build_proxified_response_from_part
+        from .batch import (
+            iter_batch_parts,
+            decode_part_body,
+            is_api_error_part,
+            error_from_api_error_part,
+            _build_proxified_response_from_part,
+        )
 
         if not scrape_configs:
             raise ScrapflyError(
@@ -11653,15 +11866,35 @@ Useful for JSON-serialization or other external storage.</p></div>
 
                     continue
 
+                # EncoderError subclasses BaseException — catch it explicitly.
                 try:
                     parsed = decode_part_body(part_headers, part_body, self.body_handler)
-                except Exception as decode_err:
+                except (EncoderError, Exception) as decode_err:
                     yield correlation_id, ScrapflyError(
                         f&#34;scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}&#34;,
                         code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                        http_status_code=500,
                     )
 
                     continue
+
+                # API-generated error parts carry an error body instead of
+                # the scrape envelope — surface them as typed per-part errors.
+                if is_api_error_part(parsed, part_headers):
+                    try:
+                        part_error = error_from_api_error_part(parsed, part_headers, response.request)
+                    except Exception as factory_err:
+                        part_error = ScrapflyError(
+                            f&#34;scrape_batch: malformed error part for correlation_id={correlation_id!r}: {factory_err}&#34;,
+                            code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                            http_status_code=500,
+                        )
+
+                    yield correlation_id, part_error
+
+                    continue
+
+                part_result = None
 
                 try:
                     api_response = ScrapeApiResponse(
@@ -11674,9 +11907,17 @@ Useful for JSON-serialization or other external storage.</p></div>
                     # Don&#39;t auto-raise on upstream error — per-part errors
                     # are surfaced via the yielded tuple, not exceptions.
                     api_response.raise_for_result(raise_on_upstream_error=False)
-                    yield correlation_id, api_response
+                    part_result = api_response
                 except ScrapflyError as scrape_err:
-                    yield correlation_id, scrape_err
+                    part_result = scrape_err
+                except (EncoderError, Exception) as part_err:
+                    part_result = ScrapflyError(
+                        f&#34;scrape_batch: failed to process part for correlation_id={correlation_id!r}: {part_err}&#34;,
+                        code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                        http_status_code=500,
+                    )
+
+                yield correlation_id, part_result
         finally:
             batch_session.close()
 
@@ -12221,6 +12462,16 @@ Useful for JSON-serialization or other external storage.</p></div>
         &#34;&#34;&#34;
         return BrowserConfig.project_salt(self.key)
 
+    def cloud_browser_vnc_password(self, browser_config: BrowserConfig) -&gt; str:
+        &#34;&#34;&#34;Return the password a native VNC client must type to attach to a
+        session created with this config: &#34;&lt;project_salt&gt;-&lt;vnc_password&gt;&#34;.
+
+        Copy this value into your VNC client when connecting to the TCP
+        endpoint (port 5901). The WebSocket endpoint /run/&lt;run_id&gt;/vnc takes
+        the raw vnc_password instead.
+        &#34;&#34;&#34;
+        return browser_config.vnc_client_password(self.key)
+
     def cloud_browser_unblock(
         self,
         url: str,
@@ -12243,7 +12494,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 
         :param url: Target URL to navigate to and bypass protection
         :param country: ISO country code for residential proxy geolocation
-        :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
+        :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;, &#39;android&#39;, &#39;iphone&#39;, &#39;ipad&#39;
         :param browser_brand: Browser brand fingerprint: &#39;chrome&#39;, &#39;edge&#39;, &#39;brave&#39;, &#39;opera&#39;
         :param session: Named session for reconnection — reuses the existing ASP
             session when one exists and disables auto-close on disconnect
@@ -13125,7 +13376,8 @@ def ua(self) -&gt; str:
 <div class="desc"><p>Cancel a running crawler job</p>
 <p>:param crawl_uuid: Crawler job UUID to cancel
 :return: True if cancelled successfully</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Start a crawl
 crawl = client.start_crawl(config)
 
@@ -13564,7 +13816,7 @@ that an attach link belongs to your project before sharing it.</p></div>
 
     :param url: Target URL to navigate to and bypass protection
     :param country: ISO country code for residential proxy geolocation
-    :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;
+    :param os: Operating system fingerprint: &#39;linux&#39;, &#39;windows&#39;, &#39;macos&#39;, &#39;android&#39;, &#39;iphone&#39;, &#39;ipad&#39;
     :param browser_brand: Browser brand fingerprint: &#39;chrome&#39;, &#39;edge&#39;, &#39;brave&#39;, &#39;opera&#39;
     :param session: Named session for reconnection — reuses the existing ASP
         session when one exists and disables auto-close on disconnect
@@ -13625,7 +13877,7 @@ clearance tokens via an ASP-bypass navigation, not to proxy arbitrary
 HTTP requests.</p>
 <p>:param url: Target URL to navigate to and bypass protection
 :param country: ISO country code for residential proxy geolocation
-:param os: Operating system fingerprint: 'linux', 'windows', 'macos'
+:param os: Operating system fingerprint: 'linux', 'windows', 'macos', 'android', 'iphone', 'ipad'
 :param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
 :param session: Named session for reconnection — reuses the existing ASP
 session when one exists and disables auto-close on disconnect
@@ -14145,6 +14397,30 @@ encrypted material; X-Vault-Key is not required.</p>
 :param save_path: Optional file path to save the video (e.g. 'recording.webm')
 :return: bytes - raw video data</p></div>
 </dd>
+<dt id="scrapfly.ScrapflyClient.cloud_browser_vnc_password"><code class="name flex">
+<span>def <span class="ident">cloud_browser_vnc_password</span></span>(<span>self,<br>browser_config: <a title="scrapfly.browser_config.BrowserConfig" href="browser_config.html#scrapfly.browser_config.BrowserConfig">BrowserConfig</a>) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cloud_browser_vnc_password(self, browser_config: BrowserConfig) -&gt; str:
+    &#34;&#34;&#34;Return the password a native VNC client must type to attach to a
+    session created with this config: &#34;&lt;project_salt&gt;-&lt;vnc_password&gt;&#34;.
+
+    Copy this value into your VNC client when connecting to the TCP
+    endpoint (port 5901). The WebSocket endpoint /run/&lt;run_id&gt;/vnc takes
+    the raw vnc_password instead.
+    &#34;&#34;&#34;
+    return browser_config.vnc_client_password(self.key)</code></pre>
+</details>
+<div class="desc"><p>Return the password a native VNC client must type to attach to a
+session created with this config: "<project_salt>-<vnc_password>".</p>
+<p>Copy this value into your VNC client when connecting to the TCP
+endpoint (port 5901). The WebSocket endpoint /run/<run_id>/vnc takes
+the raw vnc_password instead.</p></div>
+</dd>
 <dt id="scrapfly.ScrapflyClient.cloud_browser_wait_for_playback"><code class="name flex">
 <span>def <span class="ident">cloud_browser_wait_for_playback</span></span>(<span>self, run_id: str, timeout: float = 180.0, poll_interval_fallback: float = 3.0) ‑> Dict</span>
 </code></dt>
@@ -14445,7 +14721,8 @@ def get_crawl_artifact(
 <p>:param uuid: Crawler job UUID
 :param artifact_type: Artifact type ('warc' or 'har')
 :return: CrawlerArtifactResponse with WARC data and parsing utilities</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Wait for crawl to complete
 while True:
     status = client.get_crawl_status(uuid)
@@ -14533,7 +14810,8 @@ in your crawl configuration (via content_formats parameter).</p>
 :param format: Content format - 'html', 'clean_html', 'markdown', 'json', 'text',
 'extracted_data', 'page_metadata'
 :return: Dictionary with format {"contents": {url: content, &hellip;}, "links": {&hellip;}}</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get all content in markdown format
 result = client.get_crawl_contents(uuid, format='markdown')
 contents = result['contents']
@@ -14590,7 +14868,8 @@ def get_crawl_status(self, uuid: str) -&gt; CrawlerStatusResponse:
 <div class="desc"><p>Get crawler job status</p>
 <p>:param uuid: Crawler job UUID
 :return: CrawlerStatusResponse with progress information</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">status = client.get_crawl_status(uuid)
 print(f&quot;Status: {status.status}&quot;)
 print(f&quot;Progress: {status.progress_pct:.1f}%&quot;)
@@ -15055,7 +15334,13 @@ def scrape_batch(
         ``msgpack`` package is installed, ``json`` otherwise). Pass
         ``&#39;json&#39;`` or ``&#39;msgpack&#39;`` to override.
     &#34;&#34;&#34;
-    from .batch import iter_batch_parts, decode_part_body, _build_proxified_response_from_part
+    from .batch import (
+        iter_batch_parts,
+        decode_part_body,
+        is_api_error_part,
+        error_from_api_error_part,
+        _build_proxified_response_from_part,
+    )
 
     if not scrape_configs:
         raise ScrapflyError(
@@ -15203,15 +15488,35 @@ def scrape_batch(
 
                 continue
 
+            # EncoderError subclasses BaseException — catch it explicitly.
             try:
                 parsed = decode_part_body(part_headers, part_body, self.body_handler)
-            except Exception as decode_err:
+            except (EncoderError, Exception) as decode_err:
                 yield correlation_id, ScrapflyError(
                     f&#34;scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}&#34;,
                     code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                    http_status_code=500,
                 )
 
                 continue
+
+            # API-generated error parts carry an error body instead of
+            # the scrape envelope — surface them as typed per-part errors.
+            if is_api_error_part(parsed, part_headers):
+                try:
+                    part_error = error_from_api_error_part(parsed, part_headers, response.request)
+                except Exception as factory_err:
+                    part_error = ScrapflyError(
+                        f&#34;scrape_batch: malformed error part for correlation_id={correlation_id!r}: {factory_err}&#34;,
+                        code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                        http_status_code=500,
+                    )
+
+                yield correlation_id, part_error
+
+                continue
+
+            part_result = None
 
             try:
                 api_response = ScrapeApiResponse(
@@ -15224,9 +15529,17 @@ def scrape_batch(
                 # Don&#39;t auto-raise on upstream error — per-part errors
                 # are surfaced via the yielded tuple, not exceptions.
                 api_response.raise_for_result(raise_on_upstream_error=False)
-                yield correlation_id, api_response
+                part_result = api_response
             except ScrapflyError as scrape_err:
-                yield correlation_id, scrape_err
+                part_result = scrape_err
+            except (EncoderError, Exception) as part_err:
+                part_result = ScrapflyError(
+                    f&#34;scrape_batch: failed to process part for correlation_id={correlation_id!r}: {part_err}&#34;,
+                    code=&#34;ERR::API::INTERNAL_ERROR&#34;,
+                    http_status_code=500,
+                )
+
+            yield correlation_id, part_result
     finally:
         batch_session.close()</code></pre>
 </details>
@@ -15464,7 +15777,8 @@ def start_crawl(self, crawler_config: CrawlerConfig) -&gt; CrawlerStartResponse:
 <div class="desc"><p>Start a crawler job</p>
 <p>:param crawler_config: CrawlerConfig
 :return: CrawlerStartResponse with UUID and initial status</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig
 
 client = ScrapflyClient(key='YOUR_API_KEY')
@@ -16622,8 +16936,9 @@ class UpdateScheduleRequest:
     BLURRED_VISION = &#34;blurredVision&#34;</code></pre>
 </details>
 <div class="desc"><p>Simulate vision deficiency for accessibility testing (WCAG compliance)</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>DEUTERANOPIA</code></strong></dt>
 <dd>Difficulty distinguishing green from red; green appears beige/gray</dd>
 <dt><strong><code>PROTANOPIA</code></strong></dt>
@@ -16893,7 +17208,8 @@ class UpdateScheduleRequest:
 </details>
 <div class="desc"><p>Parser for WARC files with automatic decompression</p>
 <p>Provides methods to iterate through WARC records and extract page data.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># From bytes
 parser = WarcParser(warc_bytes)
 
@@ -16912,8 +17228,9 @@ for page in pages:
     print(f&quot;{page['url']}: {page['status_code']}&quot;)
 </code></pre>
 <p>Initialize WARC parser</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>warc_data</code></strong></dt>
 <dd>WARC data as bytes or file-like object
 (supports both gzip-compressed and uncompressed)</dd>
@@ -16959,12 +17276,14 @@ for page in pages:
 <div class="desc"><p>Get all crawled pages as simple dictionaries</p>
 <p>This is the easiest way to access crawl results without dealing
 with WARC format details.</p>
-<h2 id="returns">Returns</h2>
 <dl>
+<dt>Returns</dt>
+<dt>-----=</dt>
 <dt><code>List</code> of <code>dicts with keys</code></dt>
 <dd>url, status_code, headers, content</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">pages = parser.get_pages()
 for page in pages:
     print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
@@ -17015,8 +17334,9 @@ for page in pages:
             yield record</code></pre>
 </details>
 <div class="desc"><p>Iterate through all WARC records</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.WarcRecord" href="#scrapfly.WarcRecord">WarcRecord</a></code></dt>
 <dd>Each record in the WARC file</dd>
 </dl></div>
@@ -17044,8 +17364,9 @@ for page in pages:
 </details>
 <div class="desc"><p>Iterate through HTTP response records only</p>
 <p>Filters out non-response records (requests, metadata, etc.)</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.WarcRecord" href="#scrapfly.WarcRecord">WarcRecord</a></code></dt>
 <dd>HTTP response records only</dd>
 </dl></div>
@@ -17155,11 +17476,12 @@ HTTP transaction or metadata.</p></div>
 </li>
 <li>
 <h4><code><a title="scrapfly.BrowserConfig" href="#scrapfly.BrowserConfig">BrowserConfig</a></code></h4>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="scrapfly.BrowserConfig.CLOUD_BROWSER_HOST" href="#scrapfly.BrowserConfig.CLOUD_BROWSER_HOST">CLOUD_BROWSER_HOST</a></code></li>
 <li><code><a title="scrapfly.BrowserConfig.from_dict" href="#scrapfly.BrowserConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.BrowserConfig.project_salt" href="#scrapfly.BrowserConfig.project_salt">project_salt</a></code></li>
 <li><code><a title="scrapfly.BrowserConfig.to_dict" href="#scrapfly.BrowserConfig.to_dict">to_dict</a></code></li>
+<li><code><a title="scrapfly.BrowserConfig.vnc_client_password" href="#scrapfly.BrowserConfig.vnc_client_password">vnc_client_password</a></code></li>
 <li><code><a title="scrapfly.BrowserConfig.websocket_url" href="#scrapfly.BrowserConfig.websocket_url">websocket_url</a></code></li>
 </ul>
 </li>
@@ -17461,7 +17783,10 @@ HTTP transaction or metadata.</p></div>
 </li>
 <li>
 <h4><code><a title="scrapfly.OperatingSystem" href="#scrapfly.OperatingSystem">OperatingSystem</a></code></h4>
-<ul class="">
+<ul class="two-column">
+<li><code><a title="scrapfly.OperatingSystem.ANDROID" href="#scrapfly.OperatingSystem.ANDROID">ANDROID</a></code></li>
+<li><code><a title="scrapfly.OperatingSystem.IPAD" href="#scrapfly.OperatingSystem.IPAD">IPAD</a></code></li>
+<li><code><a title="scrapfly.OperatingSystem.IPHONE" href="#scrapfly.OperatingSystem.IPHONE">IPHONE</a></code></li>
 <li><code><a title="scrapfly.OperatingSystem.LINUX" href="#scrapfly.OperatingSystem.LINUX">LINUX</a></code></li>
 <li><code><a title="scrapfly.OperatingSystem.MACOS" href="#scrapfly.OperatingSystem.MACOS">MACOS</a></code></li>
 <li><code><a title="scrapfly.OperatingSystem.WINDOWS" href="#scrapfly.OperatingSystem.WINDOWS">WINDOWS</a></code></li>
@@ -17647,6 +17972,7 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_rotate" href="#scrapfly.ScrapflyClient.cloud_browser_vault_rotate">cloud_browser_vault_rotate</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vault_update" href="#scrapfly.ScrapflyClient.cloud_browser_vault_update">cloud_browser_vault_update</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_video" href="#scrapfly.ScrapflyClient.cloud_browser_video">cloud_browser_video</a></code></li>
+<li><code><a title="scrapfly.ScrapflyClient.cloud_browser_vnc_password" href="#scrapfly.ScrapflyClient.cloud_browser_vnc_password">cloud_browser_vnc_password</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.cloud_browser_wait_for_playback" href="#scrapfly.ScrapflyClient.cloud_browser_wait_for_playback">cloud_browser_wait_for_playback</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.concurrent_scrape" href="#scrapfly.ScrapflyClient.concurrent_scrape">concurrent_scrape</a></code></li>
 <li><code><a title="scrapfly.ScrapflyClient.connect_timeout" href="#scrapfly.ScrapflyClient.connect_timeout">connect_timeout</a></code></li>

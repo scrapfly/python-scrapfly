@@ -45,14 +45,34 @@ el.replaceWith(d);
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="scrapfly.webhook.create_server"><code class="name flex">
-<span>def <span class="ident">create_server</span></span>(<span>signing_secrets: Tuple[str],<br>callback: Callable,<br>app: ForwardRef('flask.Flask') | None = None) ‑> flask.Flask</span>
+<span>def <span class="ident">create_server</span></span>(<span>signing_secrets: str | Tuple[str, ...],<br>callback: Callable,<br>app: ForwardRef('flask.Flask') | None = None,<br>max_body_size: int = 268435456) ‑> flask.Flask</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def create_server(signing_secrets:Tuple[str], callback:Callable, app:Optional[&#39;flask.Flask&#39;]=None) -&gt; &#39;flask.Flask&#39;:
+<pre><code class="python">def create_server(
+    signing_secrets: Union[str, Tuple[str, ...]],
+    callback: Callable,
+    app: Optional[&#39;flask.Flask&#39;] = None,
+    max_body_size: int = MAX_DECOMPRESSED_SIZE,
+) -&gt; &#39;flask.Flask&#39;:
+    &#34;&#34;&#34;
+    Serve Scrapfly webhooks on POST /webhook and hand each verified body to
+    `callback(data, resource_type, request)`.
+
+    Every request must be signed. A body with no `X-Scrapfly-Webhook-Signature`
+    is answered with 401 rather than delivered.
+
+    :param signing_secrets: signing secret(s) from your webhook settings.
+    :param callback: receives the verified body, its resource type, and the request.
+    :param app: optional Flask app to mount the route on.
+    :param max_body_size: reject bodies larger than this, before and after decompression.
+    &#34;&#34;&#34;
+    if not signing_secrets:
+        raise ValueError(&#39;create_server requires the webhook signing secret(s) from your Scrapfly dashboard&#39;)
+
     try:
         import flask
     except ImportError:
@@ -63,32 +83,71 @@ el.replaceWith(d);
     if app is None:
         app = flask.Flask(&#34;Scrapfly Webhook Server&#34;)
 
+    app.config[&#39;MAX_CONTENT_LENGTH&#39;] = max_body_size
+
+    body_handler = ResponseBodyHandler(signing_secrets=signing_secrets)
+    supported_resource_types = tuple(resource_type.value for resource_type in ResourceType)
+
     @app.route(&#34;/webhook&#34;, methods=[&#34;POST&#34;])
     def webhook():
         headers = request.headers
         resource_type = headers.get(&#39;X-Scrapfly-Webhook-Resource-Type&#39;)
+        # The digest is sent under both spellings; accept either.
+        signature = headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;) or headers.get(&#39;X-Scrapfly-Webhook-Signature-Lowercase&#39;)
 
-        if resource_type in (ResourceType.SCRAPE.value, ResourceType.PING.value, ResourceType.CRAWLER.value):
-            body_handler = ResponseBodyHandler(signing_secrets=signing_secrets)
+        if resource_type not in supported_resource_types:
+            logger.error(&#34;Unsupported resource type: %r&#34;, resource_type)
+            return make_response(&#34;unsupported resource type&#34;, 400)
+
+        # A ping sent while a webhook is being created carries no signature. Answer
+        # the reachability probe, but never hand an unverified body to the callback:
+        # the resource type is as unauthenticated as the signature.
+        if resource_type == ResourceType.PING.value and signature is None:
+            return make_response(&#34;&#34;, 200)
+
+        signature_message = None
+
+        if resource_type == ResourceType.ALERT.value:
+            signature_message = _alert_signed_message(headers.get(&#39;X-Scrapfly-Webhook-Timestamp&#39;), request.get_data())
+
+            if signature_message is None:
+                logger.warning(&#34;Rejected alert webhook with a missing or stale timestamp from %s&#34;, request.remote_addr)
+                return make_response(&#34;&#34;, 401)
+
+        try:
             data = body_handler.read(
-                content=request.data,
+                content=request.get_data(),
                 content_encoding=headers.get(&#39;Content-Encoding&#39;),
                 content_type=headers.get(&#39;Content-Type&#39;),
-                signature=headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;, None) # Can be none when ping during the webhook creation flow via &#34;ping&#34;
+                signature=signature,
+                max_decompressed_size=max_body_size,
+                signature_message=signature_message,
             )
+        except WebhookSignatureMissMatch:
+            logger.warning(&#34;Rejected unsigned or mis-signed %s webhook from %s&#34;, resource_type, request.remote_addr)
+            return make_response(&#34;&#34;, 401)
+        except Exception:
+            # Decoding runs before verification, so its failures are reachable unauthenticated.
+            logger.exception(&#34;Rejected undecodable %s webhook from %s&#34;, resource_type, request.remote_addr)
+            return make_response(&#34;&#34;, 400)
 
-            try:
-                callback(data, resource_type, request)
-                return make_response(&#34;&#34;, 200)
-            except Exception as e:
-                logger.error(e)
-                return make_response(&#34;&#34;, 500)
-
-        return make_response(&#34;Do not support resource type %s&#34; % resource_type, 400)
+        try:
+            callback(data, resource_type, request)
+            return make_response(&#34;&#34;, 200)
+        except Exception:
+            logger.exception(&#34;Webhook callback failed for %s&#34;, resource_type)
+            return make_response(&#34;&#34;, 500)
 
     return app</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Serve Scrapfly webhooks on POST /webhook and hand each verified body to
+<code>callback(data, resource_type, request)</code>.</p>
+<p>Every request must be signed. A body with no <code>X-Scrapfly-Webhook-Signature</code>
+is answered with 401 rather than delivered.</p>
+<p>:param signing_secrets: signing secret(s) from your webhook settings.
+:param callback: receives the verified body, its resource type, and the request.
+:param app: optional Flask app to mount the route on.
+:param max_body_size: reject bodies larger than this, before and after decompression.</p></div>
 </dd>
 </dl>
 </section>
@@ -105,18 +164,38 @@ el.replaceWith(d);
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ResourceType(Enum):
+    &#34;&#34;&#34;
+    Values Scrapfly sends in `X-Scrapfly-Webhook-Resource-Type`.
+
+    ALERT is signed over `&lt;timestamp&gt;.&lt;body&gt;` rather than over the body, and so
+    is verified through a separate path.
+    &#34;&#34;&#34;
+
     SCRAPE = &#39;scrape&#39;
     PING = &#39;ping&#39;
-    CRAWLER = &#39;crawler&#39;</code></pre>
+    CRAWL = &#39;crawl&#39;
+    EXTRACTION = &#39;extraction&#39;
+    SCREENSHOT = &#39;screenshot&#39;
+    ALERT = &#39;alert&#39;</code></pre>
 </details>
-<div class="desc"><p>An enumeration.</p></div>
+<div class="desc"><p>Values Scrapfly sends in <code>X-Scrapfly-Webhook-Resource-Type</code>.</p>
+<p>ALERT is signed over <code>&lt;timestamp&gt;.&lt;body&gt;</code> rather than over the body, and so
+is verified through a separate path.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>enum.Enum</li>
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="scrapfly.webhook.ResourceType.CRAWLER"><code class="name">var <span class="ident">CRAWLER</span></code></dt>
+<dt id="scrapfly.webhook.ResourceType.ALERT"><code class="name">var <span class="ident">ALERT</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.webhook.ResourceType.CRAWL"><code class="name">var <span class="ident">CRAWL</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.webhook.ResourceType.EXTRACTION"><code class="name">var <span class="ident">EXTRACTION</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -125,6 +204,10 @@ el.replaceWith(d);
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.webhook.ResourceType.SCRAPE"><code class="name">var <span class="ident">SCRAPE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.webhook.ResourceType.SCREENSHOT"><code class="name">var <span class="ident">SCREENSHOT</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -152,10 +235,13 @@ el.replaceWith(d);
 <ul>
 <li>
 <h4><code><a title="scrapfly.webhook.ResourceType" href="#scrapfly.webhook.ResourceType">ResourceType</a></code></h4>
-<ul class="">
-<li><code><a title="scrapfly.webhook.ResourceType.CRAWLER" href="#scrapfly.webhook.ResourceType.CRAWLER">CRAWLER</a></code></li>
+<ul class="two-column">
+<li><code><a title="scrapfly.webhook.ResourceType.ALERT" href="#scrapfly.webhook.ResourceType.ALERT">ALERT</a></code></li>
+<li><code><a title="scrapfly.webhook.ResourceType.CRAWL" href="#scrapfly.webhook.ResourceType.CRAWL">CRAWL</a></code></li>
+<li><code><a title="scrapfly.webhook.ResourceType.EXTRACTION" href="#scrapfly.webhook.ResourceType.EXTRACTION">EXTRACTION</a></code></li>
 <li><code><a title="scrapfly.webhook.ResourceType.PING" href="#scrapfly.webhook.ResourceType.PING">PING</a></code></li>
 <li><code><a title="scrapfly.webhook.ResourceType.SCRAPE" href="#scrapfly.webhook.ResourceType.SCRAPE">SCRAPE</a></code></li>
+<li><code><a title="scrapfly.webhook.ResourceType.SCREENSHOT" href="#scrapfly.webhook.ResourceType.SCREENSHOT">SCREENSHOT</a></code></li>
 </ul>
 </li>
 </ul>
