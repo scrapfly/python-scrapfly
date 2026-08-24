@@ -26,10 +26,18 @@ import time
 import uuid
 
 import pytest
-from playwright.sync_api import sync_playwright
+
+sync_playwright = pytest.importorskip(
+    'playwright.sync_api',
+    reason='needs the browser extra: pip install "scrapfly-sdk[browser]"',
+).sync_playwright
 
 from scrapfly import BrowserConfig, ScrapeConfig, ScrapflyClient
 
+
+# Cloud Browser -> Web Scraping API handoff end-to-end through the SDK.
+# Drives the live product; skipped by tests/conftest.py without credentials.
+pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
 API_KEY = os.environ.get("SCRAPFLY_KEY", "scp-live-YOUR_API_KEY_HERE")
 API_HOST = os.environ.get("SCRAPFLY_API_HOST", "https://api.scrapfly.local")

@@ -34,8 +34,9 @@ Run:
 import os
 import warnings
 
-import httpx
 import pytest
+
+httpx = pytest.importorskip('httpx', reason='needs httpx: pip install httpx')
 
 from scrapfly import Crawl, CrawlerConfig
 

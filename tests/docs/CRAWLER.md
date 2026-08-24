@@ -3843,7 +3843,7 @@ curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=scp-live-YOUR_AP
 
 ## Usage
 
-> Webhooks can be used for multiple purposes. In the context of the Crawler API, to ensure you received a crawler event, you must check the header `X-Scrapfly-Webhook-Resource-Type` and verify the value is `crawler`.
+> Webhooks can be used for multiple purposes. In the context of the Crawler API, to ensure you received a crawler event, you must check the header `X-Scrapfly-Webhook-Resource-Type` and verify the value is `crawl`.
 
  To enable webhook callbacks, specify the `webhook_name` parameter in your crawler requests and optionally provide a list of `webhook_events` you want to be notified about. Scrapfly will then call your webhook endpoint as crawl events occur.
 
@@ -3864,7 +3864,7 @@ curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=scp-live-YOUR_AP
  | Header | Purpose | Example Value |
 |---|---|---|
 | `X-Scrapfly-Crawl-Event-Name` | **Fast routing** - Use this to route events without parsing JSON | `crawler_started` |
-| `X-Scrapfly-Webhook-Resource-Type` | Resource type (always `crawler` for crawler webhooks) | `crawler` |
+| `X-Scrapfly-Webhook-Resource-Type` | Resource type (always `crawl` for crawler webhooks) | `crawl` |
 | `X-Scrapfly-Webhook-Job-Id` | Crawler UUID for tracking and reconciliation | `550e8400-e29b...` |
 | `X-Scrapfly-Webhook-Signature` | HMAC-SHA256 signature for verification | `a3f2b1c...` |
 

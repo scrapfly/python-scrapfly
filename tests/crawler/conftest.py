@@ -5,19 +5,28 @@ import os
 import pytest
 from pathlib import Path
 from scrapfly import ScrapflyClient
-from dotenv import load_dotenv
 
-# Load .env file if it exists
-env_path = Path(__file__).resolve().parents[2] / '.env'
-if env_path.exists():
-    load_dotenv(dotenv_path=env_path, override=False)
+# python-dotenv is a convenience for local runs, not a requirement.
+try:
+    from dotenv import load_dotenv
+
+    env_path = Path(__file__).resolve().parents[2] / '.env'
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path, override=False)
+except ImportError:
+    pass
 
 # Test configuration
 API_KEY = os.environ.get('SCRAPFLY_KEY')
 API_HOST = os.environ.get('SCRAPFLY_API_HOST')
 
-assert API_KEY is not None, "SCRAPFLY_KEY environment variable is not set"
-assert API_HOST is not None, "SCRAPFLY_API_HOST environment variable is not set"
+# These suites drive the live Scrapfly product end-to-end through the SDK.
+# Skip rather than fail collection: an absent environment is not a failing SDK.
+if not API_KEY or not API_HOST:
+    pytest.skip(
+        'live API test: set SCRAPFLY_KEY and SCRAPFLY_API_HOST to run',
+        allow_module_level=True,
+    )
 
 @pytest.fixture(scope="function")
 def client():
@@ -83,3 +92,19 @@ def parse_httpbin_headers(content: str) -> dict:
         key, value = line.split(':', 1)
         headers[key.strip()] = value.strip()
     return headers
+
+
+def pytest_collection_modifyitems(items):
+    """
+    Everything under tests/crawler/ is end-to-end against the live product.
+
+    Collection hooks receive the whole session's items regardless of which
+    conftest defines them, so this filters by path rather than marking
+    everything.
+    """
+    here = Path(__file__).parent
+
+    for item in items:
+        if here in Path(str(item.fspath)).parents:
+            item.add_marker(pytest.mark.integration)
+            item.add_marker(pytest.mark.e2e)

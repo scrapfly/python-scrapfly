@@ -1,27 +1,19 @@
-"""End-to-end integration test for session_sticky_proxy semantics.
+"""End-to-end integration tests for session_sticky_proxy semantics.
 
-Ticket: ipify returns the same IP across requests on a reused session even
-with session_sticky_proxy=false.
+Current contract, verified against the API:
 
-Empirical finding (dev cluster, residential + datacenter pools): a REUSED
-Scrapfly session keeps ONE exit IP for its whole lifetime regardless of
-session_sticky_proxy. The engine persists the resolved proxy.ip.ipv4 with
-the session and aligns the browser fingerprint (timezone/geo/WebRTC) to it;
-resolve_proxy() returns the stored proxy verbatim and never re-resolves a
-new IP for a reused session. session_sticky_proxy controls the UPSTREAM
-PROVIDER's IP-binding token (whether the provider is asked to pin the same
-egress), not per-request rotation inside a live Scrapfly session.
+  - A reused session with session_sticky_proxy=true keeps one exit IP. That
+    network-identity continuity is what a session exists to provide.
+  - session_sticky_proxy=false on a reused session releases the provider's
+    IP-binding token, so the exit IP is free to rotate. It is not required to
+    change on any given pair of calls, so this asserts the call is accepted
+    rather than asserting a different IP.
+  - session_sticky_proxy=false with asp=true is rejected with 400. The anti-bot
+    clearance is bound to the IP that solved the challenge, so the combination
+    is contradictory and the API refuses it instead of silently overriding.
 
-So "same IP on a reused session" is expected behavior, NOT the bug. The
-real bug was that the SDK never put session_sticky_proxy=false on the wire
-at all (it only sent the param when true) — covered by the deterministic
-serialization tests in test_scrape_config_sticky.py. These live tests are
-the behavioral guard:
-
-  - test_session_pins_ip: a reused session keeps one exit IP (the contract
-    a session exists to provide), and the SDK round-trips the flag.
-  - test_asp_pins_ip: asp=true forces sticky (scrape_order.py override),
-    matching the exact shape of the reported curl.
+Deterministic serialization of the flag is covered offline by
+test_scrape_config_sticky.py; these are the behavioral guard.
 
 Run:
     SCRAPFLY_KEY=scp-live-... pytest tests/test_session_sticky_proxy.py -v -s
@@ -33,7 +25,14 @@ import uuid
 
 import pytest
 
+# Drives the live API; skipped by tests/conftest.py without credentials.
+# Session/proxy semantics end-to-end through the SDK: these drive real scrapes
+# against a live Scrapfly environment.
+pytestmark = [pytest.mark.integration, pytest.mark.e2e]
+
+
 from scrapfly import ScrapeConfig, ScrapflyClient
+from scrapfly.errors import ApiHttpClientError
 
 
 API_KEY = os.environ.get("SCRAPFLY_KEY", "scp-live-YOUR_API_KEY_HERE")
@@ -54,6 +53,20 @@ def session_name() -> str:
     return f"sticky-test-{uuid.uuid4().hex[:8]}"
 
 
+def _scrape_country(client: ScrapflyClient, **overrides) -> str:
+    """Country the request actually went out from, as reported by the API."""
+    cfg = ScrapeConfig(
+        url=IPIFY_URL,
+        render_js=False,
+        country=COUNTRY,
+        proxy_pool=PROXY_POOL,
+        **overrides,
+    )
+    result = client.scrape(cfg)
+
+    return result.context['proxy']['country']
+
+
 def _scrape_ip(client: ScrapflyClient, **overrides) -> str:
     cfg = ScrapeConfig(
         url=IPIFY_URL,
@@ -70,35 +83,38 @@ def _scrape_ip(client: ScrapflyClient, **overrides) -> str:
 
 
 class TestSessionStickyProxy:
-    def test_session_pins_ip(self, client: ScrapflyClient, session_name: str):
-        """A reused session keeps the same exit IP — the network-identity
-        continuity a session exists to provide. session_sticky_proxy=false
-        does NOT rotate the IP within a live session.
-        """
-        first_ip = _scrape_ip(
-            client, session=session_name, session_sticky_proxy=False, asp=False
-        )
-        second_ip = _scrape_ip(
-            client, session=session_name, session_sticky_proxy=False, asp=False
-        )
+    def test_sticky_session_pins_ip(self, client: ScrapflyClient, session_name: str):
+        """A reused session with sticky proxy keeps one exit IP."""
+        first_ip = _scrape_ip(client, session=session_name, session_sticky_proxy=True, asp=False)
+        second_ip = _scrape_ip(client, session=session_name, session_sticky_proxy=True, asp=False)
+
         assert first_ip == second_ip, (
-            "A reused session should keep one exit IP, but it changed "
-            f"({first_ip} != {second_ip}). The session's persisted "
-            "proxy.ip.ipv4 is the source of truth for a reused session."
+            "A reused sticky session should keep one exit IP, but it changed "
+            f"({first_ip} != {second_ip})."
         )
 
-    def test_asp_pins_ip_regardless_of_flag(self, client: ScrapflyClient, session_name: str):
-        """asp=true forces sticky even when session_sticky_proxy=false is
-        sent — scrape_order.py overrides the flag. This is the exact shape
-        of the reported curl; the same IP here is correct behavior.
+    def test_unpinned_session_still_honours_country(self, client: ScrapflyClient, session_name: str):
         """
-        first_ip = _scrape_ip(
-            client, session=session_name, session_sticky_proxy=False, asp=True
-        )
-        second_ip = _scrape_ip(
-            client, session=session_name, session_sticky_proxy=False, asp=True
-        )
-        assert first_ip == second_ip, (
-            "asp=true should force a pinned exit IP (sticky override in "
-            f"scrape_order.py) but it changed ({first_ip} != {second_ip})."
-        )
+        Releasing the IP-binding token also clears the geo attributes derived from
+        the old IP (timezone, city, coordinates, ASN). Country targeting must
+        survive that reset, on the first request and on the reused session.
+        """
+        for _ in range(2):
+            country = _scrape_country(
+                client, session=session_name, session_sticky_proxy=False, asp=False
+            )
+            assert country.lower() == COUNTRY, (
+                f"country={COUNTRY} was requested but the exit proxy reported {country!r} "
+                "after the sticky IP was released"
+            )
+
+    def test_non_sticky_with_asp_is_rejected(self, client: ScrapflyClient, session_name: str):
+        """
+        The clearance is bound to the IP that solved the challenge, so asp=true with
+        session_sticky_proxy=false is contradictory and refused rather than silently
+        overridden.
+        """
+        with pytest.raises(ApiHttpClientError) as raised:
+            _scrape_ip(client, session=session_name, session_sticky_proxy=False, asp=True)
+
+        assert 'incompatible with asp=true' in str(raised.value)

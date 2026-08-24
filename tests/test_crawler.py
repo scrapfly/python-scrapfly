@@ -21,6 +21,12 @@ from scrapfly import (
     ScrapflyCrawlerError,
 )
 
+# Drives the live API; skipped by tests/conftest.py without credentials.
+# Crawler API end-to-end through the SDK: these drive real crawls against a live
+# Scrapfly environment, so they exercise the platform, not just this client.
+pytestmark = [pytest.mark.integration, pytest.mark.e2e]
+
+
 
 # Test configuration
 API_KEY = os.environ.get('SCRAPFLY_KEY', 'scp-live-YOUR_API_KEY_HERE')
@@ -1147,8 +1153,28 @@ class TestContentFormatsAdvanced:
 class TestProxyAndASP:
     """Test proxy and ASP configuration options"""
 
-    def test_proxy_pool_configuration(self, client):
-        """Test proxy pool configuration"""
+    def test_country_is_honoured_by_the_exit_proxy(self, client):
+        """The requested country must be the country the request actually went out from."""
+        url = 'https://httpbin.dev/ip'
+        config = CrawlerConfig(url=url, page_limit=1, country='us')
+        crawl = Crawl(client, config).crawl().wait()
+
+        assert_crawl_successful(crawl)
+
+        content = crawl.read(url)
+        assert content is not None, f"{url} was crawled but no content came back"
+        assert content.country == 'us', (
+            f"country=us was requested but the exit proxy reported {content.country!r}"
+        )
+
+    def test_proxy_pool_is_accepted(self, client):
+        """
+        Only asserts the pool is accepted and the crawl completes.
+
+        Neither the status nor the per-URL content echoes the pool that served the
+        request, so there is nothing to read back: this cannot detect the SDK
+        dropping proxy_pool. Serialization is covered offline instead.
+        """
         config = CrawlerConfig(
             url='https://httpbin.dev',
             page_limit=3,
@@ -1156,23 +1182,15 @@ class TestProxyAndASP:
         )
         crawl = Crawl(client, config).crawl().wait()
 
-        # Verify crawl completed successfully
         assert_crawl_successful(crawl)
 
-    def test_country_configuration(self, client):
-        """Test country proxy configuration"""
-        config = CrawlerConfig(
-            url='https://httpbin.dev',
-            page_limit=3,
-            country='us'
-        )
-        crawl = Crawl(client, config).crawl().wait()
+    def test_asp_is_accepted(self, client):
+        """
+        Only asserts asp=true is accepted and the crawl completes.
 
-        # Verify crawl completed successfully
-        assert_crawl_successful(crawl)
-
-    def test_asp_enabled(self, client):
-        """Test ASP (Anti-Scraping Protection) enabled"""
+        Nothing in the crawl response reports whether a shield was engaged, so this
+        cannot detect the SDK dropping asp. Serialization is covered offline instead.
+        """
         config = CrawlerConfig(
             url='https://web-scraping.dev/products',
             page_limit=5,
@@ -1180,7 +1198,6 @@ class TestProxyAndASP:
         )
         crawl = Crawl(client, config).crawl().wait()
 
-        # Verify crawl completed successfully
         status = assert_crawl_successful(crawl)
         assert status.state.urls_visited > 0
 

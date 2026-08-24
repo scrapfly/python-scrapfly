@@ -1,6 +1,47 @@
 # Scrapfly Python SDK Tests
 
-This directory contains comprehensive tests for the Scrapfly Crawler API functionality.
+Two kinds of test live here, and the difference matters.
+
+## `e2e` — end-to-end against the live product
+
+Marked `e2e` (and `integration`). These drive a real Scrapfly environment: real
+crawls, real scrapes, real proxies. This is deliberate — the SDK is the supported
+client, so exercising the platform through it is what customers actually
+experience. Product-side changes in `apps/scrapfly/scrape-engine` are expected to
+show up here.
+
+```bash
+SCRAPFLY_KEY=scp-live-... SCRAPFLY_API_HOST=https://api.scrapfly.home pytest -m e2e
+```
+
+Without `SCRAPFLY_KEY` they skip (`tests/conftest.py`), so a green run with no
+credentials proves nothing about the platform.
+
+They also need real **quota** and **crawler capacity** on the target environment:
+a quota-exhausted account fails every crawl at its seed URL
+(`ERR::SCRAPE::QUOTA_LIMIT_REACHED`), and a saturated crawler backend returns 503
+`no capacity available` from the gateway. Neither is an SDK regression.
+
+## Everything else — offline
+
+No credentials, no network, instant. This is where SDK-owned behaviour belongs:
+request building, response parsing, error mapping, signature verification.
+
+```bash
+pytest -m "not e2e"
+```
+
+## When an e2e test turns red
+
+Confirm the **current behaviour is correct** before touching the expectation. A
+test updated to match a bug is worse than a failing one. Two real examples from
+this suite: the API began rejecting `session_sticky_proxy=false` with `asp=true`
+(a deliberate 400, not a regression), and `extraction_template` is sent as
+`persistent:<slug>` (a bare slug is only a legacy fallback).
+
+---
+
+This directory also contains tests for the Scrapfly Crawler API functionality.
 
 ## Test Structure
 
