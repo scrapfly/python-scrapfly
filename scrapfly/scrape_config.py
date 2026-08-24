@@ -406,7 +406,7 @@ class ScrapeConfig(BaseApiConfig):
         try:
             from msgpack import loads as msgpack_loads
         except ImportError as e:
-            print('You must install msgpack package - run: pip install "scrapfly-sdk[seepdup] or pip install msgpack')
+            print('You must install msgpack package - run: pip install "scrapfly-sdk[speedups]" or pip install msgpack')
             raise
 
         data = msgpack_loads(base64.b64decode(config))

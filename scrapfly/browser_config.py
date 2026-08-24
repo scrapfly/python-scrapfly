@@ -15,6 +15,9 @@ class OperatingSystem(Enum):
     LINUX = "linux"
     WINDOWS = "windows"
     MACOS = "macos"
+    ANDROID = "android"
+    IPHONE = "iphone"
+    IPAD = "ipad"
 
 
 class BrowserConfig(BaseApiConfig):
