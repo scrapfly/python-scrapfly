@@ -14,8 +14,8 @@ Every crawler webhook follows the same envelope:
         "payload": { ... event-specific fields ... }
     }
 
-The 8 event names are defined by ``CrawlerWebhookEvent`` and match the
-scrape-engine's ``WebhookEvents`` class exactly.
+The 8 event names are defined by ``CrawlerWebhookEvent`` and match the wire
+format documented in the Crawler API webhook reference.
 """
 
 from scrapfly import (
@@ -46,10 +46,14 @@ def example_flask_webhook():
         # Parse and verify the webhook. The envelope is always
         # {"event": ..., "payload": ...}; webhook_from_payload dispatches
         # on the event name and returns a typed dataclass.
+        # raw_body is required with signing_secrets: the signature covers the
+        # bytes on the wire, and the envelope is re-read from those verified
+        # bytes rather than from request.json.
         wh = webhook_from_payload(
-            request.json,
             signing_secrets=SIGNING_SECRETS,
             signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
+            raw_body=request.get_data(),
+            content_encoding=request.headers.get('Content-Encoding'),
         )
 
         # All webhooks carry the common base fields:
@@ -99,9 +103,7 @@ def example_flask_webhook():
 
 
 if __name__ == '__main__':
-    # A real crawler_finished payload — exactly as the scrape-engine emits it
-    # (see apps/scrapfly/web-app/src/Template/Docs/crawler-api/
-    #  webhooks_example/crawler_finished.json for the canonical reference).
+    # A real crawler_finished payload, exactly as Scrapfly emits it.
     example_finished = {
         "event": "crawler_finished",
         "payload": {

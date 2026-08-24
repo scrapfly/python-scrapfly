@@ -1,12 +1,9 @@
 """
 Crawler API Webhook Models
 
-Typed wrappers around the 8 real crawler webhook payloads emitted by the
-scrape-engine. This module is the Python-side mirror of the authoritative
-event list in
-``apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py``
-(class ``WebhookEvents``) and the example payloads in
-``apps/scrapfly/web-app/src/Template/Docs/crawler-api/webhooks_example/*.json``.
+Typed wrappers around the 8 crawler webhook payloads Scrapfly emits. Field
+names and event names match the wire format documented in the Crawler API
+webhook reference.
 
 Design notes
 ------------
@@ -37,8 +34,7 @@ class CrawlerWebhookEvent(str, Enum):
     Crawler webhook event names.
 
     These MUST stay in sync with
-    ``apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py``
-    class ``WebhookEvents``. The scrape-engine is the source of truth.
+    class ``WebhookEvents``. Scrapfly is the source of truth.
     """
 
     CRAWLER_STARTED = 'crawler_started'
@@ -66,7 +62,7 @@ class CrawlerWebhookBase:
         crawler_uuid: The crawler job UUID.
         project: Project slug the crawler belongs to.
         env: Environment (``LIVE`` or ``TEST``).
-        action: Short action tag emitted by the scrape-engine
+        action: Short action tag emitted by Scrapfly
             (``started``, ``visited``, ``skipped``, ``url_discovery``,
             ``failed``, ``stopped``, ``cancelled``, ``finished``).
         state: Nested state counters at the moment the webhook was emitted.
@@ -269,10 +265,10 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
         error: The scrapfly error code (e.g. ``ERR::SCRAPE::NETWORK_ERROR``).
         scrape_config: The scrape config that was used for the failed attempt.
         log_link: URL to the full scrape log for this failure. Can be
-            ``None`` — the scrape-engine emits ``null`` when no log was
+            ``None`` — Scrapfly emits ``null`` when no log was
             recorded (e.g. the failure happened before the request was ever
             executed). See
-            ``scrape_engine/crawler/webhook_manager.py::dispatch_url_failed``
+            the ``dispatch_url_failed`` event
             line 57.
         scrape_link: URL that re-runs the same scrape as a one-off. Always
             present on the wire (non-nullable). See line 58 of the engine.
@@ -325,9 +321,11 @@ _DISPATCH = {
 
 
 def webhook_from_payload(
-    payload: Dict[str, Any],
+    payload: Optional[Dict[str, Any]] = None,
     signing_secrets: Optional[Tuple[str, ...]] = None,
     signature: Optional[str] = None,
+    raw_body: Optional[bytes] = None,
+    content_encoding: Optional[str] = None,
 ) -> CrawlerWebhook:
     """
     Parse a raw crawler webhook envelope into a typed dataclass.
@@ -338,20 +336,33 @@ def webhook_from_payload(
 
     Args:
         payload: The full webhook body as a dict (i.e. what you get from
-            ``request.json``).
+            ``request.json``). Ignored when ``signing_secrets`` is set, because
+            the envelope is then re-read from the verified bytes instead —
+            returning an object built from an unverified dict would make the
+            verification decorative.
         signing_secrets: Optional tuple of signing secrets for signature
             verification. Pass each secret as it appears in the webhook
             dashboard (UTF-8 string, not hex-encoded).
         signature: Optional webhook signature header value
             (``X-Scrapfly-Webhook-Signature``).
+        raw_body: The exact request bytes (``request.get_data()``). Required
+            when ``signing_secrets`` is set: the signature covers the bytes on
+            the wire, and re-serializing the parsed dict does not reproduce
+            them (separators, float repr, unicode escaping and key order are
+            all encoder-dependent).
+        content_encoding: The ``Content-Encoding`` header, when the webhook is
+            configured to compress. Signing happens before encoding, so a
+            compressed body has to be inflated before the digest matches.
 
     Returns:
         A typed webhook instance matching the event.
 
     Raises:
         KeyError: If the envelope is missing required fields.
-        ValueError: If ``event`` is not one of the known crawler events.
-        WebhookSignatureMissMatch: If signature verification fails.
+        ValueError: If ``event`` is not one of the known crawler events, if
+            ``signing_secrets`` is set without ``raw_body``, or if neither
+            ``payload`` nor ``signing_secrets`` is supplied.
+        WebhookSignatureMissMatch: If the signature is absent or does not match.
 
     Example:
         >>> from flask import Flask, request
@@ -363,22 +374,39 @@ def webhook_from_payload(
         ...         request.json,
         ...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
         ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
+        ...         raw_body=request.get_data(),
+        ...         content_encoding=request.headers.get('Content-Encoding'),
         ...     )
         ...     if isinstance(wh, CrawlerLifecycleWebhook) and wh.event == 'crawler_finished':
         ...         print(f"Crawl {wh.crawler_uuid} finished — "
         ...               f"{wh.state.urls_visited} URLs visited")
         ...     return '', 200
     """
-    if signing_secrets and signature:
-        from json import dumps
+    if signing_secrets:
+        # Imported here rather than at module scope to avoid a circular import.
+        from json import loads
 
-        from ..api_response import ResponseBodyHandler
+        from ..api_response import ResponseBodyHandler, decompress
         from ..errors import WebhookSignatureMissMatch
 
+        if raw_body is None:
+            raise ValueError(
+                "signature verification requires raw_body (the exact request bytes); "
+                "the parsed payload cannot reproduce the signed message"
+            )
+
         handler = ResponseBodyHandler(signing_secrets=signing_secrets)
-        message = dumps(payload, separators=(',', ':')).encode('utf-8')
-        if not handler.verify(message, signature):
+        # Signing happens before Content-Encoding is applied.
+        verified = decompress(raw_body, content_encoding)
+
+        if not handler.verify(verified, signature):
             raise WebhookSignatureMissMatch()
+
+        # Parse what was actually signed. Building the result from the caller's
+        # dict would let unsigned fields ride in behind a valid signature.
+        payload = loads(verified)
+    elif payload is None:
+        raise ValueError('webhook_from_payload needs either payload or signing_secrets + raw_body')
 
     event = payload['event']
     inner = payload['payload']

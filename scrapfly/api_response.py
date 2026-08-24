@@ -62,6 +62,93 @@ def _date_parser(value):
     return value
 
 
+# The signature covers the decompressed bytes, so decompression runs before the
+# request is authenticated and needs its own ceiling.
+MAX_DECOMPRESSED_SIZE = 256 * 1024 * 1024
+
+# Streaming chunk size, so the ceiling is reached before a bomb fully expands.
+_DECOMPRESS_CHUNK = 256 * 1024
+
+
+class WebhookBodyTooLarge(ValueError):
+    """Raised when a body inflates past the allowed size."""
+
+
+def _bounded(chunks: Iterable[bytes], limit: int) -> bytes:
+    out = bytearray()
+
+    for chunk in chunks:
+        out += chunk
+
+        if len(out) > limit:
+            raise WebhookBodyTooLarge('decompressed body exceeds %d bytes' % limit)
+
+    return bytes(out)
+
+
+def decompress(content: bytes, content_encoding: Optional[str], limit: int = MAX_DECOMPRESSED_SIZE) -> bytes:
+    """
+    Reverse the Content-Encoding applied to a webhook body.
+
+    Every branch stops as soon as `limit` is passed.
+    """
+    encoding = (content_encoding or '').lower()
+
+    if encoding in ('', 'none', 'identity'):
+        return content
+
+    if encoding in ('gzip', 'gz'):
+        import gzip
+
+        with gzip.GzipFile(fileobj=BytesIO(content)) as decoder:
+            return _bounded(iter(lambda: decoder.read(_DECOMPRESS_CHUNK), b''), limit)
+
+    if encoding == 'deflate':
+        import zlib
+
+        decoder = zlib.decompressobj()
+
+        def deflate_chunks():
+            data = content
+            while data:
+                yield decoder.decompress(data, _DECOMPRESS_CHUNK)
+                data = decoder.unconsumed_tail
+
+            yield decoder.flush()
+
+        return _bounded(deflate_chunks(), limit)
+
+    if encoding in ('brotli', 'br'):
+        try:
+            import brotlicffi as brotli
+        except ImportError:
+            import brotli
+
+        decoder = brotli.Decompressor()
+
+        return _bounded(
+            (decoder.decompress(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)),
+            limit,
+        )
+
+    if encoding == 'zstd':
+        try:
+            from compression import zstd as _zstd  # Python 3.14+
+
+            decoder = _zstd.ZstdDecompressor()
+        except ImportError:
+            import zstandard
+
+            decoder = zstandard.ZstdDecompressor().decompressobj()
+
+        return _bounded(
+            (decoder.decompress(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)),
+            limit,
+        )
+
+    raise ValueError('unsupported webhook content encoding: %s' % content_encoding)
+
+
 class ResponseBodyHandler:
 
     SUPPORTED_COMPRESSION = ['gzip', 'deflate']
@@ -73,7 +160,7 @@ class ResponseBodyHandler:
 
     # brotli under perform at same gzip level and upper level destroy the cpu so
     # the trade off do not worth it for most of usage
-    def __init__(self, use_brotli: bool = False, signing_secrets: Optional[Tuple[str]] = None):
+    def __init__(self, use_brotli: bool = False, signing_secrets: Optional[Union[str, Tuple[str, ...]]] = None):
         if use_brotli is True and 'br' not in self.SUPPORTED_COMPRESSION:
             try:
                 try:
@@ -95,11 +182,21 @@ class ResponseBodyHandler:
         self.content_encoding: str = ', '.join(self.SUPPORTED_COMPRESSION)
         self._signing_secret: Optional[Tuple[str]] = None
 
-        if signing_secrets:
+        if signing_secrets is not None:
+            # A bare str is iterable: without this it yields one HMAC key per character.
+            if isinstance(signing_secrets, (str, bytes)):
+                signing_secrets = (signing_secrets,)
+
             _secrets = set()
 
             for signing_secret in signing_secrets:
+                if not isinstance(signing_secret, str) or not signing_secret:
+                    raise ValueError('signing_secrets must be non-empty strings, as shown in the webhook dashboard')
+
                 _secrets.add(signing_secret.encode('utf-8'))
+
+            if not _secrets:
+                raise ValueError('signing_secrets was empty; omit it entirely to build a handler that does not verify')
 
             self._signing_secret = tuple(_secrets)
 
@@ -123,45 +220,45 @@ class ResponseBodyHandler:
 
         return False
 
-    def verify(self, message: bytes, signature: str) -> bool:
+    def verify(self, message: bytes, signature: Optional[str]) -> bool:
+        if self._signing_secret is None:
+            raise ValueError('no signing secret configured; pass signing_secrets to ResponseBodyHandler')
+
+        # An absent header is a failed verification, not a programming error.
+        if not signature:
+            return False
+
+        # The digest is sent as upper hex; the -Lowercase header carries the same value.
+        received = signature.strip().upper().encode('utf-8')
+
         for signing_secret in self._signing_secret:
-            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper()
-            logger.debug(
-                'WEBHOOK_VERIFY_DEBUG key_len=%d key_sha=%s body_len=%d body_sha=%s computed=%s received=%s match=%s',
-                len(signing_secret),
-                hashlib.sha256(signing_secret).hexdigest()[:16],
-                len(message),
-                hashlib.sha256(message).hexdigest()[:16],
-                computed,
-                signature,
-                computed == signature,
-            )
-            if computed == signature:
+            computed = hmac.new(signing_secret, message, hashlib.sha256).hexdigest().upper().encode('ascii')
+
+            if hmac.compare_digest(computed, received):
                 return True
 
         return False
 
-    def read(self, content: bytes, content_encoding: str, content_type: str, signature: Optional[str]) -> Dict:
-        if content_encoding == 'gzip' or content_encoding == 'gz':
-            import gzip
-            content = gzip.decompress(content)
-        elif content_encoding == 'deflate':
-            import zlib
-            content = zlib.decompress(content)
-        elif content_encoding == 'brotli' or content_encoding == 'br':
-            import brotli
-            content = brotli.decompress(content)
-        elif content_encoding == 'zstd':
-            try:
-                from compression import zstd as _zstd  # Python 3.14+
-                content = _zstd.decompress(content)
-            except ImportError:
-                import zstandard
-                content = zstandard.decompress(content)
+    def read(
+        self,
+        content: bytes,
+        content_encoding: str,
+        content_type: str,
+        signature: Optional[str],
+        max_decompressed_size: int = MAX_DECOMPRESSED_SIZE,
+        signature_message: Optional[bytes] = None,
+    ) -> Dict:
+        # Signing happens before Content-Encoding is applied, so the body is inflated
+        # before it can be verified. Bound the output: this runs pre-authentication.
+        content = decompress(content, content_encoding, max_decompressed_size)
 
-        if self._signing_secret is not None and signature is not None:
-            if not self.verify(content, signature):
+        # Gate on the secret being configured, never on the header being supplied:
+        # an absent signature is a forgery, not an exemption.
+        if self._signing_secret is not None:
+            if not self.verify(content if signature_message is None else signature_message, signature):
                 raise WebhookSignatureMissMatch()
+
+        content_type = content_type or ''
 
         if content_type.startswith('application/json'):
             content = loads(content, cls=self.JSONDateTimeDecoder)
