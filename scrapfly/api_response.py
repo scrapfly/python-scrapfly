@@ -31,7 +31,7 @@ from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
 from .errors import ErrorFactory, ScreenshotAPIError, ExtractionAPIError, EncoderError, ApiHttpClientError, \
     ApiHttpServerError, UpstreamHttpError, HttpError, \
-    ExtraUsageForbidden, WebhookSignatureMissMatch, ContentError
+    ExtraUsageForbidden, WebhookSignatureMissMatch, ContentError, api_error_args
 from .frozen_dict import FrozenDict
 
 logger = logging.getLogger(__name__)
@@ -373,41 +373,20 @@ class ApiResponse:
             self.response.raise_for_status()
         except HTTPError as e:
             if 'error_id' in self.result:
+                # The envelope carries the code, the retryable flag and the doc
+                # link the caller switches on; it is the only place they exist,
+                # so it is decoded rather than restated with constants.
+                args = api_error_args(self.result, http_status_code=e.response.status_code)
+                args.update(request=e.request, response=e.response, api_response=self)
+
                 if e.response.status_code >= 500:
-                    raise ApiHttpServerError(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result['message'],
-                        code='',
-                        resource='',
-                        http_status_code=e.response.status_code,
-                        documentation_url=self.result.get('links'),
-                        api_response=self,
-                    ) from e
+                    raise ApiHttpServerError(**args) from e
+
                 # respect raise_on_upstream_error with screenshot and extraction only
-                elif error_class in (ScreenshotAPIError, ExtractionAPIError):
-                    if raise_on_upstream_error:
-                        raise error_class(
-                            request=e.request,
-                            response=e.response,
-                            message=self.result['message'],
-                            code='',
-                            resource='API',
-                            http_status_code=self.result['http_code'],
-                            documentation_url=self.result.get('links'),
-                            api_response=self,
-                        ) from e
-                else:
-                    raise error_class(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result['message'],
-                        code='',
-                        resource='API',
-                        http_status_code=self.result['http_code'],
-                        documentation_url=self.result.get('links'),
-                        api_response=self,
-                    ) from e
+                if error_class in (ScreenshotAPIError, ExtractionAPIError) and not raise_on_upstream_error:
+                    return
+
+                raise error_class(**args) from e
 
 
 class ScrapeApiResponse(ApiResponse):

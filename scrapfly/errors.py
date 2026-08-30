@@ -1,5 +1,5 @@
 import base64
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 from requests import Request, Response
 
 
@@ -206,11 +206,11 @@ class ErrorFactory:
     }
 
     @staticmethod
-    def _get_resource(code: str) -> Optional[Tuple[str, str]]:
-
+    def _get_resource(code: str) -> Optional[str]:
+        # Codes are ERR::<RESOURCE>::<REASON>, but the segment count is the
+        # API's to change, so index rather than unpack.
         if isinstance(code, str) and '::' in code:
-            _, resource, _ = code.split('::')
-            return resource
+            return code.split('::')[1]
 
         return None
 
@@ -290,6 +290,67 @@ class ErrorFactory:
                 return ErrorFactory.RESOURCE_TO_ERROR[resource](**args)
 
             return ScrapflyError(**args)
+
+
+def _documentation_url(envelope: Dict) -> Optional[str]:
+    doc_url = envelope.get('doc_url')
+
+    if isinstance(doc_url, str) and doc_url:
+        return doc_url
+
+    links = envelope.get('links')
+
+    # `links` maps a human label to a URL while documentation_url holds a
+    # single string, so only one survives: the error-specific entry, not the
+    # generic "Getting Started" that ships alongside it.
+    if isinstance(links, dict):
+        for label, value in links.items():
+            if isinstance(value, str) and value and 'error' in str(label).lower():
+                return value
+
+        return next((value for value in links.values() if isinstance(value, str) and value), None)
+
+    if isinstance(links, list):
+        return next((value for value in links if isinstance(value, str) and value), None)
+
+    return None
+
+
+def api_error_args(envelope: Optional[Dict], http_status_code: int) -> Dict:
+    """Map an API-level error envelope onto ScrapflyError constructor kwargs.
+
+    Every field is optional on the wire - a 401 envelope carries neither `code`
+    nor `links` - so nothing here may index into it. Kept in one place because
+    both the single-request path (ApiResponse.raise_for_result) and the batch
+    part path decode the same envelope.
+    """
+
+    if not isinstance(envelope, dict):
+        envelope = {}
+
+    code = envelope.get('code')
+
+    if not isinstance(code, str):
+        code = ''
+
+    message = envelope.get('message') or envelope.get('reason') or 'API error'
+
+    if not isinstance(message, str):
+        message = str(message)
+
+    status_code = envelope.get('http_code')
+
+    if not isinstance(status_code, int) or isinstance(status_code, bool):
+        status_code = http_status_code
+
+    return {
+        'message': message,
+        'code': code,
+        'resource': ErrorFactory._get_resource(code=code),
+        'http_status_code': status_code,
+        'is_retryable': envelope.get('retryable') is True,
+        'documentation_url': _documentation_url(envelope),
+    }
 
 
 __all__:Tuple[str, ...] = [

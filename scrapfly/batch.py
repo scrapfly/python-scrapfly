@@ -219,33 +219,13 @@ def is_api_error_part(parsed, headers: Dict[str, str]) -> bool:
 
 def error_from_api_error_part(parsed: Dict, headers: Dict[str, str], request):
     """Build the typed per-part error for an API-generated error body."""
-    from .errors import ApiHttpClientError, ApiHttpServerError, ErrorFactory
+    from .errors import ApiHttpClientError, ApiHttpServerError, ErrorFactory, api_error_args
 
-    code = parsed.get("code")
-    if not isinstance(code, str):
-        code = ""
-
-    message = parsed.get("message") or parsed.get("reason") or "API error"
-    if not isinstance(message, str):
-        message = str(message)
-
-    retryable = parsed.get("retryable") is True
-
-    http_code = parsed.get("http_code")
-    if not isinstance(http_code, int):
-        http_code = _safe_int(headers.get("x-scrapfly-scrape-status"), 500)
-
-    documentation_url = None
-    links = parsed.get("links")
-    if isinstance(links, dict) and links:
-        documentation_url = next((v for v in links.values() if isinstance(v, str)), None)
-    elif isinstance(links, list) and links:
-        documentation_url = links[0] if isinstance(links[0], str) else None
-
-    resource = None
-    code_parts = code.split("::")
-    if len(code_parts) == 3:
-        resource = code_parts[1]
+    # A part has no HTTP status of its own, so the envelope decode falls back
+    # to the status the multipart header carries for this part.
+    args = api_error_args(parsed, http_status_code=_safe_int(headers.get("x-scrapfly-scrape-status"), 500))
+    resource = args["resource"]
+    http_code = args["http_status_code"]
 
     is_scraper_resource = resource in ErrorFactory.RESOURCE_TO_ERROR
 
@@ -259,12 +239,7 @@ def error_from_api_error_part(parsed: Dict, headers: Dict[str, str], request):
     return error_class(
         request=request,
         response=_synthesize_part_response(request, http_code, parsed.get("reason")),
-        message=message,
-        code=code,
-        resource=resource,
-        http_status_code=http_code,
-        is_retryable=retryable,
-        documentation_url=documentation_url,
+        **args,
     )
 
 
