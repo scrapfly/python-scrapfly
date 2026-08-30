@@ -334,22 +334,21 @@ class ApiResponse:
 
     @property
     def error_message(self):
-        if self.error is not None:
-            message = "<-- %s | %s - %s." % (self.response.status_code, self.error['code'], self.error['message'])
+        # Every envelope field is optional on the wire - a 401 carries neither
+        # `code` nor `links` - and this renders the text of an already-raised
+        # error, so it must not be the thing that raises.
+        payload = self.error if self.error is not None else self.result
+        reason = payload.get('message') or payload.get('reason') or ''
+        code = payload.get('code') if self.error is not None else None
 
-            if self.error['links']:
-                links = self.error['links']
-                if isinstance(links, dict):
-                    message += " Checkout the related doc: %s" % list(links.values())[0]
-                elif isinstance(links, list):
-                    message += " Checkout the related doc: %s" % ", ".join(links)
+        if code:
+            message = "<-- %s | %s - %s." % (self.response.status_code, code, reason)
+        else:
+            message = "<-- %s | %s." % (self.response.status_code, reason)
 
-            return message
+        links = payload.get('links')
 
-        message = "<-- %s | %s." % (self.response.status_code, self.result['message'])
-
-        if self.result.get('links'):
-            links = self.result['links']
+        if links:
             if isinstance(links, dict):
                 message += " Checkout the related doc: %s" % list(links.values())[0]
             elif isinstance(links, list):
