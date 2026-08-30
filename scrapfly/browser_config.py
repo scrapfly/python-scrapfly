@@ -144,8 +144,9 @@ class BrowserConfig(BaseApiConfig):
     @staticmethod
     def project_salt(api_key: str) -> str:
         """Return the deterministic project salt for an api_key:
-        sha256(api_key)[:8]. The server exposes the same value via the
-        X-Browser-Project-Salt response header on a successful WS upgrade.
+        sha256(api_key)[:8]. The server returns the same value via the
+        X-Browser-Project-Salt response header on VNC-enabled upgrades, where
+        the salt is also the VNC password prefix (<salt>-<password>).
         """
         return hashlib.sha256(api_key.encode('utf-8')).hexdigest()[:8]
 

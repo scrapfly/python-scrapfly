@@ -1694,9 +1694,10 @@ class ScrapflyClient(ScheduleClientMixin):
 
     def cloud_browser_project_salt(self) -> str:
         """Return the deterministic project salt for this client's api_key.
-        Matches the X-Browser-Project-Salt response header returned on a
-        successful Cloud Browser WebSocket upgrade. Useful for verifying
-        that an attach link belongs to your project before sharing it.
+        Matches the X-Browser-Project-Salt response header returned on
+        VNC-enabled Cloud Browser upgrades, where the salt is also the VNC
+        password prefix. Useful for verifying that an attach link belongs to
+        your project before sharing it.
         """
         return BrowserConfig.project_salt(self.key)
 
