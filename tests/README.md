@@ -11,8 +11,11 @@ experience. Product-side changes in `apps/scrapfly/scrape-engine` are expected t
 show up here.
 
 ```bash
-SCRAPFLY_KEY=scp-live-... SCRAPFLY_API_HOST=https://api.scrapfly.home pytest -m e2e
+SCRAPFLY_KEY=scp-live-... pytest -m e2e
 ```
+
+`SCRAPFLY_API_HOST` overrides the endpoint if you need to point the suite at a
+non-default stack; it defaults to the public API.
 
 Without `SCRAPFLY_KEY` they skip (`tests/conftest.py`), so a green run with no
 credentials proves nothing about the platform.
