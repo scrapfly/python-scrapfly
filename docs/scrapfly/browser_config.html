@@ -179,8 +179,9 @@ el.replaceWith(d);
     @staticmethod
     def project_salt(api_key: str) -&gt; str:
         &#34;&#34;&#34;Return the deterministic project salt for an api_key:
-        sha256(api_key)[:8]. The server exposes the same value via the
-        X-Browser-Project-Salt response header on a successful WS upgrade.
+        sha256(api_key)[:8]. The server returns the same value via the
+        X-Browser-Project-Salt response header on VNC-enabled upgrades, where
+        the salt is also the VNC password prefix (&lt;salt&gt;-&lt;password&gt;).
         &#34;&#34;&#34;
         return hashlib.sha256(api_key.encode(&#39;utf-8&#39;)).hexdigest()[:8]
 
@@ -450,14 +451,16 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
 <pre><code class="python">@staticmethod
 def project_salt(api_key: str) -&gt; str:
     &#34;&#34;&#34;Return the deterministic project salt for an api_key:
-    sha256(api_key)[:8]. The server exposes the same value via the
-    X-Browser-Project-Salt response header on a successful WS upgrade.
+    sha256(api_key)[:8]. The server returns the same value via the
+    X-Browser-Project-Salt response header on VNC-enabled upgrades, where
+    the salt is also the VNC password prefix (&lt;salt&gt;-&lt;password&gt;).
     &#34;&#34;&#34;
     return hashlib.sha256(api_key.encode(&#39;utf-8&#39;)).hexdigest()[:8]</code></pre>
 </details>
 <div class="desc"><p>Return the deterministic project salt for an api_key:
-sha256(api_key)[:8]. The server exposes the same value via the
-X-Browser-Project-Salt response header on a successful WS upgrade.</p></div>
+sha256(api_key)[:8]. The server returns the same value via the
+X-Browser-Project-Salt response header on VNC-enabled upgrades, where
+the salt is also the VNC password prefix (<salt>-<password>).</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>

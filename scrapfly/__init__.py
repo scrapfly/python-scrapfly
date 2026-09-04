@@ -3,6 +3,8 @@ __version__ = '0.11.2'
 from typing import Tuple
 from .errors import ScrapflyError
 from .errors import ScrapflyAspError
+# Same class object as ScrapflyAspError, under the feature's current name.
+from .errors import ScrapflyUnblockerError
 from .errors import ScrapflyProxyError
 from .errors import ScrapflyScheduleError
 from .errors import ScrapflyScrapeError
@@ -83,6 +85,7 @@ from .schedule import (
 __all__: Tuple[str, ...] = (
     'ScrapflyError',
     'ScrapflyAspError',
+    'ScrapflyUnblockerError',
     'ScrapflyProxyError',
     'ScrapflyScheduleError',
     'ScrapflyScrapeError',

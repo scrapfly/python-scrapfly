@@ -159,9 +159,8 @@ el.replaceWith(d);
 <div class="desc"><p>Response object for a single crawled URL</p>
 <p>Provides access to content and metadata for a crawled page.
 Similar to ScrapeApiResponse but for crawler results.</p>
+<h2 id="attributes">Attributes</h2>
 <dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL (mandatory)</dd>
 <dt><strong><code>content</code></strong></dt>
@@ -179,8 +178,7 @@ Similar to ScrapeApiResponse but for crawler results.</p>
 <dt><strong><code>country</code></strong></dt>
 <dd>Country the request was made from (optional)</dd>
 </dl>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python"># Get content for a URL
 content = crawl.read('https://example.com', format='markdown')
 
@@ -194,9 +192,8 @@ if content.log_url:
     print(f&quot;View logs: {content.log_url}&quot;)
 </code></pre>
 <p>Initialize CrawlContent</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL</dd>
 <dt><strong><code>content</code></strong></dt>
@@ -248,9 +245,8 @@ def log_url(self) -&gt; Optional[str]:
     return None</code></pre>
 </details>
 <div class="desc"><p>Get URL to view scrape logs</p>
-<p>Returns
------=
-Log URL if log_id is available, None otherwise</p></div>
+<h2 id="returns">Returns</h2>
+<p>Log URL if log_id is available, None otherwise</p></div>
 </dd>
 <dt id="scrapfly.crawler.crawl_content.CrawlContent.success"><code class="name">prop <span class="ident">success</span> : bool</code></dt>
 <dd>

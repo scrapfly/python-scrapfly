@@ -69,9 +69,8 @@ el.replaceWith(d);
     MARKDOWN = &#34;markdown&#34;
     CLEAN_HTML = &#34;clean_html&#34;</code></pre>
 </details>
-<div class="desc"><dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
+<div class="desc"><h2 id="attributes">Attributes</h2>
+<dl>
 <dt><strong><code>JSON</code></strong></dt>
 <dd>JSON format.</dd>
 <dt><strong><code>TEXT</code></strong></dt>
@@ -125,9 +124,8 @@ el.replaceWith(d);
     NO_LINKS = &#34;no_links&#34;
     ONLY_CONTENT = &#34;only_content&#34;</code></pre>
 </details>
-<div class="desc"><dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
+<div class="desc"><h2 id="attributes">Attributes</h2>
+<dl>
 <dt><strong><code>NO_IMAGES</code></strong></dt>
 <dd>exlude images from <code>markdown</code> format</dd>
 <dt><strong><code>NO_LINKS</code></strong></dt>
@@ -155,7 +153,7 @@ el.replaceWith(d);
 </dd>
 <dt id="scrapfly.scrape_config.ScrapeConfig"><code class="flex name class">
 <span>class <span class="ident">ScrapeConfig</span></span>
-<span>(</span><span>url: str,<br>retry: bool = True,<br>method: str = 'GET',<br>country: str | None = None,<br>render_js: bool = False,<br>cache: bool = False,<br>cache_clear: bool = False,<br>ssl: bool = False,<br>dns: bool = False,<br>asp: bool = False,<br>debug: bool = False,<br>raise_on_upstream_error: bool = True,<br>cache_ttl: int | None = None,<br>proxy_pool: str | None = None,<br>session: str | None = None,<br>tags: List[str] | Set[str] | None = None,<br>format: <a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a> | None = None,<br>format_options: List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>correlation_id: str | None = None,<br>cookies: requests.structures.CaseInsensitiveDict | None = None,<br>body: str | None = None,<br>data: Dict | None = None,<br>headers: requests.structures.CaseInsensitiveDict | Dict[str, str] | None = None,<br>js: str = None,<br>rendering_wait: int = None,<br>rendering_stage: Literal['complete', 'domcontentloaded'] = 'complete',<br>wait_for_selector: str | None = None,<br>screenshots: Dict | None = None,<br>screenshot_flags: List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None = None,<br>session_sticky_proxy: bool = True,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>js_scenario: List | None = None,<br>extract: Dict | None = None,<br>os: str | None = None,<br>lang: List[str] | None = None,<br>auto_scroll: bool | None = None,<br>cost_budget: int | None = None,<br>browser_brand: str | None = None,<br>geolocation: str | None = None,<br>proxified_response: bool | None = None)</span>
+<span>(</span><span>url: str,<br>retry: bool = True,<br>method: str = 'GET',<br>country: str | None = None,<br>render_js: bool = False,<br>cache: bool = False,<br>cache_clear: bool = False,<br>ssl: bool = False,<br>dns: bool = False,<br>asp: bool | scrapfly.scrape_config._Unset = &lt;unset&gt;,<br>debug: bool = False,<br>raise_on_upstream_error: bool = True,<br>cache_ttl: int | None = None,<br>proxy_pool: str | None = None,<br>session: str | None = None,<br>tags: List[str] | Set[str] | None = None,<br>format: <a title="scrapfly.scrape_config.Format" href="#scrapfly.scrape_config.Format">Format</a> | None = None,<br>format_options: List[<a title="scrapfly.scrape_config.FormatOption" href="#scrapfly.scrape_config.FormatOption">FormatOption</a>] | None = None,<br>extraction_template: str | None = None,<br>extraction_ephemeral_template: Dict | None = None,<br>extraction_prompt: str | None = None,<br>extraction_model: str | None = None,<br>correlation_id: str | None = None,<br>cookies: requests.structures.CaseInsensitiveDict | None = None,<br>body: str | None = None,<br>data: Dict | None = None,<br>headers: requests.structures.CaseInsensitiveDict | Dict[str, str] | None = None,<br>js: str = None,<br>rendering_wait: int = None,<br>rendering_stage: Literal['complete', 'domcontentloaded'] = 'complete',<br>wait_for_selector: str | None = None,<br>screenshots: Dict | None = None,<br>screenshot_flags: List[<a title="scrapfly.scrape_config.ScreenshotFlag" href="#scrapfly.scrape_config.ScreenshotFlag">ScreenshotFlag</a>] | None = None,<br>session_sticky_proxy: bool = True,<br>webhook: str | None = None,<br>timeout: int | None = None,<br>js_scenario: List | None = None,<br>extract: Dict | None = None,<br>os: str | None = None,<br>lang: List[str] | None = None,<br>auto_scroll: bool | None = None,<br>cost_budget: int | None = None,<br>browser_brand: str | None = None,<br>geolocation: str | None = None,<br>proxified_response: bool | None = None,<br>unblocker: bool | scrapfly.scrape_config._Unset = &lt;unset&gt;)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -177,7 +175,10 @@ el.replaceWith(d);
     cache_clear:bool = False
     ssl:bool = False
     dns:bool = False
-    asp:bool = False
+    asp:bool = False  # deprecated alias of `unblocker`, permanently supported
+    # NOTE: `unblocker` is deliberately absent from this block. It is a
+    # property defined below; a class attribute or annotation here would
+    # shadow the descriptor and break `cfg.unblocker = True`.
     debug: bool = False
     raise_on_upstream_error:bool = True
     cache_ttl:Optional[int] = None
@@ -225,7 +226,7 @@ el.replaceWith(d);
         cache_clear:bool = False,
         ssl:bool = False,
         dns:bool = False,
-        asp:bool = False,
+        asp:Union[bool, _Unset] = _UNSET,  # deprecated alias of `unblocker`, which is declared last
         debug: bool = False,
         raise_on_upstream_error:bool = True,
         cache_ttl:Optional[int] = None,
@@ -260,7 +261,12 @@ el.replaceWith(d);
         cost_budget:Optional[int] = None,
         browser_brand:Optional[str] = None,
         geolocation:Optional[str] = None,
-        proxified_response:Optional[bool] = None
+        proxified_response:Optional[bool] = None,
+        # Appended at the very END of the signature on purpose: this parameter
+        # list is positional-capable, so inserting `unblocker` next to its
+        # alias `asp` would silently shift every positional argument in
+        # existing customer code.
+        unblocker:Union[bool, _Unset] = _UNSET
     ):
         assert(type(url) is str)
 
@@ -280,7 +286,9 @@ el.replaceWith(d);
         self.render_js = render_js
         self.cache = cache
         self.cache_clear = cache_clear
-        self.asp = asp
+        # Both names normalize into the single stored attribute `self.asp`,
+        # which is also the key emitted on the wire.
+        self.asp = _resolve_unblocker(asp, unblocker)
         self.webhook = webhook
         self.session = session
         self.debug = debug
@@ -348,6 +356,22 @@ el.replaceWith(d);
                         raise ScrapeConfigError(&#39;Content-Type &#34;%s&#34; not supported, use body parameter to pass pre encoded body according to your content type&#39; % self.headers[&#39;content-type&#39;])
             elif self.body is None and self.data is None:
                 self.headers[&#39;content-type&#39;] = &#39;text/plain&#39;
+
+    @property
+    def unblocker(self) -&gt; bool:
+        &#34;&#34;&#34;Anti-bot bypass toggle, the current name for what used to be `asp`.
+
+        Deliberately a property rather than a second stored attribute: it stays
+        out of `__dict__`, so serializers that iterate the instance dict do not
+        sprout a duplicate key, while `config.unblocker = True` after
+        construction still works.
+        &#34;&#34;&#34;
+
+        return self.asp
+
+    @unblocker.setter
+    def unblocker(self, value: bool):
+        self.asp = value
 
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
@@ -423,6 +447,10 @@ el.replaceWith(d);
             if self.rendering_wait:
                 logging.warning(&#39;Params &#34;rendering_wait&#34; is ignored. Works only if render_js is enabled&#39;)
 
+        # The emitted key stays `asp`. Published SDK versions are immutable and
+        # upgraded per installation, so emitting `unblocker` against an API
+        # deployment that has not learned it yet would silently drop a paid
+        # feature: the scrape succeeds, is billed, and returns a blocked page.
         if self.asp is True:
             params[&#39;asp&#39;] = self._bool_to_http(self.asp)
 
@@ -534,7 +562,10 @@ el.replaceWith(d);
             cache_clear=data[&#39;cache_clear&#39;],
             render_js=data[&#39;render_js&#39;],
             method=data[&#39;method&#39;],
-            asp=data[&#39;asp&#39;],
+            # .get(), not a subscript: an export produced under either name
+            # must load, and neither key is guaranteed present.
+            asp=data.get(&#39;asp&#39;, _UNSET),
+            unblocker=data.get(&#39;unblocker&#39;, _UNSET),
             body=data[&#39;body&#39;],
             ssl=data[&#39;ssl&#39;],
             dns=data[&#39;dns&#39;],
@@ -615,7 +646,10 @@ el.replaceWith(d);
         cache_clear = scrape_config_dict.get(&#39;cache_clear&#39;, False)
         ssl = scrape_config_dict.get(&#39;ssl&#39;, False)
         dns = scrape_config_dict.get(&#39;dns&#39;, False)
-        asp = scrape_config_dict.get(&#39;asp&#39;, False)
+        # Sentinel defaults, not False: an explicit False under either key must
+        # stay distinguishable from an absent key so precedence works.
+        asp = scrape_config_dict.get(&#39;asp&#39;, _UNSET)
+        unblocker = scrape_config_dict.get(&#39;unblocker&#39;, _UNSET)
         debug = scrape_config_dict.get(&#39;debug&#39;, False)
         raise_on_upstream_error = scrape_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
         cache_ttl = scrape_config_dict.get(&#39;cache_ttl&#39;, None)
@@ -700,6 +734,7 @@ el.replaceWith(d);
             auto_scroll=auto_scroll,
             cost_budget=cost_budget,
             browser_brand=browser_brand,
+            unblocker=unblocker,
         )</code></pre>
 </details>
 <div class="desc"></div>
@@ -924,7 +959,10 @@ def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
     cache_clear = scrape_config_dict.get(&#39;cache_clear&#39;, False)
     ssl = scrape_config_dict.get(&#39;ssl&#39;, False)
     dns = scrape_config_dict.get(&#39;dns&#39;, False)
-    asp = scrape_config_dict.get(&#39;asp&#39;, False)
+    # Sentinel defaults, not False: an explicit False under either key must
+    # stay distinguishable from an absent key so precedence works.
+    asp = scrape_config_dict.get(&#39;asp&#39;, _UNSET)
+    unblocker = scrape_config_dict.get(&#39;unblocker&#39;, _UNSET)
     debug = scrape_config_dict.get(&#39;debug&#39;, False)
     raise_on_upstream_error = scrape_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
     cache_ttl = scrape_config_dict.get(&#39;cache_ttl&#39;, None)
@@ -1009,6 +1047,7 @@ def from_dict(scrape_config_dict: Dict) -&gt; &#39;ScrapeConfig&#39;:
         auto_scroll=auto_scroll,
         cost_budget=cost_budget,
         browser_brand=browser_brand,
+        unblocker=unblocker,
     )</code></pre>
 </details>
 <div class="desc"><p>Create a ScrapeConfig instance from a dictionary.</p></div>
@@ -1050,7 +1089,10 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         cache_clear=data[&#39;cache_clear&#39;],
         render_js=data[&#39;render_js&#39;],
         method=data[&#39;method&#39;],
-        asp=data[&#39;asp&#39;],
+        # .get(), not a subscript: an export produced under either name
+        # must load, and neither key is guaranteed present.
+        asp=data.get(&#39;asp&#39;, _UNSET),
+        unblocker=data.get(&#39;unblocker&#39;, _UNSET),
         body=data[&#39;body&#39;],
         ssl=data[&#39;ssl&#39;],
         dns=data[&#39;dns&#39;],
@@ -1069,6 +1111,33 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
     )</code></pre>
 </details>
 <div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.scrape_config.ScrapeConfig.unblocker"><code class="name">prop <span class="ident">unblocker</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def unblocker(self) -&gt; bool:
+    &#34;&#34;&#34;Anti-bot bypass toggle, the current name for what used to be `asp`.
+
+    Deliberately a property rather than a second stored attribute: it stays
+    out of `__dict__`, so serializers that iterate the instance dict do not
+    sprout a duplicate key, while `config.unblocker = True` after
+    construction still works.
+    &#34;&#34;&#34;
+
+    return self.asp</code></pre>
+</details>
+<div class="desc"><p>Anti-bot bypass toggle, the current name for what used to be <code>asp</code>.</p>
+<p>Deliberately a property rather than a second stored attribute: it stays
+out of <code>__dict__</code>, so serializers that iterate the instance dict do not
+sprout a duplicate key, while <code>config.unblocker = True</code> after
+construction still works.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -1155,6 +1224,10 @@ def from_exported_config(config:str) -&gt; &#39;ScrapeConfig&#39;:
         if self.rendering_wait:
             logging.warning(&#39;Params &#34;rendering_wait&#34; is ignored. Works only if render_js is enabled&#39;)
 
+    # The emitted key stays `asp`. Published SDK versions are immutable and
+    # upgraded per installation, so emitting `unblocker` against an API
+    # deployment that has not learned it yet would silently drop a paid
+    # feature: the scrape succeeds, is billed, and returns a blocked page.
     if self.asp is True:
         params[&#39;asp&#39;] = self._bool_to_http(self.asp)
 
@@ -1347,9 +1420,8 @@ Useful for JSON-serialization or other external storage.</p></div>
     HIGH_QUALITY = &#34;high_quality&#34;
     PRINT_MEDIA_FORMAT = &#34;print_media_format&#34;</code></pre>
 </details>
-<div class="desc"><dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
+<div class="desc"><h2 id="attributes">Attributes</h2>
+<dl>
 <dt><strong><code>LOAD_IMAGES</code></strong></dt>
 <dd>Enable image rendering with the request, add extra usage for the bandwidth consumed.</dd>
 <dt><strong><code>DARK_MODE</code></strong></dt>
@@ -1473,6 +1545,7 @@ Useful for JSON-serialization or other external storage.</p></div>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.timeout" href="#scrapfly.scrape_config.ScrapeConfig.timeout">timeout</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.to_api_params" href="#scrapfly.scrape_config.ScrapeConfig.to_api_params">to_api_params</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.to_dict" href="#scrapfly.scrape_config.ScrapeConfig.to_dict">to_dict</a></code></li>
+<li><code><a title="scrapfly.scrape_config.ScrapeConfig.unblocker" href="#scrapfly.scrape_config.ScrapeConfig.unblocker">unblocker</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.url" href="#scrapfly.scrape_config.ScrapeConfig.url">url</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.wait_for_selector" href="#scrapfly.scrape_config.ScrapeConfig.wait_for_selector">wait_for_selector</a></code></li>
 <li><code><a title="scrapfly.scrape_config.ScrapeConfig.webhook" href="#scrapfly.scrape_config.ScrapeConfig.webhook">webhook</a></code></li>

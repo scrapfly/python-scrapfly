@@ -149,6 +149,16 @@ class ScrapflyAspError(ScraperAPIError):
     pass
 
 
+# The customer-facing name of the feature is now "Unblocker"; the error class
+# keeps its `Asp` name because the API status it carries is still `ERR::ASP::*`.
+# This alias is the SAME class object, not a subclass, so `except
+# ScrapflyAspError` keeps catching everything it caught before and the two names
+# are interchangeable in `except`, `isinstance` and `issubclass`. Matches the Go
+# SDK's `ErrUnblockerBypassFailed` and the TypeScript SDK's
+# `ScrapflyUnblockerError`, which are aliases of their Asp-named originals too.
+ScrapflyUnblockerError = ScrapflyAspError
+
+
 class ScrapflyScheduleError(ScraperAPIError):
     pass
 
@@ -391,6 +401,7 @@ __all__:Tuple[str, ...] = [
     'EncoderError',
     'ScrapflyError',
     'ScrapflyAspError',
+    'ScrapflyUnblockerError',
     'ScrapflyProxyError',
     'ScrapflyScheduleError',
     'ScrapflyScrapeError',

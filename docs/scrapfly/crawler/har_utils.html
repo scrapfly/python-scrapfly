@@ -231,9 +231,8 @@ Spec: <a href="http://www.softwareishard.com/blog/har-12-spec/">http://www.softw
 </details>
 <div class="desc"><p>Parser and accessor for HAR (HTTP Archive) format data</p>
 <p>Initialize HAR archive from bytes</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>har_data</code></strong></dt>
 <dd>HAR file content as bytes (JSON format, may be gzipped)</dd>
 </dl></div>
@@ -303,15 +302,13 @@ def version(self) -&gt; str:
             if content_type.lower() in entry.content_type.lower()]</code></pre>
 </details>
 <div class="desc"><p>Filter entries by content type (substring match)</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>content_type</code></strong></dt>
 <dd>Content type to filter by (e.g., 'text/html')</dd>
 </dl>
-<p>Returns
------=
-List of matching HarEntry objects</p></div>
+<h2 id="returns">Returns</h2>
+<p>List of matching HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.crawler.har_utils.HarArchive.filter_by_status"><code class="name flex">
 <span>def <span class="ident">filter_by_status</span></span>(<span>self, status_code: int) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -335,15 +332,13 @@ List of matching HarEntry objects</p></div>
             if entry.status_code == status_code]</code></pre>
 </details>
 <div class="desc"><p>Filter entries by status code</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>status_code</code></strong></dt>
 <dd>HTTP status code to filter by</dd>
 </dl>
-<p>Returns
------=
-List of matching HarEntry objects</p></div>
+<h2 id="returns">Returns</h2>
+<p>List of matching HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.crawler.har_utils.HarArchive.find_by_url"><code class="name flex">
 <span>def <span class="ident">find_by_url</span></span>(<span>self, url: str) ‑> <a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a> | None</span>
@@ -369,15 +364,13 @@ List of matching HarEntry objects</p></div>
     return None</code></pre>
 </details>
 <div class="desc"><p>Find entry by exact URL match</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>URL to search for</dd>
 </dl>
-<p>Returns
------=
-First matching HarEntry or None</p></div>
+<h2 id="returns">Returns</h2>
+<p>First matching HarEntry or None</p></div>
 </dd>
 <dt id="scrapfly.crawler.har_utils.HarArchive.get_entries"><code class="name flex">
 <span>def <span class="ident">get_entries</span></span>(<span>self) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -397,9 +390,8 @@ First matching HarEntry or None</p></div>
     return [HarEntry(entry) for entry in self._entries]</code></pre>
 </details>
 <div class="desc"><p>Get all entries as list</p>
-<p>Returns
------=
-List of HarEntry objects</p></div>
+<h2 id="returns">Returns</h2>
+<p>List of HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.crawler.har_utils.HarArchive.get_urls"><code class="name flex">
 <span>def <span class="ident">get_urls</span></span>(<span>self) ‑> List[str]</span>
@@ -424,9 +416,8 @@ List of HarEntry objects</p></div>
     return urls</code></pre>
 </details>
 <div class="desc"><p>Get all URLs in the archive</p>
-<p>Returns
------=
-List of unique URLs</p></div>
+<h2 id="returns">Returns</h2>
+<p>List of unique URLs</p></div>
 </dd>
 <dt id="scrapfly.crawler.har_utils.HarArchive.iter_entries"><code class="name flex">
 <span>def <span class="ident">iter_entries</span></span>(<span>self) ‑> Iterator[<a title="scrapfly.crawler.har_utils.HarEntry" href="#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -447,9 +438,8 @@ List of unique URLs</p></div>
         yield HarEntry(entry)</code></pre>
 </details>
 <div class="desc"><p>Iterate through all HAR entries</p>
-<p>Yields
------=
-HarEntry objects</p></div>
+<h2 id="yields">Yields</h2>
+<p>HarEntry objects</p></div>
 </dd>
 </dl>
 </dd>
@@ -569,9 +559,8 @@ HarEntry objects</p></div>
 </details>
 <div class="desc"><p>Represents a single HAR entry (HTTP request/response pair)</p>
 <p>Initialize from HAR entry dict</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>entry_data</code></strong></dt>
 <dd>HAR entry dictionary</dd>
 </dl></div>

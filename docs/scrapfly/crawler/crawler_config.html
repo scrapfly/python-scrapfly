@@ -50,7 +50,7 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.crawler.crawler_config.CrawlerConfig"><code class="flex name class">
 <span>class <span class="ident">CrawlerConfig</span></span>
-<span>(</span><span>url: str | None = None,<br>url_list: List[str] | None = None,<br>remote_url_list: str | None = None,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool = False,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None)</span>
+<span>(</span><span>url: str | None = None,<br>url_list: List[str] | None = None,<br>remote_url_list: str | None = None,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>search: bool = False,<br>refresh: bool = False,<br>refresh_interval: int | None = None,<br>asp: bool | scrapfly.scrape_config._Unset = &lt;unset&gt;,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None,<br>unblocker: bool | scrapfly.scrape_config._Unset = &lt;unset&gt;)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -97,6 +97,14 @@ el.replaceWith(d);
     WEBHOOK_CRAWLER_STOPPED = &#39;crawler_stopped&#39;
     WEBHOOK_CRAWLER_CANCELLED = &#39;crawler_cancelled&#39;
     WEBHOOK_CRAWLER_FINISHED = &#39;crawler_finished&#39;
+    WEBHOOK_CRAWLER_SEARCH_READY = &#39;crawler_search_ready&#39;
+    WEBHOOK_CRAWLER_SEARCH_FAILED = &#39;crawler_search_failed&#39;
+    WEBHOOK_CRAWLER_UPDATED = &#39;crawler_updated&#39;
+
+    # Auto-refresh interval bounds. The floor decides the cost: a crawl
+    # refreshing every minute re-scrapes the whole site 1,440 times a day.
+    REFRESH_MIN_INTERVAL = 3600
+    REFRESH_MAX_INTERVAL = 90 * 24 * 3600
 
     ALL_WEBHOOK_EVENTS = [
         WEBHOOK_CRAWLER_STARTED,
@@ -107,6 +115,9 @@ el.replaceWith(d);
         WEBHOOK_CRAWLER_STOPPED,
         WEBHOOK_CRAWLER_CANCELLED,
         WEBHOOK_CRAWLER_FINISHED,
+        WEBHOOK_CRAWLER_SEARCH_READY,
+        WEBHOOK_CRAWLER_SEARCH_FAILED,
+        WEBHOOK_CRAWLER_UPDATED,
     ]
 
     def __init__(
@@ -159,8 +170,17 @@ el.replaceWith(d);
         content_formats: Optional[List[Literal[&#39;html&#39;, &#39;markdown&#39;, &#39;text&#39;, &#39;clean_html&#39;]]] = None,
         extraction_rules: Optional[Dict] = None,
 
+        # Search index built during the crawl, queried through
+        # client.crawl_search() / client.crawl_prompt() once READY.
+        search: bool = False,
+
+        # Auto-refresh: re-scrape this crawl&#39;s own URLs in place, on a period.
+        # Same crawler_uuid, same artifacts, only changed pages re-indexed.
+        refresh: bool = False,
+        refresh_interval: Optional[int] = None,
+
         # Web scraping features
-        asp: bool = False,
+        asp: Union[bool, _Unset] = _UNSET,  # deprecated alias of `unblocker`, which is declared last
         proxy_pool: Optional[str] = None,
         country: Optional[str] = None,
 
@@ -169,7 +189,13 @@ el.replaceWith(d);
         webhook_events: Optional[List[str]] = None,
 
         # Cost control
-        max_api_credit: Optional[int] = None
+        max_api_credit: Optional[int] = None,
+
+        # Appended at the very END of the signature on purpose: this parameter
+        # list is positional-capable, so inserting `unblocker` next to its
+        # alias `asp` would silently shift every positional argument in
+        # existing customer code.
+        unblocker: Union[bool, _Unset] = _UNSET
     ):
         &#34;&#34;&#34;
         Initialize a CrawlerConfig
@@ -204,7 +230,14 @@ el.replaceWith(d);
             content_formats: List of content formats to extract (&#39;html&#39;, &#39;markdown&#39;, &#39;text&#39;, &#39;clean_html&#39;)
             extraction_rules: Custom extraction rules
 
-            asp: Enable Anti-Scraping Protection bypass
+            search: Build a semantic search index while the crawl runs
+
+            refresh: Keep this crawl fresh by re-scraping its own URLs in place
+            refresh_interval: Seconds between refresh runs (3600 to 7776000)
+
+            unblocker: Enable the anti-bot bypass (Unblocker)
+            asp: Deprecated alias of `unblocker`, permanently supported. When
+                both are supplied, `asp` wins.
             proxy_pool: Proxy pool to use (e.g., &#39;public_residential_pool&#39;)
             country: Target country for geo-located content
 
@@ -215,6 +248,13 @@ el.replaceWith(d);
         &#34;&#34;&#34;
         if exclude_paths and include_only_paths:
             raise ValueError(&#34;exclude_paths and include_only_paths are mutually exclusive&#34;)
+
+        if refresh_interval is not None and not (self.REFRESH_MIN_INTERVAL &lt;= refresh_interval &lt;= self.REFRESH_MAX_INTERVAL):
+            raise ValueError(
+                f&#34;refresh_interval must be between {self.REFRESH_MIN_INTERVAL} and {self.REFRESH_MAX_INTERVAL} seconds&#34;
+            )
+        if refresh_interval is not None and not refresh:
+            raise ValueError(&#34;refresh_interval requires refresh=True&#34;)
 
         sources_set = sum(1 for v in (url, url_list, remote_url_list) if v)
         if sources_set == 0:
@@ -294,8 +334,23 @@ el.replaceWith(d);
         if extraction_rules:
             params[&#39;extraction_rules&#39;] = extraction_rules
 
-        # Web scraping features
-        if asp:
+        # Search index
+        if search:
+            params[&#39;search&#39;] = True
+
+        # Auto-refresh. The interval is omitted when unset so the server
+        # default period applies.
+        if refresh:
+            params[&#39;refresh&#39;] = True
+        if refresh_interval is not None:
+            params[&#39;refresh_interval&#39;] = refresh_interval
+
+        # Web scraping features. Both input names collapse here, and the key
+        # emitted to POST /crawl stays `asp`: published SDK versions are
+        # immutable and upgraded per installation, so emitting `unblocker`
+        # against an API deployment that has not learned it yet would silently
+        # drop a paid feature (crawl succeeds, is billed, returns blocked pages).
+        if _resolve_unblocker(asp, unblocker):
             params[&#39;asp&#39;] = True
         if proxy_pool:
             params[&#39;proxy_pool&#39;] = proxy_pool
@@ -318,6 +373,34 @@ el.replaceWith(d);
             params[&#39;max_api_credit&#39;] = max_api_credit
 
         self._params = params
+
+    @property
+    def unblocker(self) -&gt; bool:
+        &#34;&#34;&#34;Anti-bot bypass toggle, the current name for what used to be `asp`.
+
+        Backed by the single `asp` entry of the request body, so reading or
+        writing either name sees the same state. Assigning a falsy value drops
+        the key entirely, which is how &#34;disabled&#34; has always been expressed.
+        &#34;&#34;&#34;
+
+        return bool(self._params.get(&#39;asp&#39;, False))
+
+    @unblocker.setter
+    def unblocker(self, value: bool):
+        if value:
+            self._params[&#39;asp&#39;] = True
+        else:
+            self._params.pop(&#39;asp&#39;, None)
+
+    @property
+    def asp(self) -&gt; bool:
+        &#34;&#34;&#34;Deprecated alias of `unblocker`, permanently supported.&#34;&#34;&#34;
+
+        return self.unblocker
+
+    @asp.setter
+    def asp(self, value: bool):
+        self.unblocker = value
 
     def to_api_params(self, key: Optional[str] = None) -&gt; Dict:
         &#34;&#34;&#34;
@@ -353,8 +436,7 @@ el.replaceWith(d);
 <div class="desc"><p>Configuration for Scrapfly Crawler API</p>
 <p>The Crawler API performs recursive website crawling with advanced
 configuration, content extraction, and artifact storage.</p>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig
 client = ScrapflyClient(key='YOUR_API_KEY')
 config = CrawlerConfig(
@@ -377,9 +459,8 @@ if status.is_complete:
     pages = artifact.get_pages()
 </code></pre>
 <p>Initialize a CrawlerConfig</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>Starting URL for the crawl (required)</dd>
 <dt><strong><code>page_limit</code></strong></dt>
@@ -424,8 +505,17 @@ if status.is_complete:
 <dd>List of content formats to extract ('html', 'markdown', 'text', 'clean_html')</dd>
 <dt><strong><code>extraction_rules</code></strong></dt>
 <dd>Custom extraction rules</dd>
+<dt><strong><code>search</code></strong></dt>
+<dd>Build a semantic search index while the crawl runs</dd>
+<dt><strong><code>refresh</code></strong></dt>
+<dd>Keep this crawl fresh by re-scraping its own URLs in place</dd>
+<dt><strong><code>refresh_interval</code></strong></dt>
+<dd>Seconds between refresh runs (3600 to 7776000)</dd>
+<dt><strong><code>unblocker</code></strong></dt>
+<dd>Enable the anti-bot bypass (Unblocker)</dd>
 <dt><strong><code>asp</code></strong></dt>
-<dd>Enable Anti-Scraping Protection bypass</dd>
+<dd>Deprecated alias of <code>unblocker</code>, permanently supported. When
+both are supplied, <code>asp</code> wins.</dd>
 <dt><strong><code>proxy_pool</code></strong></dt>
 <dd>Proxy pool to use (e.g., 'public_residential_pool')</dd>
 <dt><strong><code>country</code></strong></dt>
@@ -447,6 +537,14 @@ if status.is_complete:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.REFRESH_MAX_INTERVAL"><code class="name">var <span class="ident">REFRESH_MAX_INTERVAL</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.REFRESH_MIN_INTERVAL"><code class="name">var <span class="ident">REFRESH_MIN_INTERVAL</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_CANCELLED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_CANCELLED</span></code></dt>
 <dd>
 <div class="desc"></div>
@@ -455,11 +553,23 @@ if status.is_complete:
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_SEARCH_FAILED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_SEARCH_FAILED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_SEARCH_READY"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_SEARCH_READY</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STARTED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_STARTED</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STOPPED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_STOPPED</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_UPDATED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_UPDATED</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -478,6 +588,45 @@ if status.is_complete:
 <dt id="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED"><code class="name">var <span class="ident">WEBHOOK_CRAWLER_URL_VISITED</span></code></dt>
 <dd>
 <div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.asp"><code class="name">prop <span class="ident">asp</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def asp(self) -&gt; bool:
+    &#34;&#34;&#34;Deprecated alias of `unblocker`, permanently supported.&#34;&#34;&#34;
+
+    return self.unblocker</code></pre>
+</details>
+<div class="desc"><p>Deprecated alias of <code>unblocker</code>, permanently supported.</p></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_config.CrawlerConfig.unblocker"><code class="name">prop <span class="ident">unblocker</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def unblocker(self) -&gt; bool:
+    &#34;&#34;&#34;Anti-bot bypass toggle, the current name for what used to be `asp`.
+
+    Backed by the single `asp` entry of the request body, so reading or
+    writing either name sees the same state. Assigning a falsy value drops
+    the key entirely, which is how &#34;disabled&#34; has always been expressed.
+    &#34;&#34;&#34;
+
+    return bool(self._params.get(&#39;asp&#39;, False))</code></pre>
+</details>
+<div class="desc"><p>Anti-bot bypass toggle, the current name for what used to be <code>asp</code>.</p>
+<p>Backed by the single <code>asp</code> entry of the request body, so reading or
+writing either name sees the same state. Assigning a falsy value drops
+the key entirely, which is how "disabled" has always been expressed.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -563,16 +712,23 @@ if status.is_complete:
 <h4><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig" href="#scrapfly.crawler.crawler_config.CrawlerConfig">CrawlerConfig</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.ALL_WEBHOOK_EVENTS" href="#scrapfly.crawler.crawler_config.CrawlerConfig.ALL_WEBHOOK_EVENTS">ALL_WEBHOOK_EVENTS</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.REFRESH_MAX_INTERVAL" href="#scrapfly.crawler.crawler_config.CrawlerConfig.REFRESH_MAX_INTERVAL">REFRESH_MAX_INTERVAL</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.REFRESH_MIN_INTERVAL" href="#scrapfly.crawler.crawler_config.CrawlerConfig.REFRESH_MIN_INTERVAL">REFRESH_MIN_INTERVAL</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_CANCELLED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_CANCELLED">WEBHOOK_CRAWLER_CANCELLED</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_FINISHED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_FINISHED">WEBHOOK_CRAWLER_FINISHED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_SEARCH_FAILED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_SEARCH_FAILED">WEBHOOK_CRAWLER_SEARCH_FAILED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_SEARCH_READY" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_SEARCH_READY">WEBHOOK_CRAWLER_SEARCH_READY</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STARTED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STARTED">WEBHOOK_CRAWLER_STARTED</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STOPPED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_STOPPED">WEBHOOK_CRAWLER_STOPPED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_UPDATED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_UPDATED">WEBHOOK_CRAWLER_UPDATED</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_DISCOVERED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_DISCOVERED">WEBHOOK_CRAWLER_URL_DISCOVERED</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_FAILED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_FAILED">WEBHOOK_CRAWLER_URL_FAILED</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_SKIPPED">WEBHOOK_CRAWLER_URL_SKIPPED</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED" href="#scrapfly.crawler.crawler_config.CrawlerConfig.WEBHOOK_CRAWLER_URL_VISITED">WEBHOOK_CRAWLER_URL_VISITED</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.asp" href="#scrapfly.crawler.crawler_config.CrawlerConfig.asp">asp</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.to_api_params" href="#scrapfly.crawler.crawler_config.CrawlerConfig.to_api_params">to_api_params</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.to_multipart_parts" href="#scrapfly.crawler.crawler_config.CrawlerConfig.to_multipart_parts">to_multipart_parts</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_config.CrawlerConfig.unblocker" href="#scrapfly.crawler.crawler_config.CrawlerConfig.unblocker">unblocker</a></code></li>
 </ul>
 </li>
 </ul>

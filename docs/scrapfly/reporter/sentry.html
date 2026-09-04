@@ -44,8 +44,7 @@ code) for easier debugging in the Sentry UI.</p>
 <code><a title="scrapfly" href="../index.html">scrapfly</a></code> package installed does not force users to also install
 <code>sentry-sdk</code>. The import error is raised at instantiation time with a
 clear message instead of at module-load time.</p>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python-repl">&gt;&gt;&gt; import sentry_sdk
 &gt;&gt;&gt; sentry_sdk.init(dsn=&quot;https://...@sentry.io/...&quot;)
 &gt;&gt;&gt;
@@ -124,9 +123,8 @@ clear message instead of at module-load time.</p>
 </details>
 <div class="desc"><p>A reporter callable that forwards Scrapfly errors to Sentry with
 contextual tags and extras.</p>
+<h2 id="raises">Raises</h2>
 <dl>
-<dt>Raises</dt>
-<dt>-----=</dt>
 <dt><code>ImportError</code></dt>
 <dd>If <code>sentry-sdk</code> is not installed when the reporter
 is instantiated. Install with <code>pip install sentry-sdk</code>.</dd>

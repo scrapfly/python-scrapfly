@@ -176,22 +176,21 @@ el.replaceWith(d);
 
     @property
     def error_message(self):
-        if self.error is not None:
-            message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
+        # Every envelope field is optional on the wire - a 401 carries neither
+        # `code` nor `links` - and this renders the text of an already-raised
+        # error, so it must not be the thing that raises.
+        payload = self.error if self.error is not None else self.result
+        reason = payload.get(&#39;message&#39;) or payload.get(&#39;reason&#39;) or &#39;&#39;
+        code = payload.get(&#39;code&#39;) if self.error is not None else None
 
-            if self.error[&#39;links&#39;]:
-                links = self.error[&#39;links&#39;]
-                if isinstance(links, dict):
-                    message += &#34; Checkout the related doc: %s&#34; % list(links.values())[0]
-                elif isinstance(links, list):
-                    message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(links)
+        if code:
+            message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, code, reason)
+        else:
+            message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, reason)
 
-            return message
+        links = payload.get(&#39;links&#39;)
 
-        message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
-
-        if self.result.get(&#39;links&#39;):
-            links = self.result[&#39;links&#39;]
+        if links:
             if isinstance(links, dict):
                 message += &#34; Checkout the related doc: %s&#34; % list(links.values())[0]
             elif isinstance(links, list):
@@ -215,41 +214,20 @@ el.replaceWith(d);
             self.response.raise_for_status()
         except HTTPError as e:
             if &#39;error_id&#39; in self.result:
+                # The envelope carries the code, the retryable flag and the doc
+                # link the caller switches on; it is the only place they exist,
+                # so it is decoded rather than restated with constants.
+                args = api_error_args(self.result, http_status_code=e.response.status_code)
+                args.update(request=e.request, response=e.response, api_response=self)
+
                 if e.response.status_code &gt;= 500:
-                    raise ApiHttpServerError(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result[&#39;message&#39;],
-                        code=&#39;&#39;,
-                        resource=&#39;&#39;,
-                        http_status_code=e.response.status_code,
-                        documentation_url=self.result.get(&#39;links&#39;),
-                        api_response=self,
-                    ) from e
+                    raise ApiHttpServerError(**args) from e
+
                 # respect raise_on_upstream_error with screenshot and extraction only
-                elif error_class in (ScreenshotAPIError, ExtractionAPIError):
-                    if raise_on_upstream_error:
-                        raise error_class(
-                            request=e.request,
-                            response=e.response,
-                            message=self.result[&#39;message&#39;],
-                            code=&#39;&#39;,
-                            resource=&#39;API&#39;,
-                            http_status_code=self.result[&#39;http_code&#39;],
-                            documentation_url=self.result.get(&#39;links&#39;),
-                            api_response=self,
-                        ) from e
-                else:
-                    raise error_class(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result[&#39;message&#39;],
-                        code=&#39;&#39;,
-                        resource=&#39;API&#39;,
-                        http_status_code=self.result[&#39;http_code&#39;],
-                        documentation_url=self.result.get(&#39;links&#39;),
-                        api_response=self,
-                    ) from e</code></pre>
+                if error_class in (ScreenshotAPIError, ExtractionAPIError) and not raise_on_upstream_error:
+                    return
+
+                raise error_class(**args) from e</code></pre>
 </details>
 <div class="desc"></div>
 <h3>Subclasses</h3>
@@ -302,22 +280,21 @@ def duration_ms(self) -&gt; Optional[float]:
 </summary>
 <pre><code class="python">@property
 def error_message(self):
-    if self.error is not None:
-        message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, self.error[&#39;code&#39;], self.error[&#39;message&#39;])
+    # Every envelope field is optional on the wire - a 401 carries neither
+    # `code` nor `links` - and this renders the text of an already-raised
+    # error, so it must not be the thing that raises.
+    payload = self.error if self.error is not None else self.result
+    reason = payload.get(&#39;message&#39;) or payload.get(&#39;reason&#39;) or &#39;&#39;
+    code = payload.get(&#39;code&#39;) if self.error is not None else None
 
-        if self.error[&#39;links&#39;]:
-            links = self.error[&#39;links&#39;]
-            if isinstance(links, dict):
-                message += &#34; Checkout the related doc: %s&#34; % list(links.values())[0]
-            elif isinstance(links, list):
-                message += &#34; Checkout the related doc: %s&#34; % &#34;, &#34;.join(links)
+    if code:
+        message = &#34;&lt;-- %s | %s - %s.&#34; % (self.response.status_code, code, reason)
+    else:
+        message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, reason)
 
-        return message
+    links = payload.get(&#39;links&#39;)
 
-    message = &#34;&lt;-- %s | %s.&#34; % (self.response.status_code, self.result[&#39;message&#39;])
-
-    if self.result.get(&#39;links&#39;):
-        links = self.result[&#39;links&#39;]
+    if links:
         if isinstance(links, dict):
             message += &#34; Checkout the related doc: %s&#34; % list(links.values())[0]
         elif isinstance(links, list):
@@ -408,41 +385,20 @@ def status_code(self) -&gt; int:
         self.response.raise_for_status()
     except HTTPError as e:
         if &#39;error_id&#39; in self.result:
+            # The envelope carries the code, the retryable flag and the doc
+            # link the caller switches on; it is the only place they exist,
+            # so it is decoded rather than restated with constants.
+            args = api_error_args(self.result, http_status_code=e.response.status_code)
+            args.update(request=e.request, response=e.response, api_response=self)
+
             if e.response.status_code &gt;= 500:
-                raise ApiHttpServerError(
-                    request=e.request,
-                    response=e.response,
-                    message=self.result[&#39;message&#39;],
-                    code=&#39;&#39;,
-                    resource=&#39;&#39;,
-                    http_status_code=e.response.status_code,
-                    documentation_url=self.result.get(&#39;links&#39;),
-                    api_response=self,
-                ) from e
+                raise ApiHttpServerError(**args) from e
+
             # respect raise_on_upstream_error with screenshot and extraction only
-            elif error_class in (ScreenshotAPIError, ExtractionAPIError):
-                if raise_on_upstream_error:
-                    raise error_class(
-                        request=e.request,
-                        response=e.response,
-                        message=self.result[&#39;message&#39;],
-                        code=&#39;&#39;,
-                        resource=&#39;API&#39;,
-                        http_status_code=self.result[&#39;http_code&#39;],
-                        documentation_url=self.result.get(&#39;links&#39;),
-                        api_response=self,
-                    ) from e
-            else:
-                raise error_class(
-                    request=e.request,
-                    response=e.response,
-                    message=self.result[&#39;message&#39;],
-                    code=&#39;&#39;,
-                    resource=&#39;API&#39;,
-                    http_status_code=self.result[&#39;http_code&#39;],
-                    documentation_url=self.result.get(&#39;links&#39;),
-                    api_response=self,
-                ) from e</code></pre>
+            if error_class in (ScreenshotAPIError, ExtractionAPIError) and not raise_on_upstream_error:
+                return
+
+            raise error_class(**args) from e</code></pre>
 </details>
 <div class="desc"></div>
 </dd>

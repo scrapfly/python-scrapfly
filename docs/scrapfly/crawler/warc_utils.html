@@ -80,18 +80,17 @@ high-level interfaces for extracting page data.</p>
     return WarcParser(warc_data)</code></pre>
 </details>
 <div class="desc"><p>Convenience function to create a WARC parser</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>warc_data</code></strong></dt>
 <dd>WARC data as bytes or file-like object</dd>
-<dt>Returns</dt>
-<dt>-----=</dt>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
 <dt><code><a title="scrapfly.crawler.warc_utils.WarcParser" href="#scrapfly.crawler.warc_utils.WarcParser">WarcParser</a></code></dt>
 <dd>Parser instance</dd>
 </dl>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python">from scrapfly import parse_warc
 
 # Quick way to get all pages
@@ -329,8 +328,7 @@ for page in pages:
 </details>
 <div class="desc"><p>Parser for WARC files with automatic decompression</p>
 <p>Provides methods to iterate through WARC records and extract page data.</p>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python"># From bytes
 parser = WarcParser(warc_bytes)
 
@@ -349,9 +347,8 @@ for page in pages:
     print(f&quot;{page['url']}: {page['status_code']}&quot;)
 </code></pre>
 <p>Initialize WARC parser</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>warc_data</code></strong></dt>
 <dd>WARC data as bytes or file-like object
 (supports both gzip-compressed and uncompressed)</dd>
@@ -397,14 +394,12 @@ for page in pages:
 <div class="desc"><p>Get all crawled pages as simple dictionaries</p>
 <p>This is the easiest way to access crawl results without dealing
 with WARC format details.</p>
+<h2 id="returns">Returns</h2>
 <dl>
-<dt>Returns</dt>
-<dt>-----=</dt>
 <dt><code>List</code> of <code>dicts with keys</code></dt>
 <dd>url, status_code, headers, content</dd>
 </dl>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python">pages = parser.get_pages()
 for page in pages:
     print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
@@ -455,9 +450,8 @@ for page in pages:
             yield record</code></pre>
 </details>
 <div class="desc"><p>Iterate through all WARC records</p>
+<h2 id="yields">Yields</h2>
 <dl>
-<dt>Yields</dt>
-<dt>-----=</dt>
 <dt><code><a title="scrapfly.crawler.warc_utils.WarcRecord" href="#scrapfly.crawler.warc_utils.WarcRecord">WarcRecord</a></code></dt>
 <dd>Each record in the WARC file</dd>
 </dl></div>
@@ -485,9 +479,8 @@ for page in pages:
 </details>
 <div class="desc"><p>Iterate through HTTP response records only</p>
 <p>Filters out non-response records (requests, metadata, etc.)</p>
+<h2 id="yields">Yields</h2>
 <dl>
-<dt>Yields</dt>
-<dt>-----=</dt>
 <dt><code><a title="scrapfly.crawler.warc_utils.WarcRecord" href="#scrapfly.crawler.warc_utils.WarcRecord">WarcRecord</a></code></dt>
 <dd>HTTP response records only</dd>
 </dl></div>

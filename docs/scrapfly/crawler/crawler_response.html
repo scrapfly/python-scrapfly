@@ -221,8 +221,7 @@ el.replaceWith(d);
 <p>Returned by ScrapflyClient.get_crawl_artifact() method.</p>
 <p>Provides high-level access to crawl results with automatic WARC/HAR parsing.
 Users don't need to understand WARC or HAR format to use this class.</p>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python"># Get WARC artifact (default)
 artifact = client.get_crawl_artifact(uuid)
 
@@ -244,9 +243,8 @@ for record in artifact.iter_responses():
 artifact.save('crawl_results.warc.gz')
 </code></pre>
 <p>Initialize from artifact data</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>artifact_data</code></strong></dt>
 <dd>Raw artifact file bytes</dd>
 <dt><strong><code>artifact_type</code></strong></dt>
@@ -372,14 +370,12 @@ def warc_data(self) -&gt; bytes:
 <div class="desc"><p>Get all crawled pages as simple dictionaries</p>
 <p>This is the easiest way to access crawl results.
 Works with both WARC and HAR formats.</p>
+<h2 id="returns">Returns</h2>
 <dl>
-<dt>Returns</dt>
-<dt>-----=</dt>
 <dt><code>List</code> of <code>dicts with keys</code></dt>
 <dd>url, status_code, headers, content</dd>
 </dl>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python">pages = artifact.get_pages()
 for page in pages:
     print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
@@ -412,9 +408,8 @@ for page in pages:
 <div class="desc"><p>Iterate through all records</p>
 <p>For WARC: iterates through all WARC records
 For HAR: iterates through all HAR entries</p>
+<h2 id="yields">Yields</h2>
 <dl>
-<dt>Yields</dt>
-<dt>-----=</dt>
 <dt><code>WarcRecord</code> or <code>HarEntry</code></dt>
 <dd>Each record in the artifact</dd>
 </dl></div>
@@ -448,9 +443,8 @@ For HAR: iterates through all HAR entries</p>
 <p>This is more memory-efficient than get_pages() for large crawls.</p>
 <p>For WARC: iterates through response records
 For HAR: iterates through all entries (HAR only contains responses)</p>
+<h2 id="yields">Yields</h2>
 <dl>
-<dt>Yields</dt>
-<dt>-----=</dt>
 <dt><code>WarcRecord</code> or <code>HarEntry</code></dt>
 <dd>HTTP response records with url, status_code, headers, content</dd>
 </dl></div>
@@ -479,16 +473,1016 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         f.write(self.warc_data)</code></pre>
 </details>
 <div class="desc"><p>Save WARC data to file</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>filepath</code></strong></dt>
 <dd>Path to save the WARC file</dd>
 </dl>
-<p>Example
------=</p>
+<h2 id="example">Example</h2>
 <pre><code class="language-python">artifact.save('crawl_results.warc.gz')
 </code></pre></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptEvent"><code class="flex name class">
+<span>class <span class="ident">CrawlerPromptEvent</span></span>
+<span>(</span><span>event: str, data: Any)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerPromptEvent:
+    &#34;&#34;&#34;
+    One frame of the ``POST /crawl/prompt`` SSE stream.
+
+    Frame order is ``source``* → ``token``* → (``error``) → ``done``.
+    Keepalive comment frames are consumed by the reader and never surfaced.
+
+    Attributes:
+        event: ``source``, ``token``, ``error`` or ``done``.
+        data: The decoded frame payload: a str for ``token``, a dict for the
+            other three.
+    &#34;&#34;&#34;
+
+    event: str
+    data: Any
+
+    @property
+    def is_token(self) -&gt; bool:
+        return self.event == &#39;token&#39;
+
+    @property
+    def is_done(self) -&gt; bool:
+        return self.event == &#39;done&#39;</code></pre>
+</details>
+<div class="desc"><p>One frame of the <code>POST /crawl/prompt</code> SSE stream.</p>
+<p>Frame order is <code>source</code><em> → <code>token</code></em> → (<code>error</code>) → <code>done</code>.
+Keepalive comment frames are consumed by the reader and never surfaced.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>event</code></strong></dt>
+<dd><code>source</code>, <code>token</code>, <code>error</code> or <code>done</code>.</dd>
+<dt><strong><code>data</code></strong></dt>
+<dd>The decoded frame payload: a str for <code>token</code>, a dict for the
+other three.</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptEvent.data"><code class="name">var <span class="ident">data</span> : Any</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptEvent.event"><code class="name">var <span class="ident">event</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_done"><code class="name">prop <span class="ident">is_done</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_done(self) -&gt; bool:
+    return self.event == &#39;done&#39;</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_token"><code class="name">prop <span class="ident">is_token</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_token(self) -&gt; bool:
+    return self.event == &#39;token&#39;</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry"><code class="flex name class">
+<span>class <span class="ident">CrawlerRefreshEntry</span></span>
+<span>(</span><span>at: str | None = None,<br>generation: int | None = None,<br>added: int = 0,<br>updated: int = 0,<br>removed: int = 0,<br>unchanged: int = 0,<br>failed: int = 0,<br>duration_ms: int | None = None,<br>search_status: str | None = None,<br>error: str | None = None,<br>sample_updated: List[str] = &lt;factory&gt;,<br>sample_removed: List[str] = &lt;factory&gt;)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerRefreshEntry:
+    &#34;&#34;&#34;
+    One row of a crawl&#39;s refresh timeline.
+
+    Counts describe the whole run; ``sample_updated`` / ``sample_removed``
+    carry at most ten URLs each. The full URL lists are never inlined, so a
+    5,000-page crawl does not put 5,000 strings into every status poll.
+
+    Attributes:
+        at: ISO-8601 timestamp of the run.
+        generation: Refresh generation this run produced, 1 for the first.
+        added: URLs discovered by this run that the crawl did not hold.
+        updated: Known URLs whose content fingerprint changed.
+        removed: Known URLs that no longer exist and were dropped.
+        unchanged: Known URLs re-scraped with an identical fingerprint. These
+            cost no embedding and no index write.
+        failed: URLs the run could not fetch. They keep their previous content.
+        duration_ms: Wall time of the run.
+        search_status: Index status after the run, ``None`` when the crawl has
+            no search index.
+        error: Failure reason when the run itself failed.
+        sample_updated: Up to ten re-indexed URLs.
+        sample_removed: Up to ten dropped URLs.
+    &#34;&#34;&#34;
+
+    at: Optional[str] = None
+    generation: Optional[int] = None
+    added: int = 0
+    updated: int = 0
+    removed: int = 0
+    unchanged: int = 0
+    failed: int = 0
+    duration_ms: Optional[int] = None
+    search_status: Optional[str] = None
+    error: Optional[str] = None
+    sample_updated: List[str] = field(default_factory=list)
+    sample_removed: List[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;CrawlerRefreshEntry&#39;:
+        return cls(
+            at=data.get(&#39;at&#39;),
+            generation=data.get(&#39;generation&#39;),
+            added=data.get(&#39;added&#39;) or 0,
+            updated=data.get(&#39;updated&#39;) or 0,
+            removed=data.get(&#39;removed&#39;) or 0,
+            unchanged=data.get(&#39;unchanged&#39;) or 0,
+            failed=data.get(&#39;failed&#39;) or 0,
+            duration_ms=data.get(&#39;duration_ms&#39;),
+            search_status=data.get(&#39;search_status&#39;),
+            error=data.get(&#39;error&#39;),
+            sample_updated=list(data.get(&#39;sample_updated&#39;) or []),
+            sample_removed=list(data.get(&#39;sample_removed&#39;) or []),
+        )
+
+    @property
+    def changed(self) -&gt; int:
+        &#34;&#34;&#34;Pages the run actually touched. Zero means the site stood still.&#34;&#34;&#34;
+        return self.added + self.updated + self.removed</code></pre>
+</details>
+<div class="desc"><p>One row of a crawl's refresh timeline.</p>
+<p>Counts describe the whole run; <code>sample_updated</code> / <code>sample_removed</code>
+carry at most ten URLs each. The full URL lists are never inlined, so a
+5,000-page crawl does not put 5,000 strings into every status poll.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>at</code></strong></dt>
+<dd>ISO-8601 timestamp of the run.</dd>
+<dt><strong><code>generation</code></strong></dt>
+<dd>Refresh generation this run produced, 1 for the first.</dd>
+<dt><strong><code>added</code></strong></dt>
+<dd>URLs discovered by this run that the crawl did not hold.</dd>
+<dt><strong><code>updated</code></strong></dt>
+<dd>Known URLs whose content fingerprint changed.</dd>
+<dt><strong><code>removed</code></strong></dt>
+<dd>Known URLs that no longer exist and were dropped.</dd>
+<dt><strong><code>unchanged</code></strong></dt>
+<dd>Known URLs re-scraped with an identical fingerprint. These
+cost no embedding and no index write.</dd>
+<dt><strong><code>failed</code></strong></dt>
+<dd>URLs the run could not fetch. They keep their previous content.</dd>
+<dt><strong><code>duration_ms</code></strong></dt>
+<dd>Wall time of the run.</dd>
+<dt><strong><code>search_status</code></strong></dt>
+<dd>Index status after the run, <code>None</code> when the crawl has
+no search index.</dd>
+<dt><strong><code>error</code></strong></dt>
+<dd>Failure reason when the run itself failed.</dd>
+<dt><strong><code>sample_updated</code></strong></dt>
+<dd>Up to ten re-indexed URLs.</dd>
+<dt><strong><code>sample_removed</code></strong></dt>
+<dd>Up to ten dropped URLs.</dd>
+</dl></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry">CrawlerRefreshEntry</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.added"><code class="name">var <span class="ident">added</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.at"><code class="name">var <span class="ident">at</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.changed"><code class="name">prop <span class="ident">changed</span> : int</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def changed(self) -&gt; int:
+    &#34;&#34;&#34;Pages the run actually touched. Zero means the site stood still.&#34;&#34;&#34;
+    return self.added + self.updated + self.removed</code></pre>
+</details>
+<div class="desc"><p>Pages the run actually touched. Zero means the site stood still.</p></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.duration_ms"><code class="name">var <span class="ident">duration_ms</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.error"><code class="name">var <span class="ident">error</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.failed"><code class="name">var <span class="ident">failed</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.generation"><code class="name">var <span class="ident">generation</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.removed"><code class="name">var <span class="ident">removed</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.sample_removed"><code class="name">var <span class="ident">sample_removed</span> : List[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.sample_updated"><code class="name">var <span class="ident">sample_updated</span> : List[str]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.search_status"><code class="name">var <span class="ident">search_status</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.unchanged"><code class="name">var <span class="ident">unchanged</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.updated"><code class="name">var <span class="ident">updated</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshState"><code class="flex name class">
+<span>class <span class="ident">CrawlerRefreshState</span></span>
+<span>(</span><span>response_data: Dict[str, Any])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerRefreshState:
+    &#34;&#34;&#34;
+    The ``refresh`` block of a crawl, as carried by
+    ``GET /crawl/{uuid}/status`` and returned by the three refresh calls.
+
+    Attributes:
+        enabled: Whether the crawl re-scrapes itself on a period.
+        interval_seconds: Period between runs, 0 when disabled.
+        status: ``DISABLED``, ``SCHEDULED``, ``RUNNING`` or ``FAILED``.
+        generation: Number of refresh runs completed so far.
+        last_run_at: ISO-8601 timestamp of the last completed run.
+        next_run_at: ISO-8601 timestamp of the next due run, ``None`` when
+            disabled.
+        started_at: ISO-8601 start of the run in flight, ``None`` unless
+            ``status`` is ``RUNNING``. Rendered by ``GET /crawl/{uuid}/status``
+            only.
+        consecutive_failures: Failed runs since the last success, back to 0 on
+            any success. Same status-only route as ``started_at``.
+        error: Failure reason when ``status`` is ``FAILED``.
+        history: Newest-last timeline, capped at the 50 most recent runs.
+    &#34;&#34;&#34;
+
+    def __init__(self, response_data: Dict[str, Any]):
+        self._data = response_data
+
+        # The three refresh endpoints answer with the state at the top level;
+        # GET /status nests it under &#34;refresh&#34;. One lookup, so the isinstance
+        # narrowing holds for every read below it.
+        nested = response_data.get(&#39;refresh&#39;)
+        block = nested if isinstance(nested, dict) else response_data
+
+        self.enabled: bool = bool(block.get(&#39;enabled&#39;, False))
+        self.interval_seconds: int = int(block.get(&#39;interval_seconds&#39;) or 0)
+        self.status: str = block.get(&#39;status&#39;) or &#39;DISABLED&#39;
+        self.generation: int = int(block.get(&#39;generation&#39;) or 0)
+        self.last_run_at: Optional[str] = block.get(&#39;last_run_at&#39;)
+        self.next_run_at: Optional[str] = block.get(&#39;next_run_at&#39;)
+        # ``GET /crawl/{uuid}/status`` relays the engine&#39;s refresh block
+        # verbatim; the three refresh calls render a typed block that declares
+        # neither of these, so both have to survive their absence.
+        self.started_at: Optional[str] = block.get(&#39;started_at&#39;)
+        self.consecutive_failures: int = int(block.get(&#39;consecutive_failures&#39;) or 0)
+        self.error: Optional[str] = block.get(&#39;error&#39;)
+        self.history: List[CrawlerRefreshEntry] = [
+            CrawlerRefreshEntry.from_dict(e) for e in (block.get(&#39;history&#39;) or [])
+        ]
+
+    @property
+    def is_running(self) -&gt; bool:
+        &#34;&#34;&#34;Whether a refresh run is in flight right now.&#34;&#34;&#34;
+        return self.status == &#39;RUNNING&#39;
+
+    @property
+    def last_run(self) -&gt; Optional[CrawlerRefreshEntry]:
+        &#34;&#34;&#34;Most recent timeline row, ``None`` before the first run.&#34;&#34;&#34;
+        return self.history[-1] if self.history else None
+
+    def __len__(self) -&gt; int:
+        return len(self.history)
+
+    def __iter__(self) -&gt; Iterator[CrawlerRefreshEntry]:
+        return iter(self.history)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerRefreshState(enabled={self.enabled}, status={self.status}, &#34;
+            f&#34;interval_seconds={self.interval_seconds}, generation={self.generation}, &#34;
+            f&#34;next_run_at={self.next_run_at!r})&#34;
+        )</code></pre>
+</details>
+<div class="desc"><p>The <code>refresh</code> block of a crawl, as carried by
+<code>GET /crawl/{uuid}/status</code> and returned by the three refresh calls.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>enabled</code></strong></dt>
+<dd>Whether the crawl re-scrapes itself on a period.</dd>
+<dt><strong><code>interval_seconds</code></strong></dt>
+<dd>Period between runs, 0 when disabled.</dd>
+<dt><strong><code>status</code></strong></dt>
+<dd><code>DISABLED</code>, <code>SCHEDULED</code>, <code>RUNNING</code> or <code>FAILED</code>.</dd>
+<dt><strong><code>generation</code></strong></dt>
+<dd>Number of refresh runs completed so far.</dd>
+<dt><strong><code>last_run_at</code></strong></dt>
+<dd>ISO-8601 timestamp of the last completed run.</dd>
+<dt><strong><code>next_run_at</code></strong></dt>
+<dd>ISO-8601 timestamp of the next due run, <code>None</code> when
+disabled.</dd>
+<dt><strong><code>started_at</code></strong></dt>
+<dd>ISO-8601 start of the run in flight, <code>None</code> unless
+<code>status</code> is <code>RUNNING</code>. Rendered by <code>GET /crawl/{uuid}/status</code>
+only.</dd>
+<dt><strong><code>consecutive_failures</code></strong></dt>
+<dd>Failed runs since the last success, back to 0 on
+any success. Same status-only route as <code>started_at</code>.</dd>
+<dt><strong><code>error</code></strong></dt>
+<dd>Failure reason when <code>status</code> is <code>FAILED</code>.</dd>
+<dt><strong><code>history</code></strong></dt>
+<dd>Newest-last timeline, capped at the 50 most recent runs.</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshState.is_running"><code class="name">prop <span class="ident">is_running</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_running(self) -&gt; bool:
+    &#34;&#34;&#34;Whether a refresh run is in flight right now.&#34;&#34;&#34;
+    return self.status == &#39;RUNNING&#39;</code></pre>
+</details>
+<div class="desc"><p>Whether a refresh run is in flight right now.</p></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerRefreshState.last_run"><code class="name">prop <span class="ident">last_run</span> : <a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry">CrawlerRefreshEntry</a> | None</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def last_run(self) -&gt; Optional[CrawlerRefreshEntry]:
+    &#34;&#34;&#34;Most recent timeline row, ``None`` before the first run.&#34;&#34;&#34;
+    return self.history[-1] if self.history else None</code></pre>
+</details>
+<div class="desc"><p>Most recent timeline row, <code>None</code> before the first run.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchCrawl"><code class="flex name class">
+<span>class <span class="ident">CrawlerSearchCrawl</span></span>
+<span>(</span><span>crawler_uuid: str,<br>documents: int | None = None,<br>vectors: int | None = None,<br>index: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerSearchCrawl:
+    &#34;&#34;&#34;A crawl that was actually opened and searched.&#34;&#34;&#34;
+
+    crawler_uuid: str
+    documents: Optional[int] = None
+    vectors: Optional[int] = None
+    index: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;CrawlerSearchCrawl&#39;:
+        return cls(
+            crawler_uuid=data[&#39;crawler_uuid&#39;],
+            documents=data.get(&#39;documents&#39;),
+            vectors=data.get(&#39;vectors&#39;),
+            index=data.get(&#39;index&#39;),
+        )</code></pre>
+</details>
+<div class="desc"><p>A crawl that was actually opened and searched.</p></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerSearchCrawl" href="#scrapfly.crawler.crawler_response.CrawlerSearchCrawl">CrawlerSearchCrawl</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.crawler_uuid"><code class="name">var <span class="ident">crawler_uuid</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.documents"><code class="name">var <span class="ident">documents</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.index"><code class="name">var <span class="ident">index</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.vectors"><code class="name">var <span class="ident">vectors</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResponse"><code class="flex name class">
+<span>class <span class="ident">CrawlerSearchResponse</span></span>
+<span>(</span><span>response_data: Dict[str, Any])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerSearchResponse:
+    &#34;&#34;&#34;
+    Response from ``POST /crawl/search``.
+
+    Returned by :py:meth:`ScrapflyClient.crawl_search`.
+
+    The envelope states its own completeness: ``completeness == &#39;exact&#39;`` with
+    most crawls unopened is the normal outcome, because the fan-out proves via
+    an admissible bound that the unopened crawls held nothing better.
+    ``&#39;partial&#39;`` means the deadline cut the fan-out short.
+
+    Attributes:
+        query: The query as the server understood it.
+        mode: ``vector``, ``fts`` or ``hybrid``.
+        limit: The effective result cap.
+        completeness: ``exact`` or ``partial``.
+        results: Ranked :class:`CrawlerSearchResult` list.
+        crawls: Crawls that were opened and searched.
+        skipped: Requested crawls that contributed nothing, with a reason.
+        stats: Timing/IO counters (``duration_ms``, ``crawls_searched``,
+            ``candidates``, ``gcs_gets``).
+        crawls_skipped_deadline: Crawler UUIDs the deadline cut before their
+            leg ran.
+        crawls_failed: Crawls whose leg errored, as
+            :class:`CrawlerSearchSkipped` rows.
+        cursor: Opaque token for the next page, ``None`` on the last page.
+            Paging is cursor-based: an offset over a partial fan-out would
+            re-run the legs and shift ranks.
+    &#34;&#34;&#34;
+
+    def __init__(self, response_data: Dict[str, Any]):
+        self._data = response_data
+
+        self.query: str = response_data[&#39;query&#39;]
+        self.mode: str = response_data[&#39;mode&#39;]
+        self.limit: int = response_data[&#39;limit&#39;]
+        self.completeness: str = response_data[&#39;completeness&#39;]
+
+        self.results: List[CrawlerSearchResult] = [
+            CrawlerSearchResult.from_dict(r) for r in response_data[&#39;results&#39;]
+        ]
+        self.crawls: List[CrawlerSearchCrawl] = [
+            CrawlerSearchCrawl.from_dict(c) for c in (response_data.get(&#39;crawls&#39;) or [])
+        ]
+        self.skipped: List[CrawlerSearchSkipped] = [
+            CrawlerSearchSkipped.from_dict(s) for s in (response_data.get(&#39;skipped&#39;) or [])
+        ]
+        self.stats: Dict[str, Any] = response_data.get(&#39;stats&#39;) or {}
+
+        self.crawls_requested: Optional[int] = response_data.get(&#39;crawls_requested&#39;)
+        self.crawls_searched: Optional[int] = response_data.get(&#39;crawls_searched&#39;)
+        self.crawls_pruned_exact: Optional[int] = response_data.get(&#39;crawls_pruned_exact&#39;)
+        # These two name the crawls, they do not count them: a caller told
+        # &#34;3 failed&#34; cannot act on it, and the crawls it can retry are the ones
+        # the deadline cut.
+        self.crawls_skipped_deadline: List[str] = list(
+            response_data.get(&#39;crawls_skipped_deadline&#39;) or []
+        )
+        self.crawls_failed: List[CrawlerSearchSkipped] = [
+            CrawlerSearchSkipped.from_dict(c) for c in (response_data.get(&#39;crawls_failed&#39;) or [])
+        ]
+        self.theta: Optional[float] = response_data.get(&#39;theta&#39;)
+        self.max_ub_unsearched: Optional[float] = response_data.get(&#39;max_ub_unsearched&#39;)
+
+        self.cursor: Optional[str] = response_data.get(&#39;cursor&#39;)
+
+    @property
+    def is_exact(self) -&gt; bool:
+        &#34;&#34;&#34;Whether the ranking is provably complete for the requested crawls.&#34;&#34;&#34;
+        return self.completeness == &#39;exact&#39;
+
+    def __len__(self) -&gt; int:
+        return len(self.results)
+
+    def __iter__(self) -&gt; Iterator[CrawlerSearchResult]:
+        return iter(self.results)
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerSearchResponse(query={self.query!r}, mode={self.mode}, &#34;
+            f&#34;results={len(self.results)}, completeness={self.completeness}, &#34;
+            f&#34;skipped={len(self.skipped)})&#34;
+        )</code></pre>
+</details>
+<div class="desc"><p>Response from <code>POST /crawl/search</code>.</p>
+<p>Returned by :py:meth:<code>ScrapflyClient.crawl_search</code>.</p>
+<p>The envelope states its own completeness: <code>completeness == 'exact'</code> with
+most crawls unopened is the normal outcome, because the fan-out proves via
+an admissible bound that the unopened crawls held nothing better.
+<code>'partial'</code> means the deadline cut the fan-out short.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>query</code></strong></dt>
+<dd>The query as the server understood it.</dd>
+<dt><strong><code>mode</code></strong></dt>
+<dd><code>vector</code>, <code>fts</code> or <code>hybrid</code>.</dd>
+<dt><strong><code>limit</code></strong></dt>
+<dd>The effective result cap.</dd>
+<dt><strong><code>completeness</code></strong></dt>
+<dd><code>exact</code> or <code>partial</code>.</dd>
+<dt><strong><code>results</code></strong></dt>
+<dd>Ranked :class:<code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult">CrawlerSearchResult</a></code> list.</dd>
+<dt><strong><code>crawls</code></strong></dt>
+<dd>Crawls that were opened and searched.</dd>
+<dt><strong><code>skipped</code></strong></dt>
+<dd>Requested crawls that contributed nothing, with a reason.</dd>
+<dt><strong><code>stats</code></strong></dt>
+<dd>Timing/IO counters (<code>duration_ms</code>, <code>crawls_searched</code>,
+<code>candidates</code>, <code>gcs_gets</code>).</dd>
+<dt><strong><code>crawls_skipped_deadline</code></strong></dt>
+<dd>Crawler UUIDs the deadline cut before their
+leg ran.</dd>
+<dt><strong><code>crawls_failed</code></strong></dt>
+<dd>Crawls whose leg errored, as
+:class:<code><a title="scrapfly.crawler.crawler_response.CrawlerSearchSkipped" href="#scrapfly.crawler.crawler_response.CrawlerSearchSkipped">CrawlerSearchSkipped</a></code> rows.</dd>
+<dt><strong><code>cursor</code></strong></dt>
+<dd>Opaque token for the next page, <code>None</code> on the last page.
+Paging is cursor-based: an offset over a partial fan-out would
+re-run the legs and shift ranks.</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResponse.is_exact"><code class="name">prop <span class="ident">is_exact</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_exact(self) -&gt; bool:
+    &#34;&#34;&#34;Whether the ranking is provably complete for the requested crawls.&#34;&#34;&#34;
+    return self.completeness == &#39;exact&#39;</code></pre>
+</details>
+<div class="desc"><p>Whether the ranking is provably complete for the requested crawls.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult"><code class="flex name class">
+<span>class <span class="ident">CrawlerSearchResult</span></span>
+<span>(</span><span>rank: int,<br>score: float,<br>crawler_uuid: str,<br>url: str,<br>chunk_id: int,<br>text: str,<br>scores: Dict[str, float] = &lt;factory&gt;,<br>title: str | None = None,<br>source_format: str | None = None,<br>content_type: str | None = None,<br>warc_offset: int | None = None,<br>warc_end: int | None = None,<br>contents_url: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerSearchResult:
+    &#34;&#34;&#34;
+    One matched chunk from ``POST /crawl/search``.
+
+    A result is a *chunk*, not a page: ``chunk_id`` orders chunks within one
+    crawled document and ``text`` is only the matched slice. Use
+    ``contents_url`` (or ``warc_offset``/``warc_end``) to expand a hit back to
+    the full document.
+
+    Attributes:
+        rank: 1-based position in the merged ranking.
+        score: The ranking score used for ordering (RRF in hybrid mode).
+        scores: Per-leg scores (``vector``, ``fts``, ``rrf``); which keys are
+            present depends on the mode.
+        crawler_uuid: The crawl this chunk came from.
+        url: The crawled URL.
+        title: Document title, ``None`` when the page had none.
+        source_format: Which stored format was indexed (``markdown``, ``text``,
+            ``clean_html``, ``html``).
+        content_type: Content type of the stored document.
+        chunk_id: Chunk index within the document.
+        text: The matched chunk text.
+        warc_offset: Byte offset of the document record in the crawl WARC.
+        warc_end: End byte offset of that record.
+        contents_url: Ready-made ``/crawl/{uuid}/contents`` URL for the
+            document this chunk belongs to.
+    &#34;&#34;&#34;
+
+    rank: int
+    score: float
+    crawler_uuid: str
+    url: str
+    chunk_id: int
+    text: str
+    scores: Dict[str, float] = field(default_factory=dict)
+    title: Optional[str] = None
+    source_format: Optional[str] = None
+    content_type: Optional[str] = None
+    warc_offset: Optional[int] = None
+    warc_end: Optional[int] = None
+    contents_url: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;CrawlerSearchResult&#39;:
+        return cls(
+            rank=data[&#39;rank&#39;],
+            score=data[&#39;score&#39;],
+            crawler_uuid=data[&#39;crawler_uuid&#39;],
+            url=data[&#39;url&#39;],
+            chunk_id=data[&#39;chunk_id&#39;],
+            text=data[&#39;text&#39;],
+            scores=data.get(&#39;scores&#39;) or {},
+            title=data.get(&#39;title&#39;),
+            source_format=data.get(&#39;source_format&#39;),
+            content_type=data.get(&#39;content_type&#39;),
+            warc_offset=data.get(&#39;warc_offset&#39;),
+            warc_end=data.get(&#39;warc_end&#39;),
+            contents_url=data.get(&#39;contents_url&#39;),
+        )</code></pre>
+</details>
+<div class="desc"><p>One matched chunk from <code>POST /crawl/search</code>.</p>
+<p>A result is a <em>chunk</em>, not a page: <code>chunk_id</code> orders chunks within one
+crawled document and <code>text</code> is only the matched slice. Use
+<code>contents_url</code> (or <code>warc_offset</code>/<code>warc_end</code>) to expand a hit back to
+the full document.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>rank</code></strong></dt>
+<dd>1-based position in the merged ranking.</dd>
+<dt><strong><code>score</code></strong></dt>
+<dd>The ranking score used for ordering (RRF in hybrid mode).</dd>
+<dt><strong><code>scores</code></strong></dt>
+<dd>Per-leg scores (<code>vector</code>, <code>fts</code>, <code>rrf</code>); which keys are
+present depends on the mode.</dd>
+<dt><strong><code>crawler_uuid</code></strong></dt>
+<dd>The crawl this chunk came from.</dd>
+<dt><strong><code>url</code></strong></dt>
+<dd>The crawled URL.</dd>
+<dt><strong><code>title</code></strong></dt>
+<dd>Document title, <code>None</code> when the page had none.</dd>
+<dt><strong><code>source_format</code></strong></dt>
+<dd>Which stored format was indexed (<code>markdown</code>, <code>text</code>,
+<code>clean_html</code>, <code>html</code>).</dd>
+<dt><strong><code>content_type</code></strong></dt>
+<dd>Content type of the stored document.</dd>
+<dt><strong><code>chunk_id</code></strong></dt>
+<dd>Chunk index within the document.</dd>
+<dt><strong><code>text</code></strong></dt>
+<dd>The matched chunk text.</dd>
+<dt><strong><code>warc_offset</code></strong></dt>
+<dd>Byte offset of the document record in the crawl WARC.</dd>
+<dt><strong><code>warc_end</code></strong></dt>
+<dd>End byte offset of that record.</dd>
+<dt><strong><code>contents_url</code></strong></dt>
+<dd>Ready-made <code>/crawl/{uuid}/contents</code> URL for the
+document this chunk belongs to.</dd>
+</dl></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerSearchResult" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult">CrawlerSearchResult</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.chunk_id"><code class="name">var <span class="ident">chunk_id</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.content_type"><code class="name">var <span class="ident">content_type</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.contents_url"><code class="name">var <span class="ident">contents_url</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.crawler_uuid"><code class="name">var <span class="ident">crawler_uuid</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.rank"><code class="name">var <span class="ident">rank</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.score"><code class="name">var <span class="ident">score</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.scores"><code class="name">var <span class="ident">scores</span> : Dict[str, float]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.source_format"><code class="name">var <span class="ident">source_format</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.text"><code class="name">var <span class="ident">text</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.title"><code class="name">var <span class="ident">title</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.warc_end"><code class="name">var <span class="ident">warc_end</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchResult.warc_offset"><code class="name">var <span class="ident">warc_offset</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchSkipped"><code class="flex name class">
+<span>class <span class="ident">CrawlerSearchSkipped</span></span>
+<span>(</span><span>crawler_uuid: str, reason: str, status: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerSearchSkipped:
+    &#34;&#34;&#34;
+    A requested crawl that contributed nothing, and why.
+
+    Skips are never fatal: the search still answers with whatever the other
+    crawls returned. ``reason`` is one of ``search_not_enabled``,
+    ``search_not_ready``, ``search_failed``, ``search_disabled``,
+    ``incompatible_index``, ``deadline``.
+    &#34;&#34;&#34;
+
+    crawler_uuid: str
+    reason: str
+    status: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;CrawlerSearchSkipped&#39;:
+        return cls(
+            crawler_uuid=data[&#39;crawler_uuid&#39;],
+            reason=data[&#39;reason&#39;],
+            status=data.get(&#39;status&#39;),
+        )</code></pre>
+</details>
+<div class="desc"><p>A requested crawl that contributed nothing, and why.</p>
+<p>Skips are never fatal: the search still answers with whatever the other
+crawls returned. <code>reason</code> is one of <code>search_not_enabled</code>,
+<code>search_not_ready</code>, <code>search_failed</code>, <code>search_disabled</code>,
+<code>incompatible_index</code>, <code>deadline</code>.</p></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchSkipped.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerSearchSkipped" href="#scrapfly.crawler.crawler_response.CrawlerSearchSkipped">CrawlerSearchSkipped</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchSkipped.crawler_uuid"><code class="name">var <span class="ident">crawler_uuid</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchSkipped.reason"><code class="name">var <span class="ident">reason</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchSkipped.status"><code class="name">var <span class="ident">status</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState"><code class="flex name class">
+<span>class <span class="ident">CrawlerSearchState</span></span>
+<span>(</span><span>status: str,<br>manifest: str | None = None,<br>documents: int | None = None,<br>vectors: int | None = None,<br>dropped: int | None = None,<br>queue_depth: int | None = None,<br>fragments: int | None = None,<br>error: str | None = None,<br>built_at: str | None = None,<br>index: str | None = None,<br>generation: int | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerSearchState:
+    &#34;&#34;&#34;
+    The ``search`` block describing a crawl&#39;s index, as carried by
+    ``GET /crawl/{uuid}/status`` and by the two search webhooks.
+
+    Attributes:
+        status: ``DISABLED``, ``BUILDING``, ``READY``, ``PARTIAL`` or ``FAILED``.
+            Only ``READY`` and ``PARTIAL`` are searchable.
+        manifest: Storage path of the index manifest, ``None`` until the
+            artifact is published.
+        documents: Crawled documents represented in the index.
+        vectors: Embedded chunks.
+        dropped: Chunks discarded during the build (embedding failures,
+            oversized rows).
+        queue_depth: Chunks still waiting to be embedded at snapshot time.
+        fragments: Published Lance fragments.
+        error: Failure reason when ``status`` is ``FAILED``.
+        built_at: ISO-8601 timestamp of the terminal publish.
+        index: Vector index type (e.g. ``IVF_PQ``), ``None`` when the row
+            count stayed below the index threshold.
+        generation: Build generation, bumped when a paused crawl resumes and
+            rebuilds. Results from different generations are not comparable.
+    &#34;&#34;&#34;
+
+    status: str
+    manifest: Optional[str] = None
+    documents: Optional[int] = None
+    vectors: Optional[int] = None
+    dropped: Optional[int] = None
+    queue_depth: Optional[int] = None
+    fragments: Optional[int] = None
+    error: Optional[str] = None
+    built_at: Optional[str] = None
+    index: Optional[str] = None
+    generation: Optional[int] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;CrawlerSearchState&#39;:
+        return cls(
+            status=data[&#39;status&#39;],
+            manifest=data.get(&#39;manifest&#39;),
+            documents=data.get(&#39;documents&#39;),
+            vectors=data.get(&#39;vectors&#39;),
+            dropped=data.get(&#39;dropped&#39;),
+            queue_depth=data.get(&#39;queue_depth&#39;),
+            fragments=data.get(&#39;fragments&#39;),
+            error=data.get(&#39;error&#39;),
+            built_at=data.get(&#39;built_at&#39;),
+            index=data.get(&#39;index&#39;),
+            generation=data.get(&#39;generation&#39;),
+        )
+
+    @property
+    def is_searchable(self) -&gt; bool:
+        &#34;&#34;&#34;Whether the index can answer a query right now.&#34;&#34;&#34;
+        return self.status in (&#39;READY&#39;, &#39;PARTIAL&#39;)</code></pre>
+</details>
+<div class="desc"><p>The <code>search</code> block describing a crawl's index, as carried by
+<code>GET /crawl/{uuid}/status</code> and by the two search webhooks.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>status</code></strong></dt>
+<dd><code>DISABLED</code>, <code>BUILDING</code>, <code>READY</code>, <code>PARTIAL</code> or <code>FAILED</code>.
+Only <code>READY</code> and <code>PARTIAL</code> are searchable.</dd>
+<dt><strong><code>manifest</code></strong></dt>
+<dd>Storage path of the index manifest, <code>None</code> until the
+artifact is published.</dd>
+<dt><strong><code>documents</code></strong></dt>
+<dd>Crawled documents represented in the index.</dd>
+<dt><strong><code>vectors</code></strong></dt>
+<dd>Embedded chunks.</dd>
+<dt><strong><code>dropped</code></strong></dt>
+<dd>Chunks discarded during the build (embedding failures,
+oversized rows).</dd>
+<dt><strong><code>queue_depth</code></strong></dt>
+<dd>Chunks still waiting to be embedded at snapshot time.</dd>
+<dt><strong><code>fragments</code></strong></dt>
+<dd>Published Lance fragments.</dd>
+<dt><strong><code>error</code></strong></dt>
+<dd>Failure reason when <code>status</code> is <code>FAILED</code>.</dd>
+<dt><strong><code>built_at</code></strong></dt>
+<dd>ISO-8601 timestamp of the terminal publish.</dd>
+<dt><strong><code>index</code></strong></dt>
+<dd>Vector index type (e.g. <code>IVF_PQ</code>), <code>None</code> when the row
+count stayed below the index threshold.</dd>
+<dt><strong><code>generation</code></strong></dt>
+<dd>Build generation, bumped when a paused crawl resumes and
+rebuilds. Results from different generations are not comparable.</dd>
+</dl></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerSearchState" href="#scrapfly.crawler.crawler_response.CrawlerSearchState">CrawlerSearchState</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.built_at"><code class="name">var <span class="ident">built_at</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.documents"><code class="name">var <span class="ident">documents</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.dropped"><code class="name">var <span class="ident">dropped</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.error"><code class="name">var <span class="ident">error</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.fragments"><code class="name">var <span class="ident">fragments</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.generation"><code class="name">var <span class="ident">generation</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.index"><code class="name">var <span class="ident">index</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.is_searchable"><code class="name">prop <span class="ident">is_searchable</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_searchable(self) -&gt; bool:
+    &#34;&#34;&#34;Whether the index can answer a query right now.&#34;&#34;&#34;
+    return self.status in (&#39;READY&#39;, &#39;PARTIAL&#39;)</code></pre>
+</details>
+<div class="desc"><p>Whether the index can answer a query right now.</p></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.manifest"><code class="name">var <span class="ident">manifest</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.queue_depth"><code class="name">var <span class="ident">queue_depth</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.status"><code class="name">var <span class="ident">status</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerSearchState.vectors"><code class="name">var <span class="ident">vectors</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
 </dd>
 </dl>
 </dd>
@@ -550,18 +1544,16 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 <p>Strict parsing: <code>uuid</code> and <code>status</code> are part of the documented contract
 and are required. A missing field raises <code>KeyError</code> so the caller knows
 immediately that the API contract changed.</p>
+<h2 id="attributes">Attributes</h2>
 <dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Unique identifier for the crawler job</dd>
 <dt><strong><code>status</code></strong></dt>
 <dd>Initial status (typically 'PENDING')</dd>
 </dl>
 <p>Initialize from API response</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary</dd>
 </dl></div>
@@ -633,9 +1625,8 @@ immediately that the API contract changed.</p>
 <p>Field names match the wire format emitted by Scrapfly, which
 is the single source of truth. Go and TypeScript SDKs expose the same
 names on their <code>status.state</code> object.</p>
+<h2 id="attributes">Attributes</h2>
 <dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
 <dt><strong><code>urls_visited</code></strong></dt>
 <dd>Number of URLs successfully crawled.</dd>
 <dt><strong><code>urls_extracted</code></strong></dt>
@@ -1315,6 +2306,10 @@ or <code>None</code> while still running.</dd>
         is_success: Whether the crawler job completed successfully (``None`` while running).
         is_finished: Whether the crawler job has finished (regardless of success/failure).
         state: :class:`CrawlerState` — all the per-crawl counters and timings.
+        search: :class:`CrawlerSearchState` when the crawl was started with
+            ``search=True``, otherwise ``None``.
+        refresh: :class:`CrawlerRefreshState` when the crawl re-scrapes itself
+            on a period, otherwise ``None``.
     &#34;&#34;&#34;
 
     # Status constants
@@ -1368,6 +2363,21 @@ or <code>None</code> while still running.</dd>
         # Nested state — canonical shape matching Go / TS SDKs.
         self.state = CrawlerState(response_data[&#39;state&#39;])
 
+        # Search index state. Optional: only crawls started with search=True
+        # carry the block, and older API builds omit it entirely.
+        search = response_data.get(&#39;search&#39;)
+        self.search: Optional[CrawlerSearchState] = (
+            CrawlerSearchState.from_dict(search) if search else None
+        )
+
+        # Auto-refresh state. Optional: only crawls that re-scrape themselves
+        # carry the block. Built from the whole payload rather than the nested
+        # dict because CrawlerRefreshState accepts either envelope.
+        self.refresh: Optional[CrawlerRefreshState] = (
+            CrawlerRefreshState(response_data)
+            if isinstance(response_data.get(&#39;refresh&#39;), dict) else None
+        )
+
     @property
     def is_complete(self) -&gt; bool:
         &#34;&#34;&#34;Whether the crawler reached DONE with is_success=True.&#34;&#34;&#34;
@@ -1415,9 +2425,8 @@ counters via the nested <code>state</code> attribute:</p>
 &gt;&gt;&gt; status.state.urls_extracted
 34
 </code></pre>
+<h2 id="attributes">Attributes</h2>
 <dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Crawler job UUID.</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -1428,6 +2437,12 @@ counters via the nested <code>state</code> attribute:</p>
 <dd>Whether the crawler job has finished (regardless of success/failure).</dd>
 <dt><strong><code>state</code></strong></dt>
 <dd>:class:<code><a title="scrapfly.crawler.crawler_response.CrawlerState" href="#scrapfly.crawler.crawler_response.CrawlerState">CrawlerState</a></code> — all the per-crawl counters and timings.</dd>
+<dt><strong><code>search</code></strong></dt>
+<dd>:class:<code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState" href="#scrapfly.crawler.crawler_response.CrawlerSearchState">CrawlerSearchState</a></code> when the crawl was started with
+<code>search=True</code>, otherwise <code>None</code>.</dd>
+<dt><strong><code>refresh</code></strong></dt>
+<dd>:class:<code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshState" href="#scrapfly.crawler.crawler_response.CrawlerRefreshState">CrawlerRefreshState</a></code> when the crawl re-scrapes itself
+on a period, otherwise <code>None</code>.</dd>
 </dl>
 <p>Initialize from API response.</p>
 <p>Strict parsing: required fields (<code>crawler_uuid</code>, <code>status</code>,
@@ -1435,9 +2450,8 @@ counters via the nested <code>state</code> attribute:</p>
 metrics) are read with direct access so missing keys raise
 <code>KeyError</code> at parse time. This catches API contract drift loud and
 early.</p>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary.</dd>
 </dl></div>
@@ -1587,9 +2601,8 @@ def progress_pct(self) -&gt; float:
 or <code>skipped</code> URLs the line is <code>url,reason</code>. Streaming text is used
 because this endpoint is expected to scale to millions of records per
 job — JSON is not a suitable wire format at that volume.</p>
+<h2 id="attributes">Attributes</h2>
 <dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -1752,9 +2765,10 @@ downstream code can disambiguate mixed buffers.</dd>
     line. This class parses that stream into a materialised ``List`` of
     :class:`CrawlerUrlEntry` records for caller convenience.
 
-    Pagination: the wire protocol carries no global ``total``. ``page`` and
-    ``per_page`` are echoes of the caller&#39;s request parameters — request
-    further pages by incrementing ``page`` until the response has no records.
+    Pagination: the wire protocol carries no global ``total``, and the API
+    forwards only the status filter to the crawler, so ``page`` and
+    ``per_page`` are echoes of the caller&#39;s request parameters over a body
+    that already holds the whole server-side page.
 
     Attributes:
         urls: List of :class:`CrawlerUrlEntry` records on this page
@@ -1833,12 +2847,12 @@ downstream code can disambiguate mixed buffers.</dd>
 <p>The server returns a streaming <code>text/plain</code> body with one record per
 line. This class parses that stream into a materialised <code>List</code> of
 :class:<code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry">CrawlerUrlEntry</a></code> records for caller convenience.</p>
-<p>Pagination: the wire protocol carries no global <code>total</code>. <code>page</code> and
-<code>per_page</code> are echoes of the caller's request parameters — request
-further pages by incrementing <code>page</code> until the response has no records.</p>
+<p>Pagination: the wire protocol carries no global <code>total</code>, and the API
+forwards only the status filter to the crawler, so <code>page</code> and
+<code>per_page</code> are echoes of the caller's request parameters over a body
+that already holds the whole server-side page.</p>
+<h2 id="attributes">Attributes</h2>
 <dl>
-<dt>Attributes</dt>
-<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>List of :class:<code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry">CrawlerUrlEntry</a></code> records on this page</dd>
 <dt><strong><code>page</code></strong></dt>
@@ -1861,9 +2875,8 @@ further pages by incrementing <code>page</code> until the response has no record
 <code>visited</code>; the caller is expected to pass that as <code>status_hint</code>
 so every parsed record gets the right status tag.</li>
 </ul>
+<h2 id="args">Args</h2>
 <dl>
-<dt>Args</dt>
-<dt>-----=</dt>
 <dt><strong><code>body</code></strong></dt>
 <dd>Raw response body text.</dd>
 <dt><strong><code>status_hint</code></strong></dt>
@@ -1891,9 +2904,10 @@ so every parsed record gets the right status tag.</li>
     line. This class parses that stream into a materialised ``List`` of
     :class:`CrawlerUrlEntry` records for caller convenience.
 
-    Pagination: the wire protocol carries no global ``total``. ``page`` and
-    ``per_page`` are echoes of the caller&#39;s request parameters — request
-    further pages by incrementing ``page`` until the response has no records.
+    Pagination: the wire protocol carries no global ``total``, and the API
+    forwards only the status filter to the crawler, so ``page`` and
+    ``per_page`` are echoes of the caller&#39;s request parameters over a body
+    that already holds the whole server-side page.
 
     Attributes:
         urls: List of :class:`CrawlerUrlEntry` records on this page
@@ -1984,9 +2998,10 @@ so every parsed record gets the right status tag.</li>
     line. This class parses that stream into a materialised ``List`` of
     :class:`CrawlerUrlEntry` records for caller convenience.
 
-    Pagination: the wire protocol carries no global ``total``. ``page`` and
-    ``per_page`` are echoes of the caller&#39;s request parameters — request
-    further pages by incrementing ``page`` until the response has no records.
+    Pagination: the wire protocol carries no global ``total``, and the API
+    forwards only the status filter to the crawler, so ``page`` and
+    ``per_page`` are echoes of the caller&#39;s request parameters over a body
+    that already holds the whole server-side page.
 
     Attributes:
         urls: List of :class:`CrawlerUrlEntry` records on this page
@@ -2077,9 +3092,10 @@ so every parsed record gets the right status tag.</li>
     line. This class parses that stream into a materialised ``List`` of
     :class:`CrawlerUrlEntry` records for caller convenience.
 
-    Pagination: the wire protocol carries no global ``total``. ``page`` and
-    ``per_page`` are echoes of the caller&#39;s request parameters — request
-    further pages by incrementing ``page`` until the response has no records.
+    Pagination: the wire protocol carries no global ``total``, and the API
+    forwards only the status filter to the crawler, so ``page`` and
+    ``per_page`` are echoes of the caller&#39;s request parameters over a body
+    that already holds the whole server-side page.
 
     Attributes:
         urls: List of :class:`CrawlerUrlEntry` records on this page
@@ -2185,6 +3201,103 @@ so every parsed record gets the right status tag.</li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerArtifactResponse.save" href="#scrapfly.crawler.crawler_response.CrawlerArtifactResponse.save">save</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerArtifactResponse.total_pages" href="#scrapfly.crawler.crawler_response.CrawlerArtifactResponse.total_pages">total_pages</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerArtifactResponse.warc_data" href="#scrapfly.crawler.crawler_response.CrawlerArtifactResponse.warc_data">warc_data</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent">CrawlerPromptEvent</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent.data" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent.data">data</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent.event" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent.event">event</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_done" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_done">is_done</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_token" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_token">is_token</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry">CrawlerRefreshEntry</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.added" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.added">added</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.at" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.at">at</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.changed" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.changed">changed</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.duration_ms" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.duration_ms">duration_ms</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.error" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.error">error</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.failed" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.failed">failed</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.from_dict" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.from_dict">from_dict</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.generation" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.generation">generation</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.removed" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.removed">removed</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.sample_removed" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.sample_removed">sample_removed</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.sample_updated" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.sample_updated">sample_updated</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.search_status" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.search_status">search_status</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.unchanged" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.unchanged">unchanged</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshEntry.updated" href="#scrapfly.crawler.crawler_response.CrawlerRefreshEntry.updated">updated</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshState" href="#scrapfly.crawler.crawler_response.CrawlerRefreshState">CrawlerRefreshState</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshState.is_running" href="#scrapfly.crawler.crawler_response.CrawlerRefreshState.is_running">is_running</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerRefreshState.last_run" href="#scrapfly.crawler.crawler_response.CrawlerRefreshState.last_run">last_run</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchCrawl" href="#scrapfly.crawler.crawler_response.CrawlerSearchCrawl">CrawlerSearchCrawl</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.crawler_uuid" href="#scrapfly.crawler.crawler_response.CrawlerSearchCrawl.crawler_uuid">crawler_uuid</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.documents" href="#scrapfly.crawler.crawler_response.CrawlerSearchCrawl.documents">documents</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.from_dict" href="#scrapfly.crawler.crawler_response.CrawlerSearchCrawl.from_dict">from_dict</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.index" href="#scrapfly.crawler.crawler_response.CrawlerSearchCrawl.index">index</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchCrawl.vectors" href="#scrapfly.crawler.crawler_response.CrawlerSearchCrawl.vectors">vectors</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResponse" href="#scrapfly.crawler.crawler_response.CrawlerSearchResponse">CrawlerSearchResponse</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResponse.is_exact" href="#scrapfly.crawler.crawler_response.CrawlerSearchResponse.is_exact">is_exact</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult">CrawlerSearchResult</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.chunk_id" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.chunk_id">chunk_id</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.content_type" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.content_type">content_type</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.contents_url" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.contents_url">contents_url</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.crawler_uuid" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.crawler_uuid">crawler_uuid</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.from_dict" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.from_dict">from_dict</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.rank" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.rank">rank</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.score" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.score">score</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.scores" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.scores">scores</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.source_format" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.source_format">source_format</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.text" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.text">text</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.title" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.title">title</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.url" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.url">url</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.warc_end" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.warc_end">warc_end</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResult.warc_offset" href="#scrapfly.crawler.crawler_response.CrawlerSearchResult.warc_offset">warc_offset</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchSkipped" href="#scrapfly.crawler.crawler_response.CrawlerSearchSkipped">CrawlerSearchSkipped</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchSkipped.crawler_uuid" href="#scrapfly.crawler.crawler_response.CrawlerSearchSkipped.crawler_uuid">crawler_uuid</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchSkipped.from_dict" href="#scrapfly.crawler.crawler_response.CrawlerSearchSkipped.from_dict">from_dict</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchSkipped.reason" href="#scrapfly.crawler.crawler_response.CrawlerSearchSkipped.reason">reason</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchSkipped.status" href="#scrapfly.crawler.crawler_response.CrawlerSearchSkipped.status">status</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState" href="#scrapfly.crawler.crawler_response.CrawlerSearchState">CrawlerSearchState</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.built_at" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.built_at">built_at</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.documents" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.documents">documents</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.dropped" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.dropped">dropped</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.error" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.error">error</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.fragments" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.fragments">fragments</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.from_dict" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.from_dict">from_dict</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.generation" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.generation">generation</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.index" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.index">index</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.is_searchable" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.is_searchable">is_searchable</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.manifest" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.manifest">manifest</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.queue_depth" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.queue_depth">queue_depth</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.status" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.status">status</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerSearchState.vectors" href="#scrapfly.crawler.crawler_response.CrawlerSearchState.vectors">vectors</a></code></li>
 </ul>
 </li>
 <li>

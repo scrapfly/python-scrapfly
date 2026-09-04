@@ -143,8 +143,16 @@ class ScheduleClientMixin:
         scrape_config: Dict[str, Any],
         request: CreateScheduleRequest,
     ) -> Schedule:
-        """Create a Web Scraping API schedule. ``scrape_config`` is the same
-        dict you would pass to :meth:`scrape` (e.g. ``{"url": "...", "render_js": True}``)."""
+        """Create a Web Scraping API schedule.
+
+        ``scrape_config`` is forwarded verbatim and its keys are WIRE keys, not
+        :class:`~scrapfly.ScrapeConfig` option names — e.g.
+        ``{"url": "...", "render_js": True}``. The anti-bot bypass may be
+        spelled either way here: the API folds ``unblocker`` into ``asp`` on the
+        stored config with the same precedence the SDK uses (a supplied ``asp``
+        wins, ``unblocker`` is read only when ``asp`` is absent, ``null`` or
+        ``""``), so both names reach the replayed scrape.
+        """
         return self._create_schedule("/scrape/schedules", "scrape_config", scrape_config, request)
 
     def create_screenshot_schedule(
@@ -162,7 +170,14 @@ class ScheduleClientMixin:
         crawler_config: Dict[str, Any],
         request: CreateScheduleRequest,
     ) -> Schedule:
-        """Create a Crawler API schedule."""
+        """Create a Crawler API schedule.
+
+        ``crawler_config`` is forwarded verbatim and its keys are WIRE keys, not
+        :class:`~scrapfly.CrawlerConfig` option names. As with
+        :meth:`create_scrape_schedule`, the anti-bot bypass may be spelled
+        ``asp`` or ``unblocker``: the API folds the alias into ``asp`` on the
+        stored config before it is ever replayed.
+        """
         return self._create_schedule(
             "/crawl/schedules", "crawler_config", crawler_config, request
         )

@@ -118,7 +118,105 @@ el.replaceWith(d);
 </ul>
 <h3>Subclasses</h3>
 <ul class="hlist">
+<li><a title="scrapfly.errors.CrawlerPromptError" href="#scrapfly.errors.CrawlerPromptError">CrawlerPromptError</a></li>
+<li><a title="scrapfly.errors.CrawlerRefreshError" href="#scrapfly.errors.CrawlerRefreshError">CrawlerRefreshError</a></li>
+<li><a title="scrapfly.errors.CrawlerSearchError" href="#scrapfly.errors.CrawlerSearchError">CrawlerSearchError</a></li>
 <li><a title="scrapfly.errors.ScrapflyCrawlerError" href="#scrapfly.errors.ScrapflyCrawlerError">ScrapflyCrawlerError</a></li>
+</ul>
+</dd>
+<dt id="scrapfly.errors.CrawlerPromptError"><code class="flex name class">
+<span>class <span class="ident">CrawlerPromptError</span></span>
+<span>(</span><span>message: str,<br>code: str,<br>http_status_code: int,<br>resource: str | None = None,<br>is_retryable: bool = False,<br>retry_delay: int | None = None,<br>retry_times: int | None = None,<br>documentation_url: str | None = None,<br>api_response: ForwardRef('ApiResponse') | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerPromptError(CrawlerError):
+    &#34;&#34;&#34;
+    Exception raised when ``POST /crawl/prompt`` fails.
+
+    Also raised mid-stream when the server sends an ``event: error`` frame:
+    generation can fail after tokens have already been delivered, so a caller
+    consuming the iterator must be ready for this on any ``next()``.
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>Exception raised when <code>POST /crawl/prompt</code> fails.</p>
+<p>Also raised mid-stream when the server sends an <code>event: error</code> frame:
+generation can fail after tokens have already been delivered, so a caller
+consuming the iterator must be ready for this on any <code>next()</code>.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.CrawlerError" href="#scrapfly.errors.CrawlerError">CrawlerError</a></li>
+<li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.errors.CrawlerRefreshError"><code class="flex name class">
+<span>class <span class="ident">CrawlerRefreshError</span></span>
+<span>(</span><span>message: str,<br>code: str,<br>http_status_code: int,<br>resource: str | None = None,<br>is_retryable: bool = False,<br>retry_delay: int | None = None,<br>retry_times: int | None = None,<br>documentation_url: str | None = None,<br>api_response: ForwardRef('ApiResponse') | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerRefreshError(CrawlerError):
+    &#34;&#34;&#34;
+    Exception raised when a crawl refresh call fails.
+
+    Carries the API code, e.g. ``ERR::CRAWLER::REFRESH_NOT_ENABLED``,
+    ``ERR::CRAWLER::REFRESH_IN_PROGRESS``,
+    ``ERR::CRAWLER::REFRESH_INTERVAL_INVALID``.
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>Exception raised when a crawl refresh call fails.</p>
+<p>Carries the API code, e.g. <code>ERR::CRAWLER::REFRESH_NOT_ENABLED</code>,
+<code>ERR::CRAWLER::REFRESH_IN_PROGRESS</code>,
+<code>ERR::CRAWLER::REFRESH_INTERVAL_INVALID</code>.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.CrawlerError" href="#scrapfly.errors.CrawlerError">CrawlerError</a></li>
+<li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.errors.CrawlerSearchError"><code class="flex name class">
+<span>class <span class="ident">CrawlerSearchError</span></span>
+<span>(</span><span>message: str,<br>code: str,<br>http_status_code: int,<br>resource: str | None = None,<br>is_retryable: bool = False,<br>retry_delay: int | None = None,<br>retry_times: int | None = None,<br>documentation_url: str | None = None,<br>api_response: ForwardRef('ApiResponse') | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerSearchError(CrawlerError):
+    &#34;&#34;&#34;
+    Exception raised when ``POST /crawl/search`` cannot answer.
+
+    Carries the API code, e.g. ``ERR::CRAWLER::SEARCH_NOT_ENABLED``,
+    ``ERR::CRAWLER::SEARCH_NOT_READY``, ``ERR::CRAWLER::SEARCH_TOO_MANY_CRAWLS``.
+    A crawl that is merely skipped is *not* an error: it is reported in
+    ``CrawlerSearchResponse.skipped`` and the search still answers.
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>Exception raised when <code>POST /crawl/search</code> cannot answer.</p>
+<p>Carries the API code, e.g. <code>ERR::CRAWLER::SEARCH_NOT_ENABLED</code>,
+<code>ERR::CRAWLER::SEARCH_NOT_READY</code>, <code>ERR::CRAWLER::SEARCH_TOO_MANY_CRAWLS</code>.
+A crawl that is merely skipped is <em>not</em> an error: it is reported in
+<code>CrawlerSearchResponse.skipped</code> and the search still answers.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.CrawlerError" href="#scrapfly.errors.CrawlerError">CrawlerError</a></li>
+<li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
 </ul>
 </dd>
 <dt id="scrapfly.errors.EncoderError"><code class="flex name class">
@@ -501,6 +599,15 @@ el.replaceWith(d);
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.CrawlerError" href="#scrapfly.errors.CrawlerError">CrawlerError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.errors.CrawlerPromptError" href="#scrapfly.errors.CrawlerPromptError">CrawlerPromptError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.errors.CrawlerRefreshError" href="#scrapfly.errors.CrawlerRefreshError">CrawlerRefreshError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.errors.CrawlerSearchError" href="#scrapfly.errors.CrawlerSearchError">CrawlerSearchError</a></code></h4>
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.EncoderError" href="#scrapfly.errors.EncoderError">EncoderError</a></code></h4>

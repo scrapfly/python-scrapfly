@@ -94,33 +94,13 @@ symmetry with single /scrape responses.</p></div>
 </summary>
 <pre><code class="python">def error_from_api_error_part(parsed: Dict, headers: Dict[str, str], request):
     &#34;&#34;&#34;Build the typed per-part error for an API-generated error body.&#34;&#34;&#34;
-    from .errors import ApiHttpClientError, ApiHttpServerError, ErrorFactory
+    from .errors import ApiHttpClientError, ApiHttpServerError, ErrorFactory, api_error_args
 
-    code = parsed.get(&#34;code&#34;)
-    if not isinstance(code, str):
-        code = &#34;&#34;
-
-    message = parsed.get(&#34;message&#34;) or parsed.get(&#34;reason&#34;) or &#34;API error&#34;
-    if not isinstance(message, str):
-        message = str(message)
-
-    retryable = parsed.get(&#34;retryable&#34;) is True
-
-    http_code = parsed.get(&#34;http_code&#34;)
-    if not isinstance(http_code, int):
-        http_code = _safe_int(headers.get(&#34;x-scrapfly-scrape-status&#34;), 500)
-
-    documentation_url = None
-    links = parsed.get(&#34;links&#34;)
-    if isinstance(links, dict) and links:
-        documentation_url = next((v for v in links.values() if isinstance(v, str)), None)
-    elif isinstance(links, list) and links:
-        documentation_url = links[0] if isinstance(links[0], str) else None
-
-    resource = None
-    code_parts = code.split(&#34;::&#34;)
-    if len(code_parts) == 3:
-        resource = code_parts[1]
+    # A part has no HTTP status of its own, so the envelope decode falls back
+    # to the status the multipart header carries for this part.
+    args = api_error_args(parsed, http_status_code=_safe_int(headers.get(&#34;x-scrapfly-scrape-status&#34;), 500))
+    resource = args[&#34;resource&#34;]
+    http_code = args[&#34;http_status_code&#34;]
 
     is_scraper_resource = resource in ErrorFactory.RESOURCE_TO_ERROR
 
@@ -134,12 +114,7 @@ symmetry with single /scrape responses.</p></div>
     return error_class(
         request=request,
         response=_synthesize_part_response(request, http_code, parsed.get(&#34;reason&#34;)),
-        message=message,
-        code=code,
-        resource=resource,
-        http_status_code=http_code,
-        is_retryable=retryable,
-        documentation_url=documentation_url,
+        **args,
     )</code></pre>
 </details>
 <div class="desc"><p>Build the typed per-part error for an API-generated error body.</p></div>

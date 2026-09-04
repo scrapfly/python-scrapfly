@@ -25,6 +25,54 @@ This SDK cover the following Scrapfly API endpoints:
 * [Extraction API](https://scrapfly.io/docs/onboarding#extraction-api)
 * [Screenshot API](https://scrapfly.io/docs/onboarding#screenshot-api)
 
+## Unblocker
+
+`unblocker` turns on the anti-bot bypass. It defeats blocking and antibot solutions such as
+Cloudflare, DataDome, PerimeterX or Akamai.
+
+```python
+from scrapfly import ScrapeConfig, ScrapflyClient
+
+scrapfly = ScrapflyClient(key='__API_KEY__')
+
+api_response = scrapfly.scrape(ScrapeConfig(
+    url='https://amazon.com',
+    unblocker=True
+))
+```
+
+It is available on the crawler too:
+
+```python
+from scrapfly import CrawlerConfig
+
+config = CrawlerConfig(url='https://amazon.com', unblocker=True)
+```
+
+### `asp` is the deprecated alias
+
+`unblocker` was previously named `asp`. `asp` keeps working, indefinitely. Existing code needs no
+change:
+
+```python
+ScrapeConfig(url='https://amazon.com', asp=True)      # still supported
+config.unblocker = True                               # same underlying setting as config.asp
+```
+
+When both names are supplied, an explicitly supplied `asp` wins; `unblocker` applies only when
+`asp` was not given. `False` on either name turns the feature off. `None` counts as *not*
+supplied — the same reading the API takes of a JSON `null` — so forwarding an optional through
+(`ScrapeConfig(**{**opts, 'asp': opts.get('asp')})`) cannot silently veto an explicit
+`unblocker=True`.
+
+One thing deliberately keeps the old name: the `asp` key of the API request itself. The error
+class also keeps it, because the API status it carries is still `ERR::ASP::*` — but
+`ScrapflyUnblockerError` is an alias for the same class, so either name works in `except`:
+
+```python
+from scrapfly import ScrapflyUnblockerError  # the same class as ScrapflyAspError
+```
+
 ## Integrations  
 
 Scrapfly Python SDKs are integrated with [LlamaIndex](https://www.llamaindex.ai/) and [LangChain](https://www.langchain.com/). Both framework allows training Large Language Models (LLMs) using augmented context.
@@ -89,7 +137,7 @@ scrapfly_reader = ScrapflyReader(
 )
 
 scrapfly_scrape_config = {
-    "asp": True,  # Bypass scraping blocking and antibot solutions, like Cloudflare
+    "unblocker": True,  # Bypass scraping blocking and antibot solutions, like Cloudflare (formerly "asp")
     "render_js": True,  # Enable JavaScript rendering with a cloud headless browser
     "proxy_pool": "public_residential_pool",  # Select a proxy pool (datacenter or residnetial)
     "country": "us",  # Select a proxy location
@@ -168,7 +216,7 @@ To use the full Scrapfly features with LangChain, pass a ScrapeConfig object to 
 from langchain_community.document_loaders import ScrapflyLoader
 
 scrapfly_scrape_config = {
-    "asp": True,  # Bypass scraping blocking and antibot solutions, like Cloudflare
+    "unblocker": True,  # Bypass scraping blocking and antibot solutions, like Cloudflare (formerly "asp")
     "render_js": True,  # Enable JavaScript rendering with a cloud headless browser
     "proxy_pool": "public_residential_pool",  # Select a proxy pool (datacenter or residnetial)
     "country": "us",  # Select a proxy location

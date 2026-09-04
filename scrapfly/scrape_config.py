@@ -9,6 +9,65 @@ from requests.structures import CaseInsensitiveDict
 
 from .api_config import BaseApiConfig
 
+
+class _Unset:
+    """Sentinel meaning "the caller did not supply this parameter".
+
+    `asp` and `unblocker` are two names for one feature, so "not supplied" must
+    be distinguishable from an explicit `False`: otherwise `unblocker=False`
+    could not turn off a feature that `asp` defaults on, and the precedence
+    between the two names would have to OR them. Falsy on purpose, so a leaked
+    sentinel disables the feature instead of enabling it.
+    """
+
+    __slots__ = ()
+
+    def __bool__(self) -> bool:
+        return False
+
+    def __repr__(self) -> str:
+        return '<unset>'
+
+
+_UNSET = _Unset()
+
+
+def _resolve_unblocker(asp, unblocker) -> bool:
+    """Collapse the `asp` / `unblocker` pair into the single stored value.
+
+    `unblocker` is the customer-facing name; `asp` is the permanently supported
+    deprecated alias. An explicitly supplied `asp` always wins, `unblocker`
+    applies only when `asp` was not supplied. Never OR them: an explicit
+    `False` on either name must be able to turn the feature off.
+
+    `None` counts as NOT supplied, alongside the `_UNSET` sentinel. Two reasons,
+    and they agree:
+
+      - The API says so. `pkg/schedule/alias.go:isSuppliedConfigValue` and both
+        scrape parsers treat an absent key, a JSON `null` and `""` as omitted,
+        so `{"asp": null, "unblocker": true}` turns the feature ON server-side.
+        An SDK that resolved it to OFF would build a request the API would have
+        answered differently.
+      - Forwarding stays safe. `ScrapeConfig(**{**opts, 'asp': opts.get('asp')})`
+        is how callers thread an optional through, and `.get()` yields `None`
+        for an absent key. Honouring that `None` as a supplied value would let a
+        forwarded default silently veto an explicit `unblocker=True` — the
+        scrape then runs, is billed, and comes back blocked.
+
+    `_UNSET` remains the sentinel the parameter defaults to, because it is the
+    only value that is falsy AND cannot be produced by a caller; `None` is
+    merely also accepted as "not supplied".
+    """
+
+    if asp is not _UNSET and asp is not None:
+        return asp
+
+    if unblocker is not _UNSET and unblocker is not None:
+        return unblocker
+
+    return False
+
+
 class ScreenshotFlag(Enum):
     """
     Attributes:
@@ -73,7 +132,10 @@ class ScrapeConfig(BaseApiConfig):
     cache_clear:bool = False
     ssl:bool = False
     dns:bool = False
-    asp:bool = False
+    asp:bool = False  # deprecated alias of `unblocker`, permanently supported
+    # NOTE: `unblocker` is deliberately absent from this block. It is a
+    # property defined below; a class attribute or annotation here would
+    # shadow the descriptor and break `cfg.unblocker = True`.
     debug: bool = False
     raise_on_upstream_error:bool = True
     cache_ttl:Optional[int] = None
@@ -121,7 +183,7 @@ class ScrapeConfig(BaseApiConfig):
         cache_clear:bool = False,
         ssl:bool = False,
         dns:bool = False,
-        asp:bool = False,
+        asp:Union[bool, _Unset] = _UNSET,  # deprecated alias of `unblocker`, which is declared last
         debug: bool = False,
         raise_on_upstream_error:bool = True,
         cache_ttl:Optional[int] = None,
@@ -156,7 +218,12 @@ class ScrapeConfig(BaseApiConfig):
         cost_budget:Optional[int] = None,
         browser_brand:Optional[str] = None,
         geolocation:Optional[str] = None,
-        proxified_response:Optional[bool] = None
+        proxified_response:Optional[bool] = None,
+        # Appended at the very END of the signature on purpose: this parameter
+        # list is positional-capable, so inserting `unblocker` next to its
+        # alias `asp` would silently shift every positional argument in
+        # existing customer code.
+        unblocker:Union[bool, _Unset] = _UNSET
     ):
         assert(type(url) is str)
 
@@ -176,7 +243,9 @@ class ScrapeConfig(BaseApiConfig):
         self.render_js = render_js
         self.cache = cache
         self.cache_clear = cache_clear
-        self.asp = asp
+        # Both names normalize into the single stored attribute `self.asp`,
+        # which is also the key emitted on the wire.
+        self.asp = _resolve_unblocker(asp, unblocker)
         self.webhook = webhook
         self.session = session
         self.debug = debug
@@ -244,6 +313,22 @@ class ScrapeConfig(BaseApiConfig):
                         raise ScrapeConfigError('Content-Type "%s" not supported, use body parameter to pass pre encoded body according to your content type' % self.headers['content-type'])
             elif self.body is None and self.data is None:
                 self.headers['content-type'] = 'text/plain'
+
+    @property
+    def unblocker(self) -> bool:
+        """Anti-bot bypass toggle, the current name for what used to be `asp`.
+
+        Deliberately a property rather than a second stored attribute: it stays
+        out of `__dict__`, so serializers that iterate the instance dict do not
+        sprout a duplicate key, while `config.unblocker = True` after
+        construction still works.
+        """
+
+        return self.asp
+
+    @unblocker.setter
+    def unblocker(self, value: bool):
+        self.asp = value
 
     def to_api_params(self, key:str) -> Dict:
         params = {
@@ -319,6 +404,10 @@ class ScrapeConfig(BaseApiConfig):
             if self.rendering_wait:
                 logging.warning('Params "rendering_wait" is ignored. Works only if render_js is enabled')
 
+        # The emitted key stays `asp`. Published SDK versions are immutable and
+        # upgraded per installation, so emitting `unblocker` against an API
+        # deployment that has not learned it yet would silently drop a paid
+        # feature: the scrape succeeds, is billed, and returns a blocked page.
         if self.asp is True:
             params['asp'] = self._bool_to_http(self.asp)
 
@@ -430,7 +519,10 @@ class ScrapeConfig(BaseApiConfig):
             cache_clear=data['cache_clear'],
             render_js=data['render_js'],
             method=data['method'],
-            asp=data['asp'],
+            # .get(), not a subscript: an export produced under either name
+            # must load, and neither key is guaranteed present.
+            asp=data.get('asp', _UNSET),
+            unblocker=data.get('unblocker', _UNSET),
             body=data['body'],
             ssl=data['ssl'],
             dns=data['dns'],
@@ -511,7 +603,10 @@ class ScrapeConfig(BaseApiConfig):
         cache_clear = scrape_config_dict.get('cache_clear', False)
         ssl = scrape_config_dict.get('ssl', False)
         dns = scrape_config_dict.get('dns', False)
-        asp = scrape_config_dict.get('asp', False)
+        # Sentinel defaults, not False: an explicit False under either key must
+        # stay distinguishable from an absent key so precedence works.
+        asp = scrape_config_dict.get('asp', _UNSET)
+        unblocker = scrape_config_dict.get('unblocker', _UNSET)
         debug = scrape_config_dict.get('debug', False)
         raise_on_upstream_error = scrape_config_dict.get('raise_on_upstream_error', True)
         cache_ttl = scrape_config_dict.get('cache_ttl', None)
@@ -596,4 +691,5 @@ class ScrapeConfig(BaseApiConfig):
             auto_scroll=auto_scroll,
             cost_budget=cost_budget,
             browser_brand=browser_brand,
+            unblocker=unblocker,
         )

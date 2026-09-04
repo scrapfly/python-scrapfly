@@ -386,7 +386,7 @@ export SCRAPFLY_API_KEY='scp-live-xxxxxxxx'
 **Possible causes:**
 - Page limit too low (increase `page_limit`)
 - Path filter too restrictive (check `include_only_paths`)
-- Site blocks crawlers (try adding `asp=True` for anti-bot bypass)
+- Site blocks crawlers (try adding `unblocker=True` for anti-bot bypass)
 
 **Solution**: Adjust crawler config:
 
