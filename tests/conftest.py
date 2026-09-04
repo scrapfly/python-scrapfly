@@ -25,5 +25,7 @@ def pytest_collection_modifyitems(config, items):
     skip = pytest.mark.skip(reason='live API test: set SCRAPFLY_KEY (and SCRAPFLY_API_HOST) to run')
 
     for item in items:
-        if 'integration' in item.keywords:
+        # A test explicitly marked `unit` is offline by construction, even when
+        # it lives in a module whose other tests drive the live API.
+        if 'integration' in item.keywords and 'unit' not in item.keywords:
             item.add_marker(skip)

@@ -4,6 +4,7 @@ Crawler API Response Classes
 This module provides response wrapper classes for the Crawler API.
 """
 
+from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, Iterator, List, Union
 from .warc_utils import WarcParser, WarcRecord, parse_warc
 from .har_utils import HarArchive, HarEntry
@@ -131,6 +132,10 @@ class CrawlerStatusResponse:
         is_success: Whether the crawler job completed successfully (``None`` while running).
         is_finished: Whether the crawler job has finished (regardless of success/failure).
         state: :class:`CrawlerState` — all the per-crawl counters and timings.
+        search: :class:`CrawlerSearchState` when the crawl was started with
+            ``search=True``, otherwise ``None``.
+        refresh: :class:`CrawlerRefreshState` when the crawl re-scrapes itself
+            on a period, otherwise ``None``.
     """
 
     # Status constants
@@ -183,6 +188,21 @@ class CrawlerStatusResponse:
 
         # Nested state — canonical shape matching Go / TS SDKs.
         self.state = CrawlerState(response_data['state'])
+
+        # Search index state. Optional: only crawls started with search=True
+        # carry the block, and older API builds omit it entirely.
+        search = response_data.get('search')
+        self.search: Optional[CrawlerSearchState] = (
+            CrawlerSearchState.from_dict(search) if search else None
+        )
+
+        # Auto-refresh state. Optional: only crawls that re-scrape themselves
+        # carry the block. Built from the whole payload rather than the nested
+        # dict because CrawlerRefreshState accepts either envelope.
+        self.refresh: Optional[CrawlerRefreshState] = (
+            CrawlerRefreshState(response_data)
+            if isinstance(response_data.get('refresh'), dict) else None
+        )
 
     @property
     def is_complete(self) -> bool:
@@ -266,9 +286,10 @@ class CrawlerUrlsResponse:
     line. This class parses that stream into a materialised ``List`` of
     :class:`CrawlerUrlEntry` records for caller convenience.
 
-    Pagination: the wire protocol carries no global ``total``. ``page`` and
-    ``per_page`` are echoes of the caller's request parameters — request
-    further pages by incrementing ``page`` until the response has no records.
+    Pagination: the wire protocol carries no global ``total``, and the API
+    forwards only the status filter to the crawler, so ``page`` and
+    ``per_page`` are echoes of the caller's request parameters over a body
+    that already holds the whole server-side page.
 
     Attributes:
         urls: List of :class:`CrawlerUrlEntry` records on this page
@@ -341,6 +362,415 @@ class CrawlerUrlsResponse:
         return (
             f"CrawlerUrlsResponse(page={self.page}, per_page={self.per_page}, "
             f"urls={len(self.urls)})"
+        )
+
+
+
+@dataclass
+class CrawlerSearchState:
+    """
+    The ``search`` block describing a crawl's index, as carried by
+    ``GET /crawl/{uuid}/status`` and by the two search webhooks.
+
+    Attributes:
+        status: ``DISABLED``, ``BUILDING``, ``READY``, ``PARTIAL`` or ``FAILED``.
+            Only ``READY`` and ``PARTIAL`` are searchable.
+        manifest: Storage path of the index manifest, ``None`` until the
+            artifact is published.
+        documents: Crawled documents represented in the index.
+        vectors: Embedded chunks.
+        dropped: Chunks discarded during the build (embedding failures,
+            oversized rows).
+        queue_depth: Chunks still waiting to be embedded at snapshot time.
+        fragments: Published Lance fragments.
+        error: Failure reason when ``status`` is ``FAILED``.
+        built_at: ISO-8601 timestamp of the terminal publish.
+        index: Vector index type (e.g. ``IVF_PQ``), ``None`` when the row
+            count stayed below the index threshold.
+        generation: Build generation, bumped when a paused crawl resumes and
+            rebuilds. Results from different generations are not comparable.
+    """
+
+    status: str
+    manifest: Optional[str] = None
+    documents: Optional[int] = None
+    vectors: Optional[int] = None
+    dropped: Optional[int] = None
+    queue_depth: Optional[int] = None
+    fragments: Optional[int] = None
+    error: Optional[str] = None
+    built_at: Optional[str] = None
+    index: Optional[str] = None
+    generation: Optional[int] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CrawlerSearchState':
+        return cls(
+            status=data['status'],
+            manifest=data.get('manifest'),
+            documents=data.get('documents'),
+            vectors=data.get('vectors'),
+            dropped=data.get('dropped'),
+            queue_depth=data.get('queue_depth'),
+            fragments=data.get('fragments'),
+            error=data.get('error'),
+            built_at=data.get('built_at'),
+            index=data.get('index'),
+            generation=data.get('generation'),
+        )
+
+    @property
+    def is_searchable(self) -> bool:
+        """Whether the index can answer a query right now."""
+        return self.status in ('READY', 'PARTIAL')
+
+
+@dataclass
+class CrawlerSearchResult:
+    """
+    One matched chunk from ``POST /crawl/search``.
+
+    A result is a *chunk*, not a page: ``chunk_id`` orders chunks within one
+    crawled document and ``text`` is only the matched slice. Use
+    ``contents_url`` (or ``warc_offset``/``warc_end``) to expand a hit back to
+    the full document.
+
+    Attributes:
+        rank: 1-based position in the merged ranking.
+        score: The ranking score used for ordering (RRF in hybrid mode).
+        scores: Per-leg scores (``vector``, ``fts``, ``rrf``); which keys are
+            present depends on the mode.
+        crawler_uuid: The crawl this chunk came from.
+        url: The crawled URL.
+        title: Document title, ``None`` when the page had none.
+        source_format: Which stored format was indexed (``markdown``, ``text``,
+            ``clean_html``, ``html``).
+        content_type: Content type of the stored document.
+        chunk_id: Chunk index within the document.
+        text: The matched chunk text.
+        warc_offset: Byte offset of the document record in the crawl WARC.
+        warc_end: End byte offset of that record.
+        contents_url: Ready-made ``/crawl/{uuid}/contents`` URL for the
+            document this chunk belongs to.
+    """
+
+    rank: int
+    score: float
+    crawler_uuid: str
+    url: str
+    chunk_id: int
+    text: str
+    scores: Dict[str, float] = field(default_factory=dict)
+    title: Optional[str] = None
+    source_format: Optional[str] = None
+    content_type: Optional[str] = None
+    warc_offset: Optional[int] = None
+    warc_end: Optional[int] = None
+    contents_url: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CrawlerSearchResult':
+        return cls(
+            rank=data['rank'],
+            score=data['score'],
+            crawler_uuid=data['crawler_uuid'],
+            url=data['url'],
+            chunk_id=data['chunk_id'],
+            text=data['text'],
+            scores=data.get('scores') or {},
+            title=data.get('title'),
+            source_format=data.get('source_format'),
+            content_type=data.get('content_type'),
+            warc_offset=data.get('warc_offset'),
+            warc_end=data.get('warc_end'),
+            contents_url=data.get('contents_url'),
+        )
+
+
+@dataclass
+class CrawlerSearchCrawl:
+    """A crawl that was actually opened and searched."""
+
+    crawler_uuid: str
+    documents: Optional[int] = None
+    vectors: Optional[int] = None
+    index: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CrawlerSearchCrawl':
+        return cls(
+            crawler_uuid=data['crawler_uuid'],
+            documents=data.get('documents'),
+            vectors=data.get('vectors'),
+            index=data.get('index'),
+        )
+
+
+@dataclass
+class CrawlerSearchSkipped:
+    """
+    A requested crawl that contributed nothing, and why.
+
+    Skips are never fatal: the search still answers with whatever the other
+    crawls returned. ``reason`` is one of ``search_not_enabled``,
+    ``search_not_ready``, ``search_failed``, ``search_disabled``,
+    ``incompatible_index``, ``deadline``.
+    """
+
+    crawler_uuid: str
+    reason: str
+    status: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CrawlerSearchSkipped':
+        return cls(
+            crawler_uuid=data['crawler_uuid'],
+            reason=data['reason'],
+            status=data.get('status'),
+        )
+
+
+class CrawlerSearchResponse:
+    """
+    Response from ``POST /crawl/search``.
+
+    Returned by :py:meth:`ScrapflyClient.crawl_search`.
+
+    The envelope states its own completeness: ``completeness == 'exact'`` with
+    most crawls unopened is the normal outcome, because the fan-out proves via
+    an admissible bound that the unopened crawls held nothing better.
+    ``'partial'`` means the deadline cut the fan-out short.
+
+    Attributes:
+        query: The query as the server understood it.
+        mode: ``vector``, ``fts`` or ``hybrid``.
+        limit: The effective result cap.
+        completeness: ``exact`` or ``partial``.
+        results: Ranked :class:`CrawlerSearchResult` list.
+        crawls: Crawls that were opened and searched.
+        skipped: Requested crawls that contributed nothing, with a reason.
+        stats: Timing/IO counters (``duration_ms``, ``crawls_searched``,
+            ``candidates``, ``gcs_gets``).
+        crawls_skipped_deadline: Crawler UUIDs the deadline cut before their
+            leg ran.
+        crawls_failed: Crawls whose leg errored, as
+            :class:`CrawlerSearchSkipped` rows.
+        cursor: Opaque token for the next page, ``None`` on the last page.
+            Paging is cursor-based: an offset over a partial fan-out would
+            re-run the legs and shift ranks.
+    """
+
+    def __init__(self, response_data: Dict[str, Any]):
+        self._data = response_data
+
+        self.query: str = response_data['query']
+        self.mode: str = response_data['mode']
+        self.limit: int = response_data['limit']
+        self.completeness: str = response_data['completeness']
+
+        self.results: List[CrawlerSearchResult] = [
+            CrawlerSearchResult.from_dict(r) for r in response_data['results']
+        ]
+        self.crawls: List[CrawlerSearchCrawl] = [
+            CrawlerSearchCrawl.from_dict(c) for c in (response_data.get('crawls') or [])
+        ]
+        self.skipped: List[CrawlerSearchSkipped] = [
+            CrawlerSearchSkipped.from_dict(s) for s in (response_data.get('skipped') or [])
+        ]
+        self.stats: Dict[str, Any] = response_data.get('stats') or {}
+
+        self.crawls_requested: Optional[int] = response_data.get('crawls_requested')
+        self.crawls_searched: Optional[int] = response_data.get('crawls_searched')
+        self.crawls_pruned_exact: Optional[int] = response_data.get('crawls_pruned_exact')
+        # These two name the crawls, they do not count them: a caller told
+        # "3 failed" cannot act on it, and the crawls it can retry are the ones
+        # the deadline cut.
+        self.crawls_skipped_deadline: List[str] = list(
+            response_data.get('crawls_skipped_deadline') or []
+        )
+        self.crawls_failed: List[CrawlerSearchSkipped] = [
+            CrawlerSearchSkipped.from_dict(c) for c in (response_data.get('crawls_failed') or [])
+        ]
+        self.theta: Optional[float] = response_data.get('theta')
+        self.max_ub_unsearched: Optional[float] = response_data.get('max_ub_unsearched')
+
+        self.cursor: Optional[str] = response_data.get('cursor')
+
+    @property
+    def is_exact(self) -> bool:
+        """Whether the ranking is provably complete for the requested crawls."""
+        return self.completeness == 'exact'
+
+    def __len__(self) -> int:
+        return len(self.results)
+
+    def __iter__(self) -> Iterator[CrawlerSearchResult]:
+        return iter(self.results)
+
+    def __repr__(self):
+        return (
+            f"CrawlerSearchResponse(query={self.query!r}, mode={self.mode}, "
+            f"results={len(self.results)}, completeness={self.completeness}, "
+            f"skipped={len(self.skipped)})"
+        )
+
+
+@dataclass
+class CrawlerPromptEvent:
+    """
+    One frame of the ``POST /crawl/prompt`` SSE stream.
+
+    Frame order is ``source``* → ``token``* → (``error``) → ``done``.
+    Keepalive comment frames are consumed by the reader and never surfaced.
+
+    Attributes:
+        event: ``source``, ``token``, ``error`` or ``done``.
+        data: The decoded frame payload: a str for ``token``, a dict for the
+            other three.
+    """
+
+    event: str
+    data: Any
+
+    @property
+    def is_token(self) -> bool:
+        return self.event == 'token'
+
+    @property
+    def is_done(self) -> bool:
+        return self.event == 'done'
+
+
+@dataclass
+class CrawlerRefreshEntry:
+    """
+    One row of a crawl's refresh timeline.
+
+    Counts describe the whole run; ``sample_updated`` / ``sample_removed``
+    carry at most ten URLs each. The full URL lists are never inlined, so a
+    5,000-page crawl does not put 5,000 strings into every status poll.
+
+    Attributes:
+        at: ISO-8601 timestamp of the run.
+        generation: Refresh generation this run produced, 1 for the first.
+        added: URLs discovered by this run that the crawl did not hold.
+        updated: Known URLs whose content fingerprint changed.
+        removed: Known URLs that no longer exist and were dropped.
+        unchanged: Known URLs re-scraped with an identical fingerprint. These
+            cost no embedding and no index write.
+        failed: URLs the run could not fetch. They keep their previous content.
+        duration_ms: Wall time of the run.
+        search_status: Index status after the run, ``None`` when the crawl has
+            no search index.
+        error: Failure reason when the run itself failed.
+        sample_updated: Up to ten re-indexed URLs.
+        sample_removed: Up to ten dropped URLs.
+    """
+
+    at: Optional[str] = None
+    generation: Optional[int] = None
+    added: int = 0
+    updated: int = 0
+    removed: int = 0
+    unchanged: int = 0
+    failed: int = 0
+    duration_ms: Optional[int] = None
+    search_status: Optional[str] = None
+    error: Optional[str] = None
+    sample_updated: List[str] = field(default_factory=list)
+    sample_removed: List[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CrawlerRefreshEntry':
+        return cls(
+            at=data.get('at'),
+            generation=data.get('generation'),
+            added=data.get('added') or 0,
+            updated=data.get('updated') or 0,
+            removed=data.get('removed') or 0,
+            unchanged=data.get('unchanged') or 0,
+            failed=data.get('failed') or 0,
+            duration_ms=data.get('duration_ms'),
+            search_status=data.get('search_status'),
+            error=data.get('error'),
+            sample_updated=list(data.get('sample_updated') or []),
+            sample_removed=list(data.get('sample_removed') or []),
+        )
+
+    @property
+    def changed(self) -> int:
+        """Pages the run actually touched. Zero means the site stood still."""
+        return self.added + self.updated + self.removed
+
+
+class CrawlerRefreshState:
+    """
+    The ``refresh`` block of a crawl, as carried by
+    ``GET /crawl/{uuid}/status`` and returned by the three refresh calls.
+
+    Attributes:
+        enabled: Whether the crawl re-scrapes itself on a period.
+        interval_seconds: Period between runs, 0 when disabled.
+        status: ``DISABLED``, ``SCHEDULED``, ``RUNNING`` or ``FAILED``.
+        generation: Number of refresh runs completed so far.
+        last_run_at: ISO-8601 timestamp of the last completed run.
+        next_run_at: ISO-8601 timestamp of the next due run, ``None`` when
+            disabled.
+        started_at: ISO-8601 start of the run in flight, ``None`` unless
+            ``status`` is ``RUNNING``. Rendered by ``GET /crawl/{uuid}/status``
+            only.
+        consecutive_failures: Failed runs since the last success, back to 0 on
+            any success. Same status-only route as ``started_at``.
+        error: Failure reason when ``status`` is ``FAILED``.
+        history: Newest-last timeline, capped at the 50 most recent runs.
+    """
+
+    def __init__(self, response_data: Dict[str, Any]):
+        self._data = response_data
+
+        # The three refresh endpoints answer with the state at the top level;
+        # GET /status nests it under "refresh". One lookup, so the isinstance
+        # narrowing holds for every read below it.
+        nested = response_data.get('refresh')
+        block = nested if isinstance(nested, dict) else response_data
+
+        self.enabled: bool = bool(block.get('enabled', False))
+        self.interval_seconds: int = int(block.get('interval_seconds') or 0)
+        self.status: str = block.get('status') or 'DISABLED'
+        self.generation: int = int(block.get('generation') or 0)
+        self.last_run_at: Optional[str] = block.get('last_run_at')
+        self.next_run_at: Optional[str] = block.get('next_run_at')
+        # ``GET /crawl/{uuid}/status`` relays the engine's refresh block
+        # verbatim; the three refresh calls render a typed block that declares
+        # neither of these, so both have to survive their absence.
+        self.started_at: Optional[str] = block.get('started_at')
+        self.consecutive_failures: int = int(block.get('consecutive_failures') or 0)
+        self.error: Optional[str] = block.get('error')
+        self.history: List[CrawlerRefreshEntry] = [
+            CrawlerRefreshEntry.from_dict(e) for e in (block.get('history') or [])
+        ]
+
+    @property
+    def is_running(self) -> bool:
+        """Whether a refresh run is in flight right now."""
+        return self.status == 'RUNNING'
+
+    @property
+    def last_run(self) -> Optional[CrawlerRefreshEntry]:
+        """Most recent timeline row, ``None`` before the first run."""
+        return self.history[-1] if self.history else None
+
+    def __len__(self) -> int:
+        return len(self.history)
+
+    def __iter__(self) -> Iterator[CrawlerRefreshEntry]:
+        return iter(self.history)
+
+    def __repr__(self):
+        return (
+            f"CrawlerRefreshState(enabled={self.enabled}, status={self.status}, "
+            f"interval_seconds={self.interval_seconds}, generation={self.generation}, "
+            f"next_run_at={self.next_run_at!r})"
         )
 
 

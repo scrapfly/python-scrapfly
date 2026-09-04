@@ -187,6 +187,40 @@ class ScrapflyCrawlerError(CrawlerError):
     pass
 
 
+class CrawlerSearchError(CrawlerError):
+    """
+    Exception raised when ``POST /crawl/search`` cannot answer.
+
+    Carries the API code, e.g. ``ERR::CRAWLER::SEARCH_NOT_ENABLED``,
+    ``ERR::CRAWLER::SEARCH_NOT_READY``, ``ERR::CRAWLER::SEARCH_TOO_MANY_CRAWLS``.
+    A crawl that is merely skipped is *not* an error: it is reported in
+    ``CrawlerSearchResponse.skipped`` and the search still answers.
+    """
+    pass
+
+
+class CrawlerPromptError(CrawlerError):
+    """
+    Exception raised when ``POST /crawl/prompt`` fails.
+
+    Also raised mid-stream when the server sends an ``event: error`` frame:
+    generation can fail after tokens have already been delivered, so a caller
+    consuming the iterator must be ready for this on any ``next()``.
+    """
+    pass
+
+
+class CrawlerRefreshError(CrawlerError):
+    """
+    Exception raised when a crawl refresh call fails.
+
+    Carries the API code, e.g. ``ERR::CRAWLER::REFRESH_NOT_ENABLED``,
+    ``ERR::CRAWLER::REFRESH_IN_PROGRESS``,
+    ``ERR::CRAWLER::REFRESH_INTERVAL_INVALID``.
+    """
+    pass
+
+
 class ErrorFactory:
     RESOURCE_TO_ERROR = {
         ScrapflyError.RESOURCE_SCRAPE: ScrapflyScrapeError,
@@ -369,4 +403,7 @@ __all__:Tuple[str, ...] = [
     'ApiHttpServerError',
     'CrawlerError',
     'ScrapflyCrawlerError',
+    'CrawlerSearchError',
+    'CrawlerPromptError',
+    'CrawlerRefreshError',
 ]

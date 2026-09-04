@@ -37,7 +37,7 @@ from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
 from .classify import ClassifyResult
-from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse
+from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse, CrawlerUrlsResponse, CrawlerSearchResponse, CrawlerPromptEvent, CrawlerRefreshState, CrawlerRefreshEntry
 from .browser_config import BrowserConfig
 from .schedule import (
     ScheduleClientMixin,
@@ -101,6 +101,11 @@ class ScrapflyClient(ScheduleClientMixin):
     DEFAULT_SCREENSHOT_API_READ_TIMEOUT = 60  # 30 real
     DEFAULT_EXTRACTION_API_READ_TIMEOUT = 35 # 30 real
     DEFAULT_CRAWLER_API_READ_TIMEOUT = 30
+    # A search fans out over every requested crawl before answering.
+    DEFAULT_CRAWLER_SEARCH_API_READ_TIMEOUT = 60
+    # Retrieval plus generation. The whole exchange is budgeted under the
+    # API's own 165s upstream ceiling, so a longer client read is pointless.
+    DEFAULT_CRAWLER_PROMPT_API_READ_TIMEOUT = 180
 
     host:str
     key:str
@@ -1657,8 +1662,464 @@ class ScrapflyClient(ScheduleClientMixin):
 
         return response.json()
 
-    def _handle_crawler_error_response(self, response: Response):
-        """Handle error responses from Crawler API"""
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def get_crawl_urls(
+        self,
+        uuid: str,
+        status: Optional[Literal['visited', 'pending', 'failed', 'skipped']] = None,
+        page: int = 1,
+        per_page: int = 100
+    ) -> CrawlerUrlsResponse:
+        """
+        List the URLs of a crawler job
+
+        ``GET /crawl/{uuid}/urls`` answers ``text/plain``, one record per line:
+        the URL alone for 'visited' / 'pending', ``url,reason`` for 'failed' /
+        'skipped'. JSON is not offered on the success path, the endpoint being
+        sized for millions of records per job.
+
+        ``page`` and ``per_page`` are sent for parity with the other SDKs and
+        echoed on the response, but the API forwards only the status filter to
+        the crawler, so one call answers with the whole server-side page.
+
+        :param uuid: Crawler job UUID
+        :param status: URL status filter - 'visited', 'pending', 'failed',
+                       'skipped'. None leaves the server default ('visited').
+        :param page: 1-based page number
+        :param per_page: Page size
+        :return: CrawlerUrlsResponse with the parsed entries and the echoed pagination
+
+        Example:
+            ```python
+            urls = client.get_crawl_urls(uuid, status='failed')
+
+            for entry in urls:
+                print(f"{entry.url}: {entry.reason}")
+            ```
+        """
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        params = {
+            'key': self.key,
+            'page': page,
+            'per_page': per_page
+        }
+
+        if status is not None:
+            params['status'] = status
+
+        response = self._http_handler(
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/urls',
+            params=params,
+            timeout=timeout,
+            headers={
+                'User-Agent': self.ua,
+                # text/plain is the success format; error envelopes come back
+                # as JSON whatever the endpoint renders when it succeeds.
+                'Accept': 'text/plain, application/json'
+            },
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response)
+
+        # A JSON body on a 200 is an envelope the text parser would read as
+        # records: every line of it becomes a bogus URL entry. Fail loud
+        # instead of handing back a page of garbage.
+        if 'application/json' in response.headers.get('Content-Type', ''):
+            raise ScrapflyCrawlerError(
+                message=(
+                    f"Crawler API returned JSON on a 200 for GET /crawl/{uuid}/urls, "
+                    f"expected text/plain: {response.text[:500]}"
+                ),
+                code='ERR::CRAWLER::UNEXPECTED_RESPONSE_FORMAT',
+                http_status_code=response.status_code
+            )
+
+        return CrawlerUrlsResponse.from_text(
+            body=response.text,
+            status_hint=status or 'visited',
+            page=page,
+            per_page=per_page
+        )
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def crawl_search(
+        self,
+        crawl_ids: List[str],
+        query: str,
+        limit: int = 10,
+        mode: Literal['vector', 'fts', 'hybrid'] = 'hybrid',
+        filters: Optional[Dict[str, Any]] = None,
+        cursor: Optional[str] = None
+    ) -> CrawlerSearchResponse:
+        """
+        Search across the search indexes of one or more crawls.
+
+        The collection form is the real endpoint: ``POST /crawl/search`` fans
+        out over ``crawl_ids`` and merges one global ranking. Only crawls
+        started with ``CrawlerConfig(search=True)`` whose index reached
+        ``READY``/``PARTIAL`` contribute; the others come back in
+        ``response.skipped`` with a reason and never fail the call.
+
+        :param crawl_ids: Crawler job UUIDs to search. Duplicates are rejected
+                          by the API.
+        :param query: Free-text query.
+        :param limit: Maximum results, 1-50 (server cap).
+        :param mode: 'vector' (semantic), 'fts' (keyword) or 'hybrid' (both,
+                     merged with reciprocal rank fusion).
+        :param filters: Optional flat filter map: 'url_prefix', 'host',
+                        'source_format', 'content_type', 'http_status',
+                        'crawler_uuid'. Unknown keys are rejected server-side.
+        :param cursor: Opaque token from a previous response to fetch the next
+                       page. Paging is cursor-based; an offset over a partial
+                       fan-out would re-run the legs and shift ranks.
+        :return: CrawlerSearchResponse
+
+        Example:
+            ```python
+            results = client.crawl_search(
+                crawl_ids=[uuid_a, uuid_b],
+                query='TLS fingerprint',
+                limit=20,
+            )
+            for hit in results:
+                print(f"{hit.rank}. {hit.url} ({hit.score:.3f})")
+            ```
+        """
+        if not crawl_ids:
+            raise ValueError("crawl_ids must contain at least one crawler UUID")
+        if not query:
+            raise ValueError("query cannot be empty")
+
+        body: Dict[str, Any] = {
+            'query': query,
+            'crawl_ids': list(crawl_ids),
+            'limit': limit,
+            'mode': mode,
+        }
+        if filters:
+            body['filters'] = filters
+        if cursor:
+            body['cursor'] = cursor
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_SEARCH_API_READ_TIMEOUT)
+
+        response = self._http_handler(
+            method='POST',
+            url=f'{self.host}/crawl/search',
+            params={'key': self.key},
+            json=body,
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerSearchError)
+
+        return CrawlerSearchResponse(response.json())
+
+    def crawl_prompt(
+        self,
+        crawl_ids: List[str],
+        prompt: str,
+        search: Optional[Dict[str, Any]] = None,
+        model: Optional[str] = None,
+        stream: bool = True
+    ) -> Union[Iterator[CrawlerPromptEvent], Dict[str, Any]]:
+        """
+        Ask a question answered from the content of one or more crawls.
+
+        ``POST /crawl/prompt`` retrieves from the same fan-out as
+        :py:meth:`crawl_search`, then generates an answer over the retrieved
+        chunks.
+
+        With ``stream=True`` (default) this returns an iterator of
+        :class:`CrawlerPromptEvent`: ``source`` frames first, then ``token``
+        frames, then one ``done`` frame. The HTTP response stays open for the
+        whole generation, so consume the iterator promptly and close it
+        (or exhaust it) to release the connection. With ``stream=False`` the
+        same content is returned as a single dict.
+
+        No backoff decorator here: a retry would re-run the fan-out and the
+        generation, and both are billable.
+
+        :param crawl_ids: Crawler job UUIDs to answer from.
+        :param prompt: The question.
+        :param search: Optional retrieval overrides: 'limit', 'mode',
+                       'filters'. Same grammar as :py:meth:`crawl_search`.
+        :param model: Optional Gemini model id. Unset uses the server default.
+        :param stream: Consume the answer as SSE frames (True) or as one JSON
+                       object (False).
+        :return: Iterator[CrawlerPromptEvent] when streaming, else Dict
+
+        Example:
+            ```python
+            for event in client.crawl_prompt([uuid], 'Summarize the pricing page'):
+                if event.is_token:
+                    print(event.data, end='', flush=True)
+            ```
+        """
+        if not crawl_ids:
+            raise ValueError("crawl_ids must contain at least one crawler UUID")
+        if not prompt:
+            raise ValueError("prompt cannot be empty")
+
+        body: Dict[str, Any] = {
+            'prompt': prompt,
+            'crawl_ids': list(crawl_ids),
+            'generation': {'stream': stream},
+        }
+        if search:
+            body['search'] = search
+        if model:
+            body['generation']['model'] = model
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_PROMPT_API_READ_TIMEOUT)
+
+        response = self._http_handler(
+            method='POST',
+            url=f'{self.host}/crawl/prompt',
+            params={'key': self.key},
+            json=body,
+            timeout=timeout,
+            headers={
+                'User-Agent': self.ua,
+                'Accept': 'text/event-stream' if stream else 'application/json',
+            },
+            stream=stream,
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerPromptError)
+
+        if not stream:
+            return response.json()
+
+        return self._iter_prompt_events(response)
+
+    @staticmethod
+    def _iter_prompt_events(response: Response) -> Iterator[CrawlerPromptEvent]:
+        """
+        Decode the ``/crawl/prompt`` SSE body into typed frames.
+
+        Only ``event:`` and ``data:`` are handled; ``:keepalive`` comment
+        frames exist to keep intermediaries from closing an idle connection
+        and carry nothing for the caller. ``token`` data is a JSON string;
+        every other frame is a JSON object.
+
+        Lines are decoded as UTF-8 rather than through
+        ``iter_lines(decode_unicode=True)``: requests derives the encoding
+        from the Content-Type and falls back to ISO-8859-1 for any ``text/*``
+        without a charset, which mangles every non-ASCII token. SSE is UTF-8
+        by specification.
+        """
+        try:
+            event_name: Optional[str] = None
+            data_lines: List[str] = []
+
+            for raw in response.iter_lines():
+                if raw is None:
+                    continue
+                line = raw.decode('utf-8', errors='replace').rstrip('\r')
+
+                if line.startswith(':'):
+                    continue
+
+                if line == '':
+                    # Blank line terminates a frame.
+                    if event_name is not None and data_lines:
+                        payload = '\n'.join(data_lines)
+                        try:
+                            data = json.loads(payload)
+                        except ValueError:
+                            data = payload
+                        if event_name == 'error':
+                            code = data.get('code', 'ERR::CRAWLER::UNKNOWN') if isinstance(data, dict) else 'ERR::CRAWLER::UNKNOWN'
+                            message = data.get('message', payload) if isinstance(data, dict) else payload
+                            raise CrawlerPromptError(
+                                message=message,
+                                code=code,
+                                http_status_code=response.status_code
+                            )
+                        yield CrawlerPromptEvent(event=event_name, data=data)
+                    event_name = None
+                    data_lines = []
+                    continue
+
+                if line.startswith('event:'):
+                    event_name = line[len('event:'):].strip()
+                elif line.startswith('data:'):
+                    data_lines.append(line[len('data:'):].lstrip(' '))
+        finally:
+            response.close()
+
+    def crawl_refresh_now(self, uuid: str) -> CrawlerRefreshState:
+        """
+        Run one refresh of an existing crawl immediately, without waiting for
+        the next scheduled period.
+
+        ``POST /crawl/{uuid}/refresh`` re-scrapes the crawl's own URLs in
+        place: same ``crawler_uuid``, same artifacts, same search index. Only
+        pages whose content actually changed are re-indexed, and pages that
+        disappeared are dropped. The call returns as soon as the run is
+        accepted; poll :py:meth:`get_crawl_status` or
+        :py:meth:`crawl_refresh_history` for the outcome.
+
+        A refresh bills the pages it re-scrapes, exactly like the original
+        crawl. Pages whose fingerprint is unchanged still cost their scrape;
+        what they save is the embedding and the index write.
+
+        No backoff decorator here: a retry would start a second re-scrape of
+        the whole site, and that is billable.
+
+        :param uuid: Crawler job UUID.
+        :return: CrawlerRefreshState
+
+        Example:
+            ```python
+            state = client.crawl_refresh_now(uuid)
+            print(state.status, state.generation)
+            ```
+        """
+        if not uuid:
+            raise ValueError("uuid must be a non-empty string")
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = self._http_handler(
+            method='POST',
+            url=f'{self.host}/crawl/{uuid}/refresh',
+            params={'key': self.key},
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code not in (200, 202):
+            self._handle_crawler_error_response(response, error_class=CrawlerRefreshError)
+
+        return CrawlerRefreshState(response.json())
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def crawl_refresh_settings(
+        self,
+        uuid: str,
+        enabled: Optional[bool] = None,
+        interval_seconds: Optional[int] = None
+    ) -> CrawlerRefreshState:
+        """
+        Change the refresh schedule of an existing crawl.
+
+        ``PATCH /crawl/{uuid}/refresh``. Both arguments are optional and only
+        what is passed is changed, so turning a crawl off keeps its interval
+        for when it is turned back on.
+
+        Turning refresh on for a crawl that was started without it is allowed:
+        the crawl already holds the URL index a refresh walks.
+
+        :param uuid: Crawler job UUID.
+        :param enabled: Turn auto-refresh on or off.
+        :param interval_seconds: Period between runs, 3600 to 7776000
+                                 (1 hour to 90 days).
+        :return: CrawlerRefreshState
+
+        Example:
+            ```python
+            client.crawl_refresh_settings(uuid, enabled=True, interval_seconds=86400)
+            ```
+        """
+        if not uuid:
+            raise ValueError("uuid must be a non-empty string")
+        if enabled is None and interval_seconds is None:
+            raise ValueError("pass at least one of enabled, interval_seconds")
+        if interval_seconds is not None and not (CrawlerConfig.REFRESH_MIN_INTERVAL <= interval_seconds <= CrawlerConfig.REFRESH_MAX_INTERVAL):
+            raise ValueError(
+                f"interval_seconds must be between {CrawlerConfig.REFRESH_MIN_INTERVAL} "
+                f"and {CrawlerConfig.REFRESH_MAX_INTERVAL} seconds"
+            )
+
+        # Wire keys are the ones POST /crawl already takes, so a crawl body and
+        # a later PATCH name the same things. The `enabled` / `interval_seconds`
+        # spelling belongs to the state block this call answers with, not to
+        # its request; the API decodes the body with unknown fields rejected.
+        body: Dict[str, Any] = {}
+        if enabled is not None:
+            body['refresh'] = enabled
+        if interval_seconds is not None:
+            body['refresh_interval'] = interval_seconds
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = self._http_handler(
+            method='PATCH',
+            url=f'{self.host}/crawl/{uuid}/refresh',
+            params={'key': self.key},
+            json=body,
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerRefreshError)
+
+        return CrawlerRefreshState(response.json())
+
+    @backoff.on_exception(backoff.expo, exception=NetworkError, max_tries=5)
+    def crawl_refresh_history(self, uuid: str, limit: Optional[int] = None) -> List[CrawlerRefreshEntry]:
+        """
+        Read a crawl's refresh timeline, newest last.
+
+        ``GET /crawl/{uuid}/refresh/history``. The server keeps the 50 most
+        recent runs; older rows are trimmed rather than paged, because the
+        timeline exists to show recent activity.
+
+        :param uuid: Crawler job UUID.
+        :param limit: Keep only the last N rows.
+        :return: List[CrawlerRefreshEntry]
+
+        Example:
+            ```python
+            for entry in client.crawl_refresh_history(uuid):
+                print(entry.at, entry.updated, 'changed' if entry.changed else 'no change')
+            ```
+        """
+        if not uuid:
+            raise ValueError("uuid must be a non-empty string")
+
+        params: Dict[str, Any] = {'key': self.key}
+        if limit is not None:
+            params['limit'] = limit
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = self._http_handler(
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/refresh/history',
+            params=params,
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerRefreshError)
+
+        return CrawlerRefreshState(response.json()).history
+
+    def _handle_crawler_error_response(self, response: Response, error_class: Optional[type] = None):
+        """
+        Handle error responses from Crawler API.
+
+        :param error_class: Optional CrawlerError subclass to raise instead of
+            HttpError. Endpoint-specific codes (ERR::CRAWLER::SEARCH_*) are
+            worth catching on their own, and HttpError cannot be narrowed.
+        """
         try:
             error_data = response.json()
             error_msg = error_data.get('message', 'Unknown error')
@@ -1667,8 +2128,17 @@ class ScrapflyClient(ScheduleClientMixin):
             error_msg = response.text
             error_code = 'ERR::CRAWLER::UNKNOWN'
 
+        message = f"Crawler API error ({response.status_code}): {error_msg}"
+
+        if error_class is not None:
+            raise error_class(
+                message=message,
+                code=error_code,
+                http_status_code=response.status_code
+            )
+
         raise HttpError(
-            message=f"Crawler API error ({response.status_code}): {error_msg}",
+            message=message,
             code=error_code,
             http_status_code=response.status_code,
             request=response.request,

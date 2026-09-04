@@ -48,6 +48,14 @@ class CrawlerConfig(BaseApiConfig):
     WEBHOOK_CRAWLER_STOPPED = 'crawler_stopped'
     WEBHOOK_CRAWLER_CANCELLED = 'crawler_cancelled'
     WEBHOOK_CRAWLER_FINISHED = 'crawler_finished'
+    WEBHOOK_CRAWLER_SEARCH_READY = 'crawler_search_ready'
+    WEBHOOK_CRAWLER_SEARCH_FAILED = 'crawler_search_failed'
+    WEBHOOK_CRAWLER_UPDATED = 'crawler_updated'
+
+    # Auto-refresh interval bounds. The floor decides the cost: a crawl
+    # refreshing every minute re-scrapes the whole site 1,440 times a day.
+    REFRESH_MIN_INTERVAL = 3600
+    REFRESH_MAX_INTERVAL = 90 * 24 * 3600
 
     ALL_WEBHOOK_EVENTS = [
         WEBHOOK_CRAWLER_STARTED,
@@ -58,6 +66,9 @@ class CrawlerConfig(BaseApiConfig):
         WEBHOOK_CRAWLER_STOPPED,
         WEBHOOK_CRAWLER_CANCELLED,
         WEBHOOK_CRAWLER_FINISHED,
+        WEBHOOK_CRAWLER_SEARCH_READY,
+        WEBHOOK_CRAWLER_SEARCH_FAILED,
+        WEBHOOK_CRAWLER_UPDATED,
     ]
 
     def __init__(
@@ -110,6 +121,15 @@ class CrawlerConfig(BaseApiConfig):
         content_formats: Optional[List[Literal['html', 'markdown', 'text', 'clean_html']]] = None,
         extraction_rules: Optional[Dict] = None,
 
+        # Search index built during the crawl, queried through
+        # client.crawl_search() / client.crawl_prompt() once READY.
+        search: bool = False,
+
+        # Auto-refresh: re-scrape this crawl's own URLs in place, on a period.
+        # Same crawler_uuid, same artifacts, only changed pages re-indexed.
+        refresh: bool = False,
+        refresh_interval: Optional[int] = None,
+
         # Web scraping features
         asp: bool = False,
         proxy_pool: Optional[str] = None,
@@ -155,6 +175,11 @@ class CrawlerConfig(BaseApiConfig):
             content_formats: List of content formats to extract ('html', 'markdown', 'text', 'clean_html')
             extraction_rules: Custom extraction rules
 
+            search: Build a semantic search index while the crawl runs
+
+            refresh: Keep this crawl fresh by re-scraping its own URLs in place
+            refresh_interval: Seconds between refresh runs (3600 to 7776000)
+
             asp: Enable Anti-Scraping Protection bypass
             proxy_pool: Proxy pool to use (e.g., 'public_residential_pool')
             country: Target country for geo-located content
@@ -166,6 +191,13 @@ class CrawlerConfig(BaseApiConfig):
         """
         if exclude_paths and include_only_paths:
             raise ValueError("exclude_paths and include_only_paths are mutually exclusive")
+
+        if refresh_interval is not None and not (self.REFRESH_MIN_INTERVAL <= refresh_interval <= self.REFRESH_MAX_INTERVAL):
+            raise ValueError(
+                f"refresh_interval must be between {self.REFRESH_MIN_INTERVAL} and {self.REFRESH_MAX_INTERVAL} seconds"
+            )
+        if refresh_interval is not None and not refresh:
+            raise ValueError("refresh_interval requires refresh=True")
 
         sources_set = sum(1 for v in (url, url_list, remote_url_list) if v)
         if sources_set == 0:
@@ -244,6 +276,17 @@ class CrawlerConfig(BaseApiConfig):
             params['content_formats'] = content_formats
         if extraction_rules:
             params['extraction_rules'] = extraction_rules
+
+        # Search index
+        if search:
+            params['search'] = True
+
+        # Auto-refresh. The interval is omitted when unset so the server
+        # default period applies.
+        if refresh:
+            params['refresh'] = True
+        if refresh_interval is not None:
+            params['refresh_interval'] = refresh_interval
 
         # Web scraping features
         if asp:

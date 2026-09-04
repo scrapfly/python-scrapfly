@@ -5,8 +5,9 @@ These tests use hand-crafted payloads that mirror *exactly* what the
 scrape-engine emits in
 ``apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py``.
 
-For each of the 8 crawler events the scrape-engine dispatches
-(``dispatch_crawler_start``, ``dispatch_crawler_stop``, ``dispatch_url_*``),
+For each of the 11 crawler events the scrape-engine dispatches
+(``dispatch_crawler_start``, ``dispatch_crawler_stop``, ``dispatch_url_*``,
+``dispatch_crawler_search``, ``dispatch_crawler_updated``),
 we build a payload that matches the engine's ``data`` dict 1:1 and assert
 that ``webhook_from_payload`` parses it into the correct typed dataclass
 with every field populated.
@@ -24,6 +25,8 @@ import pytest
 
 from scrapfly import (
     CrawlerLifecycleWebhook,
+    CrawlerSearchWebhook,
+    CrawlerUpdatedWebhook,
     CrawlerUrlDiscoveredWebhook,
     CrawlerUrlFailedWebhook,
     CrawlerUrlSkippedWebhook,
@@ -313,6 +316,213 @@ def test_url_failed_with_null_log_link():
 
     assert wh.log_link is None
     assert wh.scrape_link.startswith("https://api.scrapfly.io/scrape")
+
+
+# ---------------------------------------------------------------------------
+# crawler_search_ready / crawler_search_failed
+# ---------------------------------------------------------------------------
+
+
+def _search_envelope(event_name, search):
+    """
+    Mirror of ``webhook_manager.dispatch_crawler_search``. These two events
+    are the only ones the engine emits **without** an ``action`` tag.
+    """
+    return {
+        "event": event_name,
+        "payload": {
+            "crawler_uuid": "b4867c50-318c-47cd-bfc9-bed67f24771a",
+            "project": "default",
+            "env": "LIVE",
+            "seed_url": "https://web-scraping.dev/products",
+            "state": _state(),
+            "search": search,
+            "links": {
+                "status": "https://api.scrapfly.io/crawl/b4867c50-318c-47cd-bfc9-bed67f24771a/status",
+            },
+        },
+    }
+
+
+def test_search_ready():
+    envelope = _search_envelope(
+        CrawlerWebhookEvent.CRAWLER_SEARCH_READY.value,
+        {
+            "status": "READY",
+            "manifest": "crawl/b4867c50/search/manifest.json",
+            "documents": 412,
+            "vectors": 18432,
+            "dropped": 0,
+            "queue_depth": 0,
+            "fragments": 3,
+            "error": None,
+            "built_at": "2026-09-02T10:11:12Z",
+            "index": "IVF_PQ",
+            "embedding_model": "text-embedding-005",
+            "embedding_dimension": 768,
+            "generation": 1,
+        },
+    )
+
+    wh = webhook_from_payload(envelope)
+
+    assert isinstance(wh, CrawlerSearchWebhook)
+    assert wh.event == "crawler_search_ready"
+    assert wh.crawler_uuid == "b4867c50-318c-47cd-bfc9-bed67f24771a"
+    assert wh.seed_url == "https://web-scraping.dev/products"
+    assert wh.status_link.endswith("/status")
+    assert wh.search.status == "READY"
+    assert wh.search.documents == 412
+    assert wh.search.vectors == 18432
+    assert wh.search.index == "IVF_PQ"
+    # Which model we embed with is not the customer's business. The fixture
+    # still sends both fields because an older API will; a model with no such
+    # attribute is what drops them.
+    assert not hasattr(wh.search, "embedding_model")
+    assert not hasattr(wh.search, "embedding_dimension")
+    assert wh.search.generation == 1
+    assert wh.search.is_searchable is True
+    assert wh.state.urls_visited == 5
+
+
+def test_search_failed():
+    envelope = _search_envelope(
+        CrawlerWebhookEvent.CRAWLER_SEARCH_FAILED.value,
+        {"status": "FAILED", "error": "embedding backend unavailable", "vectors": 0},
+    )
+
+    wh = webhook_from_payload(envelope)
+
+    assert isinstance(wh, CrawlerSearchWebhook)
+    assert wh.event == "crawler_search_failed"
+    assert wh.search.status == "FAILED"
+    assert wh.search.error == "embedding backend unavailable"
+    assert wh.search.is_searchable is False
+    # The block is sparse on failure; absent counters must not raise.
+    assert wh.search.documents is None
+
+
+def test_search_event_names_parse():
+    """
+    The parser raises on unknown event names, so both names have to be
+    registered in the dispatch table for a subscriber to receive them at all.
+    """
+    for name in ("crawler_search_ready", "crawler_search_failed"):
+        wh = webhook_from_payload(_search_envelope(name, {"status": "READY"}))
+        assert wh.event == name
+
+
+def test_missing_search_block_raises_keyerror():
+    """Strict parsing: the block is what the event exists to deliver."""
+    envelope = _search_envelope(CrawlerWebhookEvent.CRAWLER_SEARCH_READY.value, {"status": "READY"})
+    del envelope["payload"]["search"]
+
+    with pytest.raises(KeyError):
+        webhook_from_payload(envelope)
+
+# ---------------------------------------------------------------------------
+# crawler_updated
+# ---------------------------------------------------------------------------
+
+
+def _updated_envelope(refresh=None, documents=None):
+    """
+    Mirror ``dispatch_crawler_updated``: the run's timeline row under
+    ``refresh``, the changed URLs under ``documents``.
+    """
+    return {
+        "event": CrawlerWebhookEvent.CRAWLER_UPDATED.value,
+        "payload": {
+            "crawler_uuid": "b4867c50-318c-47cd-bfc9-bed67f24771a",
+            "project": "default",
+            "env": "LIVE",
+            "seed_url": "https://web-scraping.dev/products",
+            "action": "updated",
+            "state": _state(stop_reason="no_more_urls"),
+            "refresh": refresh if refresh is not None else {
+                "at": "2026-09-03T04:12:46.912430Z",
+                "generation": 12,
+                "added": 1,
+                "updated": 2,
+                "removed": 1,
+                "unchanged": 2,
+                "failed": 0,
+                "duration_ms": 41870,
+                "search_status": "READY",
+                "error": None,
+            },
+            "documents": documents if documents is not None else {
+                "updated": [
+                    "https://web-scraping.dev/product/25",
+                    "https://web-scraping.dev/products",
+                    "https://web-scraping.dev/product/1",
+                ],
+                "removed": ["https://web-scraping.dev/product/9"],
+                "truncated": False,
+            },
+            "links": {
+                "status": "https://api.scrapfly.io/crawl/b4867c50-318c-47cd-bfc9-bed67f24771a/status",
+            },
+        },
+    }
+
+
+def test_updated_carries_the_run_and_the_changed_documents():
+    wh = webhook_from_payload(_updated_envelope())
+
+    assert isinstance(wh, CrawlerUpdatedWebhook)
+    assert wh.event == "crawler_updated"
+    assert wh.action == "updated"
+    assert wh.crawler_uuid == "b4867c50-318c-47cd-bfc9-bed67f24771a"
+    assert wh.seed_url == "https://web-scraping.dev/products"
+    assert wh.status_link.endswith("/status")
+    assert wh.refresh.generation == 12
+    assert wh.refresh.added == 1
+    assert wh.refresh.updated == 2
+    assert wh.refresh.removed == 1
+    assert wh.refresh.unchanged == 2
+    assert wh.refresh.failed == 0
+    assert wh.refresh.duration_ms == 41870
+    assert wh.refresh.search_status == "READY"
+    assert wh.refresh.changed == 4
+    assert wh.documents.updated == [
+        "https://web-scraping.dev/product/25",
+        "https://web-scraping.dev/products",
+        "https://web-scraping.dev/product/1",
+    ]
+    assert wh.documents.removed == ["https://web-scraping.dev/product/9"]
+    assert wh.documents.truncated is False
+    # The samples live in `documents` for this event, so the timeline row's
+    # own sample fields are absent rather than a second, shorter copy.
+    assert wh.refresh.sample_updated == []
+    assert wh.refresh.sample_removed == []
+
+
+def test_updated_reports_a_capped_list_as_truncated():
+    """
+    The counts stay whole when the lists are cut, which is what tells a
+    consumer to go and read the crawl rather than trust the body.
+    """
+    urls = [f"https://web-scraping.dev/product/{index}" for index in range(100)]
+    envelope = _updated_envelope(
+        refresh={"generation": 3, "added": 0, "updated": 250, "removed": 0, "unchanged": 0, "failed": 0},
+        documents={"updated": urls, "removed": [], "truncated": True},
+    )
+
+    wh = webhook_from_payload(envelope)
+
+    assert len(wh.documents.updated) == 100
+    assert wh.documents.truncated is True
+    assert wh.refresh.updated == 250
+
+
+def test_updated_missing_documents_block_raises_keyerror():
+    """Strict parsing: the changed URLs are what the event exists to deliver."""
+    envelope = _updated_envelope()
+    del envelope["payload"]["documents"]
+
+    with pytest.raises(KeyError):
+        webhook_from_payload(envelope)
 
 
 # ---------------------------------------------------------------------------

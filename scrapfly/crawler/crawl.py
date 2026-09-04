@@ -5,7 +5,7 @@ This module provides a Crawl object that manages the state and lifecycle
 of a crawler job, making it easy to start, monitor, and retrieve results.
 """
 
-from typing import Optional, Dict, Any, List, Literal, Iterator, Tuple
+from typing import Optional, Dict, Any, List, Literal, Iterator, Tuple, Union
 import time
 import fnmatch
 import logging
@@ -13,7 +13,15 @@ from email import message_from_string
 from email.parser import BytesParser
 from email.policy import default
 from .crawler_config import CrawlerConfig
-from .crawler_response import CrawlerArtifactResponse, CrawlerStatusResponse, CrawlerUrlsResponse
+from .crawler_response import (
+    CrawlerArtifactResponse,
+    CrawlerPromptEvent,
+    CrawlerRefreshEntry,
+    CrawlerRefreshState,
+    CrawlerSearchResponse,
+    CrawlerStatusResponse,
+    CrawlerUrlsResponse,
+)
 from .crawl_content import CrawlContent
 from ..errors import ScrapflyCrawlerError
 
@@ -270,24 +278,24 @@ class Crawl:
 
     def urls(
         self,
-        status: Optional[Literal['visited', 'pending', 'failed']] = None,
+        status: Optional[Literal['visited', 'pending', 'failed', 'skipped']] = None,
         page: int = 1,
         per_page: int = 100,
     ) -> CrawlerUrlsResponse:
         """
-        List the crawled URLs (paginated, optionally filtered by status).
+        List the crawled URLs, optionally filtered by status.
 
-        NEW in 0.8.28 — convenience wrapper around
-        :meth:`ScrapflyClient.get_crawl_urls` that pre-fills the crawler UUID.
+        Convenience wrapper around :meth:`ScrapflyClient.get_crawl_urls` that
+        pre-fills the crawler UUID.
 
         Args:
-            status: Filter by URL status — 'visited', 'pending', or 'failed'.
-                When None, the server defaults to 'visited'.
-            page: 1-based page number (default 1)
-            per_page: Page size (default 100, max 1000)
+            status: Filter by URL status: 'visited', 'pending', 'failed' or
+                'skipped'. When None, the server defaults to 'visited'.
+            page: 1-based page number, echoed on the response.
+            per_page: Page size, echoed on the response.
 
         Returns:
-            CrawlerUrlsResponse with the URL records, total count and pagination metadata.
+            CrawlerUrlsResponse with the URL records and the echoed pagination.
 
         Raises:
             ScrapflyCrawlerError: if the crawler has not been started yet.
@@ -311,6 +319,206 @@ class Crawl:
             page=page,
             per_page=per_page,
         )
+
+    def search(
+        self,
+        query: str,
+        limit: int = 10,
+        mode: Literal['vector', 'fts', 'hybrid'] = 'hybrid',
+        filters: Optional[Dict[str, Any]] = None,
+        cursor: Optional[str] = None,
+    ) -> CrawlerSearchResponse:
+        """
+        Search this crawl's index.
+
+        Sugar over :meth:`ScrapflyClient.crawl_search` with a one-element
+        crawl list. The cross-crawl call is the real endpoint; this shares its
+        implementation so single and multi-crawl search cannot drift.
+
+        Requires the crawl to have been started with
+        ``CrawlerConfig(search=True)`` and its index to have reached
+        ``READY``/``PARTIAL``; poll :attr:`CrawlerStatusResponse.search` or
+        subscribe to the ``crawler_search_ready`` webhook. An index that is
+        not ready yet comes back in ``response.skipped``, not as an error.
+
+        Args:
+            query: Free-text query.
+            limit: Maximum results, 1-50 (server cap).
+            mode: 'vector', 'fts' or 'hybrid'.
+            filters: Optional flat filter map (see ``crawl_search``).
+            cursor: Opaque next-page token from a previous response.
+
+        Returns:
+            CrawlerSearchResponse
+
+        Raises:
+            ScrapflyCrawlerError: if the crawler has not been started yet.
+
+        Example:
+            ```python
+            crawl = Crawl(client, CrawlerConfig(url='https://example.com', search=True)).crawl().wait()
+            for hit in crawl.search('pricing', limit=5):
+                print(hit.rank, hit.url)
+            ```
+        """
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message="Crawler not started yet. Call crawl() first.",
+                code="NOT_STARTED",
+                http_status_code=400,
+            )
+        return self._client.crawl_search(
+            crawl_ids=[self._uuid],
+            query=query,
+            limit=limit,
+            mode=mode,
+            filters=filters,
+            cursor=cursor,
+        )
+
+    def prompt(
+        self,
+        prompt: str,
+        search: Optional[Dict[str, Any]] = None,
+        model: Optional[str] = None,
+        stream: bool = True,
+    ) -> Union[Iterator[CrawlerPromptEvent], Dict[str, Any]]:
+        """
+        Ask a question answered from this crawl's content.
+
+        Sugar over :meth:`ScrapflyClient.crawl_prompt` with a one-element
+        crawl list.
+
+        Args:
+            prompt: The question.
+            search: Optional retrieval overrides: 'limit', 'mode', 'filters'.
+            model: Optional Gemini model id; unset uses the server default.
+            stream: Yield SSE frames (True) or return one dict (False).
+
+        Returns:
+            Iterator[CrawlerPromptEvent] when streaming, else Dict.
+
+        Raises:
+            ScrapflyCrawlerError: if the crawler has not been started yet.
+            CrawlerPromptError: on a server-sent error frame, which can arrive
+                after tokens have already been yielded.
+
+        Example:
+            ```python
+            for event in crawl.prompt('What does this site sell?'):
+                if event.is_token:
+                    print(event.data, end='', flush=True)
+            ```
+        """
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message="Crawler not started yet. Call crawl() first.",
+                code="NOT_STARTED",
+                http_status_code=400,
+            )
+        return self._client.crawl_prompt(
+            crawl_ids=[self._uuid],
+            prompt=prompt,
+            search=search,
+            model=model,
+            stream=stream,
+        )
+
+    def refresh_now(self) -> CrawlerRefreshState:
+        """
+        Re-scrape this crawl's URLs in place, right now.
+
+        Sugar over :meth:`ScrapflyClient.crawl_refresh_now`. The crawl keeps
+        its uuid, its artifacts and its search index; only pages whose content
+        changed are re-indexed and pages that disappeared are dropped, so
+        anything already pointing at this crawl keeps working.
+
+        Returns:
+            CrawlerRefreshState
+
+        Raises:
+            ScrapflyCrawlerError: if the crawler has not been started yet.
+
+        Example:
+            ```python
+            state = crawl.refresh_now()
+            print(state.status)
+            ```
+        """
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message="Crawler not started yet. Call crawl() first.",
+                code="NOT_STARTED",
+                http_status_code=400,
+            )
+        return self._client.crawl_refresh_now(self._uuid)
+
+    def refresh_settings(
+        self,
+        enabled: Optional[bool] = None,
+        interval_seconds: Optional[int] = None,
+    ) -> CrawlerRefreshState:
+        """
+        Change this crawl's refresh schedule.
+
+        Sugar over :meth:`ScrapflyClient.crawl_refresh_settings`. Only what is
+        passed is changed.
+
+        Args:
+            enabled: Turn auto-refresh on or off.
+            interval_seconds: Period between runs, 3600 to 7776000.
+
+        Returns:
+            CrawlerRefreshState
+
+        Raises:
+            ScrapflyCrawlerError: if the crawler has not been started yet.
+
+        Example:
+            ```python
+            crawl.refresh_settings(enabled=True, interval_seconds=86400)
+            ```
+        """
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message="Crawler not started yet. Call crawl() first.",
+                code="NOT_STARTED",
+                http_status_code=400,
+            )
+        return self._client.crawl_refresh_settings(
+            self._uuid,
+            enabled=enabled,
+            interval_seconds=interval_seconds,
+        )
+
+    def refresh_history(self, limit: Optional[int] = None) -> List[CrawlerRefreshEntry]:
+        """
+        Read this crawl's refresh timeline, newest last.
+
+        Sugar over :meth:`ScrapflyClient.crawl_refresh_history`.
+
+        Args:
+            limit: Keep only the last N rows.
+
+        Returns:
+            List[CrawlerRefreshEntry]
+
+        Raises:
+            ScrapflyCrawlerError: if the crawler has not been started yet.
+
+        Example:
+            ```python
+            for entry in crawl.refresh_history(limit=5):
+                print(entry.at, entry.added, entry.updated, entry.removed)
+            ```
+        """
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message="Crawler not started yet. Call crawl() first.",
+                code="NOT_STARTED",
+                http_status_code=400,
+            )
+        return self._client.crawl_refresh_history(self._uuid, limit=limit)
 
     def warc(self, artifact_type: str = 'warc') -> CrawlerArtifactResponse:
         """

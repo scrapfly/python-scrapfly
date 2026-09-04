@@ -19,6 +19,14 @@ from .crawler_response import (
     CrawlerArtifactResponse,
     CrawlerUrlsResponse,
     CrawlerUrlEntry,
+    CrawlerSearchState,
+    CrawlerSearchResult,
+    CrawlerSearchCrawl,
+    CrawlerSearchSkipped,
+    CrawlerSearchResponse,
+    CrawlerPromptEvent,
+    CrawlerRefreshEntry,
+    CrawlerRefreshState,
 )
 from .warc_utils import WarcParser, WarcRecord, parse_warc
 from .har_utils import HarArchive, HarEntry
@@ -30,6 +38,9 @@ from .crawler_webhook import (
     CrawlerUrlSkippedWebhook,
     CrawlerUrlDiscoveredWebhook,
     CrawlerUrlFailedWebhook,
+    CrawlerSearchWebhook,
+    CrawlerUpdatedWebhook,
+    CrawlerUpdatedDocuments,
     CrawlerScrapeResult,
     CrawlerWebhook,
     webhook_from_payload,
@@ -52,6 +63,18 @@ __all__ = [
     'CrawlerUrlsResponse',
     'CrawlerUrlEntry',
 
+    # Search
+    'CrawlerSearchState',
+    'CrawlerSearchResult',
+    'CrawlerSearchCrawl',
+    'CrawlerSearchSkipped',
+    'CrawlerSearchResponse',
+    'CrawlerPromptEvent',
+
+    # Auto-refresh
+    'CrawlerRefreshEntry',
+    'CrawlerRefreshState',
+
     # WARC utilities
     'WarcParser',
     'WarcRecord',
@@ -69,6 +92,9 @@ __all__ = [
     'CrawlerUrlSkippedWebhook',
     'CrawlerUrlDiscoveredWebhook',
     'CrawlerUrlFailedWebhook',
+    'CrawlerSearchWebhook',
+    'CrawlerUpdatedWebhook',
+    'CrawlerUpdatedDocuments',
     'CrawlerScrapeResult',
     'CrawlerWebhook',
     'webhook_from_payload',

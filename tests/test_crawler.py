@@ -11,13 +11,25 @@ Tests the Scrapfly Crawler API functionality including:
 - Error handling
 """
 
+import json
 import os
 import pytest
 import time
+from io import BytesIO
+
+from requests import Request, Response
+
 from scrapfly import (
     ScrapflyClient,
     CrawlerConfig,
     Crawl,
+    CrawlerPromptError,
+    CrawlerRefreshError,
+    CrawlerRefreshState,
+    CrawlerSearchError,
+    CrawlerStatusResponse,
+    CrawlerUrlsResponse,
+    HttpError,
     ScrapflyCrawlerError,
 )
 
@@ -31,6 +43,50 @@ pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 # Test configuration
 API_KEY = os.environ.get('SCRAPFLY_KEY', 'scp-live-YOUR_API_KEY_HERE')
 API_HOST = os.environ.get('SCRAPFLY_API_HOST', 'https://api.scrapfly.local')
+
+
+
+# One `POST /crawl/search` envelope, verbatim from the response contract.
+SEARCH_ENVELOPE = {
+    'query': 'TLS fingerprint',
+    'mode': 'hybrid',
+    'limit': 20,
+    'completeness': 'exact',
+    'crawls': [
+        {'crawler_uuid': '0198aaaa', 'documents': 412, 'vectors': 18432, 'index': 'IVF_PQ'},
+    ],
+    'skipped': [
+        {'crawler_uuid': '0198bbbb', 'reason': 'search_not_ready', 'status': 'BUILDING'},
+    ],
+    'results': [
+        {
+            'rank': 1,
+            'score': 0.927,
+            'scores': {'vector': 0.91, 'fts': 12.4, 'rrf': 0.0312},
+            'crawler_uuid': '0198aaaa',
+            'url': 'https://example.com/foo',
+            'title': 'Foo Product',
+            'source_format': 'markdown',
+            'content_type': 'application/markdown',
+            'chunk_id': 3,
+            'text': 'the matched chunk',
+            'warc_offset': 728271,
+            'warc_end': 746643,
+            'contents_url': 'https://api.scrapfly.io/crawl/0198aaaa/contents?url=x&formats=markdown',
+        },
+    ],
+    'stats': {'duration_ms': 412, 'crawls_searched': 1, 'candidates': 150, 'gcs_gets': 27},
+    'crawls_requested': 2,
+    'crawls_searched': 1,
+    'crawls_pruned_exact': 0,
+    'crawls_skipped_deadline': ['0198cccc'],
+    'crawls_failed': [
+        {'crawler_uuid': '0198dddd', 'reason': 'search_failed', 'status': 'FAILED'},
+    ],
+    'theta': 0.42,
+    'max_ub_unsearched': 0.11,
+    'cursor': None,
+}
 
 
 @pytest.fixture
@@ -1325,3 +1381,783 @@ class TestCompleteWorkflow:
         # Should have crawl rate
         if stats['urls_extracted'] > 0:
             assert 'crawl_rate' in stats
+
+
+# ---------------------------------------------------------------------------
+# Search index, offline. The wire payload and the SSE decoder are the SDK's
+# own contract; they must hold without a live crawl to search.
+# ---------------------------------------------------------------------------
+
+
+class TestCrawlerSearchConfig:
+    """`search` reaches the wire, and only when it is asked for."""
+
+    pytestmark = pytest.mark.unit
+
+    def test_search_serializes_to_wire_payload(self):
+        config = CrawlerConfig(url='https://example.com', search=True)
+
+        assert config.to_api_params()['search'] is True
+
+    def test_search_omitted_when_off(self):
+        """Unset means server default: never emit a field to send its default."""
+        config = CrawlerConfig(url='https://example.com')
+
+        assert 'search' not in config.to_api_params()
+
+    def test_search_rides_the_multipart_config_part(self):
+        """A url_list crawl posts multipart; the flag lives in the config part."""
+        config = CrawlerConfig(url_list=['https://example.com/a'], search=True)
+        parts = config.to_multipart_parts()
+
+        assert parts['config']['search'] is True
+        assert parts['urls'] == 'https://example.com/a'
+
+    def test_search_webhook_events_are_accepted(self):
+        config = CrawlerConfig(
+            url='https://example.com',
+            search=True,
+            webhook_name='my-hook',
+            webhook_events=['crawler_search_ready', 'crawler_search_failed'],
+        )
+
+        assert config.to_api_params()['webhook_events'] == [
+            'crawler_search_ready',
+            'crawler_search_failed',
+        ]
+
+
+class TestCrawlerSearchTransport:
+    """`crawl_search` / `crawl_prompt` request shape and response decoding."""
+
+    pytestmark = pytest.mark.unit
+
+    @staticmethod
+    def _client_with(handler):
+        client = ScrapflyClient(key='scp-live-0000000000000000000000000000000000000000')
+        # _http_handler is a cached_property; seed the cache to stub transport.
+        client.__dict__['_http_handler'] = handler
+        return client
+
+    @staticmethod
+    def _json_response(payload, status_code=200):
+        response = Response()
+        response.status_code = status_code
+        response._content = json.dumps(payload).encode('utf-8')
+        response.headers['Content-Type'] = 'application/json'
+        response.url = 'https://api.scrapfly.io/crawl/search'
+        response.request = Request(method='POST', url=response.url).prepare()
+        return response
+
+    def test_crawl_search_posts_the_collection_body(self):
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._json_response(SEARCH_ENVELOPE)
+
+        client = self._client_with(handler)
+        result = client.crawl_search(
+            crawl_ids=['0198aaaa', '0198bbbb'],
+            query='TLS fingerprint',
+            limit=20,
+            mode='hybrid',
+            filters={'url_prefix': 'https://example.com/docs/'},
+        )
+
+        assert captured['method'] == 'POST'
+        assert captured['url'] == 'https://api.scrapfly.io/crawl/search'
+        assert captured['params'] == {'key': client.key}
+        assert captured['json'] == {
+            'query': 'TLS fingerprint',
+            'crawl_ids': ['0198aaaa', '0198bbbb'],
+            'limit': 20,
+            'mode': 'hybrid',
+            'filters': {'url_prefix': 'https://example.com/docs/'},
+        }
+
+        assert result.mode == 'hybrid'
+        assert result.is_exact is True
+        assert len(result) == 1
+        assert result.results[0].url == 'https://example.com/foo'
+        assert result.results[0].scores['rrf'] == 0.0312
+        assert result.crawls[0].vectors == 18432
+        assert result.skipped[0].reason == 'search_not_ready'
+        assert result.cursor is None
+
+    def test_deadline_and_failure_fields_name_the_crawls(self):
+        """``crawls_skipped_deadline`` and ``crawls_failed`` carry crawls, not
+        counts: a caller told "1 failed" has nothing to retry, and the deadline
+        list is exactly the set worth asking for again."""
+
+        def handler(**kwargs):
+            return self._json_response(SEARCH_ENVELOPE)
+
+        client = self._client_with(handler)
+        result = client.crawl_search(crawl_ids=['0198aaaa'], query='TLS fingerprint')
+
+        assert result.crawls_skipped_deadline == ['0198cccc']
+        assert [c.crawler_uuid for c in result.crawls_failed] == ['0198dddd']
+        assert result.crawls_failed[0].reason == 'search_failed'
+        assert result.crawls_failed[0].status == 'FAILED'
+
+    def test_deadline_and_failure_fields_are_empty_lists_when_absent(self):
+        """Every leg landing inside the deadline omits neither field but sends
+        both empty; the caller iterates without a None check."""
+        envelope = dict(SEARCH_ENVELOPE)
+        envelope.pop('crawls_skipped_deadline')
+        envelope.pop('crawls_failed')
+
+        client = self._client_with(lambda **kwargs: self._json_response(envelope))
+        result = client.crawl_search(crawl_ids=['0198aaaa'], query='TLS fingerprint')
+
+        assert result.crawls_skipped_deadline == []
+        assert result.crawls_failed == []
+
+    def test_single_crawl_search_is_a_one_element_collection_call(self):
+        """The cross-crawl call is the real endpoint; Crawl.search() is sugar."""
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._json_response(SEARCH_ENVELOPE)
+
+        client = self._client_with(handler)
+        crawl = Crawl(client, CrawlerConfig(url='https://example.com', search=True))
+        crawl._uuid = '0198aaaa'
+
+        crawl.search('TLS fingerprint')
+
+        assert captured['url'] == 'https://api.scrapfly.io/crawl/search'
+        assert captured['json']['crawl_ids'] == ['0198aaaa']
+
+    def test_search_before_start_raises(self):
+        client = self._client_with(lambda **kwargs: None)
+        crawl = Crawl(client, CrawlerConfig(url='https://example.com', search=True))
+
+        with pytest.raises(ScrapflyCrawlerError):
+            crawl.search('anything')
+
+    def test_search_error_is_typed(self):
+        def handler(**kwargs):
+            return self._json_response(
+                {'code': 'ERR::CRAWLER::SEARCH_NOT_ENABLED', 'message': 'Search is not enabled'},
+                status_code=400,
+            )
+
+        client = self._client_with(handler)
+
+        with pytest.raises(CrawlerSearchError) as excinfo:
+            client.crawl_search(crawl_ids=['0198aaaa'], query='x')
+
+        assert excinfo.value.code == 'ERR::CRAWLER::SEARCH_NOT_ENABLED'
+
+    def test_crawl_prompt_streams_sse_frames(self):
+        captured = {}
+        stream = (
+            b'event: source\ndata: {"id":1,"crawler_uuid":"0198aaaa","url":"https://example.com/foo"}\n\n'
+            b':keepalive\n\n'
+            b'event: token\ndata: "The"\n\n'
+            b'event: token\ndata: " answer"\n\n'
+            b'event: done\ndata: {"sources_used":[1],"truncated":false}\n\n'
+        )
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            response = Response()
+            response.status_code = 200
+            response.headers['Content-Type'] = 'text/event-stream'
+            response.raw = BytesIO(stream)
+            response.url = 'https://api.scrapfly.io/crawl/prompt'
+            response.request = Request(method='POST', url=response.url).prepare()
+            return response
+
+        client = self._client_with(handler)
+        events = list(client.crawl_prompt(
+            crawl_ids=['0198aaaa', '0198bbbb'],
+            prompt='Compare the pricing models.',
+            search={'limit': 30},
+        ))
+
+        assert captured['json'] == {
+            'prompt': 'Compare the pricing models.',
+            'crawl_ids': ['0198aaaa', '0198bbbb'],
+            'generation': {'stream': True},
+            'search': {'limit': 30},
+        }
+        assert captured['stream'] is True
+        assert captured['headers']['Accept'] == 'text/event-stream'
+
+        assert [e.event for e in events] == ['source', 'token', 'token', 'done']
+        assert ''.join(e.data for e in events if e.is_token) == 'The answer'
+        assert events[-1].data['sources_used'] == [1]
+
+    def test_prompt_error_frame_raises_mid_stream(self):
+        """Generation can fail after tokens have already been delivered."""
+        stream = (
+            b'event: token\ndata: "partial"\n\n'
+            b'event: error\ndata: {"code":"ERR::CRAWLER::PROMPT_GENERATION_FAILED","message":"upstream refused"}\n\n'
+        )
+
+        def handler(**kwargs):
+            response = Response()
+            response.status_code = 200
+            response.headers['Content-Type'] = 'text/event-stream'
+            response.raw = BytesIO(stream)
+            response.url = 'https://api.scrapfly.io/crawl/prompt'
+            response.request = Request(method='POST', url=response.url).prepare()
+            return response
+
+        client = self._client_with(handler)
+        events = client.crawl_prompt(crawl_ids=['0198aaaa'], prompt='hi')
+
+        assert next(events).data == 'partial'
+        with pytest.raises(CrawlerPromptError) as excinfo:
+            next(events)
+
+        assert excinfo.value.code == 'ERR::CRAWLER::PROMPT_GENERATION_FAILED'
+
+    def test_crawl_prompt_non_streaming_returns_one_object(self):
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._json_response({'answer': 'yes', 'sources_used': [1]})
+
+        client = self._client_with(handler)
+        result = client.crawl_prompt(
+            crawl_ids=['0198aaaa'],
+            prompt='hi',
+            model='gemini-2.5-flash-lite',
+            stream=False,
+        )
+
+        assert captured['json']['generation'] == {'stream': False, 'model': 'gemini-2.5-flash-lite'}
+        assert captured['stream'] is False
+        assert result['answer'] == 'yes'
+
+    def test_empty_crawl_ids_rejected_before_any_request(self):
+        def handler(**kwargs):
+            raise AssertionError('no request should be issued')
+
+        client = self._client_with(handler)
+
+        with pytest.raises(ValueError):
+            client.crawl_search(crawl_ids=[], query='x')
+        with pytest.raises(ValueError):
+            client.crawl_prompt(crawl_ids=[], prompt='x')
+
+
+class TestCrawlerStatusSearchBlock:
+    """`/status` is the poll-based path to index readiness."""
+
+    pytestmark = pytest.mark.unit
+
+    @staticmethod
+    def _status(**extra):
+        payload = {
+            'crawler_uuid': '0198aaaa',
+            'status': 'DONE',
+            'is_success': True,
+            'is_finished': True,
+            'state': {
+                'duration': 6.11,
+                'urls_visited': 5,
+                'urls_extracted': 5,
+                'urls_failed': 0,
+                'urls_skipped': 0,
+                'urls_to_crawl': 0,
+                'api_credit_used': 5,
+                'stop_reason': None,
+                'start_time': 1762940028,
+                'stop_time': 1762940034.1,
+            },
+        }
+        payload.update(extra)
+        return CrawlerStatusResponse(payload)
+
+    def test_search_block_is_parsed(self):
+        status = self._status(search={
+            'status': 'READY',
+            'documents': 412,
+            'vectors': 18432,
+            'index': 'IVF_PQ',
+            'generation': 1,
+        })
+
+        assert status.search.status == 'READY'
+        assert status.search.vectors == 18432
+        assert status.search.is_searchable is True
+
+    def test_search_block_absent_on_a_crawl_without_it(self):
+        assert self._status().search is None
+
+
+# ---------------------------------------------------------------------------
+# Auto-refresh, offline. A refresh re-scrapes a crawl in place, so the wire
+# payload and the three transport calls are the SDK's own contract.
+# ---------------------------------------------------------------------------
+
+
+REFRESH_STATE = {
+    'enabled': True,
+    'interval_seconds': 86400,
+    'status': 'SCHEDULED',
+    'generation': 2,
+    'last_run_at': '2026-09-01T04:00:00Z',
+    'next_run_at': '2026-09-02T04:00:00Z',
+    'error': None,
+    'history': [
+        {
+            'at': '2026-08-31T04:00:00Z',
+            'generation': 1,
+            'added': 0,
+            'updated': 0,
+            'removed': 0,
+            'unchanged': 412,
+            'failed': 0,
+            'duration_ms': 41200,
+            'search_status': 'READY',
+            'error': None,
+            'sample_updated': [],
+            'sample_removed': [],
+        },
+        {
+            'at': '2026-09-01T04:00:00Z',
+            'generation': 2,
+            'added': 3,
+            'updated': 7,
+            'removed': 1,
+            'unchanged': 404,
+            'failed': 0,
+            'duration_ms': 44900,
+            'search_status': 'READY',
+            'error': None,
+            'sample_updated': ['https://example.com/pricing'],
+            'sample_removed': ['https://example.com/old'],
+        },
+    ],
+}
+
+
+class TestCrawlerRefreshConfig:
+    """`refresh` / `refresh_interval` reach the wire, and only when asked for."""
+
+    pytestmark = pytest.mark.unit
+
+    def test_refresh_fields_serialize_to_wire_payload(self):
+        config = CrawlerConfig(url='https://example.com', refresh=True, refresh_interval=86400)
+        params = config.to_api_params()
+
+        assert params['refresh'] is True
+        assert params['refresh_interval'] == 86400
+
+    def test_refresh_omitted_when_off(self):
+        """Unset means server default: never emit a field to send its default."""
+        params = CrawlerConfig(url='https://example.com').to_api_params()
+
+        assert 'refresh' not in params
+        assert 'refresh_interval' not in params
+
+    def test_refresh_without_interval_uses_the_server_period(self):
+        params = CrawlerConfig(url='https://example.com', refresh=True).to_api_params()
+
+        assert params['refresh'] is True
+        assert 'refresh_interval' not in params
+
+    def test_refresh_rides_the_multipart_config_part(self):
+        """A url_list crawl posts multipart; the flags live in the config part."""
+        config = CrawlerConfig(
+            url_list=['https://example.com/a'],
+            refresh=True,
+            refresh_interval=7200,
+        )
+        parts = config.to_multipart_parts()
+
+        assert parts['config']['refresh'] is True
+        assert parts['config']['refresh_interval'] == 7200
+
+    @pytest.mark.parametrize('interval', [1, 3599, 90 * 24 * 3600 + 1])
+    def test_interval_outside_the_bounds_is_refused_locally(self, interval):
+        """The floor decides the cost; reject before a round trip."""
+        with pytest.raises(ValueError):
+            CrawlerConfig(url='https://example.com', refresh=True, refresh_interval=interval)
+
+    @pytest.mark.parametrize('interval', [3600, 86400, 90 * 24 * 3600])
+    def test_interval_on_the_bounds_is_accepted(self, interval):
+        config = CrawlerConfig(url='https://example.com', refresh=True, refresh_interval=interval)
+
+        assert config.to_api_params()['refresh_interval'] == interval
+
+    def test_interval_without_refresh_is_refused(self):
+        """A period with the feature off would silently never run."""
+        with pytest.raises(ValueError):
+            CrawlerConfig(url='https://example.com', refresh_interval=86400)
+
+
+class TestCrawlerRefreshTransport:
+    """Request shape and response decoding for the three refresh calls."""
+
+    pytestmark = pytest.mark.unit
+
+    @staticmethod
+    def _client_with(handler):
+        client = ScrapflyClient(key='scp-live-0000000000000000000000000000000000000000')
+        # _http_handler is a cached_property; seed the cache to stub transport.
+        client.__dict__['_http_handler'] = handler
+        return client
+
+    @staticmethod
+    def _json_response(payload, status_code=200):
+        response = Response()
+        response.status_code = status_code
+        response._content = json.dumps(payload).encode('utf-8')
+        response.headers['Content-Type'] = 'application/json'
+        response.url = 'https://api.scrapfly.io/crawl/0198aaaa/refresh'
+        response.request = Request(method='POST', url=response.url).prepare()
+        return response
+
+    def test_refresh_now_posts_to_the_crawl(self):
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._json_response(REFRESH_STATE, status_code=202)
+
+        client = self._client_with(handler)
+        state = client.crawl_refresh_now('0198aaaa')
+
+        assert captured['method'] == 'POST'
+        assert captured['url'] == 'https://api.scrapfly.io/crawl/0198aaaa/refresh'
+        assert captured['params'] == {'key': client.key}
+
+        assert state.enabled is True
+        assert state.status == 'SCHEDULED'
+        assert state.generation == 2
+        assert state.next_run_at == '2026-09-02T04:00:00Z'
+        assert len(state) == 2
+        assert state.last_run.updated == 7
+        assert state.last_run.changed == 11
+        assert state.last_run.sample_removed == ['https://example.com/old']
+
+    def test_refresh_settings_patches_only_what_is_passed(self):
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._json_response(REFRESH_STATE)
+
+        client = self._client_with(handler)
+        client.crawl_refresh_settings('0198aaaa', enabled=True, interval_seconds=86400)
+
+        assert captured['method'] == 'PATCH'
+        assert captured['url'] == 'https://api.scrapfly.io/crawl/0198aaaa/refresh'
+        assert captured['json'] == {'refresh': True, 'refresh_interval': 86400}
+
+    def test_refresh_settings_can_turn_it_off_without_touching_the_interval(self):
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._json_response(REFRESH_STATE)
+
+        client = self._client_with(handler)
+        client.crawl_refresh_settings('0198aaaa', enabled=False)
+
+        assert captured['json'] == {'refresh': False}
+
+    def test_refresh_settings_with_nothing_to_change_is_refused(self):
+        client = self._client_with(lambda **kwargs: None)
+
+        with pytest.raises(ValueError):
+            client.crawl_refresh_settings('0198aaaa')
+
+    def test_refresh_settings_rejects_an_out_of_bounds_interval_locally(self):
+        client = self._client_with(lambda **kwargs: None)
+
+        with pytest.raises(ValueError):
+            client.crawl_refresh_settings('0198aaaa', interval_seconds=60)
+
+    def test_refresh_history_returns_the_timeline_newest_last(self):
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._json_response(REFRESH_STATE)
+
+        client = self._client_with(handler)
+        history = client.crawl_refresh_history('0198aaaa', limit=5)
+
+        assert captured['method'] == 'GET'
+        assert captured['url'] == 'https://api.scrapfly.io/crawl/0198aaaa/refresh/history'
+        assert captured['params'] == {'key': client.key, 'limit': 5}
+
+        assert [entry.generation for entry in history] == [1, 2]
+        assert history[0].changed == 0
+        assert history[0].unchanged == 412
+
+    def test_crawl_sugar_delegates_to_the_client(self):
+        seen = []
+
+        def handler(**kwargs):
+            seen.append(kwargs['url'])
+            return self._json_response(REFRESH_STATE)
+
+        client = self._client_with(handler)
+        crawl = Crawl(client, CrawlerConfig(url='https://example.com', refresh=True))
+        crawl._uuid = '0198aaaa'
+
+        crawl.refresh_now()
+        crawl.refresh_settings(enabled=True)
+        crawl.refresh_history()
+
+        assert seen == [
+            'https://api.scrapfly.io/crawl/0198aaaa/refresh',
+            'https://api.scrapfly.io/crawl/0198aaaa/refresh',
+            'https://api.scrapfly.io/crawl/0198aaaa/refresh/history',
+        ]
+
+    def test_refresh_before_start_raises(self):
+        client = self._client_with(lambda **kwargs: None)
+        crawl = Crawl(client, CrawlerConfig(url='https://example.com', refresh=True))
+
+        with pytest.raises(ScrapflyCrawlerError):
+            crawl.refresh_now()
+
+    def test_refresh_error_is_typed(self):
+        def handler(**kwargs):
+            return self._json_response(
+                {'code': 'ERR::CRAWLER::REFRESH_IN_PROGRESS', 'message': 'A refresh is already running'},
+                status_code=409,
+            )
+
+        client = self._client_with(handler)
+
+        with pytest.raises(CrawlerRefreshError) as excinfo:
+            client.crawl_refresh_now('0198aaaa')
+
+        assert excinfo.value.code == 'ERR::CRAWLER::REFRESH_IN_PROGRESS'
+
+
+class TestCrawlerStatusRefreshBlock:
+    """`/status` carries the refresh block the dashboard timeline reads."""
+
+    pytestmark = pytest.mark.unit
+
+    @staticmethod
+    def _status(**extra):
+        payload = {
+            'crawler_uuid': '0198aaaa',
+            'status': 'DONE',
+            'is_success': True,
+            'is_finished': True,
+            'state': {
+                'duration': 6.11,
+                'urls_visited': 5,
+                'urls_extracted': 5,
+                'urls_failed': 0,
+                'urls_skipped': 0,
+                'urls_to_crawl': 0,
+                'api_credit_used': 5,
+                'stop_reason': None,
+                'start_time': 1762940028,
+                'stop_time': 1762940034.1,
+            },
+        }
+        payload.update(extra)
+        return CrawlerStatusResponse(payload)
+
+    def test_status_exposes_the_refresh_block(self):
+        """Polling /status is the webhook-free way to read the timeline."""
+        status = self._status(refresh=REFRESH_STATE)
+
+        assert status.refresh.enabled is True
+        assert status.refresh.interval_seconds == 86400
+        assert status.refresh.is_running is False
+        assert len(status.refresh.history) == 2
+        assert status.refresh.last_run.changed == 11
+
+    def test_refresh_block_absent_on_a_crawl_without_it(self):
+        assert self._status().refresh is None
+
+    def test_status_block_carries_the_run_clock_and_the_failure_streak(self):
+        """``/status`` relays the engine's refresh block verbatim, so it is the
+        only route that renders ``started_at`` (the clock on the run in flight)
+        and ``consecutive_failures`` (the streak the schedule backs off on)."""
+        status = self._status(refresh=dict(
+            REFRESH_STATE,
+            status='RUNNING',
+            started_at='2026-09-03T22:31:03.851147Z',
+            consecutive_failures=3,
+        ))
+
+        assert status.refresh.is_running is True
+        assert status.refresh.started_at == '2026-09-03T22:31:03.851147Z'
+        assert status.refresh.consecutive_failures == 3
+
+    def test_refresh_route_envelope_defaults_the_status_only_fields(self):
+        """The three refresh calls render a typed block declaring neither
+        field. One state class serves both routes, so their absence reads as
+        "no run in flight, no failed runs" instead of breaking the decode."""
+        state = CrawlerRefreshState({'crawler_uuid': '0198aaaa', 'refresh': REFRESH_STATE})
+
+        assert state.status == 'SCHEDULED'
+        assert state.started_at is None
+        assert state.consecutive_failures == 0
+
+    def test_refresh_block_parses_from_a_status_payload(self):
+        state = CrawlerRefreshState({'refresh': REFRESH_STATE})
+
+        assert state.enabled is True
+        assert state.interval_seconds == 86400
+        assert state.is_running is False
+        assert len(state.history) == 2
+
+    def test_a_crawl_without_refresh_reads_as_disabled(self):
+        state = CrawlerRefreshState({'enabled': False, 'interval_seconds': 0, 'status': 'DISABLED'})
+
+        assert state.enabled is False
+        assert state.next_run_at is None
+        assert state.last_run is None
+
+
+# ---------------------------------------------------------------------------
+# URL listing, offline. The endpoint answers text/plain, so the request shape
+# and the line parse are the SDK's own contract rather than a decoded envelope.
+# ---------------------------------------------------------------------------
+
+
+class TestCrawlerUrlsTransport:
+    """`get_crawl_urls` request shape and text decoding."""
+
+    pytestmark = pytest.mark.unit
+
+    @staticmethod
+    def _client_with(handler):
+        client = ScrapflyClient(key='scp-live-0000000000000000000000000000000000000000')
+        # _http_handler is a cached_property; seed the cache to stub transport.
+        client.__dict__['_http_handler'] = handler
+        return client
+
+    @staticmethod
+    def _text_response(body, status_code=200, content_type='text/plain; charset=utf-8'):
+        response = Response()
+        response.status_code = status_code
+        response._content = body.encode('utf-8')
+        response.headers['Content-Type'] = content_type
+        response.url = 'https://api.scrapfly.io/crawl/0198aaaa/urls'
+        response.request = Request(method='GET', url=response.url).prepare()
+        return response
+
+    def test_get_crawl_urls_reads_the_text_endpoint(self):
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._text_response('https://example.com/a\nhttps://example.com/b\n')
+
+        client = self._client_with(handler)
+        urls = client.get_crawl_urls('0198aaaa', status='visited', page=2, per_page=50)
+
+        assert captured['method'] == 'GET'
+        assert captured['url'] == 'https://api.scrapfly.io/crawl/0198aaaa/urls'
+        assert captured['params'] == {
+            'key': client.key,
+            'page': 2,
+            'per_page': 50,
+            'status': 'visited',
+        }
+        # Error envelopes are JSON on every endpoint, this one included.
+        assert captured['headers']['Accept'] == 'text/plain, application/json'
+
+        assert isinstance(urls, CrawlerUrlsResponse)
+        assert [entry.url for entry in urls] == ['https://example.com/a', 'https://example.com/b']
+        assert urls.page == 2
+        assert urls.per_page == 50
+
+    def test_unset_status_leaves_the_server_default(self):
+        """Never send a field to send its default: the server filters on
+        'visited' when the parameter is absent, and the parse tags the records
+        with that same default so the caller reads one status, not None."""
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._text_response('https://example.com/a\n')
+
+        client = self._client_with(handler)
+        urls = client.get_crawl_urls('0198aaaa')
+
+        assert 'status' not in captured['params']
+        assert urls.urls[0].status == 'visited'
+
+    def test_failed_records_carry_their_reason(self):
+        client = self._client_with(
+            lambda **kwargs: self._text_response(
+                'https://example.com/404,http_status\nhttps://example.com/x,timeout\n'
+            )
+        )
+        urls = client.get_crawl_urls('0198aaaa', status='failed')
+
+        assert [(e.url, e.reason) for e in urls] == [
+            ('https://example.com/404', 'http_status'),
+            ('https://example.com/x', 'timeout'),
+        ]
+
+    def test_crawl_urls_is_sugar_over_the_client_call(self):
+        """`Crawl.urls()` pre-fills the uuid; the client call is the endpoint."""
+        captured = {}
+
+        def handler(**kwargs):
+            captured.update(kwargs)
+            return self._text_response('https://example.com/a\n')
+
+        client = self._client_with(handler)
+        crawl = Crawl(client, CrawlerConfig(url='https://example.com'))
+        crawl._uuid = '0198aaaa'
+
+        urls = crawl.urls(status='pending', page=3, per_page=10)
+
+        assert captured['url'] == 'https://api.scrapfly.io/crawl/0198aaaa/urls'
+        assert captured['params']['status'] == 'pending'
+        assert captured['params']['page'] == 3
+        assert captured['params']['per_page'] == 10
+        assert urls.urls[0].status == 'pending'
+
+    def test_urls_before_start_raises(self):
+        client = self._client_with(lambda **kwargs: None)
+        crawl = Crawl(client, CrawlerConfig(url='https://example.com'))
+
+        with pytest.raises(ScrapflyCrawlerError):
+            crawl.urls()
+
+    def test_error_envelope_is_raised_not_parsed_as_records(self):
+        def handler(**kwargs):
+            response = self._text_response(
+                json.dumps({'code': 'ERR::CRAWLER::NOT_FOUND', 'message': 'Crawler job not found'}),
+                status_code=404,
+                content_type='application/json',
+            )
+            return response
+
+        client = self._client_with(handler)
+
+        with pytest.raises(HttpError) as excinfo:
+            client.get_crawl_urls('0198aaaa')
+
+        assert excinfo.value.code == 'ERR::CRAWLER::NOT_FOUND'
+
+    def test_json_on_a_success_is_refused(self):
+        """The text parser would read a JSON body line by line and hand back a
+        page of fabricated URLs; a format mismatch has to surface instead."""
+        client = self._client_with(
+            lambda **kwargs: self._text_response(
+                json.dumps({'urls': ['https://example.com/a']}),
+                content_type='application/json',
+            )
+        )
+
+        with pytest.raises(ScrapflyCrawlerError) as excinfo:
+            client.get_crawl_urls('0198aaaa')
+
+        assert excinfo.value.code == 'ERR::CRAWLER::UNEXPECTED_RESPONSE_FORMAT'
