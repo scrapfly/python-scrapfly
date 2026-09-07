@@ -1,0 +1,16 @@
+name: Internal references
+
+# This repository is public. A comment, a doc or a test fixture that names a
+# private path, a dev hostname or an internal ticket ships to everyone who
+# clones it, and stays in the history afterwards. Catch it before the merge.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: scripts/check-internal-refs.sh
