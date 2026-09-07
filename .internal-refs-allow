@@ -1,0 +1,6 @@
+# Accepted exceptions, one extended regex per line, matched against
+# "path:line:text". Everything else the guard flags is a real leak.
+
+# An all-zero key is a fixture, not a credential: the VNC password is
+# sha256(key)[:8], so the test needs a fixed key to assert a fixed salt.
+scp-(live|test)-0{32}

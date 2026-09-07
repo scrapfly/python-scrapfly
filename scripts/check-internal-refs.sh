@@ -4,8 +4,9 @@
 # This repository is public. Everything tracked here is readable by customers,
 # competitors and crawlers, comments included. The patterns below are things
 # that only exist inside the private monorepo: source layout, dev hostnames,
-# ticket ids, agent scratch paths. A comment may explain WHAT the API does; it
-# may not say WHERE our server code lives.
+# ticket ids, agent scratch paths, and real API keys. A comment may explain
+# WHAT the API does; it may not say WHERE our server code lives. A doc may show
+# where a key goes; it may not contain one.
 #
 # Usage:  scripts/check-internal-refs.sh [--staged]
 #   (no args)  scan every tracked file   — what CI runs
@@ -41,6 +42,7 @@ patterns=(
   '(SCRAPE-ENGINE|CLOUD-BROWSER|SCRAPIUM|WEB-APP|API)-[0-9][0-9A-Z]*'  # sentry issue ids
   'production-[0-9]{6}'                   # gcp project id
   'scrapfly-staff'                        # internal staff cli
+  'scp-(live|test)-[0-9a-f]{32}'          # a real api key, not a placeholder
 )
 
 if [ "$mode" = "--staged" ]; then

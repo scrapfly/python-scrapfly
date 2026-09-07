@@ -21,7 +21,7 @@
 1. **Schedule Crawl**Create a crawler with a single API call. The API returns immediately with a crawler UUID:
     
      ```
-    curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
+    curl -X POST "https://api.scrapfly.io/crawl?key=$SCRAPFLY_API_KEY" \
       -H 'Content-Type: application/json' \
       -d '{
         "url": "https://example.com",
@@ -47,7 +47,7 @@
 2. **Monitor Progress**Poll the status endpoint to track crawl progress:
     
      ```
-    curl https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
+    curl https://api.scrapfly.io/crawl/{uuid}/status?key=$SCRAPFLY_API_KEY
     ```
     
      
@@ -116,13 +116,13 @@
     
      ```
     # Download WARC artifact (recommended for large crawls)
-    curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc -o crawl.warc.gz
+    curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=$SCRAPFLY_API_KEY&type=warc -o crawl.warc.gz
     
     # Query specific URL content
-    curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com/page&format=markdown
+    curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com/page&format=markdown
     
     # Or batch retrieve multiple URLs (max 100 per request)
-    curl -X POST https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=scp-live-YOUR_API_KEY_HERE&formats=markdown \
+    curl -X POST https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=$SCRAPFLY_API_KEY&formats=markdown \
       -H 'Content-Type: text/plain' \
       -d 'https://example.com/page1
     https://example.com/page2
@@ -156,7 +156,7 @@
 1. **Schedule Crawl with Webhook**Create a crawler and specify the webhook name configured in your dashboard:
     
      ```
-    curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
+    curl -X POST "https://api.scrapfly.io/crawl?key=$SCRAPFLY_API_KEY" \
       -H 'Content-Type: application/json' \
       -d '{
         "url": "https://example.com",
@@ -852,7 +852,7 @@ popular
  GET `https://api.scrapfly.io/crawl/{uuid}/status` 
 
  ```
-curl "https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE"
+curl "https://api.scrapfly.io/crawl/{uuid}/status?key=$SCRAPFLY_API_KEY"
 ```
 
  
@@ -883,10 +883,10 @@ curl "https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
 
  ```
 # Get all visited URLs
-curl "https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=visited"
+curl "https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY&status=visited"
 
 # Get failed URLs with pagination
-curl "https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=failed&page=1&per_page=100"
+curl "https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY&status=failed&page=1&per_page=100"
 ```
 
  
@@ -916,10 +916,10 @@ curl "https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&s
 
  ```
 # Get all content in markdown format
-curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&format=markdown"
+curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&format=markdown"
 
 # Get content for a specific URL
-curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&format=html&url=https://example.com/page"
+curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&format=html&url=https://example.com/page"
 ```
 
  
@@ -946,7 +946,7 @@ curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HE
 
  ```
 # Batch retrieve content for multiple URLs
-curl -X POST "https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=scp-live-YOUR_API_KEY_HERE&formats=markdown,text" \
+curl -X POST "https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=$SCRAPFLY_API_KEY&formats=markdown,text" \
   -H "Content-Type: text/plain" \
   -d "https://example.com/page1
 https://example.com/page2
@@ -992,10 +992,10 @@ https://example.com/page3"
 
  ```
 # Download WARC artifact (gzip compressed, recommended for large crawls)
-curl "https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc" -o crawl.warc.gz
+curl "https://api.scrapfly.io/crawl/{uuid}/artifact?key=$SCRAPFLY_API_KEY&type=warc" -o crawl.warc.gz
 
 # Download HAR artifact (JSON format)
-curl "https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=har" -o crawl.har
+curl "https://api.scrapfly.io/crawl/{uuid}/artifact?key=$SCRAPFLY_API_KEY&type=har" -o crawl.har
 ```
 
  
@@ -1126,7 +1126,7 @@ curl "https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HE
  Get a comprehensive list of all URLs extracted and crawled during the job, with detailed metadata for each URL including status codes, depth, and timestamps.
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY
 ```
 
  
@@ -1143,10 +1143,10 @@ curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE
 
  ```
 # Get all visited URLs
-curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=visited
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY&status=visited
 
 # Get all failed URLs
-curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=failed
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY&status=failed
 ```
 
  
@@ -1217,7 +1217,7 @@ Response includes URL metadata:
 Retrieve content for one specific URL using the `url` query parameter:
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com/page&format=markdown
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com/page&format=markdown
 ```
 
  
@@ -1262,7 +1262,7 @@ Return raw content directly without JSON wrapper by adding `plain=true`. Perfect
 
  ```
 # Get raw markdown content (no JSON wrapper)
-curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com&formats=markdown&plain=true
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com&formats=markdown&plain=true
 
 # Direct output - pure markdown, no JSON parsing needed:
 # Homepage
@@ -1270,7 +1270,7 @@ curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HER
 # Welcome to our site...
 
 # Pipe directly to file
-curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com&formats=markdown&plain=true > page.md
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com&formats=markdown&plain=true > page.md
 ```
 
  
@@ -1296,7 +1296,7 @@ Request a multipart response for single URLs by setting the `Accept` header. Sam
 
  ```
 # Request multipart format for single URL
-curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&url=https://example.com&formats=markdown,text" \
+curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com&formats=markdown,text" \
   -H "Accept: multipart/related; boundary=custom123"
 ```
 
@@ -1353,7 +1353,7 @@ Welcome to our site...
 Retrieve content for multiple URLs in a single request. Maximum **100 URLs per request**.
 
  ```
-curl -X POST "https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=scp-live-YOUR_API_KEY_HERE&formats=markdown,text" \
+curl -X POST "https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=$SCRAPFLY_API_KEY&formats=markdown,text" \
   -H "Content-Type: text/plain" \
   -d "https://example.com/page1
 https://example.com/page2
@@ -1623,7 +1623,7 @@ Each part in the multipart response contains:
  Retrieve all extracted contents in the specified format. Returns a JSON object mapping URLs to their extracted content in your chosen format.
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&format=markdown
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&format=markdown
 ```
 
  
@@ -1696,7 +1696,7 @@ Response contains contents mapped by URL:
  Industry-standard format for web archiving. Contains complete HTTP request/response pairs, headers, and extracted content. Compressed with gzip for efficient storage.
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc -o crawl.warc.gz
+curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=$SCRAPFLY_API_KEY&type=warc -o crawl.warc.gz
 ```
 
  
@@ -1720,7 +1720,7 @@ curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HER
  JSON-based format with detailed HTTP transaction data. Ideal for performance analysis, debugging, and browser replay tools.
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=har -o crawl.har
+curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=$SCRAPFLY_API_KEY&type=har -o crawl.har
 ```
 
  
@@ -1749,7 +1749,7 @@ curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HER
 #!/bin/bash
 
 # Step 1: Create crawler
-RESPONSE=$(curl -X POST https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE \
+RESPONSE=$(curl -X POST https://api.scrapfly.io/crawl?key=$SCRAPFLY_API_KEY \
   -H 'Content-Type: application/json' \
   -d '{
     "url": "https://web-scraping.dev/products",
@@ -1762,7 +1762,7 @@ echo "Crawler UUID: $UUID"
 
 # Step 2: Poll status until complete
 while true; do
-  RESPONSE=$(curl -s https://api.scrapfly.io/crawl/$UUID/status?key=scp-live-YOUR_API_KEY_HERE)
+  RESPONSE=$(curl -s https://api.scrapfly.io/crawl/$UUID/status?key=$SCRAPFLY_API_KEY)
   IS_FINISHED=$(echo $RESPONSE | jq -r '.is_finished')
   IS_SUCCESS=$(echo $RESPONSE | jq -r '.is_success')
 
@@ -1783,10 +1783,10 @@ done
 
 # Step 3: Download results
 echo "Downloading WARC artifact..."
-curl https://api.scrapfly.io/crawl/$UUID/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc -o crawl.warc.gz
+curl https://api.scrapfly.io/crawl/$UUID/artifact?key=$SCRAPFLY_API_KEY&type=warc -o crawl.warc.gz
 
 echo "Getting markdown content..."
-curl https://api.scrapfly.io/crawl/$UUID/contents?key=scp-live-YOUR_API_KEY_HERE&format=markdown > content.json
+curl https://api.scrapfly.io/crawl/$UUID/contents?key=$SCRAPFLY_API_KEY&format=markdown > content.json
 
 echo "Done!"
 ```
@@ -1804,10 +1804,11 @@ echo "Done!"
  
 
  ```
+import os
 import requests
 import time
 
-API_KEY = "scp-live-YOUR_API_KEY_HERE"
+API_KEY = os.environ["SCRAPFLY_API_KEY"]
 BASE_URL = "https://api.scrapfly.io"
 
 # Step 1: Create crawler
@@ -1879,7 +1880,7 @@ print("Done!")
  
 
  ```
-const API_KEY = "scp-live-YOUR_API_KEY_HERE";
+const API_KEY = os.environ["SCRAPFLY_API_KEY"];
 const BASE_URL = "https://api.scrapfly.io";
 
 async function runCrawler() {
@@ -2076,7 +2077,7 @@ Date: Wed, 15 Jan 2025 10:30:45 GMT
  WARC files are available once your crawler completes (`is_finished: true`).
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc -o crawl.warc.gz
+curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=$SCRAPFLY_API_KEY&type=warc -o crawl.warc.gz
 ```
 
  
@@ -3483,7 +3484,7 @@ print(f"Found {len(us_results)} successful US requests")
  Crawl an e-commerce site and extract structured data from different page types using pre-trained AI models:
 
  ```
-curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
+curl -X POST "https://api.scrapfly.io/crawl?key=$SCRAPFLY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://web-scraping.dev/products",
@@ -3530,7 +3531,7 @@ curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
  Use LLM prompts to extract blog articles with custom metadata and content analysis:
 
  ```
-curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
+curl -X POST "https://api.scrapfly.io/crawl?key=$SCRAPFLY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://scrapfly.io/blog/",
@@ -3576,7 +3577,7 @@ curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
  Combine auto models for standard pages and templates for complex nested structures:
 
  ```
-curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
+curl -X POST "https://api.scrapfly.io/crawl?key=$SCRAPFLY_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://web-scraping.dev/products",
@@ -3685,7 +3686,7 @@ curl -X POST "https://api.scrapfly.io/crawl?key=scp-live-YOUR_API_KEY_HERE" \
 ### Query Extracted Content via API
 
  ```
-curl "https://api.scrapfly.io/crawl/{crawler_uuid}/contents?key=scp-live-YOUR_API_KEY_HERE&format=json"
+curl "https://api.scrapfly.io/crawl/{crawler_uuid}/contents?key=$SCRAPFLY_API_KEY&format=json"
 ```
 
  
@@ -3743,7 +3744,7 @@ Response example:
  For large crawls, download extracted data as part of the WARC artifact. The extracted data is stored in `conversion` records with `Content-Type: application/json`.
 
  ```
-curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=scp-live-YOUR_API_KEY_HERE&type=warc" -o crawl.warc.gz
+curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=$SCRAPFLY_API_KEY&type=warc" -o crawl.warc.gz
 ```
 
  
@@ -6079,7 +6080,7 @@ The most common cause is overly restrictive `include_only_paths` or `exclude_pat
 
  ```
 # Get all failed URLs with error details
-curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=failed
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY&status=failed
 ```
 
  
@@ -6184,7 +6185,7 @@ This crawler will stop after spending 1000 credits or 10000 pages, whichever com
  Check the crawler status endpoint to see current credit usage:
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
+curl https://api.scrapfly.io/crawl/{uuid}/status?key=$SCRAPFLY_API_KEY
 ```
 
  
@@ -6216,7 +6217,7 @@ curl https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
  The status endpoint provides real-time information about your crawler:
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
+curl https://api.scrapfly.io/crawl/{uuid}/status?key=$SCRAPFLY_API_KEY
 ```
 
  
@@ -6242,7 +6243,7 @@ curl https://api.scrapfly.io/crawl/{uuid}/status?key=scp-live-YOUR_API_KEY_HERE
  Get detailed error information for failed pages:
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/urls?key=scp-live-YOUR_API_KEY_HERE&status=failed
+curl https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY&status=failed
 ```
 
  
