@@ -122,15 +122,6 @@ class CrawlerConfig(BaseApiConfig):
         content_formats: Optional[List[Literal['html', 'markdown', 'text', 'clean_html']]] = None,
         extraction_rules: Optional[Dict] = None,
 
-        # Search index built during the crawl, queried through
-        # client.crawl_search() / client.crawl_prompt() once READY.
-        search: bool = False,
-
-        # Auto-refresh: re-scrape this crawl's own URLs in place, on a period.
-        # Same crawler_uuid, same artifacts, only changed pages re-indexed.
-        refresh: bool = False,
-        refresh_interval: Optional[int] = None,
-
         # Web scraping features
         asp: Union[bool, _Unset] = _UNSET,  # deprecated alias of `unblocker`, which is declared last
         proxy_pool: Optional[str] = None,
@@ -143,10 +134,18 @@ class CrawlerConfig(BaseApiConfig):
         # Cost control
         max_api_credit: Optional[int] = None,
 
-        # Appended at the very END of the signature on purpose: this parameter
-        # list is positional-capable, so inserting `unblocker` next to its
-        # alias `asp` would silently shift every positional argument in
-        # existing customer code.
+        # New options follow every legacy positional argument. Inserting them
+        # above asp would reinterpret existing bypass/proxy settings as search
+        # and recurring refresh settings.
+        # Search index built during the crawl, queried through
+        # client.crawl_search() / client.crawl_prompt() once READY.
+        search: bool = False,
+
+        # Auto-refresh: re-scrape this crawl's own URLs in place, on a period.
+        # Same crawler_uuid, same artifacts, only changed pages re-indexed.
+        refresh: bool = False,
+        refresh_interval: Optional[int] = None,
+
         unblocker: Union[bool, _Unset] = _UNSET
     ):
         """

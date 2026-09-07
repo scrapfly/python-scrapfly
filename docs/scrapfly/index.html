@@ -4273,7 +4273,7 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 </dd>
 <dt id="scrapfly.CrawlerConfig"><code class="flex name class">
 <span>class <span class="ident">CrawlerConfig</span></span>
-<span>(</span><span>url: str | None = None,<br>url_list: List[str] | None = None,<br>remote_url_list: str | None = None,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>search: bool = False,<br>refresh: bool = False,<br>refresh_interval: int | None = None,<br>asp: bool | scrapfly.scrape_config._Unset = &lt;unset&gt;,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None,<br>unblocker: bool | scrapfly.scrape_config._Unset = &lt;unset&gt;)</span>
+<span>(</span><span>url: str | None = None,<br>url_list: List[str] | None = None,<br>remote_url_list: str | None = None,<br>page_limit: int | None = None,<br>max_depth: int | None = None,<br>max_duration: int | None = None,<br>exclude_paths: List[str] | None = None,<br>include_only_paths: List[str] | None = None,<br>ignore_base_path_restriction: bool = False,<br>follow_external_links: bool = False,<br>allowed_external_domains: List[str] | None = None,<br>follow_internal_subdomains: bool | None = None,<br>allowed_internal_subdomains: List[str] | None = None,<br>headers: Dict[str, str] | None = None,<br>delay: int | None = None,<br>user_agent: str | None = None,<br>max_concurrency: int | None = None,<br>rendering_delay: int | None = None,<br>use_sitemaps: bool = False,<br>respect_robots_txt: bool | None = None,<br>ignore_no_follow: bool = False,<br>cache: bool = False,<br>cache_ttl: int | None = None,<br>cache_clear: bool = False,<br>content_formats: List[Literal['html', 'markdown', 'text', 'clean_html']] | None = None,<br>extraction_rules: Dict | None = None,<br>asp: bool | scrapfly.scrape_config._Unset = &lt;unset&gt;,<br>proxy_pool: str | None = None,<br>country: str | None = None,<br>webhook_name: str | None = None,<br>webhook_events: List[str] | None = None,<br>max_api_credit: int | None = None,<br>search: bool = False,<br>refresh: bool = False,<br>refresh_interval: int | None = None,<br>unblocker: bool | scrapfly.scrape_config._Unset = &lt;unset&gt;)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -4393,15 +4393,6 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         content_formats: Optional[List[Literal[&#39;html&#39;, &#39;markdown&#39;, &#39;text&#39;, &#39;clean_html&#39;]]] = None,
         extraction_rules: Optional[Dict] = None,
 
-        # Search index built during the crawl, queried through
-        # client.crawl_search() / client.crawl_prompt() once READY.
-        search: bool = False,
-
-        # Auto-refresh: re-scrape this crawl&#39;s own URLs in place, on a period.
-        # Same crawler_uuid, same artifacts, only changed pages re-indexed.
-        refresh: bool = False,
-        refresh_interval: Optional[int] = None,
-
         # Web scraping features
         asp: Union[bool, _Unset] = _UNSET,  # deprecated alias of `unblocker`, which is declared last
         proxy_pool: Optional[str] = None,
@@ -4414,10 +4405,18 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         # Cost control
         max_api_credit: Optional[int] = None,
 
-        # Appended at the very END of the signature on purpose: this parameter
-        # list is positional-capable, so inserting `unblocker` next to its
-        # alias `asp` would silently shift every positional argument in
-        # existing customer code.
+        # New options follow every legacy positional argument. Inserting them
+        # above asp would reinterpret existing bypass/proxy settings as search
+        # and recurring refresh settings.
+        # Search index built during the crawl, queried through
+        # client.crawl_search() / client.crawl_prompt() once READY.
+        search: bool = False,
+
+        # Auto-refresh: re-scrape this crawl&#39;s own URLs in place, on a period.
+        # Same crawler_uuid, same artifacts, only changed pages re-indexed.
+        refresh: bool = False,
+        refresh_interval: Optional[int] = None,
+
         unblocker: Union[bool, _Unset] = _UNSET
     ):
         &#34;&#34;&#34;
