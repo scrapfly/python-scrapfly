@@ -1912,6 +1912,9 @@ class ScrapflyClient(ScheduleClientMixin):
         and carry nothing for the caller. ``token`` data is a JSON string;
         every other frame is a JSON object.
 
+        A complete ``done`` frame terminates the iterator. EOF before that
+        frame is an error, even if some tokens have already been delivered.
+
         Lines are decoded as UTF-8 rather than through
         ``iter_lines(decode_unicode=True)``: requests derives the encoding
         from the Content-Type and falls back to ISO-8859-1 for any ``text/*``
@@ -1947,6 +1950,8 @@ class ScrapflyClient(ScheduleClientMixin):
                                 http_status_code=response.status_code
                             )
                         yield CrawlerPromptEvent(event=event_name, data=data)
+                        if event_name == 'done':
+                            return
                     event_name = None
                     data_lines = []
                     continue
@@ -1955,6 +1960,11 @@ class ScrapflyClient(ScheduleClientMixin):
                     event_name = line[len('event:'):].strip()
                 elif line.startswith('data:'):
                     data_lines.append(line[len('data:'):].lstrip(' '))
+            raise CrawlerPromptError(
+                message='Prompt stream ended before the done frame',
+                code='ERR::CRAWLER::PROMPT_GENERATION_FAILED',
+                http_status_code=response.status_code
+            )
         finally:
             response.close()
 

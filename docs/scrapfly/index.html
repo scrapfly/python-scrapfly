@@ -12959,6 +12959,28 @@ Useful for JSON-serialization or other external storage.</p></div>
 <li>builtins.BaseException</li>
 </ul>
 </dd>
+<dt id="scrapfly.ScrapflyAspError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyUnblockerError</span></span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyAspError(ScraperAPIError):
+    pass</code></pre>
+</details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
+<li>scrapfly.errors.HttpError</li>
+<li><a title="scrapfly.errors.ScrapflyError" href="errors.html#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
 <dt id="scrapfly.ScrapflyClient"><code class="flex name class">
 <span>class <span class="ident">ScrapflyClient</span></span>
 <span>(</span><span>key: str,<br>host: str = 'https://api.scrapfly.io',<br>verify=True,<br>debug: bool = False,<br>max_concurrency: int = 1,<br>connect_timeout: int = 30,<br>web_scraping_api_read_timeout: int = 160,<br>extraction_api_read_timeout: int = 35,<br>screenshot_api_read_timeout: int = 60,<br>read_timeout: int = 30,<br>default_read_timeout: int = 30,<br>reporter: Callable | None = None,<br>cloud_browser_host: str | None = None,<br>**kwargs)</span>
@@ -14791,6 +14813,9 @@ Useful for JSON-serialization or other external storage.</p></div>
         and carry nothing for the caller. ``token`` data is a JSON string;
         every other frame is a JSON object.
 
+        A complete ``done`` frame terminates the iterator. EOF before that
+        frame is an error, even if some tokens have already been delivered.
+
         Lines are decoded as UTF-8 rather than through
         ``iter_lines(decode_unicode=True)``: requests derives the encoding
         from the Content-Type and falls back to ISO-8859-1 for any ``text/*``
@@ -14826,6 +14851,8 @@ Useful for JSON-serialization or other external storage.</p></div>
                                 http_status_code=response.status_code
                             )
                         yield CrawlerPromptEvent(event=event_name, data=data)
+                        if event_name == &#39;done&#39;:
+                            return
                     event_name = None
                     data_lines = []
                     continue
@@ -14834,6 +14861,11 @@ Useful for JSON-serialization or other external storage.</p></div>
                     event_name = line[len(&#39;event:&#39;):].strip()
                 elif line.startswith(&#39;data:&#39;):
                     data_lines.append(line[len(&#39;data:&#39;):].lstrip(&#39; &#39;))
+            raise CrawlerPromptError(
+                message=&#39;Prompt stream ended before the done frame&#39;,
+                code=&#39;ERR::CRAWLER::PROMPT_GENERATION_FAILED&#39;,
+                http_status_code=response.status_code
+            )
         finally:
             response.close()
 
@@ -21225,6 +21257,9 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.ScraperAPI.MONITORING_PROJECT_AGGREGATION" href="#scrapfly.ScraperAPI.MONITORING_PROJECT_AGGREGATION">MONITORING_PROJECT_AGGREGATION</a></code></li>
 <li><code><a title="scrapfly.ScraperAPI.MONITORING_TARGET_AGGREGATION" href="#scrapfly.ScraperAPI.MONITORING_TARGET_AGGREGATION">MONITORING_TARGET_AGGREGATION</a></code></li>
 </ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.ScrapflyAspError" href="#scrapfly.ScrapflyAspError">ScrapflyAspError</a></code></h4>
 </li>
 <li>
 <h4><code><a title="scrapfly.ScrapflyAspError" href="#scrapfly.ScrapflyAspError">ScrapflyAspError</a></code></h4>

@@ -1946,6 +1946,9 @@ el.replaceWith(d);
         and carry nothing for the caller. ``token`` data is a JSON string;
         every other frame is a JSON object.
 
+        A complete ``done`` frame terminates the iterator. EOF before that
+        frame is an error, even if some tokens have already been delivered.
+
         Lines are decoded as UTF-8 rather than through
         ``iter_lines(decode_unicode=True)``: requests derives the encoding
         from the Content-Type and falls back to ISO-8859-1 for any ``text/*``
@@ -1981,6 +1984,8 @@ el.replaceWith(d);
                                 http_status_code=response.status_code
                             )
                         yield CrawlerPromptEvent(event=event_name, data=data)
+                        if event_name == &#39;done&#39;:
+                            return
                     event_name = None
                     data_lines = []
                     continue
@@ -1989,6 +1994,11 @@ el.replaceWith(d);
                     event_name = line[len(&#39;event:&#39;):].strip()
                 elif line.startswith(&#39;data:&#39;):
                     data_lines.append(line[len(&#39;data:&#39;):].lstrip(&#39; &#39;))
+            raise CrawlerPromptError(
+                message=&#39;Prompt stream ended before the done frame&#39;,
+                code=&#39;ERR::CRAWLER::PROMPT_GENERATION_FAILED&#39;,
+                http_status_code=response.status_code
+            )
         finally:
             response.close()
 

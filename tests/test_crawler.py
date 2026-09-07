@@ -16,6 +16,7 @@ import os
 import pytest
 import time
 from io import BytesIO
+from unittest.mock import patch
 
 from requests import Request, Response
 
@@ -1591,6 +1592,25 @@ class TestCrawlerSearchTransport:
         assert [e.event for e in events] == ['source', 'token', 'token', 'done']
         assert ''.join(e.data for e in events if e.is_token) == 'The answer'
         assert events[-1].data['sources_used'] == [1]
+
+    @pytest.mark.parametrize('body', [
+        b'',
+        b':keepalive\n\n',
+        b'event: token\ndata: "partial"\n\n',
+        b'event: token\ndata: "partial"\n\nevent: done\ndata: {}\n',
+    ])
+    def test_prompt_requires_done_frame(self, body):
+        response = Response()
+        response.status_code = 200
+        response.raw = BytesIO(body)
+        events = []
+        with patch.object(response, 'close', wraps=response.close) as close:
+            with pytest.raises(CrawlerPromptError, match='done'):
+                events.extend(ScrapflyClient._iter_prompt_events(response))
+            close.assert_called_once()
+        assert ''.join(e.data for e in events if e.is_token) == (
+            'partial' if b'partial' in body else ''
+        )
 
     def test_prompt_error_frame_raises_mid_stream(self):
         """Generation can fail after tokens have already been delivered."""
