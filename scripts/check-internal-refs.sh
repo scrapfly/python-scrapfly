@@ -11,8 +11,12 @@
 #   (no args)  scan every tracked file   — what CI runs
 #   --staged   scan the index instead     — what a pre-commit hook runs
 #
+# Checks: every tracked text file against the pattern list below, plus a
+# refusal of tracked executables, whose build paths no text search can see.
+#
 # An accepted exception goes in .internal-refs-allow, one extended regex per
-# line, matched against "path:line:text". Comments and blank lines ignored.
+# line, matched against "path:line:text" (or the bare path, for an executable).
+# Comments and blank lines ignored.
 
 set -uo pipefail
 
@@ -56,6 +60,24 @@ allowed() {
 }
 
 hits=0
+
+# Tracked executables. `git grep` skips binaries entirely (-I), so no pattern
+# below would ever see inside one — yet a compiled Go binary carries the
+# absolute build paths of the tree it was built in and a vcs.revision from that
+# tree's git history. Build output does not belong in a source repo anyway.
+if command -v file >/dev/null 2>&1; then
+  while IFS= read -r tracked; do
+    [ -f "$tracked" ] || continue
+    case "$(file -b --mime-type "$tracked" 2>/dev/null)" in
+      application/x-executable|application/x-pie-executable|application/x-sharedlib|application/x-mach-binary|application/x-dosexec)
+        allowed "$tracked" && continue
+        printf 'tracked executable (leaks build paths and vcs.revision)\n  %s\n' "$tracked"
+        hits=$((hits + 1))
+        ;;
+    esac
+  done <<< "$(git ls-files)"
+fi
+
 for pattern in "${patterns[@]}"; do
   while IFS= read -r hit; do
     [ -z "$hit" ] && continue
@@ -72,10 +94,10 @@ done
 if [ "$hits" -gt 0 ]; then
   cat >&2 <<MSG
 
-$hits internal reference(s) would be published by this commit.
+$hits internal exposure(s) would be published by this commit.
 
-Rewrite the line to describe the observable API behaviour instead of our
-internal location, or add a justified exception to $allow_file.
+Rewrite the line to describe observable behaviour instead of our internal
+location, drop the artifact, or add a justified exception to $allow_file.
 MSG
   exit 1
 fi
