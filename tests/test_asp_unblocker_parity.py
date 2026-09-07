@@ -340,7 +340,7 @@ TRUTH_TABLE = [
     ("conflict-asp-false-beats-unblocker-true", {"asp": False, "unblocker": True}, False),
     ("conflict-asp-true-beats-unblocker-false", {"asp": True, "unblocker": False}, True),
     # `None` is NOT a supplied value — the same reading the API takes
-    # (`isSuppliedConfigValue` in pkg/schedule/alias.go treats absent, null and
+    # (its alias resolution treats an absent key, null and
     # "" alike) and the same one TypeScript's `??` takes for `undefined`. These
     # rows are the ones that make `ScrapeConfig(**{**opts, "asp": opts.get("asp")})`
     # safe: a forwarded absent key must not veto an explicit `unblocker=True`.

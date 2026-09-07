@@ -115,7 +115,7 @@ class BrowserConfig(BaseApiConfig):
         # https://scrapfly.io/docs/cloud-browser-api/byop
         self.byop_proxy = byop_proxy
         self.enable_mcp = enable_mcp
-        # SolveCaptcha: arm Scrapium's built-in captcha detector + solver on
+        # SolveCaptcha: arm the Cloud Browser's built-in captcha detector + solver on
         # the first page attach. Turnstile, DataDome slider, reCAPTCHA,
         # GeeTest, PerimeterX hold, and puzzle captchas are handled
         # automatically. Billed per solve; failures cost nothing.

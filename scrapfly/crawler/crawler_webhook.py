@@ -270,11 +270,9 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
         log_link: URL to the full scrape log for this failure. Can be
             ``None`` — Scrapfly emits ``null`` when no log was
             recorded (e.g. the failure happened before the request was ever
-            executed). See
-            the ``dispatch_url_failed`` event
-            line 57.
+            executed).
         scrape_link: URL that re-runs the same scrape as a one-off. Always
-            present on the wire (non-nullable). See line 58 of the engine.
+            present on the wire (non-nullable).
     """
 
     url: str

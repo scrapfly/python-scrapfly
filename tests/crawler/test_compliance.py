@@ -38,8 +38,8 @@ from scrapfly import Crawl, CrawlerConfig
 from .conftest import assert_crawl_successful
 
 
-# Suppress the noisy InsecureRequestWarning from urllib3 — the local dev cluster
-# Traefik certs are self-signed; the SDK fixture and our httpx clients all
+# Suppress the noisy InsecureRequestWarning from urllib3 — a non-default stack
+# may serve a self-signed certificate; the SDK fixture and our httpx clients
 # use verify=False intentionally.
 warnings.filterwarnings("ignore", category=Warning, module="urllib3")
 

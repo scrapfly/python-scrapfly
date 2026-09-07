@@ -226,7 +226,7 @@ class TestCrawlerUrlsResponseFromText:
 
 @pytest.mark.integration
 class TestGetCrawlUrlsLive:
-    """End-to-end tests against the local self-hosted dev cluster."""
+    """End-to-end tests against the live API."""
 
     def test_crawl_urls_visited(self, client, test_url):
         config = CrawlerConfig(url=test_url, page_limit=3)

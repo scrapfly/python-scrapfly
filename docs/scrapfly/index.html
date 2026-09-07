@@ -493,7 +493,7 @@ compressed body has to be inflated before the digest matches.</dd>
         # https://scrapfly.io/docs/cloud-browser-api/byop
         self.byop_proxy = byop_proxy
         self.enable_mcp = enable_mcp
-        # SolveCaptcha: arm Scrapium&#39;s built-in captcha detector + solver on
+        # SolveCaptcha: arm the Cloud Browser&#39;s built-in captcha detector + solver on
         # the first page attach. Turnstile, DataDome slider, reCAPTCHA,
         # GeeTest, PerimeterX hold, and puzzle captchas are handled
         # automatically. Billed per solve; failures cost nothing.
@@ -7825,11 +7825,9 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
         log_link: URL to the full scrape log for this failure. Can be
             ``None`` — Scrapfly emits ``null`` when no log was
             recorded (e.g. the failure happened before the request was ever
-            executed). See
-            the ``dispatch_url_failed`` event
-            line 57.
+            executed).
         scrape_link: URL that re-runs the same scrape as a one-off. Always
-            present on the wire (non-nullable). See line 58 of the engine.
+            present on the wire (non-nullable).
     &#34;&#34;&#34;
 
     url: str
@@ -7865,12 +7863,10 @@ blocked, etc.).</p>
 <dd>URL to the full scrape log for this failure. Can be
 <code>None</code> — Scrapfly emits <code>null</code> when no log was
 recorded (e.g. the failure happened before the request was ever
-executed). See
-the <code>dispatch_url_failed</code> event
-line 57.</dd>
+executed).</dd>
 <dt><strong><code>scrape_link</code></strong></dt>
 <dd>URL that re-runs the same scrape as a one-off. Always
-present on the wire (non-nullable). See line 58 of the engine.</dd>
+present on the wire (non-nullable).</dd>
 </dl></div>
 <h3>Ancestors</h3>
 <ul class="hlist">

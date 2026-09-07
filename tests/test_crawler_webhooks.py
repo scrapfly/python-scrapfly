@@ -4,12 +4,9 @@ Unit tests for the crawler webhook parser.
 These tests use hand-crafted payloads that mirror *exactly* what the crawler
 emits on the wire.
 
-For each of the 11 crawler events the crawler dispatches
-(``dispatch_crawler_start``, ``dispatch_crawler_stop``, ``dispatch_url_*``,
-``dispatch_crawler_search``, ``dispatch_crawler_updated``),
-we build a payload that matches the engine's ``data`` dict 1:1 and assert
-that ``webhook_from_payload`` parses it into the correct typed dataclass
-with every field populated.
+For each of the 11 crawler webhook events we build a payload that matches the
+``data`` dict on the wire 1:1 and assert that ``webhook_from_payload`` parses
+it into the correct typed dataclass with every field populated.
 
 What the crawler actually emits is the source of truth — not the example
 JSON payloads in the public webhook documentation, one of which is known to
@@ -42,7 +39,7 @@ from scrapfly import (
 def _state(**overrides):
     """
     Build a ``state`` block identical in shape to
-    ``CrawlJob.state.to_dict()`` in the scrape-engine.
+    the ``state`` object the Crawler API reports in its status envelope.
     """
     base = {
         "duration": 6.11,
@@ -62,8 +59,8 @@ def _state(**overrides):
 
 def _lifecycle_envelope(event_name, action, stop_reason=None):
     """
-    Mirror of ``webhook_manager.dispatch_crawler_start`` /
-    ``dispatch_crawler_stop`` (lines 251-264 / 193-207).
+    Mirror of the ``crawler_start`` event /
+    the ``crawler_stop`` event.
     """
     return {
         "event": event_name,
@@ -128,7 +125,7 @@ def test_lifecycle_events(event_name, action, stop_reason):
 
 def test_url_visited():
     """
-    Mirrors ``webhook_manager.dispatch_url_visited`` (lines 128-154).
+    Mirrors the ``url_visited`` event.
     The engine just forwards ``content_payload`` as ``scrape``; real
     production payloads always include status_code / country / log_uuid /
     log_url / content so the dataclass requires them.
@@ -176,7 +173,7 @@ def test_url_visited():
 
 
 def test_url_skipped():
-    """Mirrors ``webhook_manager.dispatch_url_skipped`` (lines 101-126)."""
+    """Mirrors the ``url_skipped`` event."""
     envelope = {
         "event": CrawlerWebhookEvent.CRAWLER_URL_SKIPPED.value,
         "payload": {
@@ -209,7 +206,7 @@ def test_url_skipped():
 
 
 def test_url_discovered():
-    """Mirrors ``webhook_manager.dispatch_urls_discovered`` (lines 71-99)."""
+    """Mirrors the ``urls_discovered`` event."""
     envelope = {
         "event": CrawlerWebhookEvent.CRAWLER_URL_DISCOVERED.value,
         "payload": {
@@ -246,10 +243,10 @@ def test_url_discovered():
 
 def test_url_failed_with_log_and_scrape_links():
     """
-    Mirrors ``webhook_manager.dispatch_url_failed`` (lines 28-69).
+    Mirrors the ``url_failed`` event.
 
-    The engine always emits **both** links: ``log`` (nullable — line 57 passes
-    None when no scrape_log_uuid is available) and ``scrape`` (line 58, always
+    Both links are always emitted: ``log`` (nullable — null when no scrape log
+    is available) and ``scrape`` (always
     present).
     """
     envelope = {
@@ -289,7 +286,7 @@ def test_url_failed_with_log_and_scrape_links():
 def test_url_failed_with_null_log_link():
     """
     ``links.log`` is ``None`` when the failure happened before a scrape log
-    was created (engine line 57: ``if scrape_log_uuid else None``).
+    was created, in which case ``log`` is null.
     ``links.scrape`` must still be present.
     """
     envelope = {
@@ -323,7 +320,7 @@ def test_url_failed_with_null_log_link():
 
 def _search_envelope(event_name, search):
     """
-    Mirror of ``webhook_manager.dispatch_crawler_search``. These two events
+    Mirror of the ``crawler_search`` webhook payload. These two events
     are the only ones the engine emits **without** an ``action`` tag.
     """
     return {
@@ -425,7 +422,7 @@ def test_missing_search_block_raises_keyerror():
 
 def _updated_envelope(refresh=None, documents=None):
     """
-    Mirror ``dispatch_crawler_updated``: the run's timeline row under
+    Mirror the ``crawler_updated`` event: the run's timeline row under
     ``refresh``, the changed URLs under ``documents``.
     """
     return {
@@ -556,7 +553,7 @@ def test_missing_required_payload_field_raises_keyerror():
 
 def test_missing_scrape_link_on_url_failed_raises_keyerror():
     """
-    ``links.scrape`` is always emitted by the engine (line 58) — a missing
+    ``links.scrape`` is always present on the wire — a missing
     one signals engine contract drift and must fail loud.
     """
     envelope = {

@@ -519,7 +519,7 @@ def test_api_honours_the_unblocker_alias_on_the_wire(matrix: Dict[str, Any]):
     This is the leg the rest of the file cannot be: every SDK folds `unblocker`
     into `asp` before serializing, so no SDK leg ever shows the API the new
     name. The server-side fallback is a real, separately deployed line
-    (pkg/scraper/config.go: `asp := q.Get("asp"); if asp == "" { asp =
+    (it behaves as `asp := q.Get("asp"); if asp == "" { asp =
     q.Get("unblocker") }`), and the API silently ignores query params it does
     not recognise — so if that line were deleted, `unblocker=true` would return
     an unprotected, billed scrape and every other test here would stay green.

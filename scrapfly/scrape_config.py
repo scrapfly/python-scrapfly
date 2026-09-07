@@ -43,7 +43,7 @@ def _resolve_unblocker(asp, unblocker) -> bool:
     `None` counts as NOT supplied, alongside the `_UNSET` sentinel. Two reasons,
     and they agree:
 
-      - The API says so. `pkg/schedule/alias.go:isSuppliedConfigValue` and both
+      - The API says so. Its alias resolution and both of its
         scrape parsers treat an absent key, a JSON `null` and `""` as omitted,
         so `{"asp": null, "unblocker": true}` turns the feature ON server-side.
         An SDK that resolved it to OFF would build a request the API would have
