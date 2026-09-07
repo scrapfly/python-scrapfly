@@ -11,22 +11,17 @@ loops, session-id vortex, infinite calendar, URL normalization,
 nofollow, sitemap index, etc). Each route records hits in an
 in-memory store. This test suite asserts hit counts after each crawl.
 
-Server-side catalog:
-    apps/web-scraping-dev/website/app/web/CRAWLER_TEST_SUITE.md
-Reference scrape-engine implementation:
-    apps/scrapfly/scrape-engine/scrape_engine/tests/crawler/test_crawler_compliance_suite.py
-SDK brief:
-    sdk/CRAWLER_COMPLIANCE_TEST_BRIEF.md
+The trap catalog is published by the trap app itself; this suite asserts
+the crawler's observable behaviour against it.
 
 Required env vars (already loaded by conftest.py):
-    SCRAPFLY_KEY        Dev API key (e.g. scp-live-...)
-    SCRAPFLY_API_HOST   Local Scrapfly API (e.g. https://api.scrapfly.local)
+    SCRAPFLY_KEY        API key (e.g. scp-live-...)
+    SCRAPFLY_API_HOST   API endpoint (defaults to the public API)
 
 Optional env var (this file only):
     WEB_SCRAPING_DEV_BASE   Trap app base URL.
-                            Defaults to https://web-scraping.dev (public prod).
-                            Override to https://web-scraping-dev.local for the
-                            local self-hosted dev cluster.
+                            Defaults to https://web-scraping.dev.
+                            Override to point at your own deployment of it.
 
 Run:
     pytest tests/crawler/test_compliance.py -m compliance -xvs

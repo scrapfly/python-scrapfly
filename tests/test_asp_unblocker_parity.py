@@ -605,7 +605,7 @@ class _CapturedRequest(Exception):
 def _capture_scrape_request(cfg: ScrapeConfig) -> dict:
     from scrapfly import ScrapflyClient
 
-    client = ScrapflyClient(key=KEY, host="https://api.scrapfly.local")
+    client = ScrapflyClient(key=KEY, host="https://api.scrapfly.io")
 
     def transport(**kwargs):
         raise _CapturedRequest(kwargs)

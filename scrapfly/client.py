@@ -2502,8 +2502,7 @@ class ScrapflyClient(ScheduleClientMixin):
     # SECURITY: NEVER log, print, or include vault_key in exception
     # messages, debug output, repr, or any breadcrumb. The whole product
     # property is "Scrapfly receives the key transiently and zeros it."
-    # Any leak invalidates the SOC 2 / HIPAA story. See
-    # /root/scrapfly-apps/.../agent_secret_tokenization_boundary.md.
+    # Any leak invalidates that guarantee.
 
     def cloud_browser_vault_create(self, name: str, description: Optional[str] = None) -> Dict:
         """

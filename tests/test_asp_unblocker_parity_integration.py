@@ -21,10 +21,10 @@ So legs 1 and 2 put a BYTE-IDENTICAL request on the wire, and so do legs 3 and
       asked for.
 
 It does NOT prove the API still honours the `unblocker` spelling, because no
-SDK leg ever sends that spelling. That is a real, separately-deployed code path
-(`apps/scrapfly/api/scrapfly-api/pkg/scraper/config.go`: `asp := q.Get("asp");
-if asp == "" { asp = q.Get("unblocker") }`), it is what a customer on a raw
-HTTP client depends on, and the API silently ignores unrecognised query params
+SDK leg ever sends that spelling. That is a separate code path in the API: it
+reads the `asp` query parameter first and falls back to `unblocker` when `asp`
+is absent. It is what a customer on a raw HTTP client depends on, and the API
+silently ignores unrecognised query params
 — so if that fallback were deleted, `unblocker=true` would quietly return an
 UNPROTECTED, billed scrape.
 
@@ -68,7 +68,7 @@ Two things keep the equivalence honest rather than vacuous:
     "leg 3 == leg 4" while proving nothing.
 
 Run:
-    SCRAPFLY_KEY=scp-live-... SCRAPFLY_API_HOST=https://api.scrapfly.home \\
+    SCRAPFLY_KEY=scp-live-... \\
         pytest tests/test_asp_unblocker_parity_integration.py -v -s
 
 Do NOT run this module under `pytest -n` without `--dist loadfile`: a
@@ -113,16 +113,14 @@ if API_KEY and not API_HOST:
 # experiment, not the subject of it.
 TARGET_URL = "https://httpbin.dev/html"
 
-# The dev cluster serves a certificate signed by the Scrapfly Dev Root CA,
-# which certifi does not carry. Pointing `verify` at that root keeps chain and
-# hostname validation ON. `verify=False` is deliberately not used here: this
-# suite exists to observe what the API answers, and a test that cannot tell the
-# API apart from anything else holding the socket is worth less than it looks.
-DEV_ROOT_CA = "/usr/local/share/ca-certificates/scrapfly-local-ca.crt"
+# An endpoint whose certificate the system store cannot verify is served by
+# pointing SCRAPFLY_CA_BUNDLE at its root, which keeps chain and hostname
+# validation ON. `verify=False` is deliberately never used here: this suite
+# exists to observe what the API answers, and a test that cannot tell the API
+# apart from anything else holding the socket is worth less than it looks.
 
-# The dev project carries a user throttle rule on the target host
-# (SLIDING_WINDOW, max_rate 5, max_concurrency 5, reported under
-# `context.throttler`). Five sequential legs do not reliably fit in it, and the
+# A project with a throttle rule on the target host (reported under
+# `context.throttler`) does not reliably fit five sequential legs, and the
 # slot is not released the instant a response is handed back. Pacing keeps the
 # matrix observable; it softens no assertion and re-sends no leg.
 LEG_PACING_SECONDS = 12
@@ -152,11 +150,11 @@ SKIP_BILLABLE = os.environ.get("SCRAPFLY_SKIP_BILLABLE") == "1"
 
 def _tls_verify():
     """What to hand `ScrapflyClient(verify=...)`: a CA bundle, never a bypass."""
-    bundle = os.environ.get("SCRAPFLY_CA_BUNDLE", DEV_ROOT_CA)
+    bundle = os.environ.get("SCRAPFLY_CA_BUNDLE", "")
 
-    # A checkout without the dev root (a laptop, or a run against
-    # api.scrapfly.io) falls back to the system trust store, still verifying.
-    return bundle if os.path.isfile(bundle) else True
+    # No bundle named, or a path that is not there, falls back to the system
+    # trust store — still verifying.
+    return bundle if bundle and os.path.isfile(bundle) else True
 
 
 def redact(text: str) -> str:

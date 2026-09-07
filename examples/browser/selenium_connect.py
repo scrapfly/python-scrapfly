@@ -13,7 +13,7 @@ API_KEY = 'scp-live-YOUR_API_KEY_HERE'
 
 # Discover WebSocket URL via standard Chrome DevTools HTTP endpoint
 version_info = requests.get(
-    'https://browser.scrapfly.local/json/version',
+    'https://browser.scrapfly.io/json/version',
     params={
         'key': API_KEY,
         'proxy_pool': 'datacenter',

@@ -43,7 +43,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
 # Test configuration
 API_KEY = os.environ.get('SCRAPFLY_KEY', 'scp-live-YOUR_API_KEY_HERE')
-API_HOST = os.environ.get('SCRAPFLY_API_HOST', 'https://api.scrapfly.local')
+API_HOST = os.environ.get('SCRAPFLY_API_HOST', 'https://api.scrapfly.io')
 
 
 

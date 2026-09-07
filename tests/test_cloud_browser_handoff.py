@@ -40,7 +40,7 @@ from scrapfly import BrowserConfig, ScrapeConfig, ScrapflyClient
 pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
 API_KEY = os.environ.get("SCRAPFLY_KEY", "scp-live-YOUR_API_KEY_HERE")
-API_HOST = os.environ.get("SCRAPFLY_API_HOST", "https://api.scrapfly.local")
+API_HOST = os.environ.get("SCRAPFLY_API_HOST", "https://api.scrapfly.io")
 
 LOGIN_FORM_URL = "https://web-scraping.dev/login?prefill=1"
 LOGIN_PAGE_URL = "https://web-scraping.dev/login"

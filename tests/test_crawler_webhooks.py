@@ -1,22 +1,20 @@
 """
 Unit tests for the crawler webhook parser.
 
-These tests use hand-crafted payloads that mirror *exactly* what the
-scrape-engine emits in
-``apps/scrapfly/scrape-engine/scrape_engine/scrape_engine/crawler/webhook_manager.py``.
+These tests use hand-crafted payloads that mirror *exactly* what the crawler
+emits on the wire.
 
-For each of the 11 crawler events the scrape-engine dispatches
+For each of the 11 crawler events the crawler dispatches
 (``dispatch_crawler_start``, ``dispatch_crawler_stop``, ``dispatch_url_*``,
 ``dispatch_crawler_search``, ``dispatch_crawler_updated``),
 we build a payload that matches the engine's ``data`` dict 1:1 and assert
 that ``webhook_from_payload`` parses it into the correct typed dataclass
 with every field populated.
 
-Implementation is the source of truth — not the example JSON fixtures in
-``apps/scrapfly/web-app/src/Template/Docs/crawler-api/webhooks_example/``
-(one of those is already known to drift vs the engine — see
-``crawler_url_failed.json::links`` which is missing the ``scrape`` key that
-the engine always emits).
+What the crawler actually emits is the source of truth — not the example
+JSON payloads in the public webhook documentation, one of which is known to
+drift (its ``crawler_url_failed`` example omits the ``scrape`` key that the
+crawler always sends).
 
 These tests are pure: no network, no credentials.
 """

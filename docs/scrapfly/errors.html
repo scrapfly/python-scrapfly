@@ -268,6 +268,28 @@ A crawl that is merely skipped is <em>not</em> an error: it is reported in
 <li>builtins.BaseException</li>
 </ul>
 </dd>
+<dt id="scrapfly.errors.ScrapflyAspError"><code class="flex name class">
+<span>class <span class="ident">ScrapflyUnblockerError</span></span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response | None = None,<br>**kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyAspError(ScraperAPIError):
+    pass</code></pre>
+</details>
+<div class="desc"><p>Common base class for all non-exit exceptions.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>scrapfly.errors.ScraperAPIError</li>
+<li>scrapfly.errors.HttpError</li>
+<li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
 <dt id="scrapfly.errors.ScrapflyCrawlerError"><code class="flex name class">
 <span>class <span class="ident">ScrapflyCrawlerError</span></span>
 <span>(</span><span>message: str,<br>code: str,<br>http_status_code: int,<br>resource: str | None = None,<br>is_retryable: bool = False,<br>retry_delay: int | None = None,<br>retry_times: int | None = None,<br>documentation_url: str | None = None,<br>api_response: ForwardRef('ApiResponse') | None = None)</span>
@@ -611,6 +633,9 @@ A crawl that is merely skipped is <em>not</em> an error: it is reported in
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.EncoderError" href="#scrapfly.errors.EncoderError">EncoderError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.errors.ScrapflyAspError" href="#scrapfly.errors.ScrapflyAspError">ScrapflyAspError</a></code></h4>
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.ScrapflyAspError" href="#scrapfly.errors.ScrapflyAspError">ScrapflyAspError</a></code></h4>

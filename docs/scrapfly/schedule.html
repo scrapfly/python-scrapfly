@@ -213,8 +213,16 @@ so callers can branch on it without parsing the message string.</p></div>
         scrape_config: Dict[str, Any],
         request: CreateScheduleRequest,
     ) -&gt; Schedule:
-        &#34;&#34;&#34;Create a Web Scraping API schedule. ``scrape_config`` is the same
-        dict you would pass to :meth:`scrape` (e.g. ``{&#34;url&#34;: &#34;...&#34;, &#34;render_js&#34;: True}``).&#34;&#34;&#34;
+        &#34;&#34;&#34;Create a Web Scraping API schedule.
+
+        ``scrape_config`` is forwarded verbatim and its keys are WIRE keys, not
+        :class:`~scrapfly.ScrapeConfig` option names — e.g.
+        ``{&#34;url&#34;: &#34;...&#34;, &#34;render_js&#34;: True}``. The anti-bot bypass may be
+        spelled either way here: the API folds ``unblocker`` into ``asp`` on the
+        stored config with the same precedence the SDK uses (a supplied ``asp``
+        wins, ``unblocker`` is read only when ``asp`` is absent, ``null`` or
+        ``&#34;&#34;``), so both names reach the replayed scrape.
+        &#34;&#34;&#34;
         return self._create_schedule(&#34;/scrape/schedules&#34;, &#34;scrape_config&#34;, scrape_config, request)
 
     def create_screenshot_schedule(
@@ -232,7 +240,14 @@ so callers can branch on it without parsing the message string.</p></div>
         crawler_config: Dict[str, Any],
         request: CreateScheduleRequest,
     ) -&gt; Schedule:
-        &#34;&#34;&#34;Create a Crawler API schedule.&#34;&#34;&#34;
+        &#34;&#34;&#34;Create a Crawler API schedule.
+
+        ``crawler_config`` is forwarded verbatim and its keys are WIRE keys, not
+        :class:`~scrapfly.CrawlerConfig` option names. As with
+        :meth:`create_scrape_schedule`, the anti-bot bypass may be spelled
+        ``asp`` or ``unblocker``: the API folds the alias into ``asp`` on the
+        stored config before it is ever replayed.
+        &#34;&#34;&#34;
         return self._create_schedule(
             &#34;/crawl/schedules&#34;, &#34;crawler_config&#34;, crawler_config, request
         )
@@ -431,12 +446,24 @@ client so retries, verify, headers and timeouts behave identically.</p></div>
     crawler_config: Dict[str, Any],
     request: CreateScheduleRequest,
 ) -&gt; Schedule:
-    &#34;&#34;&#34;Create a Crawler API schedule.&#34;&#34;&#34;
+    &#34;&#34;&#34;Create a Crawler API schedule.
+
+    ``crawler_config`` is forwarded verbatim and its keys are WIRE keys, not
+    :class:`~scrapfly.CrawlerConfig` option names. As with
+    :meth:`create_scrape_schedule`, the anti-bot bypass may be spelled
+    ``asp`` or ``unblocker``: the API folds the alias into ``asp`` on the
+    stored config before it is ever replayed.
+    &#34;&#34;&#34;
     return self._create_schedule(
         &#34;/crawl/schedules&#34;, &#34;crawler_config&#34;, crawler_config, request
     )</code></pre>
 </details>
-<div class="desc"><p>Create a Crawler API schedule.</p></div>
+<div class="desc"><p>Create a Crawler API schedule.</p>
+<p><code>crawler_config</code> is forwarded verbatim and its keys are WIRE keys, not
+:class:<code>~scrapfly.CrawlerConfig</code> option names. As with
+:meth:<code>create_scrape_schedule</code>, the anti-bot bypass may be spelled
+<code>asp</code> or <code>unblocker</code>: the API folds the alias into <code>asp</code> on the
+stored config before it is ever replayed.</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule"><code class="name flex">
 <span>def <span class="ident">create_scrape_schedule</span></span>(<span>self,<br>scrape_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Dict[str, Any]</span>
@@ -451,12 +478,26 @@ client so retries, verify, headers and timeouts behave identically.</p></div>
     scrape_config: Dict[str, Any],
     request: CreateScheduleRequest,
 ) -&gt; Schedule:
-    &#34;&#34;&#34;Create a Web Scraping API schedule. ``scrape_config`` is the same
-    dict you would pass to :meth:`scrape` (e.g. ``{&#34;url&#34;: &#34;...&#34;, &#34;render_js&#34;: True}``).&#34;&#34;&#34;
+    &#34;&#34;&#34;Create a Web Scraping API schedule.
+
+    ``scrape_config`` is forwarded verbatim and its keys are WIRE keys, not
+    :class:`~scrapfly.ScrapeConfig` option names — e.g.
+    ``{&#34;url&#34;: &#34;...&#34;, &#34;render_js&#34;: True}``. The anti-bot bypass may be
+    spelled either way here: the API folds ``unblocker`` into ``asp`` on the
+    stored config with the same precedence the SDK uses (a supplied ``asp``
+    wins, ``unblocker`` is read only when ``asp`` is absent, ``null`` or
+    ``&#34;&#34;``), so both names reach the replayed scrape.
+    &#34;&#34;&#34;
     return self._create_schedule(&#34;/scrape/schedules&#34;, &#34;scrape_config&#34;, scrape_config, request)</code></pre>
 </details>
-<div class="desc"><p>Create a Web Scraping API schedule. <code>scrape_config</code> is the same
-dict you would pass to :meth:<code>scrape</code> (e.g. <code>{"url": "...", "render_js": True}</code>).</p></div>
+<div class="desc"><p>Create a Web Scraping API schedule.</p>
+<p><code>scrape_config</code> is forwarded verbatim and its keys are WIRE keys, not
+:class:<code>~scrapfly.ScrapeConfig</code> option names — e.g.
+<code>{"url": "...", "render_js": True}</code>. The anti-bot bypass may be
+spelled either way here: the API folds <code>unblocker</code> into <code>asp</code> on the
+stored config with the same precedence the SDK uses (a supplied <code>asp</code>
+wins, <code>unblocker</code> is read only when <code>asp</code> is absent, <code>null</code> or
+<code>""</code>), so both names reach the replayed scrape.</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule"><code class="name flex">
 <span>def <span class="ident">create_screenshot_schedule</span></span>(<span>self,<br>screenshot_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Dict[str, Any]</span>

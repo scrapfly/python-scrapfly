@@ -36,7 +36,7 @@ from scrapfly.errors import ApiHttpClientError
 
 
 API_KEY = os.environ.get("SCRAPFLY_KEY", "scp-live-YOUR_API_KEY_HERE")
-API_HOST = os.environ.get("SCRAPFLY_API_HOST", "https://api.scrapfly.local")
+API_HOST = os.environ.get("SCRAPFLY_API_HOST", "https://api.scrapfly.io")
 
 IPIFY_URL = "https://api.ipify.org?format=json"
 PROXY_POOL = os.environ.get("SCRAPFLY_TEST_POOL", "public_residential_pool")

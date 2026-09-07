@@ -15,7 +15,7 @@ NEW in 0.8.28 — these tests cover the parity-gap fixes:
    nullable while the crawler is in ``PENDING``, populated once it runs
 
 Config-level tests and parsing tests are pure unit tests (no network).
-Integration tests hit ``api.scrapfly.local`` via the conftest fixtures.
+Integration tests hit the API via the conftest fixtures.
 """
 
 import pytest
@@ -221,7 +221,7 @@ class TestCrawlerUrlsResponseFromText:
 
 
 # ---------------------------------------------------------------------------
-# Live integration tests (require api.scrapfly.local + a valid key)
+# Live integration tests (require the API + a valid key)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration

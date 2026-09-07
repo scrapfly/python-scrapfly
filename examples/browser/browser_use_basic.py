@@ -13,7 +13,7 @@ from browser_use import Browser, BrowserProfile
 
 scrapfly = ScrapflyClient(
     key='scp-live-YOUR_API_KEY_HERE',
-    cloud_browser_host='wss://browser.scrapfly.local',
+    cloud_browser_host='wss://browser.scrapfly.io',
     verify=False,
 )
 

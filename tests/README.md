@@ -7,8 +7,7 @@ Two kinds of test live here, and the difference matters.
 Marked `e2e` (and `integration`). These drive a real Scrapfly environment: real
 crawls, real scrapes, real proxies. This is deliberate — the SDK is the supported
 client, so exercising the platform through it is what customers actually
-experience. Product-side changes in `apps/scrapfly/scrape-engine` are expected to
-show up here.
+experience. Server-side product changes are expected to show up here.
 
 ```bash
 SCRAPFLY_KEY=scp-live-... pytest -m e2e
@@ -75,7 +74,7 @@ pip install pytest pytest-asyncio
 Set environment variables (optional):
 ```bash
 export SCRAPFLY_KEY="your-api-key"
-export SCRAPFLY_API_HOST="https://api.scrapfly.local"
+export SCRAPFLY_API_HOST="https://api.scrapfly.io"
 ```
 
 ### Run All Tests
