@@ -107,6 +107,15 @@ class ScrapflyClient(ScheduleClientMixin):
     # API's own 165s upstream ceiling, so a longer client read is pointless.
     DEFAULT_CRAWLER_PROMPT_API_READ_TIMEOUT = 180
 
+    # The two vault linked-service endpoints that reach the upstream secret
+    # manager carry their own server-side wall-clock budgets (25s for sync,
+    # 10s for the credential probe). They are pinned here instead of riding
+    # default_read_timeout because a caller lowering that would cut the read
+    # below the server budget, turning a completed sync into a client-side
+    # timeout the caller then retries into a second full provider fetch.
+    DEFAULT_VAULT_SYNC_API_READ_TIMEOUT = 35  # 25 server budget
+    DEFAULT_VAULT_PROBE_API_READ_TIMEOUT = 20  # 10 server budget
+
     host:str
     key:str
     max_concurrency:int
@@ -2815,6 +2824,258 @@ class ScrapflyClient(ScheduleClientMixin):
             headers={
                 'user-agent': self.ua
             },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    # --- Cloud Browser Vault linked service (1Password) ---
+    #
+    # A vault is either `manual` (items entered through the item endpoints) or
+    # `linked_service` (items mirrored from an external secret manager). These
+    # five endpoints own that link. Mirrored items are read-only through the
+    # item endpoints — the syncer owns those rows.
+    #
+    # `linked_service` is the provider discriminator; "1password" is the only
+    # value the server accepts today.
+
+    def cloud_browser_vault_service_link(
+        self,
+        vault_id: str,
+        vault_key: str,
+        token: str,
+        linked_service_data: Dict,
+        linked_service: str = '1password',
+    ) -> Dict:
+        """
+        Link a manual vault to an external secret manager. The service-account
+        token is sealed as a reserved blob item under the vault key, so
+        X-Vault-Key is REQUIRED: the server verifies the key before sealing,
+        because a well-formed wrong key would link the vault and leave a token
+        every later sync fails to open.
+
+        Linking does not contact the provider — it only seals the token and
+        flips the vault row. Use cloud_browser_vault_service_test before
+        linking, or cloud_browser_vault_service_sync after, to find out whether
+        the token actually works.
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :param token: The provider's service-account token. Sealed on receipt;
+            never persisted in a column, logged, or echoed back.
+        :param linked_service_data: Non-secret selection rules. For 1Password:
+            ``vault_id`` or ``vault_name`` (one is required), plus optional
+            ``title_filter``, ``tags``, ``sync_mode`` ("manual" or
+            "on_session") and ``sync_ttl_s`` (60..86400). ``token_item_id`` is
+            dropped: the server assigns it from the blob item it just sealed,
+            so a caller value could only ever redirect the token lookup.
+        :param linked_service: Provider discriminator (default "1password")
+        :return: dict with `vault` and `message`
+        """
+        body: Dict = {
+            'linked_service': linked_service,
+            'token': token,
+            'linked_service_data': {
+                k: v for k, v in linked_service_data.items() if k != 'token_item_id'
+            },
+        }
+
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service',
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua,
+                'X-Vault-Key': vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_service_update(
+        self,
+        vault_id: str,
+        linked_service_data: Optional[Dict] = None,
+        token: Optional[str] = None,
+        vault_key: Optional[str] = None,
+        linked_service: str = '1password',
+    ) -> Dict:
+        """
+        Update the link: rotate the service-account token, replace the
+        selection rules, or both. X-Vault-Key is required only when `token`
+        rotates the sealed token; a metadata-only update needs no key.
+
+        ``token_item_id`` is dropped from `linked_service_data` before the
+        request: the server ignores it on PATCH (the stored id wins) so that no
+        request body can redirect the token lookup at a row of the caller's
+        choosing.
+
+        :param vault_id: The vault identifier
+        :param linked_service_data: The full REPLACEMENT selection rules (same
+            shape as cloud_browser_vault_service_link), not a delta. Left None
+            the field is omitted and the stored document is kept, which is what
+            makes a token-only rotation possible; an empty dict would instead be
+            validated as a new document and refused.
+        :param token: Optional replacement service-account token
+        :param vault_key: Required iff `token` is given. Forwarded as
+            X-Vault-Key; never logged.
+        :param linked_service: Provider discriminator (default "1password").
+            The server keeps the vault's stored discriminator regardless: a
+            PATCH cannot switch provider, only unlink-then-link can.
+        :return: dict with `vault` and `message`
+        """
+        if token and not vault_key:
+            raise ValueError(
+                "vault_key is required when token is provided "
+                "(the server reseals the token under it)"
+            )
+
+        body: Dict = {
+            'linked_service': linked_service,
+            'token': token or '',
+        }
+        if linked_service_data is not None:
+            body['linked_service_data'] = {
+                k: v for k, v in linked_service_data.items() if k != 'token_item_id'
+            }
+
+        headers = {
+            'content-type': 'application/json',
+            'user-agent': self.ua,
+        }
+        if vault_key is not None:
+            headers['X-Vault-Key'] = vault_key
+
+        response = self._http_handler(
+            method='PATCH',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service',
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers=headers,
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_service_unlink(self, vault_id: str, keep_items: bool = True) -> Dict:
+        """
+        Unlink the provider and turn the vault back into a manual one. The
+        sealed service-account token is always deleted; `keep_items` decides
+        the fate of the mirrored rows.
+
+        `keep_items` defaults to True and is always sent explicitly: dropping
+        the mirror is irreversible (the secrets exist only upstream), so the
+        SDK never lets an omitted argument mean "delete them".
+
+        :param vault_id: The vault identifier
+        :param keep_items: False drops every mirrored item. True (default)
+            keeps them as manual rows.
+        :return: dict with `message`
+        """
+        response = self._http_handler(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service',
+            params={'key': self.key, 'keep_items': 'true' if keep_items else 'false'},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_service_sync(self, vault_id: str, vault_key: str) -> Dict:
+        """
+        Force a sync now. Requires X-Vault-Key: the server opens the sealed
+        service-account token with it, and a key that cannot open the vault
+        would still claim the sync round and then fail, costing the vault a
+        whole TTL of staleness.
+
+        Bypasses the TTL and the hour-long back-off a failed run leaves behind
+        — asking for a sync IS the retry. The read timeout is pinned above the
+        server's 25s budget (DEFAULT_VAULT_SYNC_API_READ_TIMEOUT).
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :return: flat sync report: `imported`, `updated`, `deleted`,
+            `skipped`, `unmirrored`, `status` and optional `warnings`
+        """
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service/sync',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.DEFAULT_VAULT_SYNC_API_READ_TIMEOUT),
+            headers={
+                'user-agent': self.ua,
+                'X-Vault-Key': vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def cloud_browser_vault_service_test(
+        self,
+        vault_id: str,
+        vault_key: str,
+        token: Optional[str] = None,
+        linked_service: Optional[str] = None,
+    ) -> Dict:
+        """
+        Probe the provider credentials and enumerate the upstream vaults the
+        service account can see. Reads no secret material.
+
+        Both body fields are optional: with `token` the probe answers for a
+        vault that is not linked yet (which is how an upstream vault is picked
+        before committing to a link); without it, the probe uses the token
+        already sealed in the vault. X-Vault-Key is always required — the
+        sealed token is opened with it. The read timeout is pinned above the
+        server's 10s budget (DEFAULT_VAULT_PROBE_API_READ_TIMEOUT).
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :param token: Optional unsaved service-account token to probe with
+        :param linked_service: Optional provider discriminator; the server
+            defaults to "1password" when a `token` is sent without one
+        :return: dict with `vaults_visible` (id + title), `item_count` and
+            optional `warnings`
+        """
+        body: Dict = {}
+        if linked_service is not None:
+            body['linked_service'] = linked_service
+        if token is not None:
+            body['token'] = token
+
+        headers = {
+            'user-agent': self.ua,
+            'X-Vault-Key': vault_key,
+        }
+        if body:
+            headers['content-type'] = 'application/json'
+
+        response = self._http_handler(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service/test',
+            params={'key': self.key},
+            # No body at all rather than "{}": the server reads a probe with no
+            # content length as "use the token sealed in the vault".
+            json=body or None,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.DEFAULT_VAULT_PROBE_API_READ_TIMEOUT),
+            headers=headers,
         )
 
         response.raise_for_status()
