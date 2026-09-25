@@ -69,7 +69,7 @@ from .crawler import (
     CrawlerWebhook,
     webhook_from_payload,
 )
-from .browser_config import BrowserConfig, ProxyPool, OperatingSystem
+from .browser_config import BrowserConfig, ProxyPool, OperatingSystem, LinkedService
 from .classify import ClassifyResult
 from .schedule import (
     CreateScheduleRequest,
@@ -111,6 +111,7 @@ __all__: Tuple[str, ...] = (
     'BrowserConfig',
     'ProxyPool',
     'OperatingSystem',
+    'LinkedService',
     'ExtractionConfig',
     'ClassifyResult',
     'ScreenshotAPIError',

@@ -20,6 +20,21 @@ class OperatingSystem(Enum):
     IPAD = "ipad"
 
 
+class LinkedService(Enum):
+    """
+    Secret managers a Cloud Browser vault can mirror its items from.
+
+    The value is the `linked_service` discriminator on the vault endpoints, and
+    the same string is the `source` of every item the syncer owns.
+
+    ONE_PASSWORD is the only provider the server accepts today. A plain string
+    is still accepted wherever this enum is, so a provider the server registers
+    later is reachable without an SDK release.
+    """
+
+    ONE_PASSWORD = "1password"
+
+
 class BrowserConfig(BaseApiConfig):
 
     CLOUD_BROWSER_HOST = 'wss://browser.scrapfly.io'

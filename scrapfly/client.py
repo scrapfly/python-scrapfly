@@ -38,7 +38,7 @@ from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
 from .classify import ClassifyResult
 from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse, CrawlerUrlsResponse, CrawlerSearchResponse, CrawlerPromptEvent, CrawlerRefreshState, CrawlerRefreshEntry
-from .browser_config import BrowserConfig
+from .browser_config import BrowserConfig, LinkedService
 from .schedule import (
     ScheduleClientMixin,
     CreateScheduleRequest,
@@ -2836,8 +2836,9 @@ class ScrapflyClient(ScheduleClientMixin):
     # five endpoints own that link. Mirrored items are read-only through the
     # item endpoints — the syncer owns those rows.
     #
-    # `linked_service` is the provider discriminator; "1password" is the only
-    # value the server accepts today.
+    # `linked_service` is the provider discriminator (see LinkedService). Only
+    # the link route reads it: PATCH re-decodes against the vault's stored
+    # discriminator, so no body can switch provider.
 
     def cloud_browser_vault_service_link(
         self,
@@ -2845,7 +2846,7 @@ class ScrapflyClient(ScheduleClientMixin):
         vault_key: str,
         token: str,
         linked_service_data: Dict,
-        linked_service: str = '1password',
+        linked_service: Union[str, LinkedService] = LinkedService.ONE_PASSWORD,
     ) -> Dict:
         """
         Link a manual vault to an external secret manager. The service-account
@@ -2870,11 +2871,13 @@ class ScrapflyClient(ScheduleClientMixin):
             "on_session") and ``sync_ttl_s`` (60..86400). ``token_item_id`` is
             dropped: the server assigns it from the blob item it just sealed,
             so a caller value could only ever redirect the token lookup.
-        :param linked_service: Provider discriminator (default "1password")
+        :param linked_service: The provider to mirror from, a LinkedService or
+            its string value. Required by this route, which is the only one that
+            reads it.
         :return: dict with `vault` and `message`
         """
         body: Dict = {
-            'linked_service': linked_service,
+            'linked_service': linked_service.value if isinstance(linked_service, LinkedService) else linked_service,
             'token': token,
             'linked_service_data': {
                 k: v for k, v in linked_service_data.items() if k != 'token_item_id'
@@ -2904,7 +2907,6 @@ class ScrapflyClient(ScheduleClientMixin):
         linked_service_data: Optional[Dict] = None,
         token: Optional[str] = None,
         vault_key: Optional[str] = None,
-        linked_service: str = '1password',
     ) -> Dict:
         """
         Update the link: rotate the service-account token, replace the
@@ -2925,9 +2927,6 @@ class ScrapflyClient(ScheduleClientMixin):
         :param token: Optional replacement service-account token
         :param vault_key: Required iff `token` is given. Forwarded as
             X-Vault-Key; never logged.
-        :param linked_service: Provider discriminator (default "1password").
-            The server keeps the vault's stored discriminator regardless: a
-            PATCH cannot switch provider, only unlink-then-link can.
         :return: dict with `vault` and `message`
         """
         if token and not vault_key:
@@ -2936,8 +2935,10 @@ class ScrapflyClient(ScheduleClientMixin):
                 "(the server reseals the token under it)"
             )
 
+        # No `linked_service`: the server re-decodes against the vault's stored
+        # discriminator and ignores the body field, so taking one here would
+        # promise a provider switch that only unlink-then-link can do.
         body: Dict = {
-            'linked_service': linked_service,
             'token': token or '',
         }
         if linked_service_data is not None:
@@ -3031,7 +3032,7 @@ class ScrapflyClient(ScheduleClientMixin):
         vault_id: str,
         vault_key: str,
         token: Optional[str] = None,
-        linked_service: Optional[str] = None,
+        linked_service: Optional[Union[str, LinkedService]] = None,
     ) -> Dict:
         """
         Probe the provider credentials and enumerate the upstream vaults the
@@ -3048,14 +3049,17 @@ class ScrapflyClient(ScheduleClientMixin):
         :param vault_key: The base64-encoded vault key (X-Vault-Key,
             never logged)
         :param token: Optional unsaved service-account token to probe with
-        :param linked_service: Optional provider discriminator; the server
-            defaults to "1password" when a `token` is sent without one
+        :param linked_service: Optional provider to probe as, a LinkedService or
+            its string value. Left None the field is omitted and the server
+            picks the default, which keeps that default in one place.
         :return: dict with `vaults_visible` (id + title), `item_count` and
             optional `warnings`
         """
         body: Dict = {}
         if linked_service is not None:
-            body['linked_service'] = linked_service
+            body['linked_service'] = (
+                linked_service.value if isinstance(linked_service, LinkedService) else linked_service
+            )
         if token is not None:
             body['token'] = token
 
