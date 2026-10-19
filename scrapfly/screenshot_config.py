@@ -75,6 +75,10 @@ class ScreenshotConfig(BaseApiConfig):
     cache_clear: Optional[bool] = None
     webhook: Optional[str] = None
     raise_on_upstream_error: bool = True
+    # A proxy pool: ScrapeConfig.BASIC, UNBLOCKER, UNBLOCKER_ULTRA or AUTO, the only values
+    # the Screenshot API takes; it ignores any other value. Unset, the API's screenshot
+    # default applies. The screenshot price is the same on every proxy pool.
+    proxy_pool: Optional[str] = None
 
     def __init__(
         self,
@@ -94,7 +98,8 @@ class ScreenshotConfig(BaseApiConfig):
         cache_clear: Optional[bool] = None,
         vision_deficiency: Optional[VisionDeficiency] = None,
         webhook: Optional[str] = None,
-        raise_on_upstream_error: bool = True
+        raise_on_upstream_error: bool = True,
+        proxy_pool: Optional[str] = None
     ):
         assert(type(url) is str)
 
@@ -116,6 +121,7 @@ class ScreenshotConfig(BaseApiConfig):
         self.vision_deficiency = vision_deficiency
         self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
+        self.proxy_pool = proxy_pool
 
     def to_api_params(self, key:str) -> Dict:
         params = {
@@ -175,6 +181,9 @@ class ScreenshotConfig(BaseApiConfig):
         if self.webhook is not None:
             params['webhook_name'] = self.webhook
 
+        if self.proxy_pool is not None:
+            params['proxy_pool'] = self.proxy_pool
+
         return params
 
     def to_dict(self) -> Dict:
@@ -198,7 +207,8 @@ class ScreenshotConfig(BaseApiConfig):
             'cache_clear': self.cache_clear,
             'vision_deficiency': self.vision_deficiency.value if self.vision_deficiency else None,
             'webhook': self.webhook,
-            'raise_on_upstream_error': self.raise_on_upstream_error
+            'raise_on_upstream_error': self.raise_on_upstream_error,
+            'proxy_pool': self.proxy_pool,
         }
     
     @staticmethod
@@ -227,6 +237,7 @@ class ScreenshotConfig(BaseApiConfig):
         vision_deficiency = screenshot_config_dict.get('vision_deficiency', None)
         webhook = screenshot_config_dict.get('webhook', None)
         raise_on_upstream_error = screenshot_config_dict.get('raise_on_upstream_error', True)
+        proxy_pool = screenshot_config_dict.get('proxy_pool', None)
 
         return ScreenshotConfig(
             url=url,
@@ -245,5 +256,6 @@ class ScreenshotConfig(BaseApiConfig):
             cache_clear=cache_clear,
             vision_deficiency=vision_deficiency,
             webhook=webhook,
-            raise_on_upstream_error=raise_on_upstream_error
+            raise_on_upstream_error=raise_on_upstream_error,
+            proxy_pool=proxy_pool
         )

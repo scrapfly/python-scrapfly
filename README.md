@@ -25,10 +25,18 @@ This SDK cover the following Scrapfly API endpoints:
 * [Extraction API](https://scrapfly.io/docs/onboarding#extraction-api)
 * [Screenshot API](https://scrapfly.io/docs/onboarding#screenshot-api)
 
-## Unblocker
+## Proxy pools
 
-`unblocker` turns on the anti-bot bypass. It defeats blocking and antibot solutions such as
-Cloudflare, DataDome, PerimeterX or Akamai.
+`proxy_pool` picks one of four proxy pools. A proxy pool sets both the proxy network and the
+anti-bot bypass (the Unblocker), which defeats blocking and antibot solutions such as
+Cloudflare, DataDome, PerimeterX or Akamai:
+
+| Constant | Value | What it runs |
+|---|---|---|
+| `ScrapeConfig.BASIC` | `'basic'` | datacenter proxies, Unblocker off |
+| `ScrapeConfig.UNBLOCKER` | `'unblocker'` | residential proxies, Unblocker on |
+| `ScrapeConfig.UNBLOCKER_ULTRA` | `'unblocker_ultra'` | residential proxies, Unblocker on, accepted by every target and protection |
+| `ScrapeConfig.AUTO` | `'auto'` | the API picks the pool before the request, from the target's profile: the Unblocker on datacenter proxies, or the pool the target needs; accepted on every target, the ones that require `unblocker_ultra` included, where their price is added; priced as the pool it runs on |
 
 ```python
 from scrapfly import ScrapeConfig, ScrapflyClient
@@ -37,26 +45,34 @@ scrapfly = ScrapflyClient(key='__API_KEY__')
 
 api_response = scrapfly.scrape(ScrapeConfig(
     url='https://amazon.com',
-    unblocker=True
+    proxy_pool=ScrapeConfig.UNBLOCKER
 ))
+print(api_response.context['proxy']['pool'])  # 'unblocker': the pool asked for, as your account reads it
 ```
 
 It is available on the crawler too:
 
 ```python
-from scrapfly import CrawlerConfig
+from scrapfly import CrawlerConfig, ScrapeConfig
 
-config = CrawlerConfig(url='https://amazon.com', unblocker=True)
+config = CrawlerConfig(url='https://amazon.com', proxy_pool=ScrapeConfig.UNBLOCKER)
 ```
 
-### `asp` is the deprecated alias
+Targets and anti-bot protections that have a price of their own accept only
+`unblocker_ultra` and `auto`, which add that price. They refuse `basic` and `unblocker` with
+`ERR::PROXY::UNBLOCKER_ULTRA_REQUIRED` (HTTP 422, not billed); send the request again with
+`ScrapeConfig.UNBLOCKER_ULTRA`.
 
-`unblocker` was previously named `asp`. `asp` keeps working, indefinitely. Existing code needs no
-change:
+### Deprecated: `unblocker` and `asp`
+
+`unblocker` and its alias `asp` are deprecated: use `proxy_pool` (`ScrapeConfig.UNBLOCKER_ULTRA`
+for the Unblocker). The [migration guide](https://scrapfly.io/new-pricing#legacy-spellings)
+covers the requests written before the proxy pools, the pool names
+`ScrapeConfig.PUBLIC_DATACENTER_POOL` and `ScrapeConfig.PUBLIC_RESIDENTIAL_POOL` included.
 
 ```python
-ScrapeConfig(url='https://amazon.com', asp=True)      # still supported
-config.unblocker = True                               # same underlying setting as config.asp
+ScrapeConfig(url='https://amazon.com', asp=True)        # deprecated
+ScrapeConfig(url='https://amazon.com', unblocker=True)  # same setting as asp=True
 ```
 
 When both names are supplied, an explicitly supplied `asp` wins; `unblocker` applies only when
@@ -137,9 +153,8 @@ scrapfly_reader = ScrapflyReader(
 )
 
 scrapfly_scrape_config = {
-    "unblocker": True,  # Bypass scraping blocking and antibot solutions, like Cloudflare (formerly "asp")
+    "proxy_pool": "unblocker",  # Proxy pool: basic, unblocker (anti-bot bypass), unblocker_ultra or auto
     "render_js": True,  # Enable JavaScript rendering with a cloud headless browser
-    "proxy_pool": "public_residential_pool",  # Select a proxy pool (datacenter or residnetial)
     "country": "us",  # Select a proxy location
     "auto_scroll": True,  # Auto scroll the page
     "js": "",  # Execute custom JavaScript code by the headless browser
@@ -216,9 +231,8 @@ To use the full Scrapfly features with LangChain, pass a ScrapeConfig object to 
 from langchain_community.document_loaders import ScrapflyLoader
 
 scrapfly_scrape_config = {
-    "unblocker": True,  # Bypass scraping blocking and antibot solutions, like Cloudflare (formerly "asp")
+    "proxy_pool": "unblocker",  # Proxy pool: basic, unblocker (anti-bot bypass), unblocker_ultra or auto
     "render_js": True,  # Enable JavaScript rendering with a cloud headless browser
-    "proxy_pool": "public_residential_pool",  # Select a proxy pool (datacenter or residnetial)
     "country": "us",  # Select a proxy location
     "auto_scroll": True,  # Auto scroll the page
     "js": "",  # Execute custom JavaScript code by the headless browser

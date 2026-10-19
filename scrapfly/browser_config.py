@@ -1,4 +1,5 @@
 import hashlib
+import warnings
 from enum import Enum
 from typing import Optional, Union, Dict, List
 from urllib.parse import urlencode
@@ -36,6 +37,18 @@ class LinkedService(Enum):
 
 
 class BrowserConfig(BaseApiConfig):
+    """Cloud Browser session options, sent as query parameters of the WebSocket URL.
+
+    `proxy_pool` takes the Cloud Browser's own pools: 'datacenter', 'residential' (ProxyPool) or
+    'tor'; a session on `byop_proxy` runs as 'byop'. The Web Scraping API proxy pools ('basic',
+    'unblocker', 'unblocker_ultra', 'auto') do not apply here.
+
+    Deprecated:
+        unblock, unblock_timeout: the Cloud Browser never reads them, so no anti-bot
+            bypass runs on the session. Setting either emits a DeprecationWarning.
+            For an unblocked session, call `ScrapflyClient.cloud_browser_unblock(url)`
+            and connect to the `ws_url` it returns.
+    """
 
     CLOUD_BROWSER_HOST = 'wss://browser.scrapfly.io'
 
@@ -77,6 +90,15 @@ class BrowserConfig(BaseApiConfig):
     ):
         if timeout is not None and timeout > 1800:
             raise ValueError('timeout cannot exceed 1800 seconds (30 minutes)')
+
+        if unblock is not None or unblock_timeout is not None:
+            warnings.warn(
+                "BrowserConfig 'unblock' and 'unblock_timeout' are deprecated: the Cloud Browser "
+                "never reads them, so no anti-bot bypass runs on the session. Use "
+                "ScrapflyClient.cloud_browser_unblock(url) and connect to the ws_url it returns.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if isinstance(proxy_pool, str):
             try:
@@ -238,6 +260,8 @@ class BrowserConfig(BaseApiConfig):
         if self.blacklist is not None:
             params['blacklist'] = self._bool_to_http(self.blacklist)
 
+        # Deprecated and unread by the Cloud Browser; still forwarded so the URL a
+        # caller already builds stays byte-identical.
         if self.unblock is not None:
             params['unblock'] = self._bool_to_http(self.unblock)
 

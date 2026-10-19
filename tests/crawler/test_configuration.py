@@ -256,21 +256,21 @@ class TestProxyAndASP:
             f"Expected at least 2 API credits with ASP enabled, got {status.state.api_credit_used}"
 
     def test_proxy_pool(self, client, test_url):
-        """Test residential proxy pool and verify API credit cost"""
+        """Test a crawl on the legacy residential proxy pool name"""
         config = CrawlerConfig(
             url=test_url,
-            page_limit=1,  # Only 1 URL to verify cost
-            proxy_pool='public_residential_pool',  # Residential costs 25 credits per request
+            page_limit=1,
+            proxy_pool='public_residential_pool',
             respect_robots_txt=False  # Disable robots.txt fetch (costs 1 credit)
         )
+        # The SDK forwards the legacy pool name as given; what it costs is the API's pricing.
+        params = config.to_api_params()
+        assert params['proxy_pool'] == 'public_residential_pool'
+        assert 'asp' not in params
+
         crawl = Crawl(client, config).crawl().wait(verbose=False)
 
-        status = assert_crawl_successful(crawl)
-
-        # Verify API credit cost for residential proxy
-        # Should be 25-26 credits: 25 for residential + possibly 1 for sitemap.xml
-        assert status.state.api_credit_used >= 25, \
-            f"Expected at least 25 API credits for residential proxy, got {status.state.api_credit_used}"
+        assert_crawl_successful(crawl)
 
     def test_country_targeting(self, client, httpbin_url):
         """Test with country-specific proxy and verify country is set"""

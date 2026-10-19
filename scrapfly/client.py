@@ -2217,14 +2217,14 @@ class ScrapflyClient(ScheduleClientMixin):
 
         Unblock always uses a residential proxy (no proxy pool selection) and
         always performs a GET — the endpoint's purpose is to harvest cookies /
-        clearance tokens via an ASP-bypass navigation, not to proxy arbitrary
+        clearance tokens via an Unblocker navigation, not to proxy arbitrary
         HTTP requests.
 
         :param url: Target URL to navigate to and bypass protection
         :param country: ISO country code for residential proxy geolocation
         :param os: Operating system fingerprint: 'linux', 'windows', 'macos', 'android', 'iphone', 'ipad'
         :param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
-        :param session: Named session for reconnection — reuses the existing ASP
+        :param session: Named session for reconnection — reuses the existing Unblocker
             session when one exists and disables auto-close on disconnect
         :param timeout: Navigation timeout in seconds (max 300)
         :param browser_timeout: Browser session timeout in seconds (max 1800)

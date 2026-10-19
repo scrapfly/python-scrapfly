@@ -186,10 +186,17 @@ class CrawlerConfig(BaseApiConfig):
             refresh: Keep this crawl fresh by re-scraping its own URLs in place
             refresh_interval: Seconds between refresh runs (3600 to 7776000)
 
-            unblocker: Enable the anti-bot bypass (Unblocker)
-            asp: Deprecated alias of `unblocker`, permanently supported. When
-                both are supplied, `asp` wins.
-            proxy_pool: Proxy pool to use (e.g., 'public_residential_pool')
+            proxy_pool: Proxy pool for every crawled page: 'basic' (datacenter,
+                Unblocker off), 'unblocker' (residential, Unblocker on),
+                'unblocker_ultra' (residential, Unblocker on, the only pool accepted by
+                targets and protections that have a price of their own) or 'auto'
+                (the API picks the pool from the target's profile). Constants:
+                ScrapeConfig.BASIC, ScrapeConfig.UNBLOCKER, ScrapeConfig.UNBLOCKER_ULTRA,
+                ScrapeConfig.AUTO. The proxy pool sets the Unblocker itself.
+            unblocker: Deprecated: use `proxy_pool` ('unblocker_ultra' for the
+                Unblocker). The migration guide covers requests written before the
+                proxy pools: https://scrapfly.io/new-pricing#legacy-spellings
+            asp: Deprecated alias of `unblocker`. When both are supplied, `asp` wins.
             country: Target country for geo-located content
 
             webhook_name: Webhook name for event notifications
@@ -329,6 +336,10 @@ class CrawlerConfig(BaseApiConfig):
     def unblocker(self) -> bool:
         """Anti-bot bypass toggle, the current name for what used to be `asp`.
 
+        Deprecated: use `proxy_pool` ('unblocker_ultra' for the Unblocker). The
+        migration guide covers requests written before the proxy pools:
+        https://scrapfly.io/new-pricing#legacy-spellings
+
         Backed by the single `asp` entry of the request body, so reading or
         writing either name sees the same state. Assigning a falsy value drops
         the key entirely, which is how "disabled" has always been expressed.
@@ -345,7 +356,7 @@ class CrawlerConfig(BaseApiConfig):
 
     @property
     def asp(self) -> bool:
-        """Deprecated alias of `unblocker`, permanently supported."""
+        """Deprecated alias of `unblocker`."""
 
         return self.unblocker
 

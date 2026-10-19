@@ -35,10 +35,10 @@ _UNSET = _Unset()
 def _resolve_unblocker(asp, unblocker) -> bool:
     """Collapse the `asp` / `unblocker` pair into the single stored value.
 
-    `unblocker` is the customer-facing name; `asp` is the permanently supported
-    deprecated alias. An explicitly supplied `asp` always wins, `unblocker`
-    applies only when `asp` was not supplied. Never OR them: an explicit
-    `False` on either name must be able to turn the feature off.
+    `unblocker` is the customer-facing name; `asp` is its deprecated alias. An
+    explicitly supplied `asp` always wins, `unblocker` applies only when `asp`
+    was not supplied. Never OR them: an explicit `False` on either name must be
+    able to turn the feature off.
 
     `None` counts as NOT supplied, alongside the `_UNSET` sentinel. Two reasons,
     and they agree:
@@ -119,6 +119,19 @@ class ScrapeConfigError(Exception):
 
 class ScrapeConfig(BaseApiConfig):
 
+    # Proxy pools, sent as `proxy_pool`. Each sets both the proxy network and the
+    # Unblocker. Targets and protections that have a price of their own accept
+    # UNBLOCKER_ULTRA (or AUTO) only and refuse BASIC and UNBLOCKER with
+    # ERR::PROXY::UNBLOCKER_ULTRA_REQUIRED. AUTO lets the API pick the pool before the
+    # request, from the target's profile: the Unblocker on datacenter proxies, or the
+    # pool the target needs, priced as the pool it runs on.
+    BASIC = 'basic'
+    UNBLOCKER = 'unblocker'
+    UNBLOCKER_ULTRA = 'unblocker_ultra'
+    AUTO = 'auto'
+
+    # Pool names written before the proxy pools, still accepted. The migration guide
+    # covers them: https://scrapfly.io/new-pricing#legacy-spellings
     PUBLIC_DATACENTER_POOL = 'public_datacenter_pool'
     PUBLIC_RESIDENTIAL_POOL = 'public_residential_pool'
     PUBLIC_TOR_POOL = 'public_tor_pool'
@@ -132,7 +145,7 @@ class ScrapeConfig(BaseApiConfig):
     cache_clear:bool = False
     ssl:bool = False
     dns:bool = False
-    asp:bool = False  # deprecated alias of `unblocker`, permanently supported
+    asp:bool = False  # deprecated alias of `unblocker`
     # NOTE: `unblocker` is deliberately absent from this block. It is a
     # property defined below; a class attribute or annotation here would
     # shadow the descriptor and break `cfg.unblocker = True`.
@@ -317,6 +330,10 @@ class ScrapeConfig(BaseApiConfig):
     @property
     def unblocker(self) -> bool:
         """Anti-bot bypass toggle, the current name for what used to be `asp`.
+
+        Deprecated: use `proxy_pool` (`ScrapeConfig.UNBLOCKER_ULTRA` for the
+        Unblocker). The migration guide covers requests written before the proxy
+        pools: https://scrapfly.io/new-pricing#legacy-spellings
 
         Deliberately a property rather than a second stored attribute: it stays
         out of `__dict__`, so serializers that iterate the instance dict do not
@@ -508,6 +525,20 @@ class ScrapeConfig(BaseApiConfig):
             else:
                 headers[name] = value
 
+        # The export carries the pool the order ran on, never the `proxy_pool` word the
+        # customer sent; `unblocker_tier` tells it. none is `basic`; normal is `unblocker`,
+        # or `basic` on a project that forces the Unblocker, still on datacenter. ultra,
+        # or no unblocker_tier (an older export), is `unblocker_ultra` or a legacy
+        # request, which the pool and asp as exported replay unchanged.
+        unblocker_tier = data.get('unblocker_tier')
+
+        if unblocker_tier == 'none' or (unblocker_tier == 'normal' and data['proxy_pool'] == ScrapeConfig.PUBLIC_DATACENTER_POOL):
+            proxy_pool_word = ScrapeConfig.BASIC
+        elif unblocker_tier == 'normal':
+            proxy_pool_word = ScrapeConfig.UNBLOCKER
+        else:
+            proxy_pool_word = None
+
         return ScrapeConfig(
             url=data['url'],
             retry=data['retry'],
@@ -521,8 +552,8 @@ class ScrapeConfig(BaseApiConfig):
             method=data['method'],
             # .get(), not a subscript: an export produced under either name
             # must load, and neither key is guaranteed present.
-            asp=data.get('asp', _UNSET),
-            unblocker=data.get('unblocker', _UNSET),
+            asp=_UNSET if proxy_pool_word else data.get('asp', _UNSET),
+            unblocker=_UNSET if proxy_pool_word else data.get('unblocker', _UNSET),
             body=data['body'],
             ssl=data['ssl'],
             dns=data['dns'],
@@ -535,7 +566,7 @@ class ScrapeConfig(BaseApiConfig):
             rendering_wait=data['rendering_wait'],
             screenshots=data['screenshots'] or {},
             screenshot_flags=data['screenshot_flags'],
-            proxy_pool=data['proxy_pool'],
+            proxy_pool=proxy_pool_word or data['proxy_pool'],
             auto_scroll=data['auto_scroll'],
             cost_budget=data['cost_budget']
         )
