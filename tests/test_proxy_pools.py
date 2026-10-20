@@ -25,11 +25,13 @@ POOLS = {
 LEGACY_POOLS = {
     "PUBLIC_DATACENTER_POOL": "public_datacenter_pool",
     "PUBLIC_RESIDENTIAL_POOL": "public_residential_pool",
-    "PUBLIC_TOR_POOL": "public_tor_pool",
 }
 
+# The Tor pool is a current pool, not a name written before the proxy pools.
+TOR_POOL = {"PUBLIC_TOR_POOL": "public_tor_pool"}
 
-@pytest.mark.parametrize("name,value", {**POOLS, **LEGACY_POOLS}.items())
+
+@pytest.mark.parametrize("name,value", {**POOLS, **TOR_POOL, **LEGACY_POOLS}.items())
 def test_constant_carries_the_wire_value(name, value):
     assert getattr(ScrapeConfig, name) == value
 
