@@ -172,7 +172,7 @@ class ScrapeConfig(BaseApiConfig):
     rendering_wait: int = None
     rendering_stage: Literal["complete", "domcontentloaded"] = "complete"
     wait_for_selector: Optional[str] = None
-    session_sticky_proxy:bool = True
+    session_sticky_proxy:Optional[bool] = None
     screenshots:Optional[Dict]=None
     screenshot_flags: Optional[List[ScreenshotFlag]] = None,
     webhook:Optional[str]=None
@@ -222,7 +222,7 @@ class ScrapeConfig(BaseApiConfig):
         wait_for_selector: Optional[str] = None,
         screenshots:Optional[Dict]=None,
         screenshot_flags: Optional[List[ScreenshotFlag]] = None,
-        session_sticky_proxy:bool = True,
+        session_sticky_proxy:Optional[bool] = None,
         webhook:Optional[str] = None,
         timeout:Optional[int] = None, # in milliseconds
         js_scenario:Optional[List] = None,
@@ -484,10 +484,12 @@ class ScrapeConfig(BaseApiConfig):
         if self.session:
             params['session'] = self.session
 
+            # None leaves stickiness to the API, which defaults it to true
+            # when a session is set.
             if self.session_sticky_proxy is not None:
                 params['session_sticky_proxy'] = self._bool_to_http(self.session_sticky_proxy)
         else:
-            if self.session_sticky_proxy:
+            if self.session_sticky_proxy is not None:
                 logging.warning('Params "session_sticky_proxy" is ignored. Works only if session is enabled')
 
         if self.debug is True:
@@ -670,7 +672,7 @@ class ScrapeConfig(BaseApiConfig):
         screenshot_flags = scrape_config_dict.get('screenshot_flags', [])
         screenshot_flags = [ScreenshotFlag(flag) for flag in screenshot_flags] if screenshot_flags else None
 
-        session_sticky_proxy = scrape_config_dict.get('session_sticky_proxy', True)
+        session_sticky_proxy = scrape_config_dict.get('session_sticky_proxy', None)
         webhook = scrape_config_dict.get('webhook', None)
         timeout = scrape_config_dict.get('timeout', None)
         js_scenario = scrape_config_dict.get('js_scenario', None)
