@@ -1,0 +1,41 @@
+name: Tests
+
+# Offline: the live API tests skip without SCRAPFLY_KEY.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install ".[speedups,webhook-server,scrapy]" pytest
+      - run: python -m pytest -q
+
+  # The oldest Scrapy supported, the first with the async start() and handlers, and the newest.
+  scrapy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scrapy: '2.11.2'
+            pins: '"Twisted<24.7" "w3lib<2.2"'
+          - scrapy: '2.14.2'
+          - scrapy: '2.19.0'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install . "scrapy==${{ matrix.scrapy }}" ${{ matrix.pins }} pytest
+      - run: python -m pytest -q tests/test_scrapy.py
