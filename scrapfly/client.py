@@ -22,7 +22,7 @@ from .extraction_config import ExtractionConfig
 from .schedule import CreateScheduleRequest, UpdateScheduleRequest, ScheduleRecurrence, ScheduleEnd, ScheduleAPIError, Schedule
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
-from .transport import Call, Sleep, Steps, Streamed, retry_delay, signed
+from .transport import Call, Sleep, Steps, Streamed, retry_delay, signed, without_key
 
 logger = logging.getLogger(__name__)
 
@@ -107,11 +107,17 @@ class ScrapflyClient(ScrapflyApi):
         for attempt in range(step.tries):
             try:
                 return self._http_handler(method=step.method, url=step.url, **step.options)
-            except NetworkError:
-                if attempt + 1 == step.tries:
+            except (*NetworkError, requests.RequestException) as error:
+                if isinstance(error, NetworkError) and attempt + 1 < step.tries:
+                    time.sleep(retry_delay(attempt))
+                    continue
+
+                masked = without_key(error)
+                if masked is error:
                     raise
 
-                time.sleep(retry_delay(attempt))
+                # The chained urllib3 errors print the key too.
+                raise masked from None
 
     # The private methods of the client before ScrapflyApi, still called by the Scrapy downloader and subclasses.
 

@@ -497,3 +497,24 @@ def test_prompt_without_stream_returns_one_object(kind):
     assert json.loads(seen[0].body)['generation'] == {'stream': False}
     assert seen[0].headers['accept'] == 'application/json'
     assert result == answer
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_a_connection_error_does_not_print_the_key(kind):
+    import traceback
+
+    key = 'scp-live-0123456789abcdef'
+
+    async def main():
+        if kind == 'sync':
+            return ScrapflyClient(key=key, host='http://127.0.0.1:1').account()
+
+        async with AsyncScrapflyClient(key=key, host='http://127.0.0.1:1') as scrapfly:
+            return await scrapfly.account()
+
+    with pytest.raises((requests.ConnectionError, httpx.ConnectError)) as raised:
+        asyncio.run(main())
+
+    assert '0123456789abcdef' not in ''.join(traceback.format_exception(raised.value))
+    if kind == 'sync':
+        assert 'key=REDACTED' in str(raised.value)

@@ -21,6 +21,8 @@
   signature is checked.
 - The client no longer decodes a second time a body urllib3 already decompressed.
 - `scrape_batch` reads a batch-level error answered in msgpack: its message was lost.
+- A connection error no longer prints the API key: requests put the request URL, `key` included, in its message
+  and in the urllib3 errors chained to it. The key now reads `key=REDACTED`.
 - `ScrapflySpider` crawls again on Scrapy 2.16 and later: it now defines `start()`, which Scrapy reads in place
   of `start_requests()` (Scrapy 2.19 no longer calls `start_requests()` at all).
 - The Scrapy integration emits no deprecation warning from Scrapy 2.11 to 2.19: the middlewares no longer

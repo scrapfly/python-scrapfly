@@ -8,13 +8,14 @@ response are shared, and only the clients' run loops do I/O.
 import functools
 import inspect
 import random
+import re
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING, Any, AsyncIterator, Awaitable, Callable, Concatenate, Generator, Generic, Iterable, Iterator,
     Optional, ParamSpec, Protocol, TypeVar, Union, get_args, get_origin, overload,
 )
 
-from requests import Response
+from requests import RequestException, Response
 
 if TYPE_CHECKING:
     from .async_client import AsyncScrapflyClient
@@ -89,6 +90,25 @@ def _streams(annotation, stream: type):
         return Union[tuple(_streams(arg, stream) for arg in get_args(annotation))]
 
     return annotation
+
+
+KEY_IN_URL = re.compile(r'(?<=[?&]key=)[^&\s\'")]+')
+
+
+def without_key(error: BaseException) -> BaseException:
+    """The error with the API key masked, or the error itself when it does not print one.
+
+    requests puts the request URL in a connection error message, query and key included.
+    """
+    message = str(error)
+    if not KEY_IN_URL.search(message):
+        return error
+
+    masked = KEY_IN_URL.sub('REDACTED', message)
+    if isinstance(error, RequestException):
+        return type(error)(masked, request=error.request, response=error.response)
+
+    return type(error)(masked)
 
 
 def retry_delay(attempt: int) -> float:
