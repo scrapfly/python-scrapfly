@@ -91,6 +91,13 @@ class ScrapflyClient(ScrapflyApi):
                 step = send(value)
             except StopIteration as done:
                 return done.value
+            except requests.RequestException as error:
+                # raise_for_status() prints the request URL, key included.
+                masked = without_key(error)
+                if masked is error:
+                    raise
+
+                raise masked from None
 
             # Raised inside the operation, at the yield, so its own handlers see it.
             try:

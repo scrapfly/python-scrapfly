@@ -518,3 +518,17 @@ def test_a_connection_error_does_not_print_the_key(kind):
     assert '0123456789abcdef' not in ''.join(traceback.format_exception(raised.value))
     if kind == 'sync':
         assert 'key=REDACTED' in str(raised.value)
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_an_http_error_does_not_print_the_key(kind):
+    import traceback
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.account())
+
+    with pytest.raises(requests.HTTPError) as raised:
+        run(kind, lambda seen: json_reply({'message': 'throttled'}, status=429), scenario)
+
+    assert KEY not in ''.join(traceback.format_exception(raised.value))
+    assert 'key=REDACTED' in str(raised.value)

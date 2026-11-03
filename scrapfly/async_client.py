@@ -11,7 +11,7 @@ from requests.utils import get_encoding_from_headers
 from .api import ScrapflyApi
 from .api_response import ScrapeApiResponse
 from .scrape_config import ScrapeConfig
-from .transport import Call, Sleep, Steps, Streamed, retry_delay, signed
+from .transport import Call, Sleep, Steps, Streamed, retry_delay, signed, without_key
 
 
 class AsyncScrapflyClient(ScrapflyApi):
@@ -73,6 +73,13 @@ class AsyncScrapflyClient(ScrapflyApi):
                 step = send(value)
             except StopIteration as done:
                 return done.value
+            except requests.RequestException as error:
+                # raise_for_status() prints the request URL, key included.
+                masked = without_key(error)
+                if masked is error:
+                    raise
+
+                raise masked from None
 
             # Raised inside the operation, at the yield, so its own handlers see it.
             try:
