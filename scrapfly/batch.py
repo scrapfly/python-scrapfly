@@ -1,87 +1,146 @@
 """
-Streaming multipart/mixed parser for the POST /scrape/batch endpoint.
+Streaming multipart/mixed decoder for the POST /scrape/batch endpoint.
 
-The API emits one part per scrape result as each scrape completes;
-the client must consume parts as they arrive (not after the whole
-response lands) to get the end-to-end streaming benefit.
-
-Design notes:
-- Pure-Python parser (no new deps). Reuses `requests` streaming iter_content.
-- Works uniformly for JSON and msgpack part bodies — the negotiated
-  part content-type is surfaced to the caller in the yielded tuple.
-- Does NOT perform decompression itself — `requests` already handles
-  Content-Encoding gzip/zstd at the envelope level when `stream=True`
-  is set with `decode_content=True` (default on requests Response).
+The API emits one part per scrape result as each scrape completes, so parts
+are decoded as their bytes arrive. MultipartDecoder is pushed chunks, which
+lets the sync and the async client share it. Content-Encoding is undone by the
+HTTP client before the bytes reach it.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Iterator, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
 
 _CRLF = b"\r\n"
 
+Part = Tuple[Dict[str, str], bytes]
 
-class _BufferedMultipartReader:
-    """Incremental boundary-delimited reader over a byte chunk iterator."""
 
-    def __init__(self, chunks: Iterator[bytes], boundary: bytes):
-        self._chunks = chunks
-        self._boundary = boundary
+class MultipartDecoder:
+    """Push decoder of a multipart/mixed body: feed() returns the parts it completed."""
+
+    def __init__(self, content_type: str):
+        mime, params = _parse_content_type(content_type)
+
+        if mime != "multipart/mixed":
+            raise ValueError(f"scrape_batch: expected Content-Type multipart/mixed, got {content_type!r}")
+
+        boundary = params.get("boundary")
+
+        if not boundary:
+            raise ValueError(f"scrape_batch: Content-Type multipart/mixed is missing boundary parameter: {content_type!r}")
+
+        self._delimiter = b"--" + boundary.encode("ascii")
         self._buffer = bytearray()
-        self._eof = False
+        self._state = self._preamble
+        self._headers: Optional[Dict[str, str]] = None
+        self._length = 0
+        self.done = False
 
-    def _read_more(self) -> bool:
-        """Pull one more chunk into the internal buffer. Returns True if data landed."""
-        try:
-            chunk = next(self._chunks)
-        except StopIteration:
-            self._eof = True
+    def feed(self, chunk: bytes) -> List[Part]:
+        self._buffer += chunk
+        parts: List[Part] = []
 
-            return False
+        while not self.done and self._state(parts):
+            pass
 
-        if chunk:
-            self._buffer.extend(chunk)
+        return parts
 
-        return True
+    def close(self) -> List[Part]:
+        """The part the end of the stream cut short, if any."""
+        if self.done or self._headers is None:
+            return []
 
-    def read_until(self, delimiter: bytes) -> bytes:
-        """Read until `delimiter` appears in the buffer. The delimiter is consumed and NOT returned."""
-        while True:
-            idx = self._buffer.find(delimiter)
+        return [(self._headers, bytes(self._buffer))]
 
-            if idx != -1:
-                out = bytes(self._buffer[:idx])
-                del self._buffer[: idx + len(delimiter)]
-
-                return out
-
-            if self._eof:
-                # No more data and no delimiter — return whatever we have.
-                out = bytes(self._buffer)
-                self._buffer.clear()
-
-                return out
-
-            if not self._read_more() and self._eof:
-                out = bytes(self._buffer)
-                self._buffer.clear()
-
-                return out
-
-    def read_exact(self, n: int) -> bytes:
-        """Read exactly n bytes from the stream (or fewer if EOF hits first)."""
-        while len(self._buffer) < n and not self._eof:
-            self._read_more()
-
-        out = bytes(self._buffer[:n])
-        del self._buffer[:n]
+    def _take(self, size: int, skip: int = 0) -> bytes:
+        out = bytes(self._buffer[:size])
+        del self._buffer[:size + skip]
 
         return out
 
-    def discard_prefix(self) -> None:
-        """Discard everything up to and including the first boundary."""
-        self.read_until(b"--" + self._boundary)
+    def _preamble(self, parts: List[Part]) -> bool:
+        at = self._buffer.find(self._delimiter)
+
+        if at == -1:
+            return False
+
+        self._take(at, len(self._delimiter))
+        self._state = self._after_boundary
+
+        return True
+
+    def _after_boundary(self, parts: List[Part]) -> bool:
+        if len(self._buffer) < 2:
+            return False
+
+        # RFC 2046: CRLF before another part, "--" after the last one. Anything else is broken framing.
+        if self._take(2) != _CRLF:
+            self.done = True
+
+            return False
+
+        self._state = self._part_headers
+
+        return True
+
+    def _part_headers(self, parts: List[Part]) -> bool:
+        at = self._buffer.find(_CRLF + _CRLF)
+
+        if at == -1:
+            return False
+
+        self._headers = {}
+
+        for line in self._take(at, 4).split(_CRLF):
+            if b":" in line:
+                key, _, value = line.partition(b":")
+                self._headers[key.decode("ascii", errors="replace").strip().lower()] = value.decode("ascii", errors="replace").strip()
+
+        # Content-Length when the server sends it (it always does), the next boundary otherwise.
+        length = self._headers.get("content-length", "")
+
+        if length.isdigit():
+            self._length = int(length)
+            self._state = self._sized_body
+        else:
+            self._state = self._delimited_body
+
+        return True
+
+    def _sized_body(self, parts: List[Part]) -> bool:
+        if len(self._buffer) < self._length:
+            return False
+
+        parts.append((self._headers, self._take(self._length)))
+        self._headers = None
+        self._state = self._next_boundary
+
+        return True
+
+    def _next_boundary(self, parts: List[Part]) -> bool:
+        at = self._buffer.find(_CRLF + self._delimiter)
+
+        if at == -1:
+            return False
+
+        self._take(at, 2 + len(self._delimiter))
+        self._state = self._after_boundary
+
+        return True
+
+    def _delimited_body(self, parts: List[Part]) -> bool:
+        at = self._buffer.find(_CRLF + self._delimiter)
+
+        if at == -1:
+            return False
+
+        parts.append((self._headers, self._take(at, 2 + len(self._delimiter))))
+        self._headers = None
+        self._state = self._after_boundary
+
+        return True
 
 
 def _parse_content_type(header_value: str) -> Tuple[str, Dict[str, str]]:
@@ -104,90 +163,17 @@ def _parse_content_type(header_value: str) -> Tuple[str, Dict[str, str]]:
     return head.strip().lower(), params
 
 
-def iter_batch_parts(
-    response,  # requests.Response — duck-typed to avoid circular imports
-) -> Iterator[Tuple[Dict[str, str], bytes]]:
-    """
-    Iterate (part_headers, part_body) tuples from a streaming
-    multipart/mixed response. The per-part Content-Type is in
-    `part_headers['content-type']` (lowercased key), and the
-    correlation_id is in `part_headers['x-scrapfly-correlation-id']`.
+def iter_batch_parts(response) -> Iterator[Part]:
+    """(part_headers, part_body) of a streamed requests.Response, header keys lowercased."""
+    decoder = MultipartDecoder(response.headers.get("Content-Type", ""))
 
-    The caller is responsible for decoding `part_body` based on the
-    part's Content-Type (JSON vs msgpack).
+    for chunk in response.iter_content(chunk_size=8 * 1024):
+        yield from decoder.feed(chunk)
 
-    Raises ValueError if the outer Content-Type is not multipart/mixed
-    or if the boundary parameter is missing.
-    """
-
-    envelope_ct = response.headers.get("Content-Type", "")
-    mime, params = _parse_content_type(envelope_ct)
-
-    if mime != "multipart/mixed":
-        raise ValueError(
-            f"scrape_batch: expected Content-Type multipart/mixed, got {envelope_ct!r}"
-        )
-
-    boundary_str = params.get("boundary")
-
-    if not boundary_str:
-        raise ValueError(
-            f"scrape_batch: Content-Type multipart/mixed is missing boundary parameter: {envelope_ct!r}"
-        )
-
-    boundary = boundary_str.encode("ascii")
-
-    chunks = response.iter_content(chunk_size=8 * 1024)
-    reader = _BufferedMultipartReader(chunks, boundary)
-
-    # Skip anything before the first --boundary.
-    reader.discard_prefix()
-
-    while True:
-        # After each --boundary we expect either CRLF (more parts) or
-        # `--` (terminator). RFC 2046 mandates CRLF; any server
-        # deviating from that is broken — return cleanly rather than
-        # try to guess a framing variant.
-        suffix = reader.read_exact(2)
-
-        if suffix == b"--":
-            # Final boundary. Drain CRLF and any epilogue.
+        if decoder.done:
             return
 
-        if suffix != _CRLF:
-            return
-
-        # Read headers up to the blank line.
-        header_block = reader.read_until(_CRLF + _CRLF)
-        headers: Dict[str, str] = {}
-
-        for line in header_block.split(_CRLF):
-            if not line or b":" not in line:
-                continue
-
-            k, _, v = line.partition(b":")
-            headers[k.decode("ascii", errors="replace").strip().lower()] = (
-                v.decode("ascii", errors="replace").strip()
-            )
-
-        # Body framing: prefer Content-Length (we always emit it
-        # server-side), fall back to boundary-delimited scan.
-        cl_raw = headers.get("content-length")
-        body: bytes
-
-        if cl_raw and cl_raw.isdigit():
-            body = reader.read_exact(int(cl_raw))
-        else:
-            # Read until next boundary marker. The "\r\n--<boundary>"
-            # sequence is the canonical delimiter per RFC 2046.
-            body = reader.read_until(_CRLF + b"--" + boundary)
-
-        yield headers, body
-
-        # If we used Content-Length, we still need to consume the
-        # trailing "\r\n--<boundary>" that starts the next boundary.
-        if cl_raw and cl_raw.isdigit():
-            reader.read_until(_CRLF + b"--" + boundary)
+    yield from decoder.close()
 
 
 def decode_part_body(

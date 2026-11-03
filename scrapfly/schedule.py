@@ -8,8 +8,10 @@ and we surface them as-is so callers always see the live server shape.
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import quote
+
+from .transport import Call, Steps, operation
 
 
 @dataclass
@@ -121,28 +123,27 @@ class ListSchedulesOptions:
 
 
 class ScheduleClientMixin:
-    """Mixed into ScrapflyClient — provides the public schedule surface.
+    """The schedule surface of ScrapflyClient and AsyncScrapflyClient.
 
-    All methods funnel through ``_schedule_request``, which uses the same
-    ``self._http_handler`` and ``self.host`` / ``self.key`` as the rest of the
-    client so retries, verify, headers and timeouts behave identically.
+    All methods funnel through ``_schedule_steps``, so verify, headers and
+    timeouts behave as in the rest of the client.
     """
 
-    # Attributes provided by the concrete ``ScrapflyClient`` subclass. Declared
-    # here so type checkers can resolve them on the mixin without complaint.
+    # Attributes provided by ScrapflyApi. Declared here so type checkers can
+    # resolve them on the mixin without complaint.
     key: str
     host: str
     verify: bool
     ua: str
-    _http_handler: Callable[..., Any]
 
     # ---- Create ---------------------------------------------------------
 
+    @operation
     def create_scrape_schedule(
         self,
         scrape_config: Dict[str, Any],
         request: CreateScheduleRequest,
-    ) -> Schedule:
+    ) -> Steps[Schedule]:
         """Create a Web Scraping API schedule.
 
         ``scrape_config`` is forwarded verbatim and its keys are WIRE keys, not
@@ -153,23 +154,23 @@ class ScheduleClientMixin:
         wins, ``unblocker`` is read only when ``asp`` is absent, ``null`` or
         ``""``), so both names reach the replayed scrape.
         """
-        return self._create_schedule("/scrape/schedules", "scrape_config", scrape_config, request)
+        return (yield from self._create_schedule_steps("/scrape/schedules", "scrape_config", scrape_config, request))
 
+    @operation
     def create_screenshot_schedule(
         self,
         screenshot_config: Dict[str, Any],
         request: CreateScheduleRequest,
-    ) -> Schedule:
+    ) -> Steps[Schedule]:
         """Create a Screenshot API schedule."""
-        return self._create_schedule(
-            "/screenshot/schedules", "screenshot_config", screenshot_config, request
-        )
+        return (yield from self._create_schedule_steps("/screenshot/schedules", "screenshot_config", screenshot_config, request))
 
+    @operation
     def create_crawler_schedule(
         self,
         crawler_config: Dict[str, Any],
         request: CreateScheduleRequest,
-    ) -> Schedule:
+    ) -> Steps[Schedule]:
         """Create a Crawler API schedule.
 
         ``crawler_config`` is forwarded verbatim and its keys are WIRE keys, not
@@ -178,73 +179,79 @@ class ScheduleClientMixin:
         ``asp`` or ``unblocker``: the API folds the alias into ``asp`` on the
         stored config before it is ever replayed.
         """
-        return self._create_schedule(
-            "/crawl/schedules", "crawler_config", crawler_config, request
-        )
+        return (yield from self._create_schedule_steps("/crawl/schedules", "crawler_config", crawler_config, request))
 
     # ---- Read -----------------------------------------------------------
 
-    def get_schedule(self, schedule_id: str) -> Schedule:
+    @operation
+    def get_schedule(self, schedule_id: str) -> Steps[Schedule]:
         """Return a schedule by id (works across all kinds)."""
-        return self._schedule_request("GET", "/schedules/" + quote(schedule_id, safe=""))
+        return (yield from self._schedule_steps("GET", "/schedules/" + quote(schedule_id, safe="")))
 
+    @operation
     def list_schedules(
         self,
         *,
         kind: Optional[str] = None,
         status: Optional[str] = None,
-    ) -> List[Schedule]:
+    ) -> Steps[List[Schedule]]:
         """List every schedule on the account, optionally filtered by kind or status."""
         params: Dict[str, str] = {}
         if kind:
             params["kind"] = kind
         if status:
             params["status"] = status
-        return self._schedule_request("GET", "/schedules", query=params)
+        return (yield from self._schedule_steps("GET", "/schedules", query=params))
 
-    def list_scrape_schedules(self, *, status: Optional[str] = None) -> List[Schedule]:
+    @operation
+    def list_scrape_schedules(self, *, status: Optional[str] = None) -> Steps[List[Schedule]]:
         params = {"status": status} if status else None
-        return self._schedule_request("GET", "/scrape/schedules", query=params)
+        return (yield from self._schedule_steps("GET", "/scrape/schedules", query=params))
 
-    def list_screenshot_schedules(self, *, status: Optional[str] = None) -> List[Schedule]:
+    @operation
+    def list_screenshot_schedules(self, *, status: Optional[str] = None) -> Steps[List[Schedule]]:
         params = {"status": status} if status else None
-        return self._schedule_request("GET", "/screenshot/schedules", query=params)
+        return (yield from self._schedule_steps("GET", "/screenshot/schedules", query=params))
 
-    def list_crawler_schedules(self, *, status: Optional[str] = None) -> List[Schedule]:
+    @operation
+    def list_crawler_schedules(self, *, status: Optional[str] = None) -> Steps[List[Schedule]]:
         params = {"status": status} if status else None
-        return self._schedule_request("GET", "/crawl/schedules", query=params)
+        return (yield from self._schedule_steps("GET", "/crawl/schedules", query=params))
 
     # ---- Mutate ---------------------------------------------------------
 
-    def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -> Schedule:
+    @operation
+    def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -> Steps[Schedule]:
         """Patch an active schedule. Only fields set in ``request`` change."""
-        return self._schedule_request(
-            "PATCH", "/schedules/" + quote(schedule_id, safe=""), body=request.to_dict()
-        )
+        return (yield from self._schedule_steps("PATCH", "/schedules/" + quote(schedule_id, safe=""), body=request.to_dict()))
 
-    def cancel_schedule(self, schedule_id: str) -> None:
+    @operation
+    def cancel_schedule(self, schedule_id: str) -> Steps[None]:
         """Cancel a schedule. Cancellation is terminal (returns no body)."""
-        self._schedule_request("DELETE", "/schedules/" + quote(schedule_id, safe=""))
+        yield from self._schedule_steps("DELETE", "/schedules/" + quote(schedule_id, safe=""))
 
-    def pause_schedule(self, schedule_id: str) -> Schedule:
-        return self._schedule_request("POST", "/schedules/" + quote(schedule_id, safe="") + "/pause")
+    @operation
+    def pause_schedule(self, schedule_id: str) -> Steps[Schedule]:
+        return (yield from self._schedule_steps("POST", "/schedules/" + quote(schedule_id, safe="") + "/pause"))
 
-    def resume_schedule(self, schedule_id: str) -> Schedule:
-        return self._schedule_request("POST", "/schedules/" + quote(schedule_id, safe="") + "/resume")
+    @operation
+    def resume_schedule(self, schedule_id: str) -> Steps[Schedule]:
+        return (yield from self._schedule_steps("POST", "/schedules/" + quote(schedule_id, safe="") + "/resume"))
 
-    def execute_schedule(self, schedule_id: str) -> Schedule:
+    @operation
+    def execute_schedule(self, schedule_id: str) -> Steps[Schedule]:
         """Fire a schedule immediately, regardless of next_scheduled_date."""
-        return self._schedule_request("POST", "/schedules/" + quote(schedule_id, safe="") + "/execute")
+        return (yield from self._schedule_steps("POST", "/schedules/" + quote(schedule_id, safe="") + "/execute"))
 
     # ---- Internals ------------------------------------------------------
 
-    def _create_schedule(
+    def _create_schedule_steps(
         self,
         path: str,
         config_key: str,
         config: Dict[str, Any],
         request: CreateScheduleRequest,
-    ) -> Schedule:
+    ) -> Steps[Schedule]:
         body: Dict[str, Any] = {
             config_key: config,
             "webhook_name": request.webhook_name,
@@ -259,16 +266,16 @@ class ScheduleClientMixin:
             body["max_retries"] = request.max_retries
         if request.notes is not None:
             body["notes"] = request.notes
-        return self._schedule_request("POST", path, body=body)
+        return (yield from self._schedule_steps("POST", path, body=body))
 
-    def _schedule_request(
+    def _schedule_steps(
         self,
         method: str,
         path: str,
         *,
         query: Optional[Dict[str, str]] = None,
         body: Optional[Dict[str, Any]] = None,
-    ) -> Any:
+    ) -> Steps[Any]:
         params: Dict[str, str] = {"key": self.key}
         if query:
             params.update(query)
@@ -287,7 +294,7 @@ class ScheduleClientMixin:
             kwargs["json"] = body
             kwargs["headers"]["content-type"] = "application/json"
 
-        response = self._http_handler(**kwargs)
+        response = yield Call(**kwargs)
 
         if response.status_code == 204:
             return None

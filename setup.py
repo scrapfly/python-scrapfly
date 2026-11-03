@@ -34,7 +34,7 @@ install_requires = [
     'python-dateutil>=2.1,<3.0.0',
     'loguru>=0.5',
     'urllib3>=1.26.0',
-    'backoff>=1.10.0'
+    'httpx>=0.27',
 ]
 
 def read(f):

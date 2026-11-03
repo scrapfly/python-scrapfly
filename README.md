@@ -29,6 +29,27 @@ This SDK cover the following Scrapfly API endpoints:
 * [Extraction API](https://scrapfly.io/docs/onboarding#extraction-api)
 * [Screenshot API](https://scrapfly.io/docs/onboarding#screenshot-api)
 
+## Async client
+
+`AsyncScrapflyClient` has every method of `ScrapflyClient`, as coroutines, and the streamed ones (`scrape_batch`,
+`crawl_prompt`) as async iterators. Open it with `async with` to reuse connections across calls.
+
+```python
+import asyncio
+from scrapfly import AsyncScrapflyClient, ScrapeConfig
+
+async def main():
+    async with AsyncScrapflyClient(key='__API_KEY__') as scrapfly:
+        api_response = await scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/product/1'))
+        print(api_response.content)
+
+        configs = [ScrapeConfig(url=f'https://web-scraping.dev/product/{n}') for n in range(1, 6)]
+        async for result in scrapfly.concurrent_scrape(configs, concurrency=5):
+            print(result)
+
+asyncio.run(main())
+```
+
 ## Proxy pools
 
 `proxy_pool` picks one of four proxy pools. A proxy pool sets both the proxy network and the

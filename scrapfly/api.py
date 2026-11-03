@@ -1,0 +1,3024 @@
+"""
+The Scrapfly API shared by ScrapflyClient and AsyncScrapflyClient.
+
+Every HTTP method is an operation (transport.py): its request and its response
+handling are written here once, and each client only runs the calls.
+"""
+import datetime
+import inspect
+import json
+import logging
+import os
+import platform
+import re
+import shutil
+import time
+import warnings
+from io import BytesIO
+from typing import TextIO, Union, List, Dict, Optional, Set, Callable, Literal, Tuple, Any
+
+import urllib3
+from requests import Response
+from requests import exceptions as RequestExceptions
+
+from .errors import *
+from .errors import ContentError
+from .reporter import Reporter
+from .api_response import ResponseBodyHandler
+from .scrape_config import ScrapeConfig
+from .screenshot_config import ScreenshotConfig
+from .extraction_config import ExtractionConfig
+from .classify import ClassifyResult
+from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse, CrawlerUrlsResponse, CrawlerSearchResponse, CrawlerPromptEvent, CrawlerRefreshState, CrawlerRefreshEntry
+from .browser_config import BrowserConfig, LinkedService
+from .schedule import ScheduleClientMixin
+from .transport import Call, Sleep, Steps, Streamed, operation, ready, retry_delay, streaming
+from . import __version__, ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, HttpError, UpstreamHttpError
+
+logger = logging.getLogger(__name__)
+
+NetworkError = (
+    ConnectionError,
+    RequestExceptions.ConnectionError,
+    RequestExceptions.ReadTimeout
+)
+
+class PromptEventDecoder:
+    """
+    Push decoder of the ``/crawl/prompt`` SSE body into typed frames.
+
+    Only ``event:`` and ``data:`` are handled; ``:keepalive`` comment frames
+    carry nothing for the caller. ``token`` data is a JSON string, every other
+    frame a JSON object. The ``done`` frame ends the stream, and the end of the
+    body before it is an error. Lines are UTF-8 by the SSE specification,
+    whatever charset the Content-Type names or omits.
+    """
+
+    def __init__(self, status_code: int):
+        self.status_code = status_code
+        self.done = False
+        self._buffer = b''
+        self._event: Optional[str] = None
+        self._data: List[str] = []
+
+    def feed(self, chunk: bytes):
+        *lines, self._buffer = (self._buffer + chunk).split(b'\n')
+
+        for line in lines:
+            yield from self._line(line)
+
+            if self.done:
+                return
+
+    def close(self):
+        if not self.done and self._buffer:
+            yield from self._line(self._buffer)
+
+        if not self.done:
+            raise CrawlerPromptError(
+                message='Prompt stream ended before the done frame',
+                code='ERR::CRAWLER::PROMPT_GENERATION_FAILED',
+                http_status_code=self.status_code
+            )
+
+    def _line(self, raw: bytes):
+        line = raw.decode('utf-8', errors='replace').rstrip('\r')
+
+        if line.startswith(':'):
+            return
+
+        if line.startswith('event:'):
+            self._event = line[len('event:'):].strip()
+        elif line.startswith('data:'):
+            self._data.append(line[len('data:'):].lstrip(' '))
+        elif line == '':
+            # A blank line ends a frame.
+            if self._event is not None and self._data:
+                payload = '\n'.join(self._data)
+
+                try:
+                    data = json.loads(payload)
+                except ValueError:
+                    data = payload
+
+                if self._event == 'error':
+                    raise CrawlerPromptError(
+                        message=data.get('message', payload) if isinstance(data, dict) else payload,
+                        code=data.get('code', 'ERR::CRAWLER::UNKNOWN') if isinstance(data, dict) else 'ERR::CRAWLER::UNKNOWN',
+                        http_status_code=self.status_code
+                    )
+
+                yield CrawlerPromptEvent(event=self._event, data=data)
+                self.done = self._event == 'done'
+
+            self._event = None
+            self._data = []
+
+
+class ScraperAPI:
+
+    MONITORING_DATA_FORMAT_STRUCTURED = 'structured'
+    MONITORING_DATA_FORMAT_PROMETHEUS = 'prometheus'
+
+    MONITORING_PERIOD_SUBSCRIPTION = 'subscription'
+    MONITORING_PERIOD_LAST_7D = 'last7d'
+    MONITORING_PERIOD_LAST_24H = 'last24h'
+    MONITORING_PERIOD_LAST_1H = 'last1h'
+    MONITORING_PERIOD_LAST_5m = 'last5m'
+
+    MONITORING_ACCOUNT_AGGREGATION = 'account'
+    MONITORING_PROJECT_AGGREGATION = 'project'
+    MONITORING_TARGET_AGGREGATION = 'target'
+
+
+# Create custom type hint for possible values of the period parameter
+# in the get_monitoring_target_metrics method
+MonitoringTargetPeriod = Literal[
+    ScraperAPI.MONITORING_PERIOD_SUBSCRIPTION,
+    ScraperAPI.MONITORING_PERIOD_LAST_7D,
+    ScraperAPI.MONITORING_PERIOD_LAST_24H,
+    ScraperAPI.MONITORING_PERIOD_LAST_1H,
+    ScraperAPI.MONITORING_PERIOD_LAST_5m
+]
+
+MonitoringAggregation = Literal[
+    ScraperAPI.MONITORING_ACCOUNT_AGGREGATION,
+    ScraperAPI.MONITORING_PROJECT_AGGREGATION,
+    ScraperAPI.MONITORING_TARGET_AGGREGATION
+]
+
+class ScrapflyApi(ScheduleClientMixin):
+    """Settings and operations of the Scrapfly API. Use ScrapflyClient or AsyncScrapflyClient."""
+
+    HOST = 'https://api.scrapfly.io'
+    CLOUD_BROWSER_HOST = 'wss://browser.scrapfly.io'
+    CLOUD_BROWSER_API_HOST = 'https://browser.scrapfly.io'
+    DEFAULT_CONNECT_TIMEOUT = 30
+    DEFAULT_READ_TIMEOUT = 30
+
+    DEFAULT_WEBSCRAPING_API_READ_TIMEOUT = 160 # 155 real
+    DEFAULT_SCREENSHOT_API_READ_TIMEOUT = 60  # 30 real
+    DEFAULT_EXTRACTION_API_READ_TIMEOUT = 35 # 30 real
+    DEFAULT_CRAWLER_API_READ_TIMEOUT = 30
+    # A search fans out over every requested crawl before answering.
+    DEFAULT_CRAWLER_SEARCH_API_READ_TIMEOUT = 60
+    # Retrieval plus generation. The whole exchange is budgeted under the
+    # API's own 165s upstream ceiling, so a longer client read is pointless.
+    DEFAULT_CRAWLER_PROMPT_API_READ_TIMEOUT = 180
+
+    # The two vault linked-service endpoints that reach the upstream secret
+    # manager carry their own server-side wall-clock budgets (25s for sync,
+    # 10s for the credential probe). They are pinned here instead of riding
+    # default_read_timeout because a caller lowering that would cut the read
+    # below the server budget, turning a completed sync into a client-side
+    # timeout the caller then retries into a second full provider fetch.
+    DEFAULT_VAULT_SYNC_API_READ_TIMEOUT = 35  # 25 server budget
+    DEFAULT_VAULT_PROBE_API_READ_TIMEOUT = 20  # 10 server budget
+
+    host:str
+    key:str
+    max_concurrency:int
+    verify:bool
+    debug:bool
+    distributed_mode:bool
+    connect_timeout:int
+    web_scraping_api_read_timeout:int
+    screenshot_api_read_timeout:int
+    extraction_api_read_timeout:int
+    monitoring_api_read_timeout:int
+    default_read_timeout:int
+    brotli: bool
+    reporter:Reporter
+    version:str
+
+    # @deprecated
+    read_timeout:int
+
+    CONCURRENCY_AUTO = 'auto' # retrieve the allowed concurrency from your account
+    DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+    def __init__(
+        self,
+        key: str,
+        host: str = HOST,
+        verify=True,
+        debug: bool = False,
+        max_concurrency:int=1,
+        connect_timeout:int = DEFAULT_CONNECT_TIMEOUT,
+        web_scraping_api_read_timeout: int = DEFAULT_WEBSCRAPING_API_READ_TIMEOUT,
+        extraction_api_read_timeout: int = DEFAULT_EXTRACTION_API_READ_TIMEOUT,
+        screenshot_api_read_timeout: int = DEFAULT_SCREENSHOT_API_READ_TIMEOUT,
+
+        # @deprecated
+        read_timeout:int = DEFAULT_READ_TIMEOUT,
+        default_read_timeout:int = DEFAULT_READ_TIMEOUT,
+        reporter:Optional[Callable]=None,
+        cloud_browser_host: Optional[str] = None,
+        **kwargs
+    ):
+        if host[-1] == '/':  # remove last '/' if exists
+            host = host[:-1]
+
+        if 'distributed_mode' in kwargs:
+            warnings.warn("distributed mode is deprecated and will be remove the next version -"
+              " user should handle themself the session name based on the concurrency",
+              DeprecationWarning,
+              stacklevel=2
+            )
+
+        if 'brotli' in kwargs:
+            warnings.warn("brotli arg is deprecated and will be remove the next version - "
+                "brotli is disabled by default",
+                DeprecationWarning,
+                stacklevel=2
+            )
+
+        self.version = __version__
+        self.host = host
+        self.key = key
+        self.verify = verify
+        self.cloud_browser_host = cloud_browser_host or self.CLOUD_BROWSER_HOST
+        self.cloud_browser_api_host = cloud_browser_host.replace('wss://', 'https://') if cloud_browser_host else self.CLOUD_BROWSER_API_HOST
+        self.debug = debug
+        self.connect_timeout = connect_timeout
+        self.web_scraping_api_read_timeout = web_scraping_api_read_timeout
+        self.screenshot_api_read_timeout = screenshot_api_read_timeout
+        self.extraction_api_read_timeout = extraction_api_read_timeout
+        self.monitoring_api_read_timeout = default_read_timeout
+        self.default_read_timeout = default_read_timeout
+
+        # @deprecated
+        self.read_timeout = default_read_timeout
+
+        self.max_concurrency = max_concurrency
+        self.body_handler = ResponseBodyHandler(use_brotli=False)
+
+        if not self.verify and not self.HOST.endswith('.local'):
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        if reporter is None:
+            from .reporter import NoopReporter
+
+            reporter = NoopReporter()
+
+        self.reporter = Reporter(reporter)
+        self._init_transport()
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Each operation becomes a real method of the client class, so it reads as one to inspect, mock and docs.
+        for name in dir(cls):
+            attribute = inspect.getattr_static(cls, name)
+
+            if isinstance(attribute, operation):
+                setattr(cls, name, cls._method(attribute.steps))
+            elif isinstance(attribute, streaming):
+                setattr(cls, name, cls._stream_method(attribute.steps))
+
+    def _init_transport(self):
+        raise NotImplementedError
+
+    @staticmethod
+    def _method(steps):
+        raise NotImplementedError
+
+    @staticmethod
+    def _stream_method(steps):
+        raise NotImplementedError
+
+    @property
+    def ua(self) -> str:
+        return 'ScrapflySDK/%s (Python %s, %s, %s)' % (
+            self.version,
+            platform.python_version(),
+            platform.uname().system,
+            platform.uname().machine
+        )
+
+    def _scrape_request(self, scrape_config:ScrapeConfig):
+        return {
+            'method': scrape_config.method,
+            'url': self.host + '/scrape',
+            'data': scrape_config.body,
+            'verify': self.verify,
+            'timeout': (self.connect_timeout, self.web_scraping_api_read_timeout),
+            'headers': {
+                # When method has a body (POST/PUT/PATCH) AND the caller
+                # explicitly set a Content-Type, forward it. Otherwise fall
+                # back to the body_handler default so we don't KeyError on
+                # callers who omit the header (e.g. simple PUT "test-body").
+                'content-type': (
+                    scrape_config.headers.get('content-type', self.body_handler.content_type)
+                    if scrape_config.method in ['POST', 'PUT', 'PATCH']
+                    else self.body_handler.content_type
+                ),
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+            'params': scrape_config.to_api_params(key=self.key)
+        }
+
+    def _screenshot_request(self, screenshot_config:ScreenshotConfig):
+        return {
+            'method': 'GET',
+            'url': self.host + '/screenshot',
+            'timeout': (self.connect_timeout, self.screenshot_api_read_timeout),
+            'verify': self.verify,
+            'headers': {
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+            'params': screenshot_config.to_api_params(key=self.key)
+        }
+
+    def _extraction_request(self, extraction_config:ExtractionConfig):
+        headers = {
+                'content-type': extraction_config.content_type,
+                'accept-encoding': self.body_handler.content_encoding,
+                'content-encoding': extraction_config.document_compression_format if extraction_config.document_compression_format else None,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+        }
+
+        if extraction_config.document_compression_format:
+            headers['content-encoding'] = extraction_config.document_compression_format.value
+
+        return {
+            'method': 'POST',
+            'url': self.host + '/extraction',
+            'data': extraction_config.body,
+            'timeout': (self.connect_timeout, self.extraction_api_read_timeout),
+            'verify': self.verify,
+            'headers': headers,
+            'params': extraction_config.to_api_params(key=self.key)
+        }
+
+
+    @operation
+    def account(self) -> Steps[Union[str, Dict]]:
+        response = yield Call(
+            method='GET',
+            url=self.host + '/account',
+            params={'key': self.key},
+            verify=self.verify,
+            headers={
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content, response.headers['content-type'])
+
+        return response.content.decode('utf-8')
+
+    @operation
+    def classify(
+        self,
+        url: str,
+        status_code: int,
+        headers: Optional[Dict[str, str]] = None,
+        body: Optional[str] = None,
+        method: str = "GET",
+    ) -> Steps[ClassifyResult]:
+        """Classify an already-fetched HTTP response for anti-bot blocking.
+
+        Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+        against a response you already have (from your own proxy, cache,
+        etc). 1 API credit per call. See
+        https://scrapfly.io/docs/scrape-api/classify for the full contract.
+        """
+        if not url:
+            raise ContentError("classify: url is required")
+        if not (100 <= int(status_code) <= 599):
+            raise ContentError(
+                "classify: status_code must be a valid HTTP status in [100, 599]"
+            )
+
+        payload: Dict[str, Any] = {
+            "url": url,
+            "status_code": int(status_code),
+            "method": method or "GET",
+        }
+        if headers:
+            payload["headers"] = {str(k): str(v) for k, v in headers.items()}
+        if body is not None:
+            payload["body"] = body
+
+        response = yield Call(
+            method="POST",
+            url=self.host + "/classify",
+            params={"key": self.key},
+            json=payload,
+            verify=self.verify,
+            headers={
+                "accept-encoding": self.body_handler.content_encoding,
+                "accept": self.body_handler.accept,
+                "user-agent": self.ua,
+                "content-type": "application/json",
+            },
+        )
+        response.raise_for_status()
+
+        if self.body_handler.support(response.headers):
+            data = self.body_handler(response.content, response.headers["content-type"])
+        else:
+            import json as _json
+            data = _json.loads(response.content.decode("utf-8"))
+
+        return ClassifyResult.from_dict(data)
+
+    # ── Monitoring API (Enterprise+ plan only) ──────────────────────
+    # The Monitoring API exposes per-product aggregates and per-target
+    # timeseries. Web Scraping / Screenshot / Extraction / Crawler share
+    # one shape (request-based) but live under different URL prefixes;
+    # Cloud Browser is session-based and exposes a distinct shape.
+    # See https://scrapfly.io/docs/monitoring#api
+
+    @staticmethod
+    def _format_monitoring_dt(dt:datetime.datetime) -> str:
+        """Format a datetime in UTC as YYYY-MM-DD HH:MM:SS for the
+        Monitoring API. Naive datetimes are assumed to be UTC; aware
+        datetimes are converted via astimezone(timezone.utc) so SDK
+        behavior matches the Go/TypeScript SDKs (which always emit UTC)."""
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(datetime.timezone.utc)
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
+
+    def _monitoring_steps(self, path:str, params:dict) -> Steps[Any]:
+        """Issues a GET against the Monitoring API and decodes the response via the standard body_handler."""
+        response = yield Call(
+            method='GET',
+            url=self.host + path,
+            params=params,
+            timeout=(self.connect_timeout, self.monitoring_api_read_timeout),
+            verify=self.verify,
+            headers={
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+        )
+        response.raise_for_status()
+        if self.body_handler.support(response.headers):
+            return self.body_handler(response.content, response.headers['content-type'])
+        return response.content.decode('utf-8')
+
+    def _build_metrics_params(
+        self,
+        format:str,
+        period:Optional[str],
+        aggregation:Optional[List[MonitoringAggregation]],
+        include_webhook:bool,
+    ) -> dict:
+        params = {'key': self.key, 'format': format}
+        if period is not None:
+            params['period'] = period
+        if aggregation is not None:
+            params['aggregation'] = ','.join(aggregation)
+        if include_webhook:
+            params['include_webhook'] = 'true'
+        return params
+
+    def _build_target_params(
+        self,
+        domain:str,
+        group_subdomain:bool,
+        period:Optional[MonitoringTargetPeriod],
+        start:Optional[datetime.datetime],
+        end:Optional[datetime.datetime],
+        include_webhook:bool,
+    ) -> dict:
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError('You must provide both start and end date')
+        params = {
+            'key': self.key,
+            'domain': domain,
+            'group_subdomain': group_subdomain,
+        }
+        if start is not None and end is not None:
+            params['start'] = self._format_monitoring_dt(start)
+            params['end'] = self._format_monitoring_dt(end)
+            period = None
+        params['period'] = period
+        if include_webhook:
+            params['include_webhook'] = 'true'
+        return params
+
+    # ── Web Scraping API ─────────────────────────────────────────────
+    @operation
+    def get_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return (yield from self._monitoring_steps(
+            '/scrape/monitoring/metrics',
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        ))
+
+    @operation
+    def get_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return (yield from self._monitoring_steps(
+            '/scrape/monitoring/metrics/target',
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        ))
+
+    # ── Screenshot API ───────────────────────────────────────────────
+    @operation
+    def get_screenshot_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return (yield from self._monitoring_steps(
+            '/screenshot/monitoring/metrics',
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        ))
+
+    @operation
+    def get_screenshot_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return (yield from self._monitoring_steps(
+            '/screenshot/monitoring/metrics/target',
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        ))
+
+    # ── Extraction API ───────────────────────────────────────────────
+    @operation
+    def get_extraction_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return (yield from self._monitoring_steps(
+            '/extraction/monitoring/metrics',
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        ))
+
+    @operation
+    def get_extraction_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return (yield from self._monitoring_steps(
+            '/extraction/monitoring/metrics/target',
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        ))
+
+    # ── Crawler API ──────────────────────────────────────────────────
+    @operation
+    def get_crawler_monitoring_metrics(
+        self,
+        format:str=ScraperAPI.MONITORING_DATA_FORMAT_STRUCTURED,
+        period:Optional[str]=None,
+        aggregation:Optional[List[MonitoringAggregation]]=None,
+        include_webhook:bool=False,
+    ):
+        return (yield from self._monitoring_steps(
+            '/crawl/monitoring/metrics',
+            self._build_metrics_params(format, period, aggregation, include_webhook),
+        ))
+
+    @operation
+    def get_crawler_monitoring_target_metrics(
+        self,
+        domain:str,
+        group_subdomain:bool=False,
+        period:Optional[MonitoringTargetPeriod]=ScraperAPI.MONITORING_PERIOD_LAST_24H,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+        include_webhook:bool=False,
+    ):
+        return (yield from self._monitoring_steps(
+            '/crawl/monitoring/metrics/target',
+            self._build_target_params(domain, group_subdomain, period, start, end, include_webhook),
+        ))
+
+    # ── Cloud Browser API (session-based, distinct shape) ────────────
+    @operation
+    def get_browser_monitoring_metrics(
+        self,
+        period:Optional[str]=None,
+        proxy_pool:Optional[str]=None,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+    ):
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError('You must provide both start and end date')
+        params:dict = {'key': self.key}
+        if start is not None and end is not None:
+            params['start'] = self._format_monitoring_dt(start)
+            params['end'] = self._format_monitoring_dt(end)
+        elif period is not None:
+            params['period'] = period
+        if proxy_pool is not None:
+            params['proxy_pool'] = proxy_pool
+        return (yield from self._monitoring_steps('/browser/monitoring/metrics', params))
+
+    @operation
+    def get_browser_monitoring_timeseries(
+        self,
+        period:Optional[str]=None,
+        proxy_pool:Optional[str]=None,
+        start:Optional[datetime.datetime]=None,
+        end:Optional[datetime.datetime]=None,
+    ):
+        if (start is not None and end is None) or (start is None and end is not None):
+            raise ValueError('You must provide both start and end date')
+        params:dict = {'key': self.key}
+        if start is not None and end is not None:
+            params['start'] = self._format_monitoring_dt(start)
+            params['end'] = self._format_monitoring_dt(end)
+        elif period is not None:
+            params['period'] = period
+        if proxy_pool is not None:
+            params['proxy_pool'] = proxy_pool
+        return (yield from self._monitoring_steps('/browser/monitoring/metrics/timeseries', params))
+
+
+    @operation
+    def resilient_scrape(
+        self,
+        scrape_config:ScrapeConfig,
+        retry_on_errors:Optional[Set[Exception]]=None,
+        retry_on_status_code:Optional[List[int]]=None,
+        tries: int = 5,
+        delay: int = 20,
+    ) -> Steps[ScrapeApiResponse]:
+        if retry_on_errors is None:
+            retry_on_errors = {ScrapflyError}
+        assert isinstance(retry_on_errors, set), 'retry_on_errors is not a set()'
+
+        # Exponential backoff until `tries` attempts or `delay` seconds.
+        deadline = time.monotonic() + delay
+
+        for attempt in range(tries):
+            try:
+                try:
+                    return (yield from self._scrape(scrape_config))
+                except (UpstreamHttpClientError, UpstreamHttpServerError) as e:
+                    if retry_on_status_code is not None and e.api_response and e.api_response.upstream_status_code not in retry_on_status_code:
+                        return e.api_response
+
+                    raise
+            except tuple(retry_on_errors):
+                remaining = deadline - time.monotonic()
+
+                if attempt + 1 == tries or remaining <= 0:
+                    raise
+
+                yield Sleep(min(retry_delay(attempt), remaining))
+
+    @operation
+    def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -> Steps[ScrapeApiResponse]:
+        """
+        Scrape a website
+        :param scrape_config: ScrapeConfig
+        :param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
+        :return: ScrapeApiResponse
+
+        If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        'error': {
+            'code': 'ERR::ASP::SHIELD_PROTECTION_FAILED',
+            'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds',
+            'retryable': False,
+            'http_code': 422,
+            'links': {
+                'Checkout ASP documentation': 'https://scrapfly.io/docs/scrape-api/anti-scraping-protection#maximize_success_rate', 'Related Error Doc': 'https://scrapfly.io/docs/scrape-api/error/ERR::ASP::SHIELD_PROTECTION_FAILED'
+            }
+        }
+        """
+        return (yield from self._scrape(scrape_config, no_raise))
+
+    def _scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -> Steps[ScrapeApiResponse]:
+        try:
+            logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
+            response = yield Call(tries=5, **self._scrape_request(scrape_config=scrape_config))
+
+            if scrape_config.proxified_response is True:
+                # Proxified mode: the API returns the raw upstream response
+                # (target's status, headers, body) instead of the JSON
+                # envelope. Error restoration: if X-Scrapfly-Reject-Code is
+                # present, the scrape failed and the SDK must raise a typed
+                # error with the code/message/retryable from the headers.
+                reject_code = response.headers.get('X-Scrapfly-Reject-Code')
+                if reject_code:
+                    reject_desc = response.headers.get('X-Scrapfly-Reject-Description', '')
+                    reject_retryable = response.headers.get('X-Scrapfly-Reject-Retryable', 'false').lower() == 'true'
+                    retry_after = None
+                    if reject_retryable:
+                        try:
+                            retry_after = int(response.headers.get('Retry-After', '0'))
+                        except (ValueError, TypeError):
+                            retry_after = None
+                    raise HttpError(
+                        request=response.request,
+                        response=response,
+                        code=reject_code,
+                        http_status_code=response.status_code,
+                        message=reject_desc,
+                        is_retryable=reject_retryable,
+                        retry_delay=retry_after,
+                    )
+                self.reporter.report(scrape_api_response=None)
+                return response
+
+            scrape_api_response = yield from self._scrape_response_steps(response=response, scrape_config=scrape_config)
+
+            self.reporter.report(scrape_api_response=scrape_api_response)
+
+            return scrape_api_response
+        except GeneratorExit:
+            raise
+        except BaseException as e:
+            self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
+            raise e
+
+    @operation
+    def screenshot(self, screenshot_config:ScreenshotConfig, no_raise:bool=False) -> Steps[ScreenshotApiResponse]:
+        """
+        Take a screenshot
+        :param screenshot_config: ScrapeConfig
+        :param no_raise: bool - if True, do not raise exception on error while the screenshot api response is a ScrapflyError for seamless integration
+        :return: str
+
+        If you use no_raise=True, make sure to check the screenshot_api_response.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        'error': {
+            'code': 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT',
+            'message': 'For some reason we were unable to take the screenshot',
+            'http_code': 422,
+            'links': {
+                'Checkout the related doc: https://scrapfly.io/docs/screenshot-api/error/ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT'
+            }
+        }
+        """
+
+        try:
+            logger.debug('--> %s Screenshoting' % (screenshot_config.url))
+            response = yield Call(tries=5, **self._screenshot_request(screenshot_config=screenshot_config))
+            screenshot_api_response = self._handle_screenshot_response(response=response, screenshot_config=screenshot_config)
+            return screenshot_api_response
+        except GeneratorExit:
+            raise
+        except BaseException as e:
+            self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
+            raise e
+
+    @operation
+    def extract(self, extraction_config:ExtractionConfig, no_raise:bool=False) -> Steps[ExtractionApiResponse]:
+        """
+        Extract structured data from text content
+        :param extraction_config: ExtractionConfig
+        :param no_raise: bool - if True, do not raise exception on error while the extraction api response is a ScrapflyError for seamless integration
+        :return: str
+
+        If you use no_raise=True, make sure to check the extraction_api_response.error attribute to handle the error.
+        If the error is not none, you will get the following structure for example
+
+        'error': {
+            'code': 'ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED',
+            'message': 'The content type of the response is not supported for extraction',
+            'http_code': 422,
+            'links': {
+                'Checkout the related doc: https://scrapfly.io/docs/extraction-api/error/ERR::EXTRACTION::CONTENT_TYPE_NOT_SUPPORTED'
+            }
+        }
+        """
+
+        try:
+            logger.debug('--> %s Extracting data from' % (extraction_config.content_type))
+            response = yield Call(tries=5, **self._extraction_request(extraction_config=extraction_config))
+            extraction_api_response = self._handle_extraction_response(response=response, extraction_config=extraction_config)
+            return extraction_api_response
+        except GeneratorExit:
+            raise
+        except BaseException as e:
+            self.reporter.report(error=e)
+
+            if no_raise and isinstance(e, ScrapflyError) and e.api_response is not None:
+                return e.api_response
+
+            raise e
+
+    def _scrape_response_steps(self, response:Response, scrape_config:ScrapeConfig) -> Steps[ScrapeApiResponse]:
+        try:
+            body = self._scrape_body(response, scrape_config)
+            large_objects = yield from self._large_objects(body)
+            api_response = self._build_scrape_api_response(
+                response=response,
+                scrape_config=scrape_config,
+                body=body,
+                large_objects=large_objects,
+                raise_on_upstream_error=scrape_config.raise_on_upstream_error
+            )
+
+            if scrape_config.method == 'HEAD':
+                logger.debug('<-- [%s %s] %s | %ss' % (
+                    api_response.response.status_code,
+                    api_response.response.reason,
+                    api_response.response.request.url,
+                    0
+                ))
+            else:
+                logger.debug('<-- [%s %s] %s | %ss' % (
+                    api_response.result['result']['status_code'],
+                    api_response.result['result']['reason'],
+                    api_response.result['config']['url'],
+                    api_response.result['result']['duration'])
+                )
+
+                logger.debug('Log url: %s' % api_response.result['result']['log_url'])
+
+            return api_response
+        except UpstreamHttpError as e:
+            logger.critical(e.api_response.error_message)
+            raise
+        except HttpError as e:
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
+        except ScrapflyError as e:
+            logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
+            raise
+
+    def _handle_screenshot_response(self, response:Response, screenshot_config:ScreenshotConfig) -> ScreenshotApiResponse:    
+        try:
+            api_response = self._handle_screenshot_api_response(
+                response=response,
+                screenshot_config=screenshot_config,
+                raise_on_upstream_error=screenshot_config.raise_on_upstream_error
+            )
+            return api_response
+        except UpstreamHttpError as e:
+            logger.critical(e.api_response.error_message)
+            raise
+        except HttpError as e:
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
+        except ScrapflyError as e:
+            logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
+            raise         
+
+    def _handle_extraction_response(self, response:Response, extraction_config:ExtractionConfig) -> ExtractionApiResponse:
+        try:
+            api_response = self._handle_extraction_api_response(
+                response=response,
+                extraction_config=extraction_config,
+                raise_on_upstream_error=extraction_config.raise_on_upstream_error
+            )
+            return api_response
+        except UpstreamHttpError as e:
+            logger.critical(e.api_response.error_message)
+            raise
+        except HttpError as e:
+            if e.api_response is not None:
+                logger.critical(e.api_response.error_message)
+            else:
+                logger.critical(e.message)
+            raise
+        except ScrapflyError as e:
+            logger.critical('<-- %s | Docs: %s' % (str(e), e.documentation_url))
+            raise    
+
+    @streaming
+    def scrape_batch(
+        self,
+        scrape_configs: List[ScrapeConfig],
+        format: Optional[Literal['json', 'msgpack']] = None,
+    ) -> Steps[Streamed[Tuple[str, Union[ScrapeApiResponse, ScrapflyError]]]]:
+        """
+        Scrape up to 100 URLs in one batch request and stream results
+        back as each scrape completes. Iterator yields
+        ``(correlation_id, result)`` tuples where ``result`` is either
+        a :class:`ScrapeApiResponse` on success or a
+        :class:`ScrapflyError` on per-scrape failure.
+
+        Results arrive **out of order** — whichever scrape finishes
+        first is yielded first. Use ``correlation_id`` (set on every
+        ``ScrapeConfig``) to match parts back to the originating
+        config on the client side.
+
+        Every config MUST carry a unique ``correlation_id``; a
+        missing/duplicate value is detected client-side before the
+        batch is sent.
+
+        :param format: wire format for per-part response bodies. Defaults
+            to the SDK's negotiated format (``msgpack`` when the
+            ``msgpack`` package is installed, ``json`` otherwise). Pass
+            ``'json'`` or ``'msgpack'`` to override.
+        """
+        from .batch import MultipartDecoder
+
+        if not scrape_configs:
+            raise ScrapflyError(
+                "scrape_batch: configs list is empty",
+                code="ERR::SCRAPE::BATCH_CONFIG",
+                http_status_code=400,
+            )
+
+        if len(scrape_configs) > 100:
+            raise ScrapflyError(
+                f"scrape_batch: max 100 configs per batch (got {len(scrape_configs)})",
+                code="ERR::SCRAPE::BATCH_CONFIG",
+                http_status_code=400,
+            )
+
+        seen_correlations: Dict[str, int] = {}
+        body_configs: List[Dict[str, Any]] = []
+        config_by_correlation: Dict[str, ScrapeConfig] = {}
+
+        for idx, cfg in enumerate(scrape_configs):
+            if not cfg.correlation_id:
+                raise ScrapflyError(
+                    f"scrape_batch: configs[{idx}] is missing correlation_id "
+                    "(required for matching streamed parts)",
+                    code="ERR::SCRAPE::BATCH_CONFIG",
+                    http_status_code=422,
+                )
+
+            if cfg.correlation_id in seen_correlations:
+                raise ScrapflyError(
+                    f"scrape_batch: correlation_id {cfg.correlation_id!r} reused by "
+                    f"configs[{seen_correlations[cfg.correlation_id]}] and configs[{idx}]",
+                    code="ERR::SCRAPE::BATCH_CONFIG",
+                    http_status_code=422,
+                )
+
+            seen_correlations[cfg.correlation_id] = idx
+            config_by_correlation[cfg.correlation_id] = cfg
+
+            # Drop `key` (batch key goes in the URL); pass everything
+            # else as a flat query-param dict. The server feeds each
+            # entry through NewScrapeConfigFromRequest identically to
+            # a /scrape call, so the wire contract is identical.
+            params = cfg.to_api_params(key=self.key)
+            params.pop("key", None)
+            body_configs.append(params)
+
+        if format == 'msgpack':
+            accept_header = 'application/msgpack'
+        elif format == 'json':
+            accept_header = 'application/json'
+        else:
+            accept_header = self.body_handler.accept
+
+        # No retry: the batch is billed as soon as it is accepted.
+        response = yield Call(
+            method="POST",
+            url=self.host + "/scrape/batch",
+            params={"key": self.key},
+            data=json.dumps({"configs": body_configs}).encode("utf-8"),
+            headers={
+                "content-type": "application/json",
+                "accept-encoding": self.body_handler.content_encoding,
+                "accept": accept_header,
+                "user-agent": self.ua,
+            },
+            timeout=(self.connect_timeout, self.web_scraping_api_read_timeout),
+            verify=self.verify,
+            stream=True,
+        )
+
+        if response.status_code != 200:
+            # Batch-level error (plan gate, validation, insufficient
+            # concurrency, etc.). Response is a single JSON body, not
+            # multipart.
+            try:
+                body = response.json()
+            except Exception:
+                body = {"message": response.text, "code": "ERR::API::INTERNAL_ERROR"}
+            err_code = body.get("code", "ERR::API::INTERNAL_ERROR")
+            err_msg = body.get("message", "") or body.get("reason", "")
+            retry_after = None
+
+            try:
+                retry_after = int(response.headers.get("Retry-After", "0")) or None
+            except (TypeError, ValueError):
+                pass
+
+            response.close()
+
+            raise HttpError(
+                request=response.request,
+                response=response,
+                code=err_code,
+                http_status_code=response.status_code,
+                message=err_msg,
+                is_retryable=body.get("retryable", False),
+                retry_delay=retry_after,
+            )
+
+        return Streamed(
+            response=response,
+            decoder=MultipartDecoder(response.headers.get("Content-Type", "")),
+            chunk_size=8 * 1024,
+            finish=lambda part: self._batch_part(part, response, config_by_correlation, scrape_configs[0]),
+        )
+
+    def _batch_part(self, part, response: Response, config_by_correlation: Dict[str, ScrapeConfig], default_config: ScrapeConfig) -> Steps[Tuple[str, Union[ScrapeApiResponse, ScrapflyError]]]:
+        from .batch import (
+            decode_part_body,
+            is_api_error_part,
+            error_from_api_error_part,
+            _build_proxified_response_from_part,
+        )
+
+        part_headers, part_body = part
+        correlation_id = part_headers.get("x-scrapfly-correlation-id", "")
+        cfg = config_by_correlation.get(correlation_id, default_config)
+
+        # Proxified-response parts: the part body is the raw upstream
+        # bytes, not a JSON envelope. Surface a native requests.Response
+        # synthesized from the part headers + body so callers get the
+        # same shape as a single proxified scrape.
+        if part_headers.get("x-scrapfly-proxified") == "true":
+            try:
+                return correlation_id, _build_proxified_response_from_part(
+                    part_headers,
+                    part_body,
+                    originating_request=response.request,
+                )
+            except Exception as prox_err:
+                return correlation_id, ScrapflyError(
+                    f"scrape_batch: failed to build proxified response for correlation_id={correlation_id!r}: {prox_err}",
+                    code="ERR::API::INTERNAL_ERROR",
+                    http_status_code=500,
+                )
+
+        # EncoderError subclasses BaseException — catch it explicitly.
+        try:
+            parsed = decode_part_body(part_headers, part_body, self.body_handler)
+        except (EncoderError, Exception) as decode_err:
+            return correlation_id, ScrapflyError(
+                f"scrape_batch: failed to decode part for correlation_id={correlation_id!r}: {decode_err}",
+                code="ERR::API::INTERNAL_ERROR",
+                http_status_code=500,
+            )
+
+        # API-generated error parts carry an error body instead of
+        # the scrape envelope — surface them as typed per-part errors.
+        if is_api_error_part(parsed, part_headers):
+            try:
+                return correlation_id, error_from_api_error_part(parsed, part_headers, response.request)
+            except Exception as factory_err:
+                return correlation_id, ScrapflyError(
+                    f"scrape_batch: malformed error part for correlation_id={correlation_id!r}: {factory_err}",
+                    code="ERR::API::INTERNAL_ERROR",
+                    http_status_code=500,
+                )
+
+        try:
+            large_objects = yield from self._large_objects(parsed)
+            api_response = ScrapeApiResponse(
+                response=response,
+                request=response.request,
+                api_result=parsed,
+                scrape_config=cfg,
+                large_object_handler=large_objects,
+            )
+            # Don't auto-raise on upstream error — per-part errors
+            # are surfaced via the yielded tuple, not exceptions.
+            api_response.raise_for_result(raise_on_upstream_error=False)
+
+            return correlation_id, api_response
+        except ScrapflyError as scrape_err:
+            return correlation_id, scrape_err
+        except (EncoderError, Exception) as part_err:
+            return correlation_id, ScrapflyError(
+                f"scrape_batch: failed to process part for correlation_id={correlation_id!r}: {part_err}",
+                code="ERR::API::INTERNAL_ERROR",
+                http_status_code=500,
+            )
+
+    def save_screenshot(self, screenshot_api_response:ScreenshotApiResponse, name:str, path:Optional[str]=None):
+        """
+        Save a screenshot from a screenshot API response
+        :param api_response: ScreenshotApiResponse
+        :param name: str - name of the screenshot to save as
+        :param path: Optional[str]
+        """
+
+        if screenshot_api_response.screenshot_success is not True:
+            raise RuntimeError('Screenshot was not successful')
+
+        if not screenshot_api_response.image:
+            raise RuntimeError('Screenshot binary does not exist')
+
+        content = screenshot_api_response.image
+        extension_name = screenshot_api_response.metadata['extension_name']
+
+        if path:
+            os.makedirs(path, exist_ok=True)
+            file_path = os.path.join(path, f'{name}.{extension_name}')
+        else:
+            file_path = f'{name}.{extension_name}'
+
+        if isinstance(content, bytes):
+            content = BytesIO(content)
+
+        with open(file_path, 'wb') as f:
+            shutil.copyfileobj(content, f, length=131072)
+
+    @operation
+    def save_scrape_screenshot(self, api_response:ScrapeApiResponse, name:str, path:Optional[str]=None):
+        """
+        Save a screenshot from a scrape result
+        :param api_response: ScrapeApiResponse
+        :param name: str - name of the screenshot given in the scrape config
+        :param path: Optional[str]
+        """
+
+        if not api_response.scrape_result['screenshots']:
+            raise RuntimeError('Screenshot %s do no exists' % name)
+
+        try:
+            api_response.scrape_result['screenshots'][name]
+        except KeyError:
+            raise RuntimeError('Screenshot %s do no exists' % name)
+
+        screenshot_response = yield Call(
+            method='GET',
+            url=api_response.scrape_result['screenshots'][name]['url'],
+            params={'key': self.key},
+            verify=self.verify
+        )
+
+        screenshot_response.raise_for_status()
+
+        if not name.endswith('.jpg'):
+            name += '.jpg'
+
+        api_response.sink(path=path, name=name, content=screenshot_response.content)
+
+    def sink(self, api_response:ScrapeApiResponse, content:Optional[Union[str, bytes]]=None, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None) -> str:
+        scrape_result = api_response.result['result']
+        scrape_config = api_response.result['config']
+
+        file_content = content or scrape_result['content']
+        file_path = None
+        file_extension = None
+
+        if name:
+            name_parts = name.split('.')
+            if len(name_parts) > 1:
+                file_extension = name_parts[-1]
+
+        if not file:
+            if file_extension is None:
+                try:
+                    mime_type = scrape_result['response_headers']['content-type']
+                except KeyError:
+                    mime_type = 'application/octet-stream'
+
+                if ';' in mime_type:
+                    mime_type = mime_type.split(';')[0]
+
+                file_extension = '.' + mime_type.split('/')[1]
+
+            if not name:
+                name = scrape_config['url'].split('/')[-1]
+
+            if name.find(file_extension) == -1:
+                name += file_extension
+
+            file_path = path + '/' + name if path else name
+
+            if file_path == file_extension:
+                url = re.sub(r'(https|http)?://', '', api_response.config['url']).replace('/', '-')
+
+                if url[-1] == '-':
+                    url = url[:-1]
+
+                url += file_extension
+
+                file_path = url
+
+            file = open(file_path, 'wb')
+
+        if isinstance(file_content, str):
+            file_content = BytesIO(file_content.encode('utf-8'))
+        elif isinstance(file_content, bytes):
+            file_content = BytesIO(file_content)
+
+        file_content.seek(0)
+        with file as f:
+            shutil.copyfileobj(file_content, f, length=131072)
+
+        logger.info('file %s created' % file_path)
+        return file_path
+
+    def _large_objects(self, body) -> Steps[Callable]:
+        """The clob or blob a scrape result points to, fetched before the response is built from it."""
+        fetched = {}
+        result = body.get('result') if isinstance(body, dict) else None
+
+        if result and result.get('content') and result.get('format') in ('clob', 'blob'):
+            fetched[result['content']] = yield from self._large_object_steps(result['content'], result['format'])
+
+        return lambda callback_url, format: fetched[callback_url]
+
+    def _large_object_steps(self, callback_url:str, format: Literal['clob', 'blob']) -> Steps[Tuple[Union[BytesIO, str], str]]:
+        if format not in ['clob', 'blob']:
+            raise ContentError('Large objects handle can handles format format [blob, clob], given: %s' % format)
+
+        response = yield Call(
+            tries=5,
+            method='GET',
+            url=callback_url,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'accept-encoding': self.body_handler.content_encoding,
+                'accept': self.body_handler.accept,
+                'user-agent': self.ua
+            },
+            params={'key': self.key}
+        )
+
+        if self.body_handler.support(headers=response.headers):
+            content = self.body_handler(content=response.content, content_type=response.headers['content-type'])
+        else:
+            content = response.content
+
+        if format == 'clob':
+            return content.decode('utf-8'), 'text'
+
+        return BytesIO(content), 'binary'
+
+    def _scrape_body(self, response: Response, scrape_config: ScrapeConfig):
+        if scrape_config.method == 'HEAD':
+            return None
+
+        if self.body_handler.support(headers=response.headers):
+            return self.body_handler(content=response.content, content_type=response.headers['content-type'])
+
+        # body_handler rejected — content-type not in SUPPORTED_CONTENT_TYPES.
+        # Response may still be compressed (zstd/brotli) if requests did
+        # not transparently decompress. Probe content-encoding and try
+        # the handler's read() anyway before falling back to a tolerant
+        # utf-8 decode.
+        raw = response.content
+        content_encoding = response.headers.get('content-encoding', '').lower()
+        # urllib3 already inflated these: a second decode corrupts some bodies.
+        if content_encoding in ('gzip', 'gz', 'deflate', 'br', 'brotli', 'zstd') \
+                and content_encoding not in urllib3.response.HTTPResponse.CONTENT_DECODERS:
+            try:
+                raw = self.body_handler.read(
+                    content=raw,
+                    content_encoding=content_encoding,
+                    content_type=response.headers.get('content-type', ''),
+                    signature=None,
+                )
+            except Exception:
+                # Fall through to tolerant decode below; don't mask the
+                # real error with a decoder crash.
+                pass
+
+        if isinstance(raw, (bytes, bytearray)):
+            return raw.decode('utf-8', errors='replace')
+
+        return raw
+
+    def _build_scrape_api_response(
+        self,
+        response: Response,
+        scrape_config:ScrapeConfig,
+        body,
+        large_objects:Callable,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -> ScrapeApiResponse:
+        api_response:ScrapeApiResponse = ScrapeApiResponse(
+            response=response,
+            request=response.request,
+            api_result=body,
+            scrape_config=scrape_config,
+            large_object_handler=large_objects
+        )
+
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response
+
+    def _handle_screenshot_api_response(
+        self,
+        response: Response,
+        screenshot_config:ScreenshotConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -> ScreenshotApiResponse:
+
+        if self.body_handler.support(headers=response.headers):
+            body = self.body_handler(content=response.content, content_type=response.headers['content-type'])
+        else:
+            body = {'result': response.content}
+
+        api_response:ScreenshotApiResponse = ScreenshotApiResponse(
+            response=response,
+            request=response.request,
+            api_result=body,
+            screenshot_config=screenshot_config
+        )
+
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response
+
+    def _handle_extraction_api_response(
+        self,
+        response: Response,
+        extraction_config:ExtractionConfig,
+        raise_on_upstream_error: Optional[bool] = True
+    ) -> ExtractionApiResponse:
+        
+        if self.body_handler.support(headers=response.headers):
+            body = self.body_handler(content=response.content, content_type=response.headers['content-type'])
+        else:
+            body = response.content.decode('utf-8')
+
+        api_response:ExtractionApiResponse = ExtractionApiResponse(
+            response=response,
+            request=response.request,
+            api_result=body,
+            extraction_config=extraction_config
+        )
+
+        api_response.raise_for_result(raise_on_upstream_error=raise_on_upstream_error)
+
+        return api_response
+
+    @operation
+    def start_crawl(self, crawler_config: CrawlerConfig) -> Steps[CrawlerStartResponse]:
+        """
+        Start a crawler job
+
+        :param crawler_config: CrawlerConfig
+        :return: CrawlerStartResponse with UUID and initial status
+
+        Example:
+            ```python
+            from scrapfly import ScrapflyClient, CrawlerConfig
+
+            client = ScrapflyClient(key='YOUR_API_KEY')
+            config = CrawlerConfig(
+                url='https://example.com',
+                page_limit=100,
+                max_depth=3
+            )
+
+            response = client.start_crawl(config)
+            print(f"Crawler started: {response.uuid}")
+            ```
+        """
+        # POST /crawl accepts two body formats:
+        #   - application/json: the entire crawler configuration as JSON.
+        #     Used for seed-URL crawls and remote_url_list crawls.
+        #   - multipart/form-data: a 'config' JSON part and a 'urls' text part
+        #     (one URL per line). Used only when the caller provides an
+        #     in-memory url_list, so we can stream it as a file payload
+        #     instead of inlining it into the JSON body.
+        parts = crawler_config.to_multipart_parts()
+        urls_blob = parts['urls']
+        query_params = {'key': self.key}
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+        url = f'{self.host}/crawl'
+
+        logger.debug(f"Crawler API POST {url}?key=***")
+
+        if urls_blob is not None:
+            config_body = json.dumps(parts['config']).encode('utf-8')
+            files = {
+                'config': ('config.json', config_body, 'application/json'),
+                'urls': ('urls.txt', urls_blob.encode('utf-8'), 'text/plain'),
+            }
+            logger.debug(
+                f"Crawler API multipart config: {parts['config']} ; "
+                f"urls part: {len(urls_blob.splitlines())} URL(s)"
+            )
+            response = yield Call(tries=5, 
+                method='POST',
+                url=url,
+                params=query_params,
+                files=files,
+                timeout=timeout,
+                headers={'User-Agent': self.ua},
+                verify=self.verify
+            )
+        else:
+            logger.debug(f"Crawler API body: {parts['config']}")
+            response = yield Call(tries=5, 
+                method='POST',
+                url=url,
+                params=query_params,
+                json=parts['config'],
+                timeout=timeout,
+                headers={'User-Agent': self.ua},
+                verify=self.verify
+            )
+
+        if response.status_code not in (200, 201):
+            # Log error details for debugging
+            try:
+                error_detail = response.json()
+            except (ValueError, Exception):
+                error_detail = response.text
+            logger.debug(f"Crawler API error ({response.status_code}): {error_detail}")
+            self._handle_crawler_error_response(response)
+
+        result = response.json()
+        return CrawlerStartResponse(result)
+
+    @operation
+    def get_crawl_status(self, uuid: str) -> Steps[CrawlerStatusResponse]:
+        """
+        Get crawler job status
+
+        :param uuid: Crawler job UUID
+        :return: CrawlerStatusResponse with progress information
+
+        Example:
+            ```python
+            status = client.get_crawl_status(uuid)
+            print(f"Status: {status.status}")
+            print(f"Progress: {status.progress_pct:.1f}%")
+            print(f"Crawled: {status.urls_crawled}/{status.urls_discovered}")
+
+            if status.is_complete:
+                print("Crawl completed!")
+            ```
+        """
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = yield Call(tries=5, 
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/status',
+            params={'key': self.key},  # key as query param (already correct)
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response)
+
+        result = response.json()
+        return CrawlerStatusResponse(result)
+
+    @operation
+    def cancel_crawl(self, crawl_uuid: str) -> Steps[bool]:
+        """
+        Cancel a running crawler job
+
+        :param crawl_uuid: Crawler job UUID to cancel
+        :return: True if cancelled successfully
+
+        Example:
+            ```python
+            # Start a crawl
+            crawl = client.start_crawl(config)
+
+            # Cancel it
+            client.cancel_crawl(crawl.uuid)
+            ```
+        """
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = yield Call(
+            method='DELETE',
+            url=f'{self.host}/crawl/{crawl_uuid}',
+            params={'key': self.key},
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code not in (200, 204):
+            self._handle_crawler_error_response(response)
+
+        return True
+
+    @operation
+    def get_crawl_artifact(
+        self,
+        uuid: str,
+        artifact_type: str = 'warc'
+    ) -> Steps[CrawlerArtifactResponse]:
+        """
+        Download crawler job artifact
+
+        :param uuid: Crawler job UUID
+        :param artifact_type: Artifact type ('warc' or 'har')
+        :return: CrawlerArtifactResponse with WARC data and parsing utilities
+
+        Example:
+            ```python
+            # Wait for crawl to complete
+            while True:
+                status = client.get_crawl_status(uuid)
+                if status.is_complete:
+                    break
+                time.sleep(5)
+
+            # Download artifact
+            artifact = client.get_crawl_artifact(uuid)
+
+            # Easy mode: get all pages
+            pages = artifact.get_pages()
+            for page in pages:
+                print(f"{page['url']}: {page['status_code']}")
+
+            # Memory-efficient: iterate
+            for record in artifact.iter_responses():
+                process(record.content)
+
+            # Save to file
+            artifact.save('crawl.warc.gz')
+            ```
+        """
+        timeout = (self.connect_timeout, 300)  # 5 minutes for large downloads
+
+        response = yield Call(tries=5, 
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/artifact',
+            params={
+                'key': self.key,
+                'type': artifact_type
+            },
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response)
+
+        return CrawlerArtifactResponse(response.content, artifact_type=artifact_type)
+
+    @operation
+    def get_crawl_contents(
+        self,
+        uuid: str,
+        format: Literal['html', 'clean_html', 'markdown', 'json', 'text', 'extracted_data', 'page_metadata'] = 'html'
+    ) -> Steps[Dict[str, Any]]:
+        """
+        Get crawl contents in a specific format
+
+        Retrieves extracted content from crawled pages in the format(s) specified
+        in your crawl configuration (via content_formats parameter).
+
+        :param uuid: Crawler job UUID
+        :param format: Content format - 'html', 'clean_html', 'markdown', 'json', 'text',
+                      'extracted_data', 'page_metadata'
+        :return: Dictionary with format {"contents": {url: content, ...}, "links": {...}}
+
+        Example:
+            ```python
+            # Get all content in markdown format
+            result = client.get_crawl_contents(uuid, format='markdown')
+            contents = result['contents']
+
+            # Access specific URL
+            for url, content in contents.items():
+                print(f"{url}: {len(content)} chars")
+            ```
+        """
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        params = {
+            'key': self.key,
+            'format': format
+        }
+
+        response = yield Call(tries=5, 
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/contents',
+            params=params,
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response)
+
+        return response.json()
+
+    @operation
+    def get_crawl_urls(
+        self,
+        uuid: str,
+        status: Optional[Literal['visited', 'pending', 'failed', 'skipped']] = None,
+        page: int = 1,
+        per_page: int = 100
+    ) -> Steps[CrawlerUrlsResponse]:
+        """
+        List the URLs of a crawler job
+
+        ``GET /crawl/{uuid}/urls`` answers ``text/plain``, one record per line:
+        the URL alone for 'visited' / 'pending', ``url,reason`` for 'failed' /
+        'skipped'. JSON is not offered on the success path, the endpoint being
+        sized for millions of records per job.
+
+        ``page`` and ``per_page`` are sent for parity with the other SDKs and
+        echoed on the response, but the API forwards only the status filter to
+        the crawler, so one call answers with the whole server-side page.
+
+        :param uuid: Crawler job UUID
+        :param status: URL status filter - 'visited', 'pending', 'failed',
+                       'skipped'. None leaves the server default ('visited').
+        :param page: 1-based page number
+        :param per_page: Page size
+        :return: CrawlerUrlsResponse with the parsed entries and the echoed pagination
+
+        Example:
+            ```python
+            urls = client.get_crawl_urls(uuid, status='failed')
+
+            for entry in urls:
+                print(f"{entry.url}: {entry.reason}")
+            ```
+        """
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        params = {
+            'key': self.key,
+            'page': page,
+            'per_page': per_page
+        }
+
+        if status is not None:
+            params['status'] = status
+
+        response = yield Call(tries=5, 
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/urls',
+            params=params,
+            timeout=timeout,
+            headers={
+                'User-Agent': self.ua,
+                # text/plain is the success format; error envelopes come back
+                # as JSON whatever the endpoint renders when it succeeds.
+                'Accept': 'text/plain, application/json'
+            },
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response)
+
+        # A JSON body on a 200 is an envelope the text parser would read as
+        # records: every line of it becomes a bogus URL entry. Fail loud
+        # instead of handing back a page of garbage.
+        if 'application/json' in response.headers.get('Content-Type', ''):
+            raise ScrapflyCrawlerError(
+                message=(
+                    f"Crawler API returned JSON on a 200 for GET /crawl/{uuid}/urls, "
+                    f"expected text/plain: {response.text[:500]}"
+                ),
+                code='ERR::CRAWLER::UNEXPECTED_RESPONSE_FORMAT',
+                http_status_code=response.status_code
+            )
+
+        return CrawlerUrlsResponse.from_text(
+            body=response.text,
+            status_hint=status or 'visited',
+            page=page,
+            per_page=per_page
+        )
+
+    @operation
+    def crawl_search(
+        self,
+        crawl_ids: List[str],
+        query: str,
+        limit: int = 10,
+        mode: Literal['vector', 'fts', 'hybrid'] = 'hybrid',
+        filters: Optional[Dict[str, Any]] = None,
+        cursor: Optional[str] = None
+    ) -> Steps[CrawlerSearchResponse]:
+        """
+        Search across the search indexes of one or more crawls.
+
+        The collection form is the real endpoint: ``POST /crawl/search`` fans
+        out over ``crawl_ids`` and merges one global ranking. Only crawls
+        started with ``CrawlerConfig(search=True)`` whose index reached
+        ``READY``/``PARTIAL`` contribute; the others come back in
+        ``response.skipped`` with a reason and never fail the call.
+
+        :param crawl_ids: Crawler job UUIDs to search. Duplicates are rejected
+                          by the API.
+        :param query: Free-text query.
+        :param limit: Maximum results, 1-50 (server cap).
+        :param mode: 'vector' (semantic), 'fts' (keyword) or 'hybrid' (both,
+                     merged with reciprocal rank fusion).
+        :param filters: Optional flat filter map: 'url_prefix', 'host',
+                        'source_format', 'content_type', 'http_status',
+                        'crawler_uuid'. Unknown keys are rejected server-side.
+        :param cursor: Opaque token from a previous response to fetch the next
+                       page. Paging is cursor-based; an offset over a partial
+                       fan-out would re-run the legs and shift ranks.
+        :return: CrawlerSearchResponse
+
+        Example:
+            ```python
+            results = client.crawl_search(
+                crawl_ids=[uuid_a, uuid_b],
+                query='TLS fingerprint',
+                limit=20,
+            )
+            for hit in results:
+                print(f"{hit.rank}. {hit.url} ({hit.score:.3f})")
+            ```
+        """
+        if not crawl_ids:
+            raise ValueError("crawl_ids must contain at least one crawler UUID")
+        if not query:
+            raise ValueError("query cannot be empty")
+
+        body: Dict[str, Any] = {
+            'query': query,
+            'crawl_ids': list(crawl_ids),
+            'limit': limit,
+            'mode': mode,
+        }
+        if filters:
+            body['filters'] = filters
+        if cursor:
+            body['cursor'] = cursor
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_SEARCH_API_READ_TIMEOUT)
+
+        response = yield Call(tries=5, 
+            method='POST',
+            url=f'{self.host}/crawl/search',
+            params={'key': self.key},
+            json=body,
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerSearchError)
+
+        return CrawlerSearchResponse(response.json())
+
+    @operation
+    def crawl_prompt(
+        self,
+        crawl_ids: List[str],
+        prompt: str,
+        search: Optional[Dict[str, Any]] = None,
+        model: Optional[str] = None,
+        stream: bool = True
+    ) -> Steps[Union[Streamed[CrawlerPromptEvent], Dict[str, Any]]]:
+        """
+        Ask a question answered from the content of one or more crawls.
+
+        ``POST /crawl/prompt`` retrieves from the same fan-out as
+        :py:meth:`crawl_search`, then generates an answer over the retrieved
+        chunks.
+
+        With ``stream=True`` (default) this returns an iterator of
+        :class:`CrawlerPromptEvent`: ``source`` frames first, then ``token``
+        frames, then one ``done`` frame. The HTTP response stays open for the
+        whole generation, so consume the iterator promptly and close it
+        (or exhaust it) to release the connection. With ``stream=False`` the
+        same content is returned as a single dict.
+
+        No backoff decorator here: a retry would re-run the fan-out and the
+        generation, and both are billable.
+
+        :param crawl_ids: Crawler job UUIDs to answer from.
+        :param prompt: The question.
+        :param search: Optional retrieval overrides: 'limit', 'mode',
+                       'filters'. Same grammar as :py:meth:`crawl_search`.
+        :param model: Optional Gemini model id. Unset uses the server default.
+        :param stream: Consume the answer as SSE frames (True) or as one JSON
+                       object (False).
+        :return: Iterator[CrawlerPromptEvent] when streaming, else Dict
+
+        Example:
+            ```python
+            for event in client.crawl_prompt([uuid], 'Summarize the pricing page'):
+                if event.is_token:
+                    print(event.data, end='', flush=True)
+            ```
+        """
+        if not crawl_ids:
+            raise ValueError("crawl_ids must contain at least one crawler UUID")
+        if not prompt:
+            raise ValueError("prompt cannot be empty")
+
+        body: Dict[str, Any] = {
+            'prompt': prompt,
+            'crawl_ids': list(crawl_ids),
+            'generation': {'stream': stream},
+        }
+        if search:
+            body['search'] = search
+        if model:
+            body['generation']['model'] = model
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_PROMPT_API_READ_TIMEOUT)
+
+        response = yield Call(
+            method='POST',
+            url=f'{self.host}/crawl/prompt',
+            params={'key': self.key},
+            json=body,
+            timeout=timeout,
+            headers={
+                'User-Agent': self.ua,
+                'Accept': 'text/event-stream' if stream else 'application/json',
+            },
+            stream=stream,
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerPromptError)
+
+        if not stream:
+            return response.json()
+
+        return Streamed(response=response, decoder=PromptEventDecoder(response.status_code), chunk_size=512)
+
+    @operation
+    def crawl_refresh_now(self, uuid: str) -> Steps[CrawlerRefreshState]:
+        """
+        Run one refresh of an existing crawl immediately, without waiting for
+        the next scheduled period.
+
+        ``POST /crawl/{uuid}/refresh`` re-scrapes the crawl's own URLs in
+        place: same ``crawler_uuid``, same artifacts, same search index. Only
+        pages whose content actually changed are re-indexed, and pages that
+        disappeared are dropped. The call returns as soon as the run is
+        accepted; poll :py:meth:`get_crawl_status` or
+        :py:meth:`crawl_refresh_history` for the outcome.
+
+        A refresh bills the pages it re-scrapes, exactly like the original
+        crawl. Pages whose fingerprint is unchanged still cost their scrape;
+        what they save is the embedding and the index write.
+
+        No backoff decorator here: a retry would start a second re-scrape of
+        the whole site, and that is billable.
+
+        :param uuid: Crawler job UUID.
+        :return: CrawlerRefreshState
+
+        Example:
+            ```python
+            state = client.crawl_refresh_now(uuid)
+            print(state.status, state.generation)
+            ```
+        """
+        if not uuid:
+            raise ValueError("uuid must be a non-empty string")
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = yield Call(
+            method='POST',
+            url=f'{self.host}/crawl/{uuid}/refresh',
+            params={'key': self.key},
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code not in (200, 202):
+            self._handle_crawler_error_response(response, error_class=CrawlerRefreshError)
+
+        return CrawlerRefreshState(response.json())
+
+    @operation
+    def crawl_refresh_settings(
+        self,
+        uuid: str,
+        enabled: Optional[bool] = None,
+        interval_seconds: Optional[int] = None
+    ) -> Steps[CrawlerRefreshState]:
+        """
+        Change the refresh schedule of an existing crawl.
+
+        ``PATCH /crawl/{uuid}/refresh``. Both arguments are optional and only
+        what is passed is changed, so turning a crawl off keeps its interval
+        for when it is turned back on.
+
+        Turning refresh on for a crawl that was started without it is allowed:
+        the crawl already holds the URL index a refresh walks.
+
+        :param uuid: Crawler job UUID.
+        :param enabled: Turn auto-refresh on or off.
+        :param interval_seconds: Period between runs, 3600 to 7776000
+                                 (1 hour to 90 days).
+        :return: CrawlerRefreshState
+
+        Example:
+            ```python
+            client.crawl_refresh_settings(uuid, enabled=True, interval_seconds=86400)
+            ```
+        """
+        if not uuid:
+            raise ValueError("uuid must be a non-empty string")
+        if enabled is None and interval_seconds is None:
+            raise ValueError("pass at least one of enabled, interval_seconds")
+        if interval_seconds is not None and not (CrawlerConfig.REFRESH_MIN_INTERVAL <= interval_seconds <= CrawlerConfig.REFRESH_MAX_INTERVAL):
+            raise ValueError(
+                f"interval_seconds must be between {CrawlerConfig.REFRESH_MIN_INTERVAL} "
+                f"and {CrawlerConfig.REFRESH_MAX_INTERVAL} seconds"
+            )
+
+        # Wire keys are the ones POST /crawl already takes, so a crawl body and
+        # a later PATCH name the same things. The `enabled` / `interval_seconds`
+        # spelling belongs to the state block this call answers with, not to
+        # its request; the API decodes the body with unknown fields rejected.
+        body: Dict[str, Any] = {}
+        if enabled is not None:
+            body['refresh'] = enabled
+        if interval_seconds is not None:
+            body['refresh_interval'] = interval_seconds
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = yield Call(tries=5, 
+            method='PATCH',
+            url=f'{self.host}/crawl/{uuid}/refresh',
+            params={'key': self.key},
+            json=body,
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerRefreshError)
+
+        return CrawlerRefreshState(response.json())
+
+    @operation
+    def crawl_refresh_history(self, uuid: str, limit: Optional[int] = None) -> Steps[List[CrawlerRefreshEntry]]:
+        """
+        Read a crawl's refresh timeline, newest last.
+
+        ``GET /crawl/{uuid}/refresh/history``. The server keeps the 50 most
+        recent runs; older rows are trimmed rather than paged, because the
+        timeline exists to show recent activity.
+
+        :param uuid: Crawler job UUID.
+        :param limit: Keep only the last N rows.
+        :return: List[CrawlerRefreshEntry]
+
+        Example:
+            ```python
+            for entry in client.crawl_refresh_history(uuid):
+                print(entry.at, entry.updated, 'changed' if entry.changed else 'no change')
+            ```
+        """
+        if not uuid:
+            raise ValueError("uuid must be a non-empty string")
+
+        params: Dict[str, Any] = {'key': self.key}
+        if limit is not None:
+            params['limit'] = limit
+
+        timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_API_READ_TIMEOUT)
+
+        response = yield Call(tries=5, 
+            method='GET',
+            url=f'{self.host}/crawl/{uuid}/refresh/history',
+            params=params,
+            timeout=timeout,
+            headers={'User-Agent': self.ua},
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerRefreshError)
+
+        return CrawlerRefreshState(response.json()).history
+
+    def _handle_crawler_error_response(self, response: Response, error_class: Optional[type] = None):
+        """
+        Handle error responses from Crawler API.
+
+        :param error_class: Optional CrawlerError subclass to raise instead of
+            HttpError. Endpoint-specific codes (ERR::CRAWLER::SEARCH_*) are
+            worth catching on their own, and HttpError cannot be narrowed.
+        """
+        try:
+            error_data = response.json()
+            error_msg = error_data.get('message', 'Unknown error')
+            error_code = error_data.get('code', 'ERR::CRAWLER::UNKNOWN')
+        except Exception:
+            error_msg = response.text
+            error_code = 'ERR::CRAWLER::UNKNOWN'
+
+        message = f"Crawler API error ({response.status_code}): {error_msg}"
+
+        if error_class is not None:
+            raise error_class(
+                message=message,
+                code=error_code,
+                http_status_code=response.status_code
+            )
+
+        raise HttpError(
+            message=message,
+            code=error_code,
+            http_status_code=response.status_code,
+            request=response.request,
+            response=response
+        )
+
+    def cloud_browser(self, browser_config: Optional[BrowserConfig] = None) -> str:
+        """
+        Get the WebSocket URL for a Cloud Browser session.
+
+        :param browser_config: Optional BrowserConfig - connection parameters
+        :return: str - the full wss:// URL for CDP connection
+
+        On rejection, the server sends a JSON error frame followed by a
+        close frame with code 1008/1011/1013 and a "ERR::BROWSER::CODE:
+        reason" string. See the docs for read patterns:
+        https://scrapfly.io/docs/cloud-browser-api/errors#websocket-close-frame
+        """
+        if browser_config is None:
+            browser_config = BrowserConfig()
+
+        return browser_config.websocket_url(api_key=self.key, host=self.cloud_browser_host)
+
+    def cloud_browser_project_salt(self) -> str:
+        """Return the deterministic project salt for this client's api_key.
+        Matches the X-Browser-Project-Salt response header returned on
+        VNC-enabled Cloud Browser upgrades, where the salt is also the VNC
+        password prefix. Useful for verifying that an attach link belongs to
+        your project before sharing it.
+        """
+        return BrowserConfig.project_salt(self.key)
+
+    def cloud_browser_vnc_password(self, browser_config: BrowserConfig) -> str:
+        """Return the password a native VNC client must type to attach to a
+        session created with this config: "<project_salt>-<vnc_password>".
+
+        Copy this value into your VNC client when connecting to the TCP
+        endpoint (port 5901). The WebSocket endpoint /run/<run_id>/vnc takes
+        the raw vnc_password instead.
+        """
+        return browser_config.vnc_client_password(self.key)
+
+    @operation
+    def cloud_browser_unblock(
+        self,
+        url: str,
+        country: Optional[str] = None,
+        os: Optional[str] = None,
+        browser_brand: Optional[str] = None,
+        session: Optional[str] = None,
+        timeout: Optional[int] = None,
+        browser_timeout: Optional[int] = None,
+        enable_mcp: Optional[bool] = None,
+        debug: Optional[bool] = None,
+    ) -> Steps[Dict]:
+        """
+        Bypass anti-bot protection and get a ready-to-use browser session.
+
+        Unblock always uses a residential proxy (no proxy pool selection) and
+        always performs a GET — the endpoint's purpose is to harvest cookies /
+        clearance tokens via an Unblocker navigation, not to proxy arbitrary
+        HTTP requests.
+
+        :param url: Target URL to navigate to and bypass protection
+        :param country: ISO country code for residential proxy geolocation
+        :param os: Operating system fingerprint: 'linux', 'windows', 'macos', 'android', 'iphone', 'ipad'
+        :param browser_brand: Browser brand fingerprint: 'chrome', 'edge', 'brave', 'opera'
+        :param session: Named session for reconnection — reuses the existing Unblocker
+            session when one exists and disables auto-close on disconnect
+        :param timeout: Navigation timeout in seconds (max 300)
+        :param browser_timeout: Browser session timeout in seconds (max 1800)
+        :param enable_mcp: Enable MCP streamable-HTTP endpoint on the session
+        :param debug: When True, the session is recorded and accessible via
+            cloud_browser_playback / cloud_browser_video using the returned run_id
+        :return: dict with ws_url, session_id, run_id
+        """
+        json_body = {'url': url}
+
+        if country is not None:
+            json_body['country'] = country
+
+        if os is not None:
+            json_body['os'] = os
+
+        if browser_brand is not None:
+            json_body['browser_brand'] = browser_brand
+
+        if session is not None:
+            json_body['session'] = session
+
+        if timeout is not None:
+            json_body['timeout'] = timeout
+
+        if browser_timeout is not None:
+            json_body['browser_timeout'] = browser_timeout
+
+        if enable_mcp is not None:
+            json_body['enable_mcp'] = enable_mcp
+
+        if debug is not None:
+            json_body['debug'] = debug
+
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/unblock',
+            json=json_body,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, 155),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    @operation
+    def cloud_browser_session_stop(self, session_id: str) -> Steps[None]:
+        """
+        Terminate a Cloud Browser session.
+        :param session_id: The session identifier to terminate
+        """
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/session/' + session_id + '/stop',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+    @operation
+    def cloud_browser_playback(self, run_id: str) -> Steps[Dict]:
+        """
+        Get playback info for a debug session recording.
+        :param run_id: The unique run identifier
+        :return: dict with available, status, metadata, video_url, retry_after_ms
+        """
+        response = yield Call(
+            method='GET',
+            url=self.cloud_browser_api_host + '/run/' + run_id + '/playback',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
+    @operation
+    def cloud_browser_wait_for_playback(
+        self,
+        run_id: str,
+        timeout: float = 180.0,
+        poll_interval_fallback: float = 3.0,
+    ) -> Steps[Dict]:
+        """
+        Poll the playback endpoint until the recording resolves to a
+        terminal state (status='ready' or status='unavailable') or the
+        timeout elapses. Honours the server-side retry_after_ms hint
+        whenever it is present.
+
+        :param run_id: The unique run identifier
+        :param timeout: Maximum seconds to wait for the recording to be ready
+        :param poll_interval_fallback: Delay (s) used when the server does
+            not return a retry_after_ms hint
+        :return: Final playback dict — the same shape as cloud_browser_playback
+        """
+        deadline = time.monotonic() + timeout
+        while True:
+            playback = yield from ScrapflyApi.cloud_browser_playback.steps(self, run_id)
+            status = playback.get('status')
+            if status != 'uploading':
+                return playback
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return playback
+            retry_after_ms = playback.get('retry_after_ms') or int(poll_interval_fallback * 1000)
+            yield Sleep(min(retry_after_ms / 1000.0, remaining))
+
+    @operation
+    def cloud_browser_video(self, run_id: str, save_path: Optional[str] = None) -> Steps[bytes]:
+        """
+        Download a debug session recording video.
+        :param run_id: The unique run identifier
+        :param save_path: Optional file path to save the video (e.g. 'recording.webm')
+        :return: bytes - raw video data
+        """
+        response = yield Call(
+            method='GET',
+            url=self.cloud_browser_api_host + '/run/' + run_id + '/video',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, 120),  # Videos can be large
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+
+        data = response.content
+        if save_path:
+            with open(save_path, 'wb') as f:
+                f.write(data)
+
+        return data
+
+    # --- Cloud Browser Extension Management ---
+
+    @operation
+    def cloud_browser_extension_list(self) -> Steps[Dict]:
+        """
+        List all browser extensions for the current account.
+        :return: dict with 'extensions' list and 'quota' info (used, limit)
+        """
+        response = yield Call(
+            method='GET',
+            url=self.cloud_browser_api_host + '/extension',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_extension_get(self, extension_id: str) -> Steps[Dict]:
+        """
+        Get details of a specific browser extension.
+        :param extension_id: The extension identifier
+        :return: dict with extension details
+        """
+        response = yield Call(
+            method='GET',
+            url=self.cloud_browser_api_host + '/extension/' + extension_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_extension_upload(self, file_path: str) -> Steps[Dict]:
+        """
+        Upload a browser extension from a local file (.zip or .crx).
+        :param file_path: Path to the extension file
+        :return: dict with 'extension' details and 'is_update' flag
+        """
+        with open(file_path, 'rb') as f:
+            response = yield Call(
+                method='POST',
+                url=self.cloud_browser_api_host + '/extension',
+                params={'key': self.key},
+                files={'file': (os.path.basename(file_path), f)},
+                verify=self.verify,
+                timeout=(self.connect_timeout, self.default_read_timeout),
+                headers={
+                    'user-agent': self.ua
+                },
+            )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_extension_upload_from_url(self, extension_url: str) -> Steps[Dict]:
+        """
+        Install a browser extension from a URL pointing to a .crx file.
+        URL-based extensions auto-update on each browser session start.
+        :param extension_url: URL to the .crx extension file
+        :return: dict with 'extension' details and 'is_update' flag
+        """
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/extension',
+            params={'key': self.key},
+            json={'extension_url': extension_url},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_extension_delete(self, extension_id: str) -> Steps[Dict]:
+        """
+        Delete a browser extension.
+        :param extension_id: The extension identifier to delete
+        :return: dict with success status
+        """
+        response = yield Call(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/extension/' + extension_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_sessions(self) -> Steps[Dict]:
+        """
+        List all running Cloud Browser sessions.
+        :return: dict with 'sessions' list and 'total' count
+        """
+        response = yield Call(
+            method='GET',
+            url=self.cloud_browser_api_host + '/sessions',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    # --- Cloud Browser Credential Vault ---
+    #
+    # End-to-end encrypted credential storage for Cloud Browser sessions.
+    # The vault key is generated server-side at create + rotate time and
+    # returned in the response body exactly once. The server does NOT
+    # persist the key — clients must save it locally on receipt.
+    #
+    # SECURITY: NEVER log, print, or include vault_key in exception
+    # messages, debug output, repr, or any breadcrumb. The whole product
+    # property is "Scrapfly receives the key transiently and zeros it."
+    # Any leak invalidates that guarantee.
+
+    @operation
+    def cloud_browser_vault_create(self, name: str, description: Optional[str] = None) -> Steps[Dict]:
+        """
+        Create a new credential vault. The response includes the freshly
+        generated vault key under the `key` field — this is the ONLY time
+        the server returns it. Save it immediately; it cannot be recovered.
+
+        :param name: Human-readable vault name
+        :param description: Optional description
+        :return: dict with `vault`, `key`, and `message`
+        """
+        body: Dict[str, str] = {'name': name}
+        if description is not None:
+            body['description'] = description
+
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault',
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_list(self) -> Steps[Dict]:
+        """
+        List all credential vaults on the account (no secret material).
+        :return: dict with `vaults` list
+        """
+        response = yield Call(
+            method='GET',
+            url=self.cloud_browser_api_host + '/vault',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_get(self, vault_id: str) -> Steps[Dict]:
+        """
+        Fetch metadata for a single vault (no secret material).
+        :param vault_id: The vault identifier
+        :return: dict with `vault` envelope
+        """
+        response = yield Call(
+            method='GET',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_update(
+        self,
+        vault_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Steps[Dict]:
+        """
+        Update vault metadata (name and/or description). Does NOT touch
+        encrypted material; X-Vault-Key is not required.
+
+        :param vault_id: The vault identifier
+        :param name: Optional new name
+        :param description: Optional new description
+        :return: server response dict
+        """
+        body: Dict[str, str] = {}
+        if name is not None:
+            body['name'] = name
+        if description is not None:
+            body['description'] = description
+
+        response = yield Call(
+            method='PATCH',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id,
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_delete(self, vault_id: str) -> Steps[Dict]:
+        """
+        Delete a vault and all its items.
+        :param vault_id: The vault identifier
+        :return: server response dict
+        """
+        response = yield Call(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_rotate(self, vault_id: str, current_vault_key: str) -> Steps[Dict]:
+        """
+        Rotate the vault encryption key. Requires the CURRENT key in the
+        X-Vault-Key header. Server generates a fresh key, rewraps every
+        item, and returns the new key in the response body exactly once.
+        After this call, the old key cannot read any row in the vault.
+
+        :param vault_id: The vault identifier
+        :param current_vault_key: The current base64-encoded vault key
+            (forwarded as X-Vault-Key, never logged)
+        :return: dict with `key` and `message`
+        """
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/rotate',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua,
+                'X-Vault-Key': current_vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_item_list(self, vault_id: str) -> Steps[Dict]:
+        """
+        List items in a vault (metadata only — no secret material).
+        :param vault_id: The vault identifier
+        :return: dict with `items` list
+        """
+        response = yield Call(
+            method='GET',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/item',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_item_create(
+        self,
+        vault_id: str,
+        vault_key: str,
+        type: str,
+        label: str,
+        origin: str,
+        secret: Dict,
+        username: Optional[str] = None,
+    ) -> Steps[Dict]:
+        """
+        Add an item to a vault. Requires the vault key in X-Vault-Key —
+        the server uses it to wrap a per-row DEK that encrypts the secret.
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :param type: Item type ("password", "passkey", "cookie", "totp")
+        :param label: Human-readable label
+        :param origin: Origin URL the credential is bound to
+        :param secret: Typed secret payload, e.g. ``{"password": "hunter2"}``
+        :param username: Optional username
+        :return: dict with `item` and `message`
+        """
+        body: Dict = {
+            'type': type,
+            'label': label,
+            'origin': origin,
+            'secret': secret,
+        }
+        if username is not None:
+            body['username'] = username
+
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/item',
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua,
+                'X-Vault-Key': vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_item_update(
+        self,
+        vault_id: str,
+        item_id: str,
+        vault_key: Optional[str] = None,
+        label: Optional[str] = None,
+        origin: Optional[str] = None,
+        username: Optional[str] = None,
+        secret: Optional[Dict] = None,
+        type: Optional[str] = None,
+    ) -> Steps[Dict]:
+        """
+        Update an item. Metadata-only patches (label/origin/username) do
+        NOT require X-Vault-Key. Patching the secret triggers
+        re-encryption and REQUIRES both vault_key AND type (the server's
+        parseSecret() switches on type to route the typed payload).
+
+        :param vault_id: The vault identifier
+        :param item_id: The item identifier
+        :param vault_key: Required iff `secret` is not None. Forwarded as
+            X-Vault-Key; never logged.
+        :param label: Optional new label
+        :param origin: Optional new origin
+        :param username: Optional new username
+        :param secret: Optional new typed secret payload (rotates the
+            encrypted blob on the server)
+        :param type: Item type ("password", "passkey", "cookie", "totp"),
+            required iff `secret` is not None.
+        :return: server response dict
+        """
+        if secret is not None and not vault_key:
+            raise ValueError(
+                "vault_key is required when secret is provided "
+                "(server requires X-Vault-Key for re-encryption)"
+            )
+        if secret is not None and not type:
+            raise ValueError(
+                "type is required when secret is provided "
+                "(server's parseSecret switches on it)"
+            )
+
+        body: Dict = {}
+        if label is not None:
+            body['label'] = label
+        if origin is not None:
+            body['origin'] = origin
+        if username is not None:
+            body['username'] = username
+        if secret is not None:
+            body['secret'] = secret
+            body['type'] = type
+
+        headers = {
+            'content-type': 'application/json',
+            'user-agent': self.ua,
+        }
+        if vault_key is not None:
+            headers['X-Vault-Key'] = vault_key
+
+        response = yield Call(
+            method='PATCH',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/item/' + item_id,
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers=headers,
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_item_delete(self, vault_id: str, item_id: str) -> Steps[Dict]:
+        """
+        Delete an item from a vault.
+        :param vault_id: The vault identifier
+        :param item_id: The item identifier
+        :return: server response dict
+        """
+        response = yield Call(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/item/' + item_id,
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    # --- Cloud Browser Vault linked service (1Password) ---
+    #
+    # A vault is either `manual` (items entered through the item endpoints) or
+    # `linked_service` (items mirrored from an external secret manager). These
+    # five endpoints own that link. Mirrored items are read-only through the
+    # item endpoints — the syncer owns those rows.
+    #
+    # `linked_service` is the provider discriminator (see LinkedService). Only
+    # the link route reads it: PATCH re-decodes against the vault's stored
+    # discriminator, so no body can switch provider.
+
+    @operation
+    def cloud_browser_vault_service_link(
+        self,
+        vault_id: str,
+        vault_key: str,
+        token: str,
+        linked_service_data: Dict,
+        linked_service: Union[str, LinkedService] = LinkedService.ONE_PASSWORD,
+    ) -> Steps[Dict]:
+        """
+        Link a manual vault to an external secret manager. The service-account
+        token is sealed as a reserved blob item under the vault key, so
+        X-Vault-Key is REQUIRED: the server verifies the key before sealing,
+        because a well-formed wrong key would link the vault and leave a token
+        every later sync fails to open.
+
+        Linking does not contact the provider — it only seals the token and
+        flips the vault row. Use cloud_browser_vault_service_test before
+        linking, or cloud_browser_vault_service_sync after, to find out whether
+        the token actually works.
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :param token: The provider's service-account token. Sealed on receipt;
+            never persisted in a column, logged, or echoed back.
+        :param linked_service_data: Non-secret selection rules. For 1Password:
+            ``vault_id`` or ``vault_name`` (one is required), plus optional
+            ``title_filter``, ``tags``, ``sync_mode`` ("manual" or
+            "on_session") and ``sync_ttl_s`` (60..86400). ``token_item_id`` is
+            dropped: the server assigns it from the blob item it just sealed,
+            so a caller value could only ever redirect the token lookup.
+        :param linked_service: The provider to mirror from, a LinkedService or
+            its string value. Required by this route, which is the only one that
+            reads it.
+        :return: dict with `vault` and `message`
+        """
+        body: Dict = {
+            'linked_service': linked_service.value if isinstance(linked_service, LinkedService) else linked_service,
+            'token': token,
+            'linked_service_data': {
+                k: v for k, v in linked_service_data.items() if k != 'token_item_id'
+            },
+        }
+
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service',
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'content-type': 'application/json',
+                'user-agent': self.ua,
+                'X-Vault-Key': vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_service_update(
+        self,
+        vault_id: str,
+        linked_service_data: Optional[Dict] = None,
+        token: Optional[str] = None,
+        vault_key: Optional[str] = None,
+    ) -> Steps[Dict]:
+        """
+        Update the link: rotate the service-account token, replace the
+        selection rules, or both. X-Vault-Key is required only when `token`
+        rotates the sealed token; a metadata-only update needs no key.
+
+        ``token_item_id`` is dropped from `linked_service_data` before the
+        request: the server ignores it on PATCH (the stored id wins) so that no
+        request body can redirect the token lookup at a row of the caller's
+        choosing.
+
+        :param vault_id: The vault identifier
+        :param linked_service_data: The full REPLACEMENT selection rules (same
+            shape as cloud_browser_vault_service_link), not a delta. Left None
+            the field is omitted and the stored document is kept, which is what
+            makes a token-only rotation possible; an empty dict would instead be
+            validated as a new document and refused.
+        :param token: Optional replacement service-account token
+        :param vault_key: Required iff `token` is given. Forwarded as
+            X-Vault-Key; never logged.
+        :return: dict with `vault` and `message`
+        """
+        if token and not vault_key:
+            raise ValueError(
+                "vault_key is required when token is provided "
+                "(the server reseals the token under it)"
+            )
+
+        # No `linked_service`: the server re-decodes against the vault's stored
+        # discriminator and ignores the body field, so taking one here would
+        # promise a provider switch that only unlink-then-link can do.
+        body: Dict = {
+            'token': token or '',
+        }
+        if linked_service_data is not None:
+            body['linked_service_data'] = {
+                k: v for k, v in linked_service_data.items() if k != 'token_item_id'
+            }
+
+        headers = {
+            'content-type': 'application/json',
+            'user-agent': self.ua,
+        }
+        if vault_key is not None:
+            headers['X-Vault-Key'] = vault_key
+
+        response = yield Call(
+            method='PATCH',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service',
+            params={'key': self.key},
+            json=body,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers=headers,
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_service_unlink(self, vault_id: str, keep_items: bool = True) -> Steps[Dict]:
+        """
+        Unlink the provider and turn the vault back into a manual one. The
+        sealed service-account token is always deleted; `keep_items` decides
+        the fate of the mirrored rows.
+
+        `keep_items` defaults to True and is always sent explicitly: dropping
+        the mirror is irreversible (the secrets exist only upstream), so the
+        SDK never lets an omitted argument mean "delete them".
+
+        :param vault_id: The vault identifier
+        :param keep_items: False drops every mirrored item. True (default)
+            keeps them as manual rows.
+        :return: dict with `message`
+        """
+        response = yield Call(
+            method='DELETE',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service',
+            params={'key': self.key, 'keep_items': 'true' if keep_items else 'false'},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.default_read_timeout),
+            headers={
+                'user-agent': self.ua
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_service_sync(self, vault_id: str, vault_key: str) -> Steps[Dict]:
+        """
+        Force a sync now. Requires X-Vault-Key: the server opens the sealed
+        service-account token with it, and a key that cannot open the vault
+        would still claim the sync round and then fail, costing the vault a
+        whole TTL of staleness.
+
+        Bypasses the TTL and the hour-long back-off a failed run leaves behind
+        — asking for a sync IS the retry. The read timeout is pinned above the
+        server's 25s budget (DEFAULT_VAULT_SYNC_API_READ_TIMEOUT).
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :return: flat sync report: `imported`, `updated`, `deleted`,
+            `skipped`, `unmirrored`, `status` and optional `warnings`
+        """
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service/sync',
+            params={'key': self.key},
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.DEFAULT_VAULT_SYNC_API_READ_TIMEOUT),
+            headers={
+                'user-agent': self.ua,
+                'X-Vault-Key': vault_key,
+            },
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    @operation
+    def cloud_browser_vault_service_test(
+        self,
+        vault_id: str,
+        vault_key: str,
+        token: Optional[str] = None,
+        linked_service: Optional[Union[str, LinkedService]] = None,
+    ) -> Steps[Dict]:
+        """
+        Probe the provider credentials and enumerate the upstream vaults the
+        service account can see. Reads no secret material.
+
+        Both body fields are optional: with `token` the probe answers for a
+        vault that is not linked yet (which is how an upstream vault is picked
+        before committing to a link); without it, the probe uses the token
+        already sealed in the vault. X-Vault-Key is always required — the
+        sealed token is opened with it. The read timeout is pinned above the
+        server's 10s budget (DEFAULT_VAULT_PROBE_API_READ_TIMEOUT).
+
+        :param vault_id: The vault identifier
+        :param vault_key: The base64-encoded vault key (X-Vault-Key,
+            never logged)
+        :param token: Optional unsaved service-account token to probe with
+        :param linked_service: Optional provider to probe as, a LinkedService or
+            its string value. Left None the field is omitted and the server
+            picks the default, which keeps that default in one place.
+        :return: dict with `vaults_visible` (id + title), `item_count` and
+            optional `warnings`
+        """
+        body: Dict = {}
+        if linked_service is not None:
+            body['linked_service'] = (
+                linked_service.value if isinstance(linked_service, LinkedService) else linked_service
+            )
+        if token is not None:
+            body['token'] = token
+
+        headers = {
+            'user-agent': self.ua,
+            'X-Vault-Key': vault_key,
+        }
+        if body:
+            headers['content-type'] = 'application/json'
+
+        response = yield Call(
+            method='POST',
+            url=self.cloud_browser_api_host + '/vault/' + vault_id + '/service/test',
+            params={'key': self.key},
+            # No body at all rather than "{}": the server reads a probe with no
+            # content length as "use the token sealed in the vault".
+            json=body or None,
+            verify=self.verify,
+            timeout=(self.connect_timeout, self.DEFAULT_VAULT_PROBE_API_READ_TIMEOUT),
+            headers=headers,
+        )
+
+        response.raise_for_status()
+        return response.json()

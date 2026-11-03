@@ -1,0 +1,380 @@
+"""ScrapflyClient and AsyncScrapflyClient run the same operations: every scenario runs on both, against one fake API."""
+import asyncio
+import inspect
+import json
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Tuple
+from urllib.parse import parse_qs, urlsplit
+
+import httpx
+import pytest
+import requests
+
+from scrapfly import AsyncScrapflyClient, ScrapeApiResponse, ScrapeConfig, ScrapflyClient
+from scrapfly import async_client, client
+from scrapfly.errors import CrawlerPromptError, ScrapflyError
+
+pytestmark = pytest.mark.unit
+
+KEY = 'scp-test-00000000000000000000000000000000'
+HOST = 'https://api.scrapfly.test'
+CLIENTS = ('sync', 'async')
+
+# The fake API drops the connection when it answers this.
+DROP = object()
+
+
+@dataclass
+class Seen:
+    method: str
+    path: str
+    query: Dict[str, List[str]]
+    body: bytes
+    headers: Dict[str, str]
+
+
+Reply = Tuple[int, Dict[str, str], List[bytes]]
+
+
+def json_reply(payload, status: int = 200) -> Reply:
+    return status, {'content-type': 'application/json'}, [json.dumps(payload).encode()]
+
+
+def envelope(content, format: str = 'text') -> dict:
+    return {
+        'config': {'url': 'https://web-scraping.dev/product/1', 'headers': {}},
+        'context': {},
+        'result': {
+            'status': 'DONE', 'success': True, 'status_code': 200, 'reason': 'OK', 'error': None,
+            'content': content, 'format': format, 'request_headers': {}, 'response_headers': {'content-type': 'text/html'},
+            'duration': 0.1, 'log_url': 'https://scrapfly.io/dashboard/monitoring/log/01',
+        },
+    }
+
+
+class _Chunks:
+    """A raw body requests reads chunk by chunk, as the wire delivers it."""
+
+    def __init__(self, chunks: List[bytes]):
+        self._chunks = list(chunks)
+
+    def read(self, size=None):
+        return self._chunks.pop(0) if self._chunks else b''
+
+    def close(self):
+        self._chunks.clear()
+
+
+def _seen(method: str, url: str, body, headers) -> Seen:
+    split = urlsplit(url)
+    body = body.encode() if isinstance(body, str) else (body or b'')
+
+    return Seen(method, split.path, parse_qs(split.query), body, {k.lower(): v for k, v in headers.items()})
+
+
+def run(kind: str, server: Callable[[Seen], object], scenario, monkeypatch=None):
+    """Run `scenario(client)` on a ScrapflyClient or an AsyncScrapflyClient wired to `server`; returns (result, requests seen)."""
+    seen: List[Seen] = []
+
+    if monkeypatch is not None:
+        monkeypatch.setattr(client, 'retry_delay', lambda attempt: 0)
+        monkeypatch.setattr(async_client, 'retry_delay', lambda attempt: 0)
+
+    if kind == 'sync':
+        scrapfly = ScrapflyClient(key=KEY, host=HOST)
+
+        def handler(method, url, params=None, headers=None, data=None, json=None, files=None, **options):
+            prepared = requests.Request(method=method, url=url, params=params, headers=headers, data=data, json=json, files=files).prepare()
+            seen.append(_seen(prepared.method, prepared.url, prepared.body, prepared.headers))
+            reply = server(seen[-1])
+
+            if reply is DROP:
+                raise requests.ConnectionError('dropped')
+
+            status, reply_headers, chunks = reply
+            response = requests.Response()
+            response.status_code = status
+            response.headers.update(reply_headers)
+            response.raw = _Chunks(chunks)
+            response.url = prepared.url
+            response.request = prepared
+
+            return response
+
+        scrapfly.__dict__['_http_handler'] = handler
+
+        return asyncio.run(scenario(scrapfly)), seen
+
+    async def handler(request: httpx.Request):
+        seen.append(_seen(request.method, str(request.url), await request.aread(), request.headers))
+        reply = server(seen[-1])
+
+        if reply is DROP:
+            raise httpx.ConnectError('dropped', request=request)
+
+        status, reply_headers, chunks = reply
+
+        async def body():
+            for chunk in chunks:
+                yield chunk
+
+        return httpx.Response(status, headers=reply_headers, content=body())
+
+    class Client(AsyncScrapflyClient):
+        def _new_http(self):
+            return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+    async def main():
+        async with Client(key=KEY, host=HOST) as scrapfly:
+            return await scenario(scrapfly)
+
+    return asyncio.run(main()), seen
+
+
+async def resolve(value):
+    return await value if inspect.isawaitable(value) else value
+
+
+async def collect(stream) -> list:
+    if hasattr(stream, '__aiter__'):
+        return [item async for item in stream]
+
+    return list(stream)
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_scrape_reads_the_envelope(kind):
+    def server(seen: Seen):
+        return json_reply(envelope('<html>product</html>'))
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/product/1', render_js=True)))
+
+    response, seen = run(kind, server, scenario)
+
+    assert isinstance(response, ScrapeApiResponse)
+    assert response.content == '<html>product</html>'
+    assert (seen[0].method, seen[0].path) == ('GET', '/scrape')
+    assert seen[0].query['url'] == ['https://web-scraping.dev/product/1']
+    assert seen[0].query['render_js'] == ['true']
+    assert seen[0].query['key'] == [KEY]
+
+
+def test_both_clients_send_the_same_request():
+    def server(seen: Seen):
+        return json_reply(envelope('ok'))
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/', method='POST', data={'q': 'é'}, asp=True, country='fr')))
+
+    _, sync_seen = run('sync', server, scenario)
+    _, async_seen = run('async', server, scenario)
+
+    assert [(s.method, s.path, s.query, s.body) for s in sync_seen] == [(s.method, s.path, s.query, s.body) for s in async_seen]
+    assert sync_seen[0].headers['content-type'] == async_seen[0].headers['content-type']
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_large_content_is_fetched_before_the_response_is_built(kind):
+    def server(seen: Seen):
+        if seen.path == '/scrape':
+            return json_reply(envelope(HOST + '/scrape/clob/01', format='clob'))
+
+        assert seen.path == '/scrape/clob/01' and seen.query['key'] == [KEY]
+
+        return 200, {'content-type': 'text/plain'}, [b'large ', b'text']
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')))
+
+    response, seen = run(kind, server, scenario)
+
+    assert response.scrape_result['content'] == 'large text'
+    assert response.scrape_result['format'] == 'text'
+    assert [s.path for s in seen] == ['/scrape', '/scrape/clob/01']
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_a_dropped_connection_is_retried(kind, monkeypatch):
+    drops = [DROP, DROP]
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')))
+
+    response, seen = run(kind, lambda seen: drops.pop() if drops else json_reply(envelope('ok')), scenario, monkeypatch)
+
+    assert response.content == 'ok'
+    assert len(seen) == 3
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_a_call_unsafe_to_repeat_is_sent_once(kind, monkeypatch):
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.cancel_crawl('7c7a7c3e'))
+
+    with pytest.raises((requests.ConnectionError, httpx.TransportError)):
+        run(kind, lambda seen: DROP, scenario, monkeypatch)
+
+
+SSE = (
+    b'event: source\ndata: {"rank": 1}\n\n'
+    b':keepalive\n\n'
+    b'event: token\ndata: "Caf\xc3\xa9 "\n\n'
+    b'event: token\ndata: "ouvert"\n\n'
+    b'event: done\ndata: {"sources_used": [1]}\n\n'
+)
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('size', [len(SSE), 7, 1])
+def test_prompt_events_arrive_whole_across_chunks(kind, size):
+    """Chunks cut lines, frames and the UTF-8 of a token anywhere."""
+    def server(seen: Seen):
+        assert json.loads(seen.body)['generation'] == {'stream': True}
+
+        return 200, {'content-type': 'text/event-stream'}, [SSE[at:at + size] for at in range(0, len(SSE), size)]
+
+    async def scenario(scrapfly):
+        return await collect(await resolve(scrapfly.crawl_prompt(['7c7a7c3e'], 'Is the café open?')))
+
+    events, _ = run(kind, server, scenario)
+
+    assert [event.event for event in events] == ['source', 'token', 'token', 'done']
+    assert ''.join(event.data for event in events if event.is_token) == 'Café ouvert'
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_prompt_error_frame_raises_after_the_events_before_it(kind):
+    body = b'event: token\ndata: "half"\n\nevent: error\ndata: {"code": "ERR::CRAWLER::PROMPT_GENERATION_FAILED", "message": "quota"}\n\n'
+    delivered = []
+
+    async def scenario(scrapfly):
+        stream = await resolve(scrapfly.crawl_prompt(['7c7a7c3e'], 'q'))
+
+        if hasattr(stream, '__aiter__'):
+            async for event in stream:
+                delivered.append(event)
+        else:
+            for event in stream:
+                delivered.append(event)
+
+    with pytest.raises(CrawlerPromptError, match='quota'):
+        run(kind, lambda seen: (200, {'content-type': 'text/event-stream'}, [body]), scenario)
+
+    assert [event.data for event in delivered] == ['half']
+
+
+def multipart(parts: List[Tuple[str, dict]], boundary: str = 'b0und') -> bytes:
+    out = b''
+
+    for correlation_id, payload in parts:
+        body = json.dumps(payload).encode()
+        out += (
+            f'--{boundary}\r\ncontent-type: application/json\r\nx-scrapfly-correlation-id: {correlation_id}\r\n'
+            f'content-length: {len(body)}\r\n\r\n'
+        ).encode() + body + b'\r\n'
+
+    return out + f'--{boundary}--\r\n'.encode()
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('size', [4096, 13, 1])
+def test_batch_parts_are_decoded_as_they_arrive(kind, size):
+    wire = multipart([('two', envelope('second')), ('one', envelope('first'))])
+
+    def server(seen: Seen):
+        assert [config['correlation_id'] for config in json.loads(seen.body)['configs']] == ['one', 'two']
+
+        return 200, {'content-type': 'multipart/mixed; boundary=b0und'}, [wire[at:at + size] for at in range(0, len(wire), size)]
+
+    async def scenario(scrapfly):
+        configs = [ScrapeConfig(url='https://web-scraping.dev/1', correlation_id='one'), ScrapeConfig(url='https://web-scraping.dev/2', correlation_id='two')]
+
+        return await collect(scrapfly.scrape_batch(configs))
+
+    results, seen = run(kind, server, scenario)
+
+    assert [(correlation_id, result.content) for correlation_id, result in results] == [('two', 'second'), ('one', 'first')]
+    assert seen[0].path == '/scrape/batch'
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_batch_validation_sends_nothing(kind):
+    async def scenario(scrapfly):
+        return await collect(scrapfly.scrape_batch([ScrapeConfig(url='https://web-scraping.dev/')]))
+
+    with pytest.raises(ScrapflyError, match='correlation_id'):
+        run(kind, lambda seen: pytest.fail('nothing must be sent'), scenario)
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_playback_is_polled_until_ready(kind):
+    replies = iter([{'status': 'uploading', 'retry_after_ms': 1}, {'status': 'uploading', 'retry_after_ms': 1}, {'status': 'ready', 'video_url': 'v'}])
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.cloud_browser_wait_for_playback('run-1', timeout=10))
+
+    playback, seen = run(kind, lambda seen: json_reply(next(replies)), scenario)
+
+    assert playback['status'] == 'ready'
+    assert [s.path for s in seen] == ['/run/run-1/playback'] * 3
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_extension_upload_is_sent_as_multipart(kind, tmp_path):
+    extension = tmp_path / 'ext.zip'
+    extension.write_bytes(b'PK\x03\x04zip')
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.cloud_browser_extension_upload(str(extension)))
+
+    result, seen = run(kind, lambda seen: json_reply({'extension': {'id': 'e1'}}), scenario)
+
+    assert result == {'extension': {'id': 'e1'}}
+    assert seen[0].headers['content-type'].startswith('multipart/form-data; boundary=')
+    assert b'filename="ext.zip"' in seen[0].body and b'PK\x03\x04zip' in seen[0].body
+
+
+def test_async_operations_are_coroutines_with_the_sync_docstring():
+    scrapfly = AsyncScrapflyClient(key=KEY)
+
+    assert inspect.iscoroutinefunction(scrapfly.scrape)
+    assert inspect.isasyncgenfunction(scrapfly.scrape_batch)
+    assert scrapfly.scrape.__doc__ == ScrapflyClient(key=KEY).scrape.__doc__
+    assert not inspect.iscoroutinefunction(ScrapflyClient(key=KEY).scrape)
+
+
+def test_async_concurrent_scrape_yields_results_and_errors(monkeypatch):
+    def server(seen: Seen):
+        return DROP if seen.query['url'] == ['https://web-scraping.dev/down'] else json_reply(envelope(seen.query['url'][0]))
+
+    async def scenario(scrapfly):
+        configs = [ScrapeConfig(url=f'https://web-scraping.dev/{path}') for path in ('a', 'down', 'b')]
+
+        return [result async for result in scrapfly.concurrent_scrape(configs, concurrency=2)]
+
+    results, _ = run('async', server, scenario, monkeypatch)
+
+    assert sorted(result.content for result in results if isinstance(result, ScrapeApiResponse)) == ['https://web-scraping.dev/a', 'https://web-scraping.dev/b']
+    assert [type(result) for result in results if not isinstance(result, ScrapeApiResponse)] == [httpx.ConnectError]
+
+
+def test_async_client_opened_once_reuses_one_connection_pool():
+    opened = []
+
+    class Client(AsyncScrapflyClient):
+        def _new_http(self):
+            opened.append(1)
+
+            return httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, json=envelope('ok'))))
+
+    async def main():
+        async with Client(key=KEY, host=HOST) as scrapfly:
+            for _ in range(3):
+                await scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/'))
+
+        await Client(key=KEY, host=HOST).scrape(ScrapeConfig(url='https://web-scraping.dev/'))
+
+    asyncio.run(main())
+
+    assert len(opened) == 2

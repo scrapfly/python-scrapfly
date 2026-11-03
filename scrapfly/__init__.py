@@ -28,6 +28,7 @@ from .errors import CrawlerPromptError
 from .errors import CrawlerRefreshError
 from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
+from .async_client import AsyncScrapflyClient
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig, VisionDeficiency
 from .extraction_config import ExtractionConfig
@@ -104,6 +105,7 @@ __all__: Tuple[str, ...] = (
     'ErrorFactory',
     'HttpError',
     'ScrapflyClient',
+    'AsyncScrapflyClient',
     'ResponseBodyHandler',
     'ScrapeConfig',
     'ScreenshotConfig',

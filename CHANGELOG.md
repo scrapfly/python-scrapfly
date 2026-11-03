@@ -22,6 +22,9 @@
 
 ### Added
 
+- `AsyncScrapflyClient`: every method of `ScrapflyClient` as a coroutine over httpx, `scrape_batch` and
+  `crawl_prompt` as async iterators, a native `concurrent_scrape`. Both clients run the same operations
+  (`scrapfly/api.py`): a call written once works in both. `httpx` is now a dependency, `backoff` no longer is.
 - `create_server(max_concurrent_decodes=2)`: bodies decoded at once, so unauthenticated requests cannot
   stack `max_body_size` allocations. A delivery waiting longer than 30 s gets a 503 the sender retries.
 - `webhook_from_payload(max_body_size=...)`.
