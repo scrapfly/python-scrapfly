@@ -1031,11 +1031,13 @@ class ScrapflyApi(ScheduleClientMixin):
 
         if response.status_code != 200:
             # Batch-level error (plan gate, validation, insufficient
-            # concurrency, etc.). Response is a single JSON body, not
-            # multipart.
+            # concurrency, etc.): a single body, msgpack when it was accepted, not multipart.
             try:
-                body = response.json()
-            except Exception:
+                if self.body_handler.support(response.headers):
+                    body = self.body_handler(response.content, response.headers['content-type'])
+                else:
+                    body = response.json()
+            except (EncoderError, Exception):
                 body = {"message": response.text, "code": "ERR::API::INTERNAL_ERROR"}
             err_code = body.get("code", "ERR::API::INTERNAL_ERROR")
             err_msg = body.get("message", "") or body.get("reason", "")

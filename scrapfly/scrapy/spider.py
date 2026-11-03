@@ -1,5 +1,7 @@
+import asyncio
 import collections
 import copy
+import sys
 import uuid
 import logging
 
@@ -15,7 +17,6 @@ from scrapy.utils.spider import iterate_spider_output
 from scrapy.crawler import Crawler
 from scrapy.settings import BaseSettings
 
-from twisted.internet.defer import Deferred
 from twisted.internet import task
 
 from scrapfly import ScrapflyClient, ScrapeConfig, ScrapflyError
@@ -113,6 +114,11 @@ class ScrapflySpider(scrapy.Spider):
     def closed(self, reason:str):
         self.scrapfly_client.close()
 
+    async def start(self):
+        # Scrapy 2.13+ starts from start(), and from 2.19 its default no longer calls start_requests().
+        for request in self.start_requests():
+            yield request
+
     def start_requests(self) -> Iterable[ScrapflyScrapyRequest]:
         for scrape_config in self.start_urls:
             if not isinstance(scrape_config, ScrapeConfig):
@@ -146,18 +152,24 @@ class ScrapflySpider(scrapy.Spider):
 
         logger.warning(f"Retrying {request} for x{retries - 1}: {reason}", extra={'spider': self})
 
-        if delay is None:
-            deferred = Deferred()
-            deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
-        else:
-            from twisted.internet import reactor # prevent reactor already install issue
-            from . import current_scrapy_version, comparable_version
-            if current_scrapy_version >= comparable_version('2.10.0'):
-                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
-            else:
-                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+        return self._crawl_later(retryreq, delay or 0)
 
-        return deferred
+    def _crawl_later(self, request: ScrapflyScrapyRequest, delay: float):
+        """Crawl `request` in `delay` seconds: a Deferred under a Twisted reactor, an asyncio task without one (Scrapy 2.15+)."""
+        from . import current_scrapy_version, comparable_version
+
+        args = (request,) if current_scrapy_version >= comparable_version('2.10.0') else (request, self)
+
+        if 'twisted.internet.reactor' not in sys.modules:
+            async def crawl():
+                await asyncio.sleep(delay)
+                self.crawler.engine.crawl(*args)
+
+            return asyncio.ensure_future(crawl())
+
+        from twisted.internet import reactor # prevent reactor already install issue
+
+        return task.deferLater(reactor, delay, self.crawler.engine.crawl, *args)
 
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
@@ -168,7 +180,6 @@ class ScrapflySpider(scrapy.Spider):
             host=crawler.settings.get('SCRAPFLY_HOST', ScrapflyClient.HOST),
             verify=crawler.settings.get('SCRAPFLY_SSL_VERIFY', True),
             debug=crawler.settings.get('SCRAPFLY_DEBUG', False),
-            distributed_mode=crawler.settings.get('SCRAPFLY_DISTRIBUTED_MODE', False),
             connect_timeout=crawler.settings.get('SCRAPFLY_CONNECT_TIMEOUT', ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
             read_timeout=crawler.settings.get('SCRAPFLY_READ_TIMEOUT', ScrapflyClient.DEFAULT_READ_TIMEOUT),
         )

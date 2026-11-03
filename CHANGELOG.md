@@ -11,6 +11,7 @@
 - `speedups` installs `backports.zstd` below Python 3.14 in place of `zstandard`, the zstd module urllib3 uses.
 - Webhook bodies decode strictly: a single gzip member, no bytes after the compressed stream, no truncated stream.
 - `scrapfly.polyfill` is removed.
+- The `scrapy` extra requires Scrapy 2.11.1 or newer. Scrapy 2.11 and 2.12 themselves need `Twisted<24.7`.
 
 ### Fixed
 
@@ -19,6 +20,11 @@
   before the size limit applied, and crafted deflate or gzip bodies cost seconds of CPU, all before the
   signature is checked.
 - The client no longer decodes a second time a body urllib3 already decompressed.
+- `scrape_batch` reads a batch-level error answered in msgpack: its message was lost.
+- `ScrapflySpider` crawls again on Scrapy 2.16 and later: it now defines `start()`, which Scrapy reads in place
+  of `start_requests()` (Scrapy 2.19 no longer calls `start_requests()` at all).
+- The Scrapy integration emits no deprecation warning from Scrapy 2.11 to 2.19: the middlewares no longer
+  require the `spider` argument, the download handler is a coroutine on Scrapy 2.14+, retries are coroutines.
 
 ### Added
 
@@ -28,3 +34,7 @@
 - `create_server(max_concurrent_decodes=2)`: bodies decoded at once, so unauthenticated requests cannot
   stack `max_body_size` allocations. A delivery waiting longer than 30 s gets a 503 the sender retries.
 - `webhook_from_payload(max_body_size=...)`.
+- Scrapy: when an asyncio loop drives Scrapy (`AsyncioSelectorReactor`, or no reactor at all with
+  `TWISTED_REACTOR_ENABLED = False` on Scrapy 2.15+), Scrapfly requests go through `AsyncScrapflyClient`, one
+  connection pool per crawl. Other reactors keep Twisted's HTTP client. Tested on every Scrapy release from 2.11
+  to 2.19 and every reactor mode each one supports.

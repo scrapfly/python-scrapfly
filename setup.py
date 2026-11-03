@@ -64,7 +64,7 @@ EXTRA_DEPENDENCIES = {
         'sentry-sdk'
     ],
     'scrapy': [
-        'scrapy>=2.4.0'
+        'scrapy>=2.11.1'
     ],
     'parser': [
         'lxml',

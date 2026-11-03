@@ -299,6 +299,19 @@ def test_batch_parts_are_decoded_as_they_arrive(kind, size):
 
 
 @pytest.mark.parametrize('kind', CLIENTS)
+def test_batch_error_reads_a_msgpack_body(kind):
+    """The batch asks for msgpack when it is installed, and the API answers its errors in it too."""
+    msgpack = pytest.importorskip('msgpack')
+    error = {'code': 'ERR::SCRAPE::BATCH_CONFIG', 'message': 'configs[1] has no url', 'http_code': 422, 'retryable': False}
+
+    async def scenario(scrapfly):
+        return await collect(scrapfly.scrape_batch([ScrapeConfig(url='https://web-scraping.dev/', correlation_id='one')]))
+
+    with pytest.raises(ScrapflyError, match='configs\\[1\\] has no url'):
+        run(kind, lambda seen: (422, {'content-type': 'application/msgpack'}, [msgpack.packb(error)]), scenario)
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
 def test_batch_validation_sends_nothing(kind):
     async def scenario(scrapfly):
         return await collect(scrapfly.scrape_batch([ScrapeConfig(url='https://web-scraping.dev/')]))
