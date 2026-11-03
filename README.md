@@ -15,6 +15,10 @@ You can also install extra dependencies
 * `pip install "scrapfly-sdk[concurrency]"` kept for compatibility, concurrency needs no extra dependency
 * `pip install "scrapfly-sdk[all]"` Everything!
 
+The `speedups` and `webhook-server` extras install `brotli` (CPython) or `brotlicffi`. Up to 0.12 they installed the
+archived `brotlipy`, which pip does not remove on upgrade and which shadows `brotli` under the same import name:
+run `pip uninstall brotlipy` before upgrading.
+
 For use of built-in HTML parser (via `ScrapeApiResponse.selector` property) additional requirement of either [parsel](https://pypi.org/project/parsel/) or [scrapy](https://pypi.org/project/Scrapy/) is required.
 
 For reference of usage or examples, please checkout the folder `/examples` in this repository.

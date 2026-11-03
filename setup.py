@@ -13,8 +13,8 @@ import re
 import sys
 from setuptools import find_packages, setup
 
-if sys.version_info < (3, 6):
-    raise RuntimeError("Scrapfly SDK requires Python 3.6+")
+if sys.version_info < (3, 12):
+    raise RuntimeError("Scrapfly SDK requires Python 3.12+")
 
 HERE = pathlib.Path(__file__).parent
 
@@ -73,15 +73,18 @@ EXTRA_DEPENDENCIES = {
         'extruct'
     ],
     'speedups': [
-        'brotlipy',
+        'brotli>=1.2.0; platform_python_implementation == "CPython"',
+        'brotlicffi>=1.2.0.0; platform_python_implementation != "CPython"',
         'msgpack',
-        'zstandard; python_version < "3.14"'
+        # urllib3 decodes zstd with compression.zstd or its backport, never zstandard.
+        'backports.zstd>=1.0.0; python_version < "3.14"',
     ],
     'webhook-server': [
         'flask',
         # The read path decodes whatever the webhook is configured to send, and the
         # dashboard offers brotli and msgpack; without these a valid delivery fails.
-        'brotlipy',
+        'brotli>=1.2.0; platform_python_implementation == "CPython"',
+        'brotlicffi>=1.2.0.0; platform_python_implementation != "CPython"',
         'msgpack',
     ],
     'concurrency': [],
@@ -117,12 +120,9 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.14',
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Internet'
@@ -133,7 +133,7 @@ setup(
         'Source': 'https://github.com/scrapfly/python-sdk',
     },
     packages=find_packages(exclude=['tests', 'tests.*']),
-    python_requires='>=3.6',
+    python_requires='>=3.12',
     install_requires=install_requires,
     extras_require=EXTRA_DEPENDENCIES,
     include_package_data=True,

@@ -1,5 +1,6 @@
 from typing import Callable, Optional, Tuple, Union
 from enum import Enum
+from threading import BoundedSemaphore
 from time import time
 
 from scrapfly import ResponseBodyHandler
@@ -28,6 +29,9 @@ class ResourceType(Enum):
 
 # Replay window for alert webhooks, applied either side of now to tolerate clock skew.
 ALERT_TIMESTAMP_TOLERANCE = 300
+
+# How long a delivery waits for a decode slot before a 503 the sender retries.
+DECODE_WAIT_SECONDS = 30
 
 
 def _alert_signed_message(
@@ -59,6 +63,7 @@ def create_server(
     callback: Callable,
     app: Optional['flask.Flask'] = None,
     max_body_size: int = MAX_DECOMPRESSED_SIZE,
+    max_concurrent_decodes: int = 2,
 ) -> 'flask.Flask':
     """
     Serve Scrapfly webhooks on POST /webhook and hand each verified body to
@@ -71,6 +76,8 @@ def create_server(
     :param callback: receives the verified body, its resource type, and the request.
     :param app: optional Flask app to mount the route on.
     :param max_body_size: reject bodies larger than this, before and after decompression.
+    :param max_concurrent_decodes: bodies decoded at once. A body is decoded before its
+        signature is checked, so each can cost max_body_size to any sender.
     """
     if not signing_secrets:
         raise ValueError('create_server requires the webhook signing secret(s) from your Scrapfly dashboard')
@@ -88,6 +95,7 @@ def create_server(
     app.config['MAX_CONTENT_LENGTH'] = max_body_size
 
     body_handler = ResponseBodyHandler(signing_secrets=signing_secrets)
+    decode_slots = BoundedSemaphore(max_concurrent_decodes)
     supported_resource_types = tuple(resource_type.value for resource_type in ResourceType)
 
     @app.route("/webhook", methods=["POST"])
@@ -116,6 +124,10 @@ def create_server(
                 logger.warning("Rejected alert webhook with a missing or stale timestamp from %s", request.remote_addr)
                 return make_response("", 401)
 
+        if not decode_slots.acquire(timeout=DECODE_WAIT_SECONDS):
+            logger.warning("Deferred %s webhook from %s: %d bodies already decoding", resource_type, request.remote_addr, max_concurrent_decodes)
+            return make_response("", 503)
+
         try:
             data = body_handler.read(
                 content=request.get_data(),
@@ -132,6 +144,8 @@ def create_server(
             # Decoding runs before verification, so its failures are reachable unauthenticated.
             logger.exception("Rejected undecodable %s webhook from %s", resource_type, request.remote_addr)
             return make_response("", 400)
+        finally:
+            decode_slots.release()
 
         try:
             callback(data, resource_type, request)

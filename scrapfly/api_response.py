@@ -1,19 +1,18 @@
 import base64
 import hashlib
 import hmac
+import importlib
 import re
 import logging
 import shutil
+import sys
+import warnings
+import zlib
 
 from base64 import b64decode
 from contextlib import suppress
 from datetime import datetime
-from functools import partial
-
-try:
-    from functools import cached_property
-except ImportError:
-    from .polyfill.cached_property import cached_property
+from functools import cached_property, partial
 
 from http.cookiejar import Cookie
 from http.cookies import SimpleCookie
@@ -22,7 +21,7 @@ from json import JSONDecoder, loads
 
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
-from typing import List, Dict, Optional, Iterable, Union, TextIO, Tuple, Callable
+from typing import List, Dict, Optional, Iterable, Iterator, Union, TextIO, Tuple, Callable
 
 from requests.structures import CaseInsensitiveDict
 
@@ -86,6 +85,81 @@ def _bounded(chunks: Iterable[bytes], limit: int) -> bytes:
     return bytes(out)
 
 
+def _zlib_chunks(content: bytes, wbits: int) -> Iterator[bytes]:
+    decoder = zlib.decompressobj(wbits)
+
+    # Sliced: unconsumed_tail copies the input left on every call.
+    for at in range(0, len(content), _DECOMPRESS_CHUNK):
+        if decoder.eof:
+            raise ValueError('trailing data after the compressed stream')
+
+        data = content[at:at + _DECOMPRESS_CHUNK]
+
+        while data:
+            yield decoder.decompress(data, _DECOMPRESS_CHUNK)
+            data = decoder.unconsumed_tail
+
+    yield decoder.flush()
+
+    if not decoder.eof or decoder.unused_data:
+        raise ValueError('truncated compressed stream or trailing data after it')
+
+
+def _brotli_decoder():
+    """A brotlicffi or brotli Decompressor, the first that caps its output if any does."""
+    decoders = []
+
+    # A brotlipy left behind by an upgrade shadows Google's brotli.
+    for name in ('brotlicffi', 'brotli'):
+        with suppress(ImportError):
+            decoders.append(importlib.import_module(name).Decompressor())
+
+    if not decoders:
+        raise ImportError('decoding brotli needs brotli (CPython) or brotlicffi: pip install "scrapfly-sdk[speedups]"')
+
+    return next((decoder for decoder in decoders if hasattr(decoder, 'can_accept_more_data')), decoders[0])
+
+
+def _brotli_chunks(decoder, content: bytes) -> Iterator[bytes]:
+    # Google's brotli holds output past the last input: drained once a call returns nothing.
+    for at in range(0, len(content), _DECOMPRESS_CHUNK):
+        if decoder.is_finished():
+            raise ValueError('trailing data after the brotli stream')
+
+        data = content[at:at + _DECOMPRESS_CHUNK]
+
+        while True:
+            out = decoder.process(data, output_buffer_limit=_DECOMPRESS_CHUNK)
+            data = b''
+
+            if not out:
+                break
+
+            yield out
+
+    # brotlicffi 1.2.0.x keeps trailing bytes without raising.
+    if not decoder.is_finished() or not decoder.can_accept_more_data():
+        raise ValueError('truncated brotli stream or trailing data after it')
+
+
+def _zstd_chunks(decoder, content: bytes) -> Iterator[bytes]:
+    for at in range(0, len(content), _DECOMPRESS_CHUNK):
+        if decoder.eof:
+            raise ValueError('trailing data after the zstd frame')
+
+        data = content[at:at + _DECOMPRESS_CHUNK]
+
+        while True:
+            yield decoder.decompress(data, max_length=_DECOMPRESS_CHUNK)
+            data = b''
+
+            if decoder.eof or decoder.needs_input:
+                break
+
+    if not decoder.eof or decoder.unused_data:
+        raise ValueError('truncated zstd frame or trailing data after it')
+
+
 def decompress(content: bytes, content_encoding: Optional[str], limit: int = MAX_DECOMPRESSED_SIZE) -> bytes:
     """
     Reverse the Content-Encoding applied to a webhook body.
@@ -94,57 +168,38 @@ def decompress(content: bytes, content_encoding: Optional[str], limit: int = MAX
     """
     encoding = (content_encoding or '').lower()
 
-    if encoding in ('', 'none', 'identity'):
+    if encoding in ('', 'none', 'identity') or not content:
         return content
 
+    # One member, as Scrapfly sends: GzipFile parses member headers in Python, slowly.
     if encoding in ('gzip', 'gz'):
-        import gzip
-
-        with gzip.GzipFile(fileobj=BytesIO(content)) as decoder:
-            return _bounded(iter(lambda: decoder.read(_DECOMPRESS_CHUNK), b''), limit)
+        return _bounded(_zlib_chunks(content, 16 + zlib.MAX_WBITS), limit)
 
     if encoding == 'deflate':
-        import zlib
-
-        decoder = zlib.decompressobj()
-
-        def deflate_chunks():
-            data = content
-            while data:
-                yield decoder.decompress(data, _DECOMPRESS_CHUNK)
-                data = decoder.unconsumed_tail
-
-            yield decoder.flush()
-
-        return _bounded(deflate_chunks(), limit)
+        return _bounded(_zlib_chunks(content, zlib.MAX_WBITS), limit)
 
     if encoding in ('brotli', 'br'):
-        try:
-            import brotlicffi as brotli
-        except ImportError:
-            import brotli
+        decoder = _brotli_decoder()
 
-        decoder = brotli.Decompressor()
+        # brotlipy and brotli < 1.2 cannot cap one call: decode as before, with a warning.
+        if not hasattr(decoder, 'can_accept_more_data'):
+            warnings.warn('%s cannot cap its output, so a brotli body is not bounded until it is decoded: '
+                          'pip uninstall brotlipy, then install brotli>=1.2.0 or brotlicffi>=1.2.0.0'
+                          % type(decoder).__module__)
+            step = decoder.process if hasattr(decoder, 'process') else decoder.decompress
 
-        return _bounded(
-            (decoder.decompress(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)),
-            limit,
-        )
+            return _bounded((step(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)), limit)
+
+        return _bounded(_brotli_chunks(decoder, content), limit)
 
     if encoding == 'zstd':
-        try:
-            from compression import zstd as _zstd  # Python 3.14+
+        # Not zstandard: its decompressobj has no output cap and its reader no end of frame.
+        if sys.version_info >= (3, 14):
+            from compression import zstd
+        else:
+            from backports import zstd
 
-            decoder = _zstd.ZstdDecompressor()
-        except ImportError:
-            import zstandard
-
-            decoder = zstandard.ZstdDecompressor().decompressobj()
-
-        return _bounded(
-            (decoder.decompress(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)),
-            limit,
-        )
+        return _bounded(_zstd_chunks(zstd.ZstdDecompressor(), content), limit)
 
     raise ValueError('unsupported webhook content encoding: %s' % content_encoding)
 

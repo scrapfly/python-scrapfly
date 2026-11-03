@@ -1,10 +1,20 @@
 import json
+import sys
 import warnings
 from enum import Enum
 from typing import Optional, Dict, Union
 from urllib.parse import quote_plus
 from base64 import urlsafe_b64encode
 from .api_config import BaseApiConfig
+
+
+def _zstd():
+    if sys.version_info >= (3, 14):
+        from compression import zstd
+    else:
+        from backports import zstd
+
+    return zstd
 
 
 class CompressionFormat(Enum):
@@ -121,11 +131,11 @@ class ExtractionConfig(BaseApiConfig):
 
                 elif compression_foramt == CompressionFormat.ZSTD:
                     try:
-                        import zstandard as zstd
+                        zstd = _zstd()
                     except ImportError:
                         raise ExtractionConfigError(
-                            f'zstandard is not installed. You must run pip install zstandard'
-                            f' to auto compress into zstd or use compression formats.'
+                            'zstd needs Python 3.14 or backports.zstd: pip install "scrapfly-sdk[speedups]"'
+                            ' to auto compress into zstd or use compression formats.'
                         )
                     self.body = zstd.compress(self.body)
                 
@@ -183,8 +193,7 @@ class ExtractionConfig(BaseApiConfig):
                     self.body = gzip.decompress(self.body)
                     
                 elif compression_foramt == CompressionFormat.ZSTD:
-                    import zstandard as zstd
-                    self.body = zstd.decompress(self.body)
+                    self.body = _zstd().decompress(self.body)
 
                 elif compression_foramt == CompressionFormat.DEFLATE:
                     import zlib

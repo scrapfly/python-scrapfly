@@ -447,6 +447,7 @@ def webhook_from_payload(
     signature: Optional[str] = None,
     raw_body: Optional[bytes] = None,
     content_encoding: Optional[str] = None,
+    max_body_size: Optional[int] = None,
 ) -> CrawlerWebhook:
     """
     Parse a raw crawler webhook envelope into a typed dataclass.
@@ -474,6 +475,9 @@ def webhook_from_payload(
         content_encoding: The ``Content-Encoding`` header, when the webhook is
             configured to compress. Signing happens before encoding, so a
             compressed body has to be inflated before the digest matches.
+        max_body_size: Refuse a body that inflates past this many bytes. It is
+            decoded before it is verified, so any sender reaches it. ``None``
+            keeps the 256 MiB default of ``create_server``.
 
     Returns:
         A typed webhook instance matching the event.
@@ -484,6 +488,10 @@ def webhook_from_payload(
             ``signing_secrets`` is set without ``raw_body``, or if neither
             ``payload`` nor ``signing_secrets`` is supplied.
         WebhookSignatureMissMatch: If the signature is absent or does not match.
+        WebhookBodyTooLarge: If the body inflates past ``max_body_size``.
+        Exception: The decoder's own error (``zlib.error``, ``brotli.error``,
+            ``ValueError`` for a truncated stream...) for a body that does not
+            decode: answer it as a bad request, any sender can post one.
 
     Example:
         >>> from flask import Flask, request
@@ -491,8 +499,8 @@ def webhook_from_payload(
         >>> app = Flask(__name__)
         >>> @app.route('/webhook', methods=['POST'])
         ... def handle_webhook():
+        ...     # No request.json: Flask cannot parse a compressed body.
         ...     wh = webhook_from_payload(
-        ...         request.json,
         ...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
         ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
         ...         raw_body=request.get_data(),
@@ -507,7 +515,7 @@ def webhook_from_payload(
         # Imported here rather than at module scope to avoid a circular import.
         from json import loads
 
-        from ..api_response import ResponseBodyHandler, decompress
+        from ..api_response import MAX_DECOMPRESSED_SIZE, ResponseBodyHandler, decompress
         from ..errors import WebhookSignatureMissMatch
 
         if raw_body is None:
@@ -518,7 +526,7 @@ def webhook_from_payload(
 
         handler = ResponseBodyHandler(signing_secrets=signing_secrets)
         # Signing happens before Content-Encoding is applied.
-        verified = decompress(raw_body, content_encoding)
+        verified = decompress(raw_body, content_encoding, MAX_DECOMPRESSED_SIZE if max_body_size is None else max_body_size)
 
         if not handler.verify(verified, signature):
             raise WebhookSignatureMissMatch()

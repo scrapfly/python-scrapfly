@@ -26,10 +26,7 @@ import logging
 from .errors import ContentError
 from .reporter import Reporter
 
-try:
-    from functools import cached_property
-except ImportError:
-    from .polyfill.cached_property import cached_property
+from functools import cached_property
 
 from .errors import *
 from .api_response import ResponseBodyHandler
@@ -1341,7 +1338,9 @@ class ScrapflyClient(ScheduleClientMixin):
                 # on valid zstd/br responses with a non-json/msgpack content-type.
                 raw = response.content
                 content_encoding = response.headers.get('content-encoding', '').lower()
-                if content_encoding in ('gzip', 'gz', 'deflate', 'br', 'brotli', 'zstd'):
+                # urllib3 already inflated these: a second decode corrupts some bodies.
+                if content_encoding in ('gzip', 'gz', 'deflate', 'br', 'brotli', 'zstd') \
+                        and content_encoding not in urllib3.response.HTTPResponse.CONTENT_DECODERS:
                     try:
                         raw = self.body_handler.read(
                             content=raw,

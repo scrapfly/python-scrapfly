@@ -2,12 +2,17 @@ import gzip
 import hashlib
 import hmac
 import json
+import os
+import sys
+import threading
 import time
+import types
 import zlib
 
 import pytest
 
-from scrapfly.api_response import ResponseBodyHandler
+from scrapfly import api_response
+from scrapfly.api_response import ResponseBodyHandler, WebhookBodyTooLarge, decompress
 from scrapfly.crawler.crawler_webhook import webhook_from_payload
 from scrapfly.errors import WebhookSignatureMissMatch
 from scrapfly.webhook import create_server
@@ -178,6 +183,160 @@ def test_decompression_bomb_is_refused(server):
     bomb = zlib.compress(b'\0' * (600 * 1024 * 1024))
     status, delivered = server(b'', content_encoding='deflate', signature=None, on_wire=bomb)
     assert (status, delivered) == (400, False)
+
+
+MIB = 1024 * 1024
+
+ENCODINGS = ('gzip', 'deflate', 'br', 'zstd')
+
+
+def zstd():
+    if sys.version_info >= (3, 14):
+        from compression import zstd
+
+        return zstd
+
+    return pytest.importorskip('backports.zstd')
+
+
+def encoder(encoding: str):
+    """The one-shot compressor Scrapfly applies for `encoding`."""
+    if encoding == 'br':
+        return pytest.importorskip('brotli').compress
+
+    if encoding == 'zstd':
+        return zstd().compress
+
+    return {'gzip': gzip.compress, 'deflate': zlib.compress}[encoding]
+
+
+def zeros_stream(encoding: str, size: int) -> bytes:
+    """`size` bytes of zeros compressed a MiB at a time, so the test never holds them."""
+    if encoding == 'br':
+        compressor = pytest.importorskip('brotli').Compressor(quality=5)
+        feed, end = compressor.process, compressor.finish
+    elif encoding == 'zstd':
+        compressor = zstd().ZstdCompressor()
+        feed, end = compressor.compress, compressor.flush
+    else:
+        compressor = zlib.compressobj(9, zlib.DEFLATED, 16 + zlib.MAX_WBITS if encoding == 'gzip' else zlib.MAX_WBITS)
+        feed, end = compressor.compress, compressor.flush
+
+    return b''.join(feed(b'\0' * MIB) for _ in range(size // MIB)) + end()
+
+
+@pytest.mark.parametrize('encoding', ENCODINGS)
+def test_body_spanning_many_chunks_round_trips(encoding):
+    """Google's brotli still holds output once all input is in: a short body never shows it."""
+    body = os.urandom(MIB).hex().encode() + b'\0' * (4 * MIB)
+    assert decompress(encoder(encoding)(body), encoding) == body
+
+
+@pytest.mark.parametrize('encoding', ENCODINGS)
+def test_bomb_is_refused_a_chunk_at_a_time(encoding, monkeypatch):
+    """The ceiling holds only if no single decoder call inflates far past the chunk size."""
+    sizes = []
+    bounded = api_response._bounded
+
+    def recorded(chunks, limit):
+        def each():
+            for chunk in chunks:
+                sizes.append(len(chunk))
+                yield chunk
+
+        return bounded(each(), limit)
+
+    monkeypatch.setattr(api_response, '_bounded', recorded)
+
+    with pytest.raises(WebhookBodyTooLarge):
+        decompress(zeros_stream(encoding, 64 * MIB), encoding, limit=8 * MIB)
+
+    # Google's brotli returns up to about twice output_buffer_limit.
+    assert max(sizes) <= 2 * api_response._DECOMPRESS_CHUNK
+
+
+@pytest.mark.parametrize('encoding', ENCODINGS)
+def test_truncated_stream_is_refused(encoding):
+    on_wire = encoder(encoding)(os.urandom(64 * 1024).hex().encode())
+
+    with pytest.raises(ValueError):
+        decompress(on_wire[:len(on_wire) // 2], encoding)
+
+
+@pytest.mark.parametrize('encoding', ENCODINGS)
+def test_trailing_data_is_refused(encoding):
+    """brotlicffi 1.2.0.x neither raises on trailing bytes nor hands them back: a drain loop on them never ends."""
+    with pytest.raises(Exception):
+        decompress(encoder(encoding)(b'{}') + b'X', encoding)
+
+
+def test_brotli_body_verifies_against_its_decompressed_bytes(server):
+    """Past one output chunk, where Google's brotli came back cut short."""
+    body = wire({'result': {'content': os.urandom(MIB).hex()}})
+    assert server(body, content_encoding='br', on_wire=encoder('br')(body)) == (200, True)
+
+
+def test_brotli_bomb_is_refused(server):
+    """1 GiB of zeros is under 2 KB of brotli: one input chunk holds the whole bomb."""
+    status, delivered = server(b'', content_encoding='br', signature=None, on_wire=zeros_stream('br', 300 * MIB))
+    assert (status, delivered) == (400, False)
+
+
+def test_brotli_decoder_without_output_cap_still_decodes(monkeypatch):
+    """pip leaves brotlipy behind on upgrade, and its decoder has decompress() and no output cap."""
+    brotli = pytest.importorskip('brotli')
+
+    class Brotlipy:
+        def __init__(self):
+            self._decoder = brotli.Decompressor()
+
+        def decompress(self, data):
+            return self._decoder.process(data)
+
+    monkeypatch.setattr(api_response, '_brotli_decoder', Brotlipy)
+    body = os.urandom(MIB).hex().encode()
+
+    with pytest.warns(UserWarning, match='brotlipy'):
+        assert decompress(brotli.compress(body), 'br') == body
+
+
+def test_capped_brotli_decoder_wins_over_a_stale_one(monkeypatch):
+    """A brotlicffi older than 1.2, imported first, must not hide a brotli that caps its output."""
+    pytest.importorskip('brotli')
+    stale = types.ModuleType('brotlicffi')
+    stale.Decompressor = type('Decompressor', (), {'decompress': lambda self, data: data})
+    monkeypatch.setitem(sys.modules, 'brotlicffi', stale)
+
+    assert hasattr(api_response._brotli_decoder(), 'can_accept_more_data')
+
+
+def test_decodes_past_the_cap_wait_then_get_503(monkeypatch):
+    """Each body decoded before its signature check can cost max_body_size: concurrency bounds the total."""
+    pytest.importorskip('flask')
+    from scrapfly import webhook
+
+    holding, release = threading.Event(), threading.Event()
+
+    def read(self, **kwargs):
+        holding.set()
+        release.wait(5)
+        return {}
+
+    monkeypatch.setattr(webhook, 'DECODE_WAIT_SECONDS', 0.1)
+    monkeypatch.setattr(ResponseBodyHandler, 'read', read)
+    app = create_server(signing_secrets=(SECRET,), callback=lambda *args: None, max_concurrent_decodes=1)
+    headers = {'X-Scrapfly-Webhook-Resource-Type': 'scrape', 'X-Scrapfly-Webhook-Signature': 'DEAD'}
+    first = threading.Thread(target=app.test_client().post, args=('/webhook',), kwargs={'data': b'{}', 'headers': headers})
+    first.start()
+    holding.wait(5)
+
+    try:
+        assert app.test_client().post('/webhook', data=b'{}', headers=headers).status_code == 503
+    finally:
+        release.set()
+        first.join()
+
+    assert app.test_client().post('/webhook', data=b'{}', headers=headers).status_code == 200
 
 
 def test_missing_content_type_does_not_crash(server):
