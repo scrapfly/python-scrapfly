@@ -10,7 +10,7 @@ import httpx
 import pytest
 import requests
 
-from scrapfly import AsyncScrapflyClient, ScrapeApiResponse, ScrapeConfig, ScrapflyClient
+from scrapfly import AsyncScrapflyClient, ExtractionConfig, ScrapeApiResponse, ScrapeConfig, ScrapflyClient
 from scrapfly import async_client, client
 from scrapfly.errors import CrawlerPromptError, ScrapflyError
 
@@ -84,7 +84,8 @@ def run(kind: str, server: Callable[[Seen], object], scenario, monkeypatch=None)
         scrapfly = ScrapflyClient(key=KEY, host=HOST)
 
         def handler(method, url, params=None, headers=None, data=None, json=None, files=None, **options):
-            prepared = requests.Request(method=method, url=url, params=params, headers=headers, data=data, json=json, files=files).prepare()
+            # The session's merge is what requests.request applies before sending.
+            prepared = requests.Session().prepare_request(requests.Request(method=method, url=url, params=params, headers=headers, data=data, json=json, files=files))
             seen.append(_seen(prepared.method, prepared.url, prepared.body, prepared.headers))
             reply = server(seen[-1])
 
@@ -172,6 +173,23 @@ def test_both_clients_send_the_same_request():
 
     assert [(s.method, s.path, s.query, s.body) for s in sync_seen] == [(s.method, s.path, s.query, s.body) for s in async_seen]
     assert sync_seen[0].headers['content-type'] == async_seen[0].headers['content-type']
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_extraction_without_compression_sends_no_content_encoding(kind):
+    def server(seen: Seen):
+        return json_reply({'data': {'name': 'Box of Chocolate Candy'}, 'content_type': 'application/json'})
+
+    async def scenario(scrapfly):
+        config = ExtractionConfig(body='<h1>Box of Chocolate Candy</h1>', content_type='text/html', extraction_prompt='product name')
+        return await resolve(scrapfly.extract(config))
+
+    response, seen = run(kind, server, scenario)
+
+    assert response.data == {'name': 'Box of Chocolate Candy'}
+    assert (seen[0].method, seen[0].path) == ('POST', '/extraction')
+    assert seen[0].body == b'<h1>Box of Chocolate Candy</h1>'
+    assert 'content-encoding' not in seen[0].headers
 
 
 @pytest.mark.parametrize('kind', CLIENTS)
@@ -391,3 +409,91 @@ def test_async_client_opened_once_reuses_one_connection_pool():
     asyncio.run(main())
 
     assert len(opened) == 2
+
+
+EXTRACT = {
+    'prompt': 'Every plan with its monthly price',
+    'data': {'plans': [{'name': 'Pro', 'monthly_price_usd': 30}]},
+    'sources': [{'id': 1, 'crawler_uuid': '7c7a7c3e', 'url': 'https://web-scraping.dev/pricing', 'title': 'Pricing', 'score': 0.8}],
+    'sources_used': [],
+    'sources_dropped': 0,
+    'truncated': False,
+    'search': {'completeness': 'exact', 'crawls_requested': 2, 'crawls_searched': 1, 'crawls_pruned_exact': 0,
+               'skipped': [{'crawler_uuid': '9f1b', 'reason': 'search_not_enabled'}]},
+}
+
+SCHEMA = {'type': 'object', 'properties': {'plans': {'type': 'array'}}, 'required': ['plans']}
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_extract_sends_the_schema_and_reads_the_data(kind):
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.crawl_extract(['7c7a7c3e', '9f1b'], 'Every plan with its monthly price', SCHEMA, search={'limit': 20}))
+
+    result, seen = run(kind, lambda seen: json_reply(EXTRACT), scenario)
+
+    assert (seen[0].method, seen[0].path) == ('POST', '/crawl/extract')
+    assert json.loads(seen[0].body) == {'prompt': 'Every plan with its monthly price', 'crawl_ids': ['7c7a7c3e', '9f1b'], 'schema': SCHEMA, 'search': {'limit': 20}}
+    assert result.data == {'plans': [{'name': 'Pro', 'monthly_price_usd': 30}]}
+    assert [source.url for source in result.sources] == ['https://web-scraping.dev/pricing']
+    assert result.is_exact
+    assert (result.crawls_requested, result.crawls_searched, result.crawls_pruned_exact) == (2, 1, 0)
+    assert [(skip.crawler_uuid, skip.reason) for skip in result.skipped] == [('9f1b', 'search_not_enabled')]
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_extract_error_is_typed(kind):
+    from scrapfly import CrawlerExtractError
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.crawl_extract(['7c7a7c3e'], 'plans', SCHEMA))
+
+    error = {'code': 'ERR::CRAWLER::CONFIG_ERROR', 'message': 'A non-empty schema must be given'}
+
+    with pytest.raises(CrawlerExtractError, match='schema') as raised:
+        run(kind, lambda seen: json_reply(error, status=400), scenario)
+
+    assert raised.value.code == 'ERR::CRAWLER::CONFIG_ERROR'
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_extract_engine_failure_keeps_its_message(kind):
+    from scrapfly import CrawlerExtractError
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.crawl_extract(['7c7a7c3e'], 'plans', SCHEMA))
+
+    # The engine relays its own failures with the message under `error`.
+    error = {'error': 'the model returned no text', 'code': 'ERR::CRAWLER::PROMPT_GENERATION_FAILED'}
+
+    with pytest.raises(CrawlerExtractError, match='the model returned no text') as raised:
+        run(kind, lambda seen: json_reply(error, status=500), scenario)
+
+    assert raised.value.code == 'ERR::CRAWLER::PROMPT_GENERATION_FAILED'
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('crawl_ids, prompt, schema', [
+    ([], 'plans', SCHEMA), (['7c7a7c3e'], '', SCHEMA), (['7c7a7c3e'], 'plans', {}), (['7c7a7c3e'], 'plans', ['type']),
+])
+def test_extract_validation_sends_nothing(kind, crawl_ids, prompt, schema):
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.crawl_extract(crawl_ids, prompt, schema))
+
+    with pytest.raises(ValueError):
+        run(kind, lambda seen: pytest.fail('nothing must be sent'), scenario)
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_prompt_without_stream_returns_one_object(kind):
+    answer = {'prompt': 'q', 'answer': 'It sells chocolate.', 'sources': [], 'sources_used': [], 'sources_dropped': 0,
+              'truncated': False, 'search': {'completeness': 'exact', 'skipped': []}, 'api_credit': 5}
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.crawl_prompt(['7c7a7c3e'], 'q', stream=False))
+
+    result, seen = run(kind, lambda seen: json_reply(answer), scenario)
+
+    assert json.loads(seen[0].body)['generation'] == {'stream': False}
+    assert seen[0].headers['accept'] == 'application/json'
+    assert result == answer

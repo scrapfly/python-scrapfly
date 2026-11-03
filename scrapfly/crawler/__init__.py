@@ -25,6 +25,8 @@ from .crawler_response import (
     CrawlerSearchSkipped,
     CrawlerSearchResponse,
     CrawlerPromptEvent,
+    CrawlerPromptSource,
+    CrawlerExtractResponse,
     CrawlerRefreshEntry,
     CrawlerRefreshState,
 )
@@ -70,6 +72,8 @@ __all__ = [
     'CrawlerSearchSkipped',
     'CrawlerSearchResponse',
     'CrawlerPromptEvent',
+    'CrawlerPromptSource',
+    'CrawlerExtractResponse',
 
     # Auto-refresh
     'CrawlerRefreshEntry',

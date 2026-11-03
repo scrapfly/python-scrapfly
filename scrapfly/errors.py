@@ -220,6 +220,13 @@ class CrawlerPromptError(CrawlerError):
     pass
 
 
+class CrawlerExtractError(CrawlerError):
+    """
+    Exception raised when ``POST /crawl/extract`` fails.
+    """
+    pass
+
+
 class CrawlerRefreshError(CrawlerError):
     """
     Exception raised when a crawl refresh call fails.
@@ -416,5 +423,6 @@ __all__:Tuple[str, ...] = [
     'ScrapflyCrawlerError',
     'CrawlerSearchError',
     'CrawlerPromptError',
+    'CrawlerExtractError',
     'CrawlerRefreshError',
 ]

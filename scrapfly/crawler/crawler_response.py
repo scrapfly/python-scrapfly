@@ -642,6 +642,80 @@ class CrawlerPromptEvent:
 
 
 @dataclass
+class CrawlerPromptSource:
+    """A retrieved chunk an answer may cite, by ``id``."""
+
+    id: int
+    crawler_uuid: str
+    url: str
+    title: str
+    score: float
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'CrawlerPromptSource':
+        return cls(
+            id=data['id'],
+            crawler_uuid=data['crawler_uuid'],
+            url=data['url'],
+            title=data.get('title', ''),
+            score=data.get('score', 0.0),
+        )
+
+
+class CrawlerExtractResponse:
+    """
+    Response from ``POST /crawl/extract``.
+
+    Returned by :py:meth:`ScrapflyClient.crawl_extract`. The schema the request
+    carried constrains the model as it generates ``data``; it is not validated
+    again afterwards, so validate on your side anything you act on.
+
+    Attributes:
+        prompt: The prompt as the server understood it.
+        data: The extracted object, shaped by the schema.
+        sources: The retrieved chunks ``data`` was built from.
+        sources_dropped: Retrieved chunks that did not fit the context window.
+        truncated: Whether the model hit its output cap.
+        completeness: ``exact`` or ``partial``, as for :class:`CrawlerSearchResponse`.
+        crawls_requested: Crawls in the request.
+        crawls_searched: Crawls opened.
+        crawls_pruned_exact: Crawls the bound proved could not contribute.
+        skipped: Requested crawls that contributed nothing, with a reason.
+    """
+
+    def __init__(self, response_data: Dict[str, Any]):
+        self._data = response_data
+
+        self.prompt: str = response_data['prompt']
+        self.data: Any = response_data['data']
+        self.sources: List[CrawlerPromptSource] = [
+            CrawlerPromptSource.from_dict(s) for s in (response_data.get('sources') or [])
+        ]
+        self.sources_dropped: int = response_data.get('sources_dropped', 0)
+        self.truncated: bool = response_data.get('truncated', False)
+
+        search = response_data.get('search') or {}
+        self.completeness: Optional[str] = search.get('completeness')
+        self.crawls_requested: int = search.get('crawls_requested', 0)
+        self.crawls_searched: int = search.get('crawls_searched', 0)
+        self.crawls_pruned_exact: int = search.get('crawls_pruned_exact', 0)
+        self.skipped: List[CrawlerSearchSkipped] = [
+            CrawlerSearchSkipped.from_dict(s) for s in (search.get('skipped') or [])
+        ]
+
+    @property
+    def is_exact(self) -> bool:
+        """Whether retrieval provably saw the best chunks of every requested crawl."""
+        return self.completeness == 'exact'
+
+    def __repr__(self):
+        return (
+            f"CrawlerExtractResponse(sources={len(self.sources)}, completeness={self.completeness}, "
+            f"skipped={len(self.skipped)}, truncated={self.truncated})"
+        )
+
+
+@dataclass
 class CrawlerRefreshEntry:
     """
     One row of a crawl's refresh timeline.

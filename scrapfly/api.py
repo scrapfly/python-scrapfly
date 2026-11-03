@@ -29,7 +29,7 @@ from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
 from .classify import ClassifyResult
-from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse, CrawlerUrlsResponse, CrawlerSearchResponse, CrawlerPromptEvent, CrawlerRefreshState, CrawlerRefreshEntry
+from .crawler import CrawlerConfig, CrawlerStartResponse, CrawlerStatusResponse, CrawlerArtifactResponse, CrawlerUrlsResponse, CrawlerSearchResponse, CrawlerPromptEvent, CrawlerRefreshState, CrawlerRefreshEntry, CrawlerExtractResponse
 from .browser_config import BrowserConfig, LinkedService
 from .schedule import ScheduleClientMixin
 from .transport import Call, Sleep, Steps, Streamed, operation, ready, retry_delay, streaming
@@ -1895,6 +1895,77 @@ class ScrapflyApi(ScheduleClientMixin):
         return Streamed(response=response, decoder=PromptEventDecoder(response.status_code), chunk_size=512)
 
     @operation
+    def crawl_extract(
+        self,
+        crawl_ids: List[str],
+        prompt: str,
+        schema: Dict[str, Any],
+        search: Optional[Dict[str, Any]] = None,
+    ) -> Steps[CrawlerExtractResponse]:
+        """
+        Extract a structured object from the content of one or more crawls.
+
+        ``POST /crawl/extract`` retrieves like :py:meth:`crawl_prompt` and
+        answers with ``data`` shaped by ``schema``, a JSON Schema handed to the
+        model as its response schema. There is no streaming variant: a partial
+        structured document is not useful.
+
+        No retry: a retry would re-run the fan-out and the generation.
+
+        :param crawl_ids: Crawler job UUIDs to extract from.
+        :param prompt: What to extract. It also drives retrieval.
+        :param schema: JSON Schema of the result. Types, enums and ``required``
+                       are what constrain the model: keep it tight.
+        :param search: Optional retrieval overrides: 'limit', 'mode',
+                       'filters'. Same grammar as :py:meth:`crawl_search`.
+        :return: CrawlerExtractResponse
+
+        Example:
+            ```python
+            result = client.crawl_extract([uuid], 'Every plan with its monthly price in USD', schema={
+                'type': 'object',
+                'properties': {'plans': {'type': 'array', 'items': {'type': 'object', 'properties': {
+                    'name': {'type': 'string'}, 'monthly_price_usd': {'type': 'number'}}}}},
+                'required': ['plans'],
+            })
+            for plan in result.data['plans']:
+                print(plan['name'], plan['monthly_price_usd'])
+            ```
+        """
+        if not crawl_ids:
+            raise ValueError("crawl_ids must contain at least one crawler UUID")
+        if not prompt:
+            raise ValueError("prompt cannot be empty")
+        if not isinstance(schema, dict) or not schema:
+            raise ValueError("schema must be a non-empty JSON Schema object")
+
+        body: Dict[str, Any] = {
+            'prompt': prompt,
+            'crawl_ids': list(crawl_ids),
+            'schema': schema,
+        }
+        if search:
+            body['search'] = search
+
+        response = yield Call(
+            method='POST',
+            url=f'{self.host}/crawl/extract',
+            params={'key': self.key},
+            json=body,
+            timeout=(self.connect_timeout, self.DEFAULT_CRAWLER_PROMPT_API_READ_TIMEOUT),
+            headers={
+                'User-Agent': self.ua,
+                'Accept': 'application/json',
+            },
+            verify=self.verify
+        )
+
+        if response.status_code != 200:
+            self._handle_crawler_error_response(response, error_class=CrawlerExtractError)
+
+        return CrawlerExtractResponse(response.json())
+
+    @operation
     def crawl_refresh_now(self, uuid: str) -> Steps[CrawlerRefreshState]:
         """
         Run one refresh of an existing crawl immediately, without waiting for
@@ -2059,7 +2130,8 @@ class ScrapflyApi(ScheduleClientMixin):
         """
         try:
             error_data = response.json()
-            error_msg = error_data.get('message', 'Unknown error')
+            # The engine relays its own failures as {error: message, code}.
+            error_msg = error_data.get('message') or error_data.get('error') or 'Unknown error'
             error_code = error_data.get('code', 'ERR::CRAWLER::UNKNOWN')
         except Exception:
             error_msg = response.text

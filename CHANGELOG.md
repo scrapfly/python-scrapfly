@@ -34,6 +34,8 @@
 - `create_server(max_concurrent_decodes=2)`: bodies decoded at once, so unauthenticated requests cannot
   stack `max_body_size` allocations. A delivery waiting longer than 30 s gets a 503 the sender retries.
 - `webhook_from_payload(max_body_size=...)`.
+- `crawl_extract(crawl_ids, prompt, schema)` and `Crawl.extract(prompt, schema)`: `POST /crawl/extract`, an
+  object shaped by a JSON Schema, built from the content of one or more crawls (`CrawlerExtractResponse`).
 - Scrapy: when an asyncio loop drives Scrapy (`AsyncioSelectorReactor`, or no reactor at all with
   `TWISTED_REACTOR_ENABLED = False` on Scrapy 2.15+), Scrapfly requests go through `AsyncScrapflyClient`, one
   connection pool per crawl. Other reactors keep Twisted's HTTP client. Tested on every Scrapy release from 2.11

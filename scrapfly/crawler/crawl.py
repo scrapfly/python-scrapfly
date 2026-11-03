@@ -15,6 +15,7 @@ from email.policy import default
 from .crawler_config import CrawlerConfig
 from .crawler_response import (
     CrawlerArtifactResponse,
+    CrawlerExtractResponse,
     CrawlerPromptEvent,
     CrawlerRefreshEntry,
     CrawlerRefreshState,
@@ -422,6 +423,43 @@ class Crawl:
             search=search,
             model=model,
             stream=stream,
+        )
+
+    def extract(
+        self,
+        prompt: str,
+        schema: Dict[str, Any],
+        search: Optional[Dict[str, Any]] = None,
+    ) -> CrawlerExtractResponse:
+        """
+        Extract a structured object from this crawl's content.
+
+        Sugar over :meth:`ScrapflyClient.crawl_extract` with a one-element
+        crawl list.
+
+        Args:
+            prompt: What to extract.
+            schema: JSON Schema of the result.
+            search: Optional retrieval overrides: 'limit', 'mode', 'filters'.
+
+        Returns:
+            CrawlerExtractResponse, its ``data`` shaped by ``schema``.
+
+        Raises:
+            ScrapflyCrawlerError: if the crawler has not been started yet.
+            CrawlerExtractError: if the extraction fails.
+        """
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message="Crawler not started yet. Call crawl() first.",
+                code="NOT_STARTED",
+                http_status_code=400,
+            )
+        return self._client.crawl_extract(
+            crawl_ids=[self._uuid],
+            prompt=prompt,
+            schema=schema,
+            search=search,
         )
 
     def refresh_now(self) -> CrawlerRefreshState:

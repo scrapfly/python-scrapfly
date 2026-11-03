@@ -25,6 +25,7 @@ from .errors import CrawlerError
 from .errors import ScrapflyCrawlerError
 from .errors import CrawlerSearchError
 from .errors import CrawlerPromptError
+from .errors import CrawlerExtractError
 from .errors import CrawlerRefreshError
 from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse, ResponseBodyHandler
 from .client import ScrapflyClient, ScraperAPI, MonitoringTargetPeriod, MonitoringAggregation
@@ -45,6 +46,8 @@ from .crawler import (
     CrawlerSearchSkipped,
     CrawlerSearchResponse,
     CrawlerPromptEvent,
+    CrawlerPromptSource,
+    CrawlerExtractResponse,
     CrawlerRefreshEntry,
     CrawlerRefreshState,
     WarcParser,
@@ -121,6 +124,7 @@ __all__: Tuple[str, ...] = (
     'CrawlerError',
     'CrawlerSearchError',
     'CrawlerPromptError',
+    'CrawlerExtractError',
     'CrawlerRefreshError',
     'ScrapflyCrawlerError',
     'ScraperAPI',
@@ -139,6 +143,8 @@ __all__: Tuple[str, ...] = (
     'CrawlerSearchSkipped',
     'CrawlerSearchResponse',
     'CrawlerPromptEvent',
+    'CrawlerPromptSource',
+    'CrawlerExtractResponse',
     'CrawlerRefreshEntry',
     'CrawlerRefreshState',
     'WarcParser',

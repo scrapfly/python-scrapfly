@@ -98,11 +98,12 @@ class AsyncScrapflyClient(ScrapflyApi):
     async def _send(self, call: Call) -> requests.Response:
         options = call.options
         # requests encodes the query, the body and the multipart exactly as ScrapflyClient sends them.
+        # Session.request drops a header set to None, prepare() alone rejects it.
         prepared = requests.Request(
             method=call.method,
             url=call.url,
             params=options.get('params'),
-            headers=options.get('headers'),
+            headers={name: value for name, value in (options.get('headers') or {}).items() if value is not None},
             data=options.get('data'),
             json=options.get('json'),
             files=options.get('files'),
