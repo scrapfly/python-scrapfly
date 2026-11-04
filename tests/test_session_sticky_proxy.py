@@ -4,10 +4,9 @@ Current contract, verified against the API:
 
   - A reused session with session_sticky_proxy=true keeps one exit IP. That
     network-identity continuity is what a session exists to provide.
-  - session_sticky_proxy=false on a reused session releases the provider's
-    IP-binding token, so the exit IP is free to rotate. It is not required to
-    change on any given pair of calls, so this asserts the call is accepted
-    rather than asserting a different IP.
+  - session_sticky_proxy=false on a reused session lets the exit IP change
+    between calls. It is not required to change on any given pair of calls, so
+    this asserts the call is accepted rather than asserting a different IP.
   - session_sticky_proxy=false with asp=true is rejected with 400. The anti-bot
     clearance is bound to the IP that solved the challenge, so the combination
     is contradictory and the API refuses it instead of silently overriding.
@@ -95,9 +94,9 @@ class TestSessionStickyProxy:
 
     def test_unpinned_session_still_honours_country(self, client: ScrapflyClient, session_name: str):
         """
-        Releasing the IP-binding token also clears the geo attributes derived from
-        the old IP (timezone, city, coordinates, ASN). Country targeting must
-        survive that reset, on the first request and on the reused session.
+        Without a sticky IP, the geo attributes of the session (timezone, city,
+        coordinates) can change too. Country targeting must still hold, on the
+        first request and on the reused session.
         """
         for _ in range(2):
             country = _scrape_country(

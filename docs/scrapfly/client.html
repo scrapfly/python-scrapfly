@@ -342,7 +342,7 @@ el.replaceWith(d);
     ) -&gt; ClassifyResult:
         &#34;&#34;&#34;Classify an already-fetched HTTP response for anti-bot blocking.
 
-        Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+        Runs the same anti-bot detection used by live Scrapfly scrapes
         against a response you already have (from your own proxy, cache,
         etc). 1 API credit per call. See
         https://scrapfly.io/docs/scrape-api/classify for the full contract.
@@ -743,7 +743,7 @@ el.replaceWith(d);
 
         &#39;error&#39;: {
             &#39;code&#39;: &#39;ERR::ASP::SHIELD_PROTECTION_FAILED&#39;,
-            &#39;message&#39;: &#39;The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds&#39;,
+            &#39;message&#39;: &#39;The ASP shield failed to solve the challenge against the anti scrapping protection, please retry in a few seconds&#39;,
             &#39;retryable&#39;: False,
             &#39;http_code&#39;: 422,
             &#39;links&#39;: {
@@ -3162,7 +3162,7 @@ client.cancel_crawl(crawl.uuid)
 ) -&gt; ClassifyResult:
     &#34;&#34;&#34;Classify an already-fetched HTTP response for anti-bot blocking.
 
-    Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+    Runs the same anti-bot detection used by live Scrapfly scrapes
     against a response you already have (from your own proxy, cache,
     etc). 1 API credit per call. See
     https://scrapfly.io/docs/scrape-api/classify for the full contract.
@@ -3208,7 +3208,7 @@ client.cancel_crawl(crawl.uuid)
     return ClassifyResult.from_dict(data)</code></pre>
 </details>
 <div class="desc"><p>Classify an already-fetched HTTP response for anti-bot blocking.</p>
-<p>Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+<p>Runs the same anti-bot detection used by live Scrapfly scrapes
 against a response you already have (from your own proxy, cache,
 etc). 1 API credit per call. See
 <a href="https://scrapfly.io/docs/scrape-api/classify">https://scrapfly.io/docs/scrape-api/classify</a> for the full contract.</p></div>
@@ -5550,7 +5550,7 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 
     &#39;error&#39;: {
         &#39;code&#39;: &#39;ERR::ASP::SHIELD_PROTECTION_FAILED&#39;,
-        &#39;message&#39;: &#39;The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds&#39;,
+        &#39;message&#39;: &#39;The ASP shield failed to solve the challenge against the anti scrapping protection, please retry in a few seconds&#39;,
         &#39;retryable&#39;: False,
         &#39;http_code&#39;: 422,
         &#39;links&#39;: {
@@ -5614,7 +5614,7 @@ def scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -&gt; ScrapeAp
 If the error is not none, you will get the following structure for example</p>
 <p>'error': {
 'code': 'ERR::ASP::SHIELD_PROTECTION_FAILED',
-'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds',
+'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection, please retry in a few seconds',
 'retryable': False,
 'http_code': 422,
 'links': {

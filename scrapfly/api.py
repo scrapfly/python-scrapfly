@@ -389,7 +389,7 @@ class ScrapflyApi(ScheduleClientMixin):
     ) -> Steps[ClassifyResult]:
         """Classify an already-fetched HTTP response for anti-bot blocking.
 
-        Runs the same 80+ shield pipeline used by live Scrapfly scrapes
+        Runs the same anti-bot detection used by live Scrapfly scrapes
         against a response you already have (from your own proxy, cache,
         etc). 1 API credit per call. See
         https://scrapfly.io/docs/scrape-api/classify for the full contract.
@@ -715,7 +715,7 @@ class ScrapflyApi(ScheduleClientMixin):
 
         'error': {
             'code': 'ERR::ASP::SHIELD_PROTECTION_FAILED',
-            'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection - heuristic_engine bypass failed, please retry in few seconds',
+            'message': 'The ASP shield failed to solve the challenge against the anti scrapping protection, please retry in a few seconds',
             'retryable': False,
             'http_code': 422,
             'links': {
