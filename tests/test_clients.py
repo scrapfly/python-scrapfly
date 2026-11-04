@@ -317,6 +317,26 @@ def test_batch_parts_are_decoded_as_they_arrive(kind, size):
 
 
 @pytest.mark.parametrize('kind', CLIENTS)
+def test_batch_sends_each_configs_method_and_body(kind):
+    wire = multipart([('post', envelope('posted')), ('get', envelope('got'))])
+
+    async def scenario(scrapfly):
+        configs = [
+            ScrapeConfig(url='https://web-scraping.dev/api', method='POST', body='{"q": 1}', headers={'content-type': 'application/json'}, correlation_id='post'),
+            ScrapeConfig(url='https://web-scraping.dev/page', correlation_id='get'),
+        ]
+
+        return await collect(scrapfly.scrape_batch(configs))
+
+    _, seen = run(kind, lambda seen: (200, {'content-type': 'multipart/mixed; boundary=b0und'}, [wire]), scenario)
+
+    post, get = json.loads(seen[0].body)['configs']
+    assert (post['method'], post['body']) == ('POST', '{"q": 1}')
+    assert get['method'] == 'GET'
+    assert 'body' not in get
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
 def test_batch_error_reads_a_msgpack_body(kind):
     """The batch asks for msgpack when it is installed, and the API answers its errors in it too."""
     msgpack = pytest.importorskip('msgpack')

@@ -1003,6 +1003,11 @@ class ScrapflyApi(ScheduleClientMixin):
             # a /scrape call, so the wire contract is identical.
             params = cfg.to_api_params(key=self.key)
             params.pop("key", None)
+            # What a single scrape sends as the request itself: the API reads
+            # both keys of a batch entry and runs a GET without them.
+            params["method"] = cfg.method
+            if cfg.body is not None:
+                params["body"] = cfg.body
             body_configs.append(params)
 
         if format == 'msgpack':
