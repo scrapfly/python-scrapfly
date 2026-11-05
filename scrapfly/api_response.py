@@ -21,8 +21,9 @@ from json import JSONDecoder, loads
 
 from dateutil.parser import parse
 from requests import Request, Response, HTTPError
-from typing import List, Dict, Optional, Iterable, Iterator, Union, TextIO, Tuple, Callable
+from typing import List, Dict, Literal, Optional, Iterable, Iterator, Union, TextIO, Tuple, Callable
 
+import urllib3
 from requests.structures import CaseInsensitiveDict
 
 from .scrape_config import ScrapeConfig
@@ -349,6 +350,23 @@ class ApiResponse:
         self.request = request
         self.response = response
 
+    def decompress(self) -> bytes:
+        """The body, with a Content-Encoding the HTTP client left in place undone."""
+        content = self.response.content
+        content_encoding = self.response.headers.get('content-encoding', '').lower()
+
+        # urllib3 inflated these already: a second pass corrupts some bodies.
+        if content_encoding in urllib3.response.HTTPResponse.CONTENT_DECODERS:
+            return content
+
+        try:
+            return decompress(content, content_encoding, MAX_DECOMPRESSED_SIZE)
+        except WebhookBodyTooLarge:
+            raise
+        except Exception:
+            # The client advertises only what it decodes: a body that does not decode was decoded already.
+            return content
+
     @property
     def headers(self) -> CaseInsensitiveDict:
         return self.response.headers
@@ -441,6 +459,36 @@ class ApiResponse:
                     return
 
                 raise error_class(**args) from e
+
+
+class LargeObjectApiResponse(ApiResponse):
+    """The clob or blob a scrape result points to: the scraped page itself, never an API envelope."""
+
+    def __init__(self, request: Request, response: Response, format: Literal['clob', 'blob'], body_handler: 'ResponseBodyHandler'):
+        super().__init__(request, response)
+        self.format = format
+        self.error = None
+        # Only an error answer is an API envelope.
+        self.result = {}
+
+        if not response.ok and body_handler.support(headers=response.headers):
+            with suppress(EncoderError):
+                self.result = body_handler(content=response.content, content_type=response.headers['content-type'])
+
+    def raise_for_result(self, raise_on_upstream_error: bool = True, error_class=ApiHttpClientError):
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+        # An error answer without an envelope (a proxy's 502 page) is not the page either.
+        self.response.raise_for_status()
+
+    @property
+    def content(self) -> Union[str, BytesIO]:
+        content = self.decompress()
+
+        return content.decode('utf-8') if self.format == 'clob' else BytesIO(content)
+
+    @property
+    def content_format(self) -> Literal['text', 'binary']:
+        return 'text' if self.format == 'clob' else 'binary'
 
 
 class ScrapeApiResponse(ApiResponse):

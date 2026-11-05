@@ -24,7 +24,7 @@ from requests import exceptions as RequestExceptions
 from .errors import *
 from .errors import ContentError
 from .reporter import Reporter
-from .api_response import ResponseBodyHandler, decompress
+from .api_response import ApiResponse, LargeObjectApiResponse, ResponseBodyHandler
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
@@ -1292,31 +1292,10 @@ class ScrapflyApi(ScheduleClientMixin):
             params={'key': self.key}
         )
 
-        # A large object is the scraped page itself, not the API envelope: undo the compression only,
-        # never parse it as JSON or msgpack.
-        content = self._decompressed(response)
+        large_object = LargeObjectApiResponse(request=response.request, response=response, format=format, body_handler=self.body_handler)
+        large_object.raise_for_result()
 
-        if format == 'clob':
-            return content.decode('utf-8'), 'text'
-
-        return BytesIO(content), 'binary'
-
-    def _decompressed(self, response: Response) -> bytes:
-        """The body bytes, with a compression urllib3 left in place undone."""
-        raw = response.content
-        content_encoding = response.headers.get('content-encoding', '').lower()
-        # urllib3 already inflated these: a second decode corrupts some bodies.
-        if content_encoding in ('gzip', 'gz', 'deflate', 'br', 'brotli', 'zstd') \
-                and content_encoding not in urllib3.response.HTTPResponse.CONTENT_DECODERS:
-            try:
-                # Not body_handler.read(): it also parses JSON and msgpack, and this returns bytes.
-                raw = decompress(raw, content_encoding)
-            except Exception:
-                # Fall through to tolerant decode below; don't mask the
-                # real error with a decoder crash.
-                pass
-
-        return raw
+        return large_object.content, large_object.content_format
 
     def _scrape_body(self, response: Response, scrape_config: ScrapeConfig):
         if scrape_config.method == 'HEAD':
@@ -1326,7 +1305,7 @@ class ScrapflyApi(ScheduleClientMixin):
             return self.body_handler(content=response.content, content_type=response.headers['content-type'])
 
         # body_handler rejected — content-type not in SUPPORTED_CONTENT_TYPES.
-        raw = self._decompressed(response)
+        raw = ApiResponse(request=response.request, response=response).decompress()
 
         if isinstance(raw, (bytes, bytearray)):
             return raw.decode('utf-8', errors='replace')

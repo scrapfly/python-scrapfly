@@ -1,5 +1,6 @@
 """ScrapflyClient and AsyncScrapflyClient run the same operations: every scenario runs on both, against one fake API."""
 import asyncio
+import gzip
 import inspect
 import json
 from io import BytesIO
@@ -12,8 +13,9 @@ import pytest
 import requests
 
 from scrapfly import AsyncScrapflyClient, ExtractionConfig, ScrapeApiResponse, ScrapeConfig, ScrapflyClient
-from scrapfly import async_client, client
-from scrapfly.errors import CrawlerPromptError, ScrapflyError
+from scrapfly import api_response, async_client, client
+from scrapfly.api_response import ApiResponse
+from scrapfly.errors import ApiHttpClientError, ApiHttpServerError, CrawlerPromptError, ScrapflyError
 
 pytestmark = pytest.mark.unit
 
@@ -218,6 +220,7 @@ def test_large_content_is_fetched_before_the_response_is_built(kind):
     ('clob', 'application/json', b'{"products": [{"id": 1}]}', '{"products": [{"id": 1}]}'),
     ('clob', 'text/html', b'<h1>large</h1>', '<h1>large</h1>'),
     ('blob', 'application/pdf', b'%PDF-\x00\xff', b'%PDF-\x00\xff'),
+    ('blob', 'application/json', b'{"products": [{"id": 1}]}', b'{"products": [{"id": 1}]}'),
 ])
 def test_large_object_is_returned_as_is(kind, format, content_type, body, expected):
     def server(seen: Seen):
@@ -245,9 +248,59 @@ def test_large_object_is_returned_as_is(kind, format, content_type, body, expect
 
 
 @pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('status,headers,body,error', [
+    (404, {'content-type': 'application/json'}, json.dumps({'reason': 'Not Found', 'message': 'Large Object 01 not found', 'error_id': '01', 'http_code': 404}).encode(), ApiHttpClientError),
+    (500, {'content-type': 'application/json'}, json.dumps({'reason': 'Internal Server Error', 'message': 'Internal Error', 'error_id': '01', 'http_code': 500}).encode(), ApiHttpServerError),
+    (502, {'content-type': 'text/html'}, b'<h1>Bad Gateway</h1>', requests.HTTPError),
+])
+@pytest.mark.parametrize('format', ['clob', 'blob'])
+def test_a_large_object_error_is_raised_not_returned_as_the_page(kind, status, headers, body, error, format):
+    def server(seen: Seen):
+        if seen.path == '/scrape':
+            return json_reply(envelope(HOST + '/scrape/large_object/01', format=format))
+
+        return status, headers, [body]
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')))
+
+    with pytest.raises(error) as raised:
+        run(kind, server, scenario)
+
+    assert KEY not in str(raised.value)
+
+
+@pytest.mark.parametrize('content_encoding,body,expected', [
+    ('gz', gzip.compress(b'large text'), b'large text'),
+    # The HTTP client inflated it and left the header: the body is returned as it is.
+    ('brotli', b'large text', b'large text'),
+    # A .gz file served gzip: urllib3 inflated one layer, the file is the content.
+    ('gzip', gzip.compress(b'large text'), gzip.compress(b'large text')),
+    ('', b'large text', b'large text'),
+])
+def test_an_api_response_undoes_only_the_encoding_left_in_place(content_encoding, body, expected):
+    response = requests.Response()
+    response.status_code = 200
+    response.headers['content-encoding'] = content_encoding
+    response._content = body
+
+    assert ApiResponse(request=response.request, response=response).decompress() == expected
+
+
+def test_an_api_response_past_the_decompression_limit_raises(monkeypatch):
+    monkeypatch.setattr(api_response, 'MAX_DECOMPRESSED_SIZE', 16)
+    response = requests.Response()
+    response.status_code = 200
+    response.headers['content-encoding'] = 'gz'
+    response._content = gzip.compress(b'x' * 1024)
+
+    with pytest.raises(api_response.WebhookBodyTooLarge):
+        ApiResponse(request=response.request, response=response).decompress()
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
 def test_compressed_json_large_object_stays_text(kind):
     # `gz` is gzip that urllib3 does not inflate. The SDK must, and must not parse the JSON.
-    import gzip
     page = b'{"products": [{"id": 1}]}'
 
     def server(seen: Seen):
