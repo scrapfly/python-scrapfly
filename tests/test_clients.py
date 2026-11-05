@@ -3,6 +3,7 @@ import asyncio
 import gzip
 import inspect
 import json
+import traceback
 from io import BytesIO
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Tuple
@@ -267,7 +268,8 @@ def test_a_large_object_error_is_raised_not_returned_as_the_page(kind, status, h
     with pytest.raises(error) as raised:
         run(kind, server, scenario)
 
-    assert KEY not in str(raised.value)
+    # A traceback prints the chained causes too, as Sentry and logger.exception do.
+    assert KEY not in ''.join(traceback.format_exception(raised.value))
 
 
 @pytest.mark.parametrize('content_encoding,body,expected', [

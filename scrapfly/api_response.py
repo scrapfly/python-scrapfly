@@ -33,6 +33,7 @@ from .errors import ErrorFactory, ScreenshotAPIError, ExtractionAPIError, Encode
     ApiHttpServerError, UpstreamHttpError, HttpError, \
     ExtraUsageForbidden, WebhookSignatureMissMatch, ContentError, api_error_args
 from .frozen_dict import FrozenDict
+from .transport import without_key
 
 logger = logging.getLogger(__name__)
 
@@ -452,13 +453,13 @@ class ApiResponse:
                 args.update(request=e.request, response=e.response, api_response=self)
 
                 if e.response.status_code >= 500:
-                    raise ApiHttpServerError(**args) from e
+                    raise ApiHttpServerError(**args) from without_key(e)
 
                 # respect raise_on_upstream_error with screenshot and extraction only
                 if error_class in (ScreenshotAPIError, ExtractionAPIError) and not raise_on_upstream_error:
                     return
 
-                raise error_class(**args) from e
+                raise error_class(**args) from without_key(e)
 
 
 class LargeObjectApiResponse(ApiResponse):
