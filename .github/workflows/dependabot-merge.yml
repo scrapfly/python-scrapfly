@@ -1,0 +1,40 @@
+name: Dependabot merge
+
+on:
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge a patch or minor update whose tests passed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number,headRefOid --jq ".[] | select(.headRefOid == \"$HEAD_SHA\") | .number")
+          if [ -z "$pr" ]; then
+            echo "No open pull request at $HEAD_SHA"
+            exit 0
+          fi
+          types=$(gh pr view "$pr" --repo "$REPO" --json commits --jq '.commits[].messageBody' | { grep -oE 'update-type: version-update:semver-[a-z]+' || true; } | sort -u)
+          echo "$types"
+          if [ -z "$types" ] || echo "$types" | grep -q 'semver-major'; then
+            echo "Left for review"
+            exit 0
+          fi
+          gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$HEAD_SHA"
