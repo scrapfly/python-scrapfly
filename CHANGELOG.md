@@ -15,6 +15,10 @@
 
 ### Fixed
 
+- A large object (`format == "clob"`) whose body is JSON no longer raises `AttributeError: 'dict' object has no
+  attribute 'decode'`: the API body handler parsed it as an envelope. A large object is the scraped page itself,
+  so only its compression is undone. Large objects are first resolved in 0.8.18; 0.8.17 and earlier return the
+  large-object URL string unresolved, with no warning.
 - Brotli webhooks decode with Google's `brotli`, and bodies past about 480 KB are no longer cut short.
 - Every webhook encoding is bounded per decoder call. A few KB of brotli or zstd could allocate gigabytes
   before the size limit applied, and crafted deflate or gzip bodies cost seconds of CPU, all before the
