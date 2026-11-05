@@ -2,6 +2,7 @@
 import asyncio
 import inspect
 import json
+from io import BytesIO
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Tuple
 from urllib.parse import parse_qs, urlsplit
@@ -210,6 +211,77 @@ def test_large_content_is_fetched_before_the_response_is_built(kind):
     assert response.scrape_result['content'] == 'large text'
     assert response.scrape_result['format'] == 'text'
     assert [s.path for s in seen] == ['/scrape', '/scrape/clob/01']
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('format,content_type,body,expected', [
+    ('clob', 'application/json', b'{"products": [{"id": 1}]}', '{"products": [{"id": 1}]}'),
+    ('clob', 'text/html', b'<h1>large</h1>', '<h1>large</h1>'),
+    ('blob', 'application/pdf', b'%PDF-\x00\xff', b'%PDF-\x00\xff'),
+])
+def test_large_object_is_returned_as_is(kind, format, content_type, body, expected):
+    def server(seen: Seen):
+        if seen.path == '/scrape':
+            return json_reply(envelope(HOST + '/scrape/large/01', format=format))
+
+        return 200, {'content-type': content_type}, [body]
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')))
+
+    response, _ = run(kind, server, scenario)
+    content = response.scrape_result['content']
+
+    # The envelope around the large object is still the API result.
+    assert response.config['url'] == 'https://web-scraping.dev/product/1'
+    assert response.scrape_result['success'] is True
+
+    if format == 'clob':
+        assert isinstance(content, str) and content == expected
+        assert response.scrape_result['format'] == 'text'
+    else:
+        assert isinstance(content, BytesIO) and content.read() == expected
+        assert response.scrape_result['format'] == 'binary'
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_compressed_json_large_object_stays_text(kind):
+    # `gz` is gzip that urllib3 does not inflate. The SDK must, and must not parse the JSON.
+    import gzip
+    page = b'{"products": [{"id": 1}]}'
+
+    def server(seen: Seen):
+        if seen.path == '/scrape':
+            return json_reply(envelope(HOST + '/scrape/clob/02', format='clob'))
+
+        return 200, {'content-type': 'application/json', 'content-encoding': 'gz'}, [gzip.compress(page)]
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')))
+
+    response, _ = run(kind, server, scenario)
+
+    assert response.scrape_result['content'] == page.decode()
+    assert response.scrape_result['format'] == 'text'
+    assert response.config['url'] == 'https://web-scraping.dev/product/1'
+    assert response.scrape_result['success'] is True
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_a_json_scrape_envelope_is_still_parsed(kind):
+    """Sharing decompression with large objects must not skip parsing a real API envelope."""
+    def server(seen: Seen):
+        return json_reply(envelope('{"products": [{"id": 1}]}'))
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/products.json')))
+
+    response, seen = run(kind, server, scenario)
+
+    assert response.scrape_result['content'] == '{"products": [{"id": 1}]}'
+    assert response.scrape_result['format'] == 'text'
+    assert response.config['url'] == 'https://web-scraping.dev/product/1'
+    assert len(seen) == 1
 
 
 @pytest.mark.parametrize('kind', CLIENTS)

@@ -24,7 +24,7 @@ from requests import exceptions as RequestExceptions
 from .errors import *
 from .errors import ContentError
 from .reporter import Reporter
-from .api_response import ResponseBodyHandler
+from .api_response import ResponseBodyHandler, decompress
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
@@ -1292,15 +1292,31 @@ class ScrapflyApi(ScheduleClientMixin):
             params={'key': self.key}
         )
 
-        if self.body_handler.support(headers=response.headers):
-            content = self.body_handler(content=response.content, content_type=response.headers['content-type'])
-        else:
-            content = response.content
+        # A large object is the scraped page itself, not the API envelope: undo the compression only,
+        # never parse it as JSON or msgpack.
+        content = self._decompressed(response)
 
         if format == 'clob':
             return content.decode('utf-8'), 'text'
 
         return BytesIO(content), 'binary'
+
+    def _decompressed(self, response: Response) -> bytes:
+        """The body bytes, with a compression urllib3 left in place undone."""
+        raw = response.content
+        content_encoding = response.headers.get('content-encoding', '').lower()
+        # urllib3 already inflated these: a second decode corrupts some bodies.
+        if content_encoding in ('gzip', 'gz', 'deflate', 'br', 'brotli', 'zstd') \
+                and content_encoding not in urllib3.response.HTTPResponse.CONTENT_DECODERS:
+            try:
+                # Not body_handler.read(): it also parses JSON and msgpack, and this returns bytes.
+                raw = decompress(raw, content_encoding)
+            except Exception:
+                # Fall through to tolerant decode below; don't mask the
+                # real error with a decoder crash.
+                pass
+
+        return raw
 
     def _scrape_body(self, response: Response, scrape_config: ScrapeConfig):
         if scrape_config.method == 'HEAD':
@@ -1310,26 +1326,7 @@ class ScrapflyApi(ScheduleClientMixin):
             return self.body_handler(content=response.content, content_type=response.headers['content-type'])
 
         # body_handler rejected — content-type not in SUPPORTED_CONTENT_TYPES.
-        # Response may still be compressed (zstd/brotli) if requests did
-        # not transparently decompress. Probe content-encoding and try
-        # the handler's read() anyway before falling back to a tolerant
-        # utf-8 decode.
-        raw = response.content
-        content_encoding = response.headers.get('content-encoding', '').lower()
-        # urllib3 already inflated these: a second decode corrupts some bodies.
-        if content_encoding in ('gzip', 'gz', 'deflate', 'br', 'brotli', 'zstd') \
-                and content_encoding not in urllib3.response.HTTPResponse.CONTENT_DECODERS:
-            try:
-                raw = self.body_handler.read(
-                    content=raw,
-                    content_encoding=content_encoding,
-                    content_type=response.headers.get('content-type', ''),
-                    signature=None,
-                )
-            except Exception:
-                # Fall through to tolerant decode below; don't mask the
-                # real error with a decoder crash.
-                pass
+        raw = self._decompressed(response)
 
         if isinstance(raw, (bytes, bytearray)):
             return raw.decode('utf-8', errors='replace')
