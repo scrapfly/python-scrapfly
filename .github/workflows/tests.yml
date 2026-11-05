@@ -14,8 +14,8 @@ jobs:
       matrix:
         python-version: ['3.12', '3.13', '3.14']
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install ".[speedups,webhook-server,scrapy]" pytest
@@ -33,8 +33,8 @@ jobs:
           - scrapy: '2.14.2'
           - scrapy: '2.19.0'
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: pip install . "scrapy==${{ matrix.scrapy }}" ${{ matrix.pins }} pytest
