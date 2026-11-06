@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scrapfly"
+version = "0.0.1"
+description = "Alias of scrapfly-sdk, the Scrapfly Python SDK"
+readme = "README.md"
+license = "BSD-2-Clause"
+license-files = ["LICENSE"]
+authors = [{name = "Scrapfly", email = "tech@scrapfly.io"}]
+dependencies = ["scrapfly-sdk"]
+
+[project.optional-dependencies]
+all = ["scrapfly-sdk[all]"]
+
+[project.urls]
+Documentation = "https://scrapfly.io/docs"
+Source = "https://github.com/scrapfly/python-scrapfly"
+
+[tool.setuptools]
+packages = []
