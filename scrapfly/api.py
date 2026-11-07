@@ -1124,6 +1124,10 @@ class ScrapflyApi(ScheduleClientMixin):
                     http_status_code=500,
                 )
 
+        # A config with a webhook is answered by its enqueue ack, the scrape's answer under `result`.
+        if isinstance(parsed, dict) and parsed.get("enqueued") is True and isinstance(parsed.get("result"), dict):
+            parsed = parsed["result"]
+
         try:
             large_objects = yield from self._large_objects(parsed)
             api_response = ScrapeApiResponse(

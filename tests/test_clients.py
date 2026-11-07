@@ -444,6 +444,24 @@ def test_batch_parts_are_decoded_as_they_arrive(kind, size):
 
 
 @pytest.mark.parametrize('kind', CLIENTS)
+def test_batch_reads_the_enqueue_ack_of_a_webhook(kind):
+    scrape = envelope('')
+    scrape['result'].update({'status': 'QUEUED', 'success': None, 'status_code': None})
+    wire = multipart([('hook', {'correlation_id': 'hook', 'webhook_name': 'my-webhook', 'job_uuid': '01', 'enqueued': True, 'result': scrape})])
+
+    def server(seen: Seen):
+        return 200, {'content-type': 'multipart/mixed; boundary=b0und'}, [wire]
+
+    async def scenario(scrapfly):
+        return await collect(scrapfly.scrape_batch([ScrapeConfig(url='https://web-scraping.dev/1', correlation_id='hook', webhook='my-webhook')]))
+
+    results, _ = run(kind, server, scenario)
+
+    assert results[0][0] == 'hook'
+    assert results[0][1].scrape_result['status'] == 'QUEUED'
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
 def test_batch_sends_each_configs_method_and_body(kind):
     wire = multipart([('post', envelope('posted')), ('get', envelope('got'))])
 
