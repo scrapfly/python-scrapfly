@@ -25,6 +25,9 @@ class FakeApi(BaseHTTPRequestHandler):
         if split.path == '/account':
             return self._json({'account': {'suspended': False}, 'subscription': {'max_concurrency': 4}, 'project': {'concurrency_limit': None}})
 
+        if split.path == '/plain':
+            return self._html('<html><body><h1>plain</h1></body></html>')
+
         url = query['url'][0]
         page = int(url.rsplit('/', 1)[1])
 
@@ -60,6 +63,14 @@ class FakeApi(BaseHTTPRequestHandler):
         for name, value in (headers or {}).items():
             self.send_header(name, value)
 
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _html(self, page):
+        body = page.encode()
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
@@ -105,6 +116,13 @@ def main(mode: str):
             for href in response.css('a::attr(href)').getall():
                 yield ScrapflyScrapyRequest(scrape_config=ScrapeConfig(url=href), callback=self.parse)
 
+            # A plain Request goes to Scrapy's own http handler, which needs a reactor.
+            if mode != 'reactorless' and response.url.endswith('/page/1'):
+                yield scrapy.Request(f'http://127.0.0.1:{server.server_port}/plain', callback=self.parse_plain)
+
+        def parse_plain(self, response):
+            plain.append(response.css('h1::text').get())
+
     settings = {
         'SCRAPFLY_API_KEY': 'scp-test-0000',
         'SCRAPFLY_HOST': f'http://127.0.0.1:{server.server_port}',
@@ -119,7 +137,7 @@ def main(mode: str):
     elif mode == 'reactorless':
         settings['TWISTED_REACTOR_ENABLED'] = False
 
-    items, errors = [], []
+    items, errors, plain = [], [], []
 
     # Signals hold their receivers weakly: these must stay referenced until the crawl ends.
     def on_item(item, **kwargs):
@@ -146,6 +164,7 @@ def main(mode: str):
         'mode': mode,
         'titles': sorted(item['title'] for item in items),
         'errors': errors,
+        'plain': plain,
         'retries': stats.get('scrapfly/api_retry/count', 0),
         'api_cost': stats.get('scrapfly/api_call_cost'),
         'finish_reason': stats.get('finish_reason'),

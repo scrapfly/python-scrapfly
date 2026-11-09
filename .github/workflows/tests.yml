@@ -21,7 +21,7 @@ jobs:
       - run: pip install ".[speedups,webhook-server,scrapy]" pytest
       - run: python -m pytest -q
 
-  # The oldest Scrapy supported, the first with the async start() and handlers, and the newest.
+  # The oldest Scrapy supported, the first with the async start() and handlers, and 2.19. The unit jobs run the newest.
   scrapy:
     runs-on: ubuntu-latest
     strategy:

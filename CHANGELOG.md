@@ -34,8 +34,13 @@
   key: a traceback, `logger.exception` or Sentry printed the key. The chained error reads `key=REDACTED`.
 - `ScrapflySpider` crawls again on Scrapy 2.16 and later: it now defines `start()`, which Scrapy reads in place
   of `start_requests()` (Scrapy 2.19 no longer calls `start_requests()` at all).
-- The Scrapy integration emits no deprecation warning from Scrapy 2.11 to 2.19: the middlewares no longer
+- The Scrapy integration emits no deprecation warning from Scrapy 2.11 to 2.20: the middlewares no longer
   require the `spider` argument, the download handler is a coroutine on Scrapy 2.14+, retries are coroutines.
+- `ScrapflySpider` crawls on Scrapy 2.20: the download handler no longer writes Scrapy's private handler tables,
+  whose shape 2.20 changed. Every request failed with `NotSupported: Unsupported URL scheme 'https'`.
+- A crawl reaching a second URL scheme (an `http://` page after `https://` ones, or a plain Scrapy `Request`) no
+  longer fails with `NotSupported: Unsupported URL scheme 'http'`: building the download handler of the first
+  scheme removed the `http` and `https` entries from the crawler's own `DOWNLOAD_HANDLERS`.
 
 ### Added
 
@@ -50,4 +55,4 @@
 - Scrapy: when an asyncio loop drives Scrapy (`AsyncioSelectorReactor`, or no reactor at all with
   `TWISTED_REACTOR_ENABLED = False` on Scrapy 2.15+), Scrapfly requests go through `AsyncScrapflyClient`, one
   connection pool per crawl. Other reactors keep Twisted's HTTP client. Tested on every Scrapy release from 2.11
-  to 2.19 and every reactor mode each one supports.
+  to 2.20 and every reactor mode each one supports.

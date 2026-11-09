@@ -14,7 +14,6 @@ from zope.interface import implementer
 
 from scrapy.core.downloader.handlers import DownloadHandlers
 from scrapy.utils.defer import deferred_from_coro, maybe_deferred_to_future
-from scrapy.utils.python import without_none_values
 
 from . import ScrapflyScrapyRequest, ScrapflySpider, ScrapflyScrapyResponse
 from .. import AsyncScrapflyClient, HttpError, ScrapeApiResponse, ScrapflyError
@@ -43,6 +42,17 @@ def asyncio_available() -> bool:
     return is_asyncio_available()
 
 
+def with_default_http_handlers(crawler):
+    """A copy of the crawler whose settings send http and https to Scrapy's default handler."""
+    settings = crawler.settings.copy()
+    del settings['DOWNLOAD_HANDLERS']['http']
+    del settings['DOWNLOAD_HANDLERS']['https']
+
+    default = copy(crawler)
+    default.settings = settings
+    return default
+
+
 class ScrapflyHTTPDownloader:
     """
     Sends a ScrapflyScrapyRequest of a ScrapflySpider to the Scrapfly API, through AsyncScrapflyClient when an
@@ -50,24 +60,14 @@ class ScrapflyHTTPDownloader:
     to the handler Scrapy has for its scheme.
     """
 
-    # Loaded on the first request: the DownloadHandlers built below would otherwise load this class again.
+    # Built on the first request.
     lazy = True
 
     def __init__(self, settings, crawler=None):
         self._crawler = crawler
-        self._donwload_handler = DownloadHandlers(crawler)
+        # Scrapy's own handlers, for the requests that are not a ScrapflyScrapyRequest.
+        self._donwload_handler = DownloadHandlers(with_default_http_handlers(crawler))
         self._client: Optional[AsyncScrapflyClient] = None
-
-        # Restore default downloader for http/https when not using ScraplyRequest following Scrapy's default behavior
-        settings_without_scrapfly_http_downloader = copy(settings)
-        del settings_without_scrapfly_http_downloader['DOWNLOAD_HANDLERS']['http']
-        del settings_without_scrapfly_http_downloader['DOWNLOAD_HANDLERS']['https']
-        self._donwload_handler.handlers = without_none_values(settings_without_scrapfly_http_downloader.getwithbase("DOWNLOAD_HANDLERS"))
-
-        for scheme, clspath in self._donwload_handler.handlers.items():
-            self._donwload_handler._schemes[scheme] = clspath
-            self._donwload_handler._load_handler(scheme, skip_lazy=True)
-        # End
 
         if settings.get('SCRAPFLY_SSL_VERIFY') is False:
             import twisted.internet._sslverify as v
