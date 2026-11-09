@@ -462,6 +462,36 @@ class ApiResponse:
                 raise error_class(**args) from without_key(e)
 
 
+def error_without_envelope(response: Response) -> FrozenDict:
+    """What an error answer with no API envelope (a proxy's 502 page) says, in the envelope's fields."""
+    message = response.reason or 'HTTP %d' % response.status_code
+
+    if response.headers.get('content-type', '').startswith('text/'):
+        text = response.text.strip()
+
+        if text:
+            message = text[:200]
+
+    return FrozenDict({'http_code': response.status_code, 'reason': response.reason or '', 'message': message})
+
+
+def raise_for_an_error_without_envelope(api_response: ApiResponse, error_class) -> None:
+    """Raise the typed error of an error answer that carries no API envelope; one with an envelope is the base class's."""
+    if 'error_id' in api_response.result:
+        return
+
+    try:
+        api_response.response.raise_for_status()
+    except HTTPError as error:
+        args = api_error_args(api_response.result, http_status_code=error.response.status_code)
+        args.update(request=error.request, response=error.response, api_response=api_response)
+
+        if error.response.status_code >= 500:
+            raise ApiHttpServerError(**args) from without_key(error)
+
+        raise error_class(**args) from without_key(error)
+
+
 class LargeObjectApiResponse(ApiResponse):
     """The clob or blob a scrape result points to: the scraped page itself, never an API envelope."""
 
@@ -818,6 +848,10 @@ class ScreenshotApiResponse(ApiResponse):
         self.screenshot_config = screenshot_config
         self.result = self.handle_api_result(api_result)
 
+        # An error answer without an envelope is not an image.
+        if not response.ok and 'error_id' not in self.result:
+            self.result = error_without_envelope(response)
+
     @property
     def image(self) -> Optional[str]:
         binary = self.result.get('result', None)
@@ -869,6 +903,7 @@ class ScreenshotApiResponse(ApiResponse):
 
     def raise_for_result(self, raise_on_upstream_error=True, error_class=ScreenshotAPIError):
         super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+        raise_for_an_error_without_envelope(self, error_class)
 
 
 class ExtractionApiResponse(ApiResponse):
@@ -876,6 +911,10 @@ class ExtractionApiResponse(ApiResponse):
         super().__init__(request, response)
         self.extraction_config = extraction_config
         self.result = self.handle_api_result(api_result)
+
+        # An error answer without an envelope is not a result.
+        if not response.ok and 'error_id' not in self.result:
+            self.result = error_without_envelope(response)
 
     @property
     def extraction_result(self) -> Optional[Dict]:
@@ -909,10 +948,10 @@ class ExtractionApiResponse(ApiResponse):
 
     @property
     def error(self) -> Optional[Dict]:
-        if self.extraction_result is None:
-            return self.result
+        if 'result' in self.result:
+            return None
 
-        return None
+        return self.result
 
     def _is_api_error(self, api_result: Dict) -> bool:
         if api_result is None:
@@ -928,3 +967,4 @@ class ExtractionApiResponse(ApiResponse):
 
     def raise_for_result(self, raise_on_upstream_error=True, error_class=ExtractionAPIError):
         super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+        raise_for_an_error_without_envelope(self, error_class)

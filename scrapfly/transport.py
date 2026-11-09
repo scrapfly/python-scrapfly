@@ -29,11 +29,13 @@ P = ParamSpec('P')
 class Call:
     """One HTTP exchange, as the keyword arguments of requests.request."""
 
-    def __init__(self, method: str, url: str, *, tries: int = 1, **options: Any):
+    def __init__(self, method: str, url: str, *, tries: int = 1, retry_read_timeout: bool = True, **options: Any):
         self.method = method
         self.url = url
         # A retry on a network error sends the request again: only for calls safe to repeat.
         self.tries = tries
+        # False: a read timeout is raised at once, the other network errors are retried.
+        self.retry_read_timeout = retry_read_timeout
         self.options = options
 
     @property

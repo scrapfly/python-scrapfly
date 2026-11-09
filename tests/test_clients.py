@@ -12,11 +12,12 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 import pytest
 import requests
+import urllib3
 
-from scrapfly import AsyncScrapflyClient, ExtractionConfig, ScrapeApiResponse, ScrapeConfig, ScrapflyClient
+from scrapfly import AsyncScrapflyClient, ExtractionConfig, ScrapeApiResponse, ScrapeConfig, ScreenshotConfig, ScrapflyClient
 from scrapfly import api_response, async_client, client
 from scrapfly.api_response import ApiResponse
-from scrapfly.errors import ApiHttpClientError, ApiHttpServerError, CrawlerPromptError, ScrapflyError
+from scrapfly.errors import ApiHttpClientError, ApiHttpServerError, CrawlerPromptError, ExtractionAPIError, ScrapflyError, ScreenshotAPIError
 
 pytestmark = pytest.mark.unit
 
@@ -26,6 +27,10 @@ CLIENTS = ('sync', 'async')
 
 # The fake API drops the connection when it answers this.
 DROP = object()
+# The fake API takes the request and never answers when it answers this.
+READ_TIMEOUT = object()
+# The fake API sends the headers and stops in the body when it answers this.
+BODY_READ_TIMEOUT = object()
 
 
 @dataclass
@@ -96,6 +101,12 @@ def run(kind: str, server: Callable[[Seen], object], scenario, monkeypatch=None)
             if reply is DROP:
                 raise requests.ConnectionError('dropped')
 
+            if reply is READ_TIMEOUT:
+                raise requests.ReadTimeout('timed out')
+
+            if reply is BODY_READ_TIMEOUT:
+                raise requests.ConnectionError(urllib3.exceptions.ReadTimeoutError(None, None, 'Read timed out.'))
+
             status, reply_headers, chunks = reply
             response = requests.Response()
             response.status_code = status
@@ -116,6 +127,9 @@ def run(kind: str, server: Callable[[Seen], object], scenario, monkeypatch=None)
 
         if reply is DROP:
             raise httpx.ConnectError('dropped', request=request)
+
+        if reply is READ_TIMEOUT or reply is BODY_READ_TIMEOUT:
+            raise httpx.ReadTimeout('timed out', request=request)
 
         status, reply_headers, chunks = reply
 
@@ -177,6 +191,47 @@ def test_both_clients_send_the_same_request():
 
     assert [(s.method, s.path, s.query, s.body) for s in sync_seen] == [(s.method, s.path, s.query, s.body) for s in async_seen]
     assert sync_seen[0].headers['content-type'] == async_seen[0].headers['content-type']
+
+
+def test_the_screenshot_read_timeout_outlasts_the_longest_timeout_the_api_accepts():
+    scrapfly = ScrapflyClient(key=KEY, host=HOST)
+
+    timeout = scrapfly._screenshot_request(ScreenshotConfig(url='https://web-scraping.dev/product/1', timeout=120000))['timeout']
+
+    assert timeout[1] > 120
+
+
+def test_the_extraction_read_timeout_outlasts_the_longest_timeout_the_api_accepts():
+    scrapfly = ScrapflyClient(key=KEY, host=HOST)
+
+    timeout = scrapfly._extraction_request(ExtractionConfig(body='<h1>x</h1>', content_type='text/html', timeout=155))['timeout']
+
+    assert timeout[1] > 155
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_the_extraction_prompt_reaches_the_extraction_api_unchanged(kind):
+    prompt = 'Quel est le prix en € ? réponds, merci.'
+
+    def server(seen: Seen):
+        return json_reply({'data': 'prix', 'content_type': 'application/json'})
+
+    async def scenario(scrapfly):
+        config = ExtractionConfig(body='<h1>x</h1>', content_type='text/html', extraction_prompt=prompt)
+        return await resolve(scrapfly.extract(config))
+
+    _, seen = run(kind, server, scenario)
+
+    assert seen[0].query['extraction_prompt'] == [prompt]
+
+
+def test_the_extraction_prompt_of_a_scrape_is_handed_over_unchanged():
+    prompt = 'Quel est le prix en € ? réponds, merci.'
+    config = ScrapeConfig(url='https://web-scraping.dev/product/1', extraction_prompt=prompt)
+
+    params = config.to_api_params(key=KEY)
+
+    assert params['extraction_prompt'] == prompt
 
 
 @pytest.mark.parametrize('kind', CLIENTS)
@@ -350,6 +405,135 @@ def test_a_dropped_connection_is_retried(kind, monkeypatch):
 
     assert response.content == 'ok'
     assert len(seen) == 3
+
+
+CAPTURE_AND_EXTRACTION = [
+    pytest.param(lambda scrapfly: scrapfly.screenshot(ScreenshotConfig(url='https://web-scraping.dev/')), id='screenshot'),
+    pytest.param(lambda scrapfly: scrapfly.extract(ExtractionConfig(body='<h1>x</h1>', content_type='text/html', extraction_prompt='title')), id='extraction'),
+]
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('call', CAPTURE_AND_EXTRACTION)
+@pytest.mark.parametrize('timeout', [READ_TIMEOUT, BODY_READ_TIMEOUT], ids=['waiting-for-the-headers', 'reading-the-body'])
+def test_a_read_timeout_is_not_sent_again(kind, call, timeout, monkeypatch):
+    requests_seen = []
+
+    def server(seen: Seen):
+        requests_seen.append(seen)
+
+        return timeout
+
+    async def scenario(scrapfly):
+        return await resolve(call(scrapfly))
+
+    with pytest.raises((requests.ReadTimeout, requests.ConnectionError, httpx.ReadTimeout)):
+        run(kind, server, scenario, monkeypatch)
+
+    assert len(requests_seen) == 1
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('call', CAPTURE_AND_EXTRACTION)
+def test_a_dropped_connection_is_sent_again(kind, call, monkeypatch):
+    drops = [DROP, DROP]
+
+    async def scenario(scrapfly):
+        return await resolve(call(scrapfly))
+
+    def server(seen: Seen):
+        if drops:
+            return drops.pop()
+
+        return 200, {'content-type': 'image/jpeg'}, [b'image']
+
+    _, seen = run(kind, server, scenario, monkeypatch)
+
+    assert len(seen) == 3
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_a_read_timeout_of_a_scrape_is_sent_again(kind, monkeypatch):
+    requests_seen = []
+
+    def server(seen: Seen):
+        requests_seen.append(seen)
+
+        return READ_TIMEOUT
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')))
+
+    with pytest.raises((requests.ReadTimeout, httpx.ReadTimeout)):
+        run(kind, server, scenario, monkeypatch)
+
+    assert len(requests_seen) == 5
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('call', CAPTURE_AND_EXTRACTION)
+def test_an_error_answer_without_an_envelope_is_raised(kind, call):
+    async def scenario(scrapfly):
+        return await resolve(call(scrapfly))
+
+    with pytest.raises(ApiHttpServerError) as raised:
+        run(kind, lambda seen: (502, {'content-type': 'text/plain'}, [b'Bad Gateway']), scenario)
+
+    assert raised.value.http_status_code == 502 and 'Bad Gateway' in str(raised.value)
+    assert KEY not in ''.join(traceback.format_exception(raised.value))
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+@pytest.mark.parametrize('call,error', [
+    pytest.param(CAPTURE_AND_EXTRACTION[0].values[0], ScreenshotAPIError, id='screenshot'),
+    pytest.param(CAPTURE_AND_EXTRACTION[1].values[0], ExtractionAPIError, id='extraction'),
+])
+def test_a_client_error_answer_without_an_envelope_raises_the_error_of_its_api(kind, call, error):
+    async def scenario(scrapfly):
+        return await resolve(call(scrapfly))
+
+    with pytest.raises(error) as raised:
+        run(kind, lambda seen: (404, {'content-type': 'text/html'}, [b'<h1>Not Found</h1>']), scenario)
+
+    assert raised.value.http_status_code == 404
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_a_screenshot_error_answer_without_an_envelope_is_returned_under_no_raise(kind):
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.screenshot(ScreenshotConfig(url='https://web-scraping.dev/'), no_raise=True))
+
+    response, _ = run(kind, lambda seen: (502, {'content-type': 'text/plain'}, [b'Bad Gateway']), scenario)
+
+    assert response.screenshot_success is False and response.image == ''
+    assert response.error['http_code'] == 502
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_an_extraction_error_returned_under_no_raise_carries_its_envelope(kind):
+    envelope_of_error = {'reason': 'Unprocessable', 'message': 'nothing to extract', 'error_id': '01', 'http_code': 422, 'code': 'ERR::EXTRACTION::NO_CONTENT', 'retryable': False}
+
+    async def scenario(scrapfly):
+        config = ExtractionConfig(body='<h1>x</h1>', content_type='text/html', extraction_prompt='title')
+
+        return await resolve(scrapfly.extract(config, no_raise=True))
+
+    response, _ = run(kind, lambda seen: json_reply(envelope_of_error, status=422), scenario)
+
+    assert response.error['code'] == 'ERR::EXTRACTION::NO_CONTENT'
+    assert response.data is None and response.extraction_success is False
+
+
+@pytest.mark.parametrize('kind', CLIENTS)
+def test_an_error_envelope_with_upstream_errors_allowed_is_returned(kind):
+    envelope_of_error = {'reason': 'Unprocessable', 'message': 'no capture', 'error_id': '01', 'http_code': 422, 'code': 'ERR::SCREENSHOT::UNABLE_TO_TAKE_SCREENSHOT', 'retryable': False}
+
+    async def scenario(scrapfly):
+        return await resolve(scrapfly.screenshot(ScreenshotConfig(url='https://web-scraping.dev/', raise_on_upstream_error=False)))
+
+    response, _ = run(kind, lambda seen: json_reply(envelope_of_error, status=422), scenario)
+
+    assert response.screenshot_success is False
 
 
 @pytest.mark.parametrize('kind', CLIENTS)

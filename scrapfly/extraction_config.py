@@ -3,7 +3,6 @@ import sys
 import warnings
 from enum import Enum
 from typing import Optional, Dict, Union
-from urllib.parse import quote_plus
 from base64 import urlsafe_b64encode
 from .api_config import BaseApiConfig
 
@@ -167,7 +166,7 @@ class ExtractionConfig(BaseApiConfig):
             params['extraction_template'] = 'ephemeral:' + urlsafe_b64encode(template_json.encode('utf-8')).decode('utf-8')
 
         if self.extraction_prompt:
-            params['extraction_prompt'] = quote_plus(self.extraction_prompt)
+            params['extraction_prompt'] = self.extraction_prompt
 
         if self.extraction_model:
             params['extraction_model'] = self.extraction_model

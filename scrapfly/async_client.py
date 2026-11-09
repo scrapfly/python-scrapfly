@@ -96,8 +96,11 @@ class AsyncScrapflyClient(ScrapflyApi):
         for attempt in range(step.tries):
             try:
                 return await self._send(step)
-            except httpx.TransportError:
+            except httpx.TransportError as error:
                 if attempt + 1 == step.tries:
+                    raise
+
+                if isinstance(error, httpx.ReadTimeout) and not step.retry_read_timeout:
                     raise
 
                 await asyncio.sleep(retry_delay(attempt))

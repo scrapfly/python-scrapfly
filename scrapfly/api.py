@@ -157,8 +157,8 @@ class ScrapflyApi(ScheduleClientMixin):
     DEFAULT_READ_TIMEOUT = 30
 
     DEFAULT_WEBSCRAPING_API_READ_TIMEOUT = 160 # 155 real
-    DEFAULT_SCREENSHOT_API_READ_TIMEOUT = 60  # 30 real
-    DEFAULT_EXTRACTION_API_READ_TIMEOUT = 35 # 30 real
+    DEFAULT_SCREENSHOT_API_READ_TIMEOUT = 130  # 120 real
+    DEFAULT_EXTRACTION_API_READ_TIMEOUT = 165 # 155 real
     DEFAULT_CRAWLER_API_READ_TIMEOUT = 30
     # A search fans out over every requested crawl before answering.
     DEFAULT_CRAWLER_SEARCH_API_READ_TIMEOUT = 60
@@ -796,7 +796,7 @@ class ScrapflyApi(ScheduleClientMixin):
 
         try:
             logger.debug('--> %s Screenshoting' % (screenshot_config.url))
-            response = yield Call(tries=5, **self._screenshot_request(screenshot_config=screenshot_config))
+            response = yield Call(tries=5, retry_read_timeout=False, **self._screenshot_request(screenshot_config=screenshot_config))
             screenshot_api_response = self._handle_screenshot_response(response=response, screenshot_config=screenshot_config)
             return screenshot_api_response
         except GeneratorExit:
@@ -832,7 +832,7 @@ class ScrapflyApi(ScheduleClientMixin):
 
         try:
             logger.debug('--> %s Extracting data from' % (extraction_config.content_type))
-            response = yield Call(tries=5, **self._extraction_request(extraction_config=extraction_config))
+            response = yield Call(tries=5, retry_read_timeout=False, **self._extraction_request(extraction_config=extraction_config))
             extraction_api_response = self._handle_extraction_response(response=response, extraction_config=extraction_config)
             return extraction_api_response
         except GeneratorExit:

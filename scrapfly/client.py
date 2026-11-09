@@ -11,6 +11,7 @@ from io import BytesIO
 from typing import Any, Callable, Dict, Iterator, List, Literal, Optional, Tuple, Union
 
 import requests
+import urllib3
 from requests import Response, Session
 
 # Every name this module held before the API moved to api.py.
@@ -41,6 +42,18 @@ def read_stream(streamed: Streamed, run: Optional[Callable[[Steps], Any]]) -> It
             yield item if streamed.finish is None else run(streamed.finish(item))
     finally:
         streamed.response.close()
+
+
+def _is_read_timeout(error: BaseException) -> bool:
+    """A read that timed out: requests raises ReadTimeout while it waits for the headers, and a ConnectionError holding
+    urllib3's ReadTimeoutError while it reads the body."""
+    if isinstance(error, requests.ReadTimeout):
+        return True
+
+    if isinstance(error, requests.ConnectionError) and error.args:
+        return isinstance(error.args[0], urllib3.exceptions.ReadTimeoutError)
+
+    return False
 
 
 class ScrapflyClient(ScrapflyApi):
@@ -115,7 +128,12 @@ class ScrapflyClient(ScrapflyApi):
             try:
                 return self._http_handler(method=step.method, url=step.url, **step.options)
             except (*NetworkError, requests.RequestException) as error:
-                if isinstance(error, NetworkError) and attempt + 1 < step.tries:
+                retries = isinstance(error, NetworkError) and attempt + 1 < step.tries
+
+                if _is_read_timeout(error) and not step.retry_read_timeout:
+                    retries = False
+
+                if retries:
                     time.sleep(retry_delay(attempt))
                     continue
 

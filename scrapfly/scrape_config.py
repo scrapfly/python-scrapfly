@@ -2,7 +2,7 @@ import base64
 import json
 import logging
 from enum import Enum
-from urllib.parse import urlencode, quote_plus
+from urllib.parse import urlencode
 from base64 import urlsafe_b64encode
 from typing import Literal, Optional, List, Dict, Iterable, Union, Set
 from requests.structures import CaseInsensitiveDict
@@ -473,7 +473,7 @@ class ScrapeConfig(BaseApiConfig):
             params['extraction_template'] = 'ephemeral:' + urlsafe_b64encode(self.extraction_ephemeral_template.encode('utf-8')).decode('utf-8')
 
         if self.extraction_prompt:
-            params['extraction_prompt'] = quote_plus(self.extraction_prompt)
+            params['extraction_prompt'] = self.extraction_prompt
 
         if self.extraction_model:
             params['extraction_model'] = self.extraction_model
