@@ -195,7 +195,7 @@ class ScheduleClientMixin:
         kind: Optional[str] = None,
         status: Optional[str] = None,
     ) -> Steps[List[Schedule]]:
-        """List every schedule on the account, optionally filtered by kind or status."""
+        """List the schedules of the API key's project, optionally filtered by kind or status."""
         params: Dict[str, str] = {}
         if kind:
             params["kind"] = kind
