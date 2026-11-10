@@ -87,6 +87,7 @@ class BrowserConfig(BaseApiConfig):
         rtc_username: Optional[str] = None,
         rtc_password: Optional[str] = None,
         hitl_allowed_networks: Optional[Union[str, List[str]]] = None,
+        downloads_stream: Optional[bool] = None,
     ):
         if timeout is not None and timeout > 1800:
             raise ValueError('timeout cannot exceed 1800 seconds (30 minutes)')
@@ -177,6 +178,10 @@ class BrowserConfig(BaseApiConfig):
         if isinstance(hitl_allowed_networks, list):
             hitl_allowed_networks = ','.join(s.strip() for s in hitl_allowed_networks if s and s.strip())
         self.hitl_allowed_networks = hitl_allowed_networks or None
+        # Large downloaded files come back from ScrapiumBrowser.getDownloads as IO stream
+        # handles instead of inline base64: read them with CloudBrowserDownloads.
+        # https://scrapfly.io/docs/cloud-browser-api/file-downloads#large-downloads
+        self.downloads_stream = downloads_stream
 
     @staticmethod
     def project_salt(api_key: str) -> str:
@@ -304,6 +309,9 @@ class BrowserConfig(BaseApiConfig):
         if self.hitl_allowed_networks is not None:
             params['hitl_allowed_networks'] = self.hitl_allowed_networks
 
+        if self.downloads_stream is not None:
+            params['downloads_stream'] = self._bool_to_http(self.downloads_stream)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + '?' + urlencode(params)
 
@@ -342,6 +350,7 @@ class BrowserConfig(BaseApiConfig):
             'rtc_username': self.rtc_username,
             'rtc_password': self.rtc_password,
             'hitl_allowed_networks': self.hitl_allowed_networks,
+            'downloads_stream': self.downloads_stream,
         }
 
     @staticmethod
@@ -380,4 +389,5 @@ class BrowserConfig(BaseApiConfig):
             rtc_username=browser_config_dict.get('rtc_username', None),
             rtc_password=browser_config_dict.get('rtc_password', None),
             hitl_allowed_networks=browser_config_dict.get('hitl_allowed_networks', None),
+            downloads_stream=browser_config_dict.get('downloads_stream', None),
         )

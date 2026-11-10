@@ -74,6 +74,12 @@ from .crawler import (
     webhook_from_payload,
 )
 from .browser_config import BrowserConfig, ProxyPool, OperatingSystem, LinkedService
+from .browser_downloads import (
+    BrowserDownload,
+    BrowserDownloadError,
+    CloudBrowserDownloads,
+    AsyncCloudBrowserDownloads,
+)
 from .classify import ClassifyResult
 from .schedule import (
     CreateScheduleRequest,
@@ -117,6 +123,10 @@ __all__: Tuple[str, ...] = (
     'ProxyPool',
     'OperatingSystem',
     'LinkedService',
+    'BrowserDownload',
+    'BrowserDownloadError',
+    'CloudBrowserDownloads',
+    'AsyncCloudBrowserDownloads',
     'ExtractionConfig',
     'ClassifyResult',
     'ScreenshotAPIError',
