@@ -1476,7 +1476,7 @@ class ScrapflyApi(ScheduleClientMixin):
             status = client.get_crawl_status(uuid)
             print(f"Status: {status.status}")
             print(f"Progress: {status.progress_pct:.1f}%")
-            print(f"Crawled: {status.urls_crawled}/{status.urls_discovered}")
+            print(f"Crawled: {status.state.urls_visited}/{status.state.urls_extracted}")
 
             if status.is_complete:
                 print("Crawl completed!")

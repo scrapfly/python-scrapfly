@@ -1535,7 +1535,7 @@ el.replaceWith(d);
             status = client.get_crawl_status(uuid)
             print(f&#34;Status: {status.status}&#34;)
             print(f&#34;Progress: {status.progress_pct:.1f}%&#34;)
-            print(f&#34;Crawled: {status.urls_crawled}/{status.urls_discovered}&#34;)
+            print(f&#34;Crawled: {status.state.urls_visited}/{status.state.urls_extracted}&#34;)
 
             if status.is_complete:
                 print(&#34;Crawl completed!&#34;)
@@ -5054,7 +5054,7 @@ def get_crawl_status(self, uuid: str) -&gt; CrawlerStatusResponse:
         status = client.get_crawl_status(uuid)
         print(f&#34;Status: {status.status}&#34;)
         print(f&#34;Progress: {status.progress_pct:.1f}%&#34;)
-        print(f&#34;Crawled: {status.urls_crawled}/{status.urls_discovered}&#34;)
+        print(f&#34;Crawled: {status.state.urls_visited}/{status.state.urls_extracted}&#34;)
 
         if status.is_complete:
             print(&#34;Crawl completed!&#34;)
@@ -5084,7 +5084,7 @@ def get_crawl_status(self, uuid: str) -&gt; CrawlerStatusResponse:
 <pre><code class="language-python">status = client.get_crawl_status(uuid)
 print(f&quot;Status: {status.status}&quot;)
 print(f&quot;Progress: {status.progress_pct:.1f}%&quot;)
-print(f&quot;Crawled: {status.urls_crawled}/{status.urls_discovered}&quot;)
+print(f&quot;Crawled: {status.state.urls_visited}/{status.state.urls_extracted}&quot;)
 
 if status.is_complete:
     print(&quot;Crawl completed!&quot;)

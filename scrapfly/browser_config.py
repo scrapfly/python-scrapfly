@@ -40,8 +40,7 @@ class BrowserConfig(BaseApiConfig):
     """Cloud Browser session options, sent as query parameters of the WebSocket URL.
 
     `proxy_pool` takes the Cloud Browser's own pools: 'datacenter', 'residential' (ProxyPool) or
-    'tor'; a session on `byop_proxy` runs as 'byop'. The Web Scraping API proxy pools ('basic',
-    'unblocker', 'unblocker_ultra', 'auto') do not apply here.
+    'tor'; a session on `byop_proxy` runs as 'byop'.
 
     Deprecated:
         unblock, unblock_timeout: the Cloud Browser never reads them, so no anti-bot

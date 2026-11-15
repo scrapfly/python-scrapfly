@@ -85,31 +85,14 @@ def _exported(**overrides) -> str:
     return base64.b64encode(msgpack.dumps(data)).decode("utf-8")
 
 
-@pytest.mark.parametrize("unblocker_tier,pool,asp,expected", [
-    ("none", "public_datacenter_pool", False, "basic"),
-    ("normal", "public_residential_pool", True, "unblocker"),
-    # `basic` on a project that forces the Unblocker: normal, still on datacenter.
-    ("normal", "public_datacenter_pool", True, "basic"),
-])
-def test_replaying_an_export_sends_the_pool_word(unblocker_tier, pool, asp, expected):
-    cfg = ScrapeConfig.from_exported_config(
-        _exported(proxy_pool=pool, asp=asp, unblocker=asp, unblocker_tier=unblocker_tier)
-    )
-    params = cfg.to_api_params(key="x")
-    assert params["proxy_pool"] == expected
-    assert "asp" not in params
-
-
-@pytest.mark.parametrize("unblocker_tier", ["ultra", None])
+@pytest.mark.parametrize("unblocker_tier", ["none", "normal", "ultra", None])
 @pytest.mark.parametrize("pool,asp", [
     ("public_residential_pool", True),
     ("public_residential_pool", False),
     ("public_datacenter_pool", True),
     ("public_datacenter_pool", False),
 ])
-def test_replaying_an_ultra_or_legacy_export_keeps_pool_and_asp(unblocker_tier, pool, asp):
-    # ultra is `unblocker_ultra` or a request with asp=True: the pool and asp as exported
-    # replay either one unchanged.
+def test_replaying_an_export_keeps_its_pool_and_asp_whatever_its_tier(unblocker_tier, pool, asp):
     overrides = {"proxy_pool": pool, "asp": asp, "unblocker": asp}
     if unblocker_tier is not None:
         overrides["unblocker_tier"] = unblocker_tier

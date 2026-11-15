@@ -75,9 +75,7 @@ class ScreenshotConfig(BaseApiConfig):
     cache_clear: Optional[bool] = None
     webhook: Optional[str] = None
     raise_on_upstream_error: bool = True
-    # A proxy pool: ScrapeConfig.BASIC, UNBLOCKER, UNBLOCKER_ULTRA or AUTO, the only values
-    # the Screenshot API takes; it ignores any other value. Unset, the API's screenshot
-    # default applies. The screenshot price is the same on every proxy pool.
+    # Sent as `proxy_pool`. The Screenshot API picks its pool itself and ignores this value.
     proxy_pool: Optional[str] = None
 
     def __init__(

@@ -31,8 +31,8 @@ This SDK cover the following Scrapfly API endpoints:
 
 ## Async client
 
-`AsyncScrapflyClient` has every method of `ScrapflyClient`, as coroutines, and the streamed ones (`scrape_batch`,
-`crawl_prompt`) as async iterators. Open it with `async with` to reuse connections across calls.
+Added in 1.0.0: `AsyncScrapflyClient` has every method of `ScrapflyClient`, as coroutines, and the streamed ones
+(`scrape_batch`, `crawl_prompt`) as async iterators. Open it with `async with` to reuse connections across calls.
 
 ```python
 import asyncio
@@ -50,18 +50,52 @@ async def main():
 asyncio.run(main())
 ```
 
+Up to 0.12, `ScrapflyClient` runs a call as a coroutine with `async_scrape` (and `async_screenshot`,
+`async_extraction`), and `concurrent_scrape` is an async generator of it. This works on 1.0.0 too:
+
+```python
+import asyncio
+from scrapfly import ScrapflyClient, ScrapeConfig
+
+async def main():
+    scrapfly = ScrapflyClient(key='__API_KEY__')
+    api_response = await scrapfly.async_scrape(ScrapeConfig(url='https://web-scraping.dev/product/1'))
+    print(api_response.content)
+
+    configs = [ScrapeConfig(url=f'https://web-scraping.dev/product/{n}') for n in range(1, 6)]
+    async for result in scrapfly.concurrent_scrape(configs, concurrency=5):
+        print(result)
+
+asyncio.run(main())
+```
+
 ## Proxy pools
 
-`proxy_pool` picks one of four proxy pools. A proxy pool sets both the proxy network and the
-anti-bot bypass (the Unblocker), which defeats blocking and antibot solutions such as
-Cloudflare, DataDome, PerimeterX or Akamai:
+`proxy_pool` picks the proxy pool of the Web Scraping API and the crawler:
 
 | Constant | Value | What it runs |
 |---|---|---|
-| `ScrapeConfig.BASIC` | `'basic'` | datacenter proxies, Unblocker off |
-| `ScrapeConfig.UNBLOCKER` | `'unblocker'` | residential proxies, Unblocker on |
-| `ScrapeConfig.UNBLOCKER_ULTRA` | `'unblocker_ultra'` | residential proxies, Unblocker on, accepted by every target and protection |
-| `ScrapeConfig.AUTO` | `'auto'` | the API picks the pool before the request, from the target's profile: the Unblocker on datacenter proxies, or the pool the target needs; accepted on every target, the ones that require `unblocker_ultra` included, where their price is added; priced as the pool it runs on |
+| `ScrapeConfig.PUBLIC_DATACENTER_POOL` | `'public_datacenter_pool'` | datacenter proxies, the default |
+| `ScrapeConfig.PUBLIC_RESIDENTIAL_POOL` | `'public_residential_pool'` | residential proxies |
+| `ScrapeConfig.PUBLIC_TOR_POOL` | `'public_tor_pool'` | the Tor network, the only pool that reaches `.onion` sites |
+
+```python
+from scrapfly import CrawlerConfig, ScrapeConfig
+
+scrape_config = ScrapeConfig(url='https://web-scraping.dev/product/1', proxy_pool=ScrapeConfig.PUBLIC_RESIDENTIAL_POOL)
+crawler_config = CrawlerConfig(url='https://web-scraping.dev/', proxy_pool=ScrapeConfig.PUBLIC_RESIDENTIAL_POOL)
+```
+
+Without `proxy_pool` the SDK sends none. `ScrapeConfig.BASIC`, `ScrapeConfig.UNBLOCKER`,
+`ScrapeConfig.UNBLOCKER_ULTRA` and `ScrapeConfig.AUTO` (added in 1.0.0) name pools the API does not
+accept yet: a request naming one fails with `ERR::PROXY::POOL_NOT_FOUND`. The Screenshot API picks its
+pool itself and ignores the `proxy_pool` of `ScreenshotConfig` (added in 1.0.0). The Cloud Browser keeps
+its own pools, `datacenter`, `residential`, `tor` and `byop`.
+
+## Unblocker
+
+`unblocker` turns on the anti-bot bypass. It defeats blocking and antibot solutions such as
+Cloudflare, DataDome, PerimeterX or Akamai.
 
 ```python
 from scrapfly import ScrapeConfig, ScrapflyClient
@@ -69,35 +103,25 @@ from scrapfly import ScrapeConfig, ScrapflyClient
 scrapfly = ScrapflyClient(key='__API_KEY__')
 
 api_response = scrapfly.scrape(ScrapeConfig(
-    url='https://amazon.com',
-    proxy_pool=ScrapeConfig.UNBLOCKER
+    url='https://web-scraping.dev/product/1',
+    unblocker=True
 ))
-print(api_response.context['proxy']['pool'])  # 'unblocker': the pool asked for, as your account reads it
 ```
 
 It is available on the crawler too:
 
 ```python
-from scrapfly import CrawlerConfig, ScrapeConfig
+from scrapfly import CrawlerConfig
 
-config = CrawlerConfig(url='https://amazon.com', proxy_pool=ScrapeConfig.UNBLOCKER)
+config = CrawlerConfig(url='https://web-scraping.dev/', unblocker=True)
 ```
 
-Targets and anti-bot protections that have a price of their own accept only
-`unblocker_ultra` and `auto`, which add that price. They refuse `basic` and `unblocker` with
-`ERR::PROXY::UNBLOCKER_ULTRA_REQUIRED` (HTTP 422, not billed); send the request again with
-`ScrapeConfig.UNBLOCKER_ULTRA`.
+### `asp` is the deprecated alias
 
-### Deprecated: `unblocker` and `asp`
-
-`unblocker` and its alias `asp` are deprecated: use `proxy_pool` (`ScrapeConfig.UNBLOCKER_ULTRA`
-for the Unblocker). The [migration guide](https://scrapfly.io/new-pricing#legacy-spellings)
-covers the requests written before the proxy pools, the pool names
-`ScrapeConfig.PUBLIC_DATACENTER_POOL` and `ScrapeConfig.PUBLIC_RESIDENTIAL_POOL` included.
+`unblocker` was previously named `asp`. `asp` keeps working: existing code needs no change.
 
 ```python
-ScrapeConfig(url='https://amazon.com', asp=True)        # deprecated
-ScrapeConfig(url='https://amazon.com', unblocker=True)  # same setting as asp=True
+ScrapeConfig(url='https://web-scraping.dev/product/1', asp=True)  # same setting as unblocker=True
 ```
 
 When both names are supplied, an explicitly supplied `asp` wins; `unblocker` applies only when
@@ -178,8 +202,9 @@ scrapfly_reader = ScrapflyReader(
 )
 
 scrapfly_scrape_config = {
-    "proxy_pool": "unblocker",  # Proxy pool: basic, unblocker (anti-bot bypass), unblocker_ultra or auto
+    "unblocker": True,  # Bypass scraping blocking and antibot solutions, like Cloudflare (formerly "asp")
     "render_js": True,  # Enable JavaScript rendering with a cloud headless browser
+    "proxy_pool": "public_residential_pool",  # Select a proxy pool (datacenter or residential)
     "country": "us",  # Select a proxy location
     "auto_scroll": True,  # Auto scroll the page
     "js": "",  # Execute custom JavaScript code by the headless browser
@@ -256,8 +281,9 @@ To use the full Scrapfly features with LangChain, pass a ScrapeConfig object to 
 from langchain_community.document_loaders import ScrapflyLoader
 
 scrapfly_scrape_config = {
-    "proxy_pool": "unblocker",  # Proxy pool: basic, unblocker (anti-bot bypass), unblocker_ultra or auto
+    "unblocker": True,  # Bypass scraping blocking and antibot solutions, like Cloudflare (formerly "asp")
     "render_js": True,  # Enable JavaScript rendering with a cloud headless browser
+    "proxy_pool": "public_residential_pool",  # Select a proxy pool (datacenter or residential)
     "country": "us",  # Select a proxy location
     "auto_scroll": True,  # Auto scroll the page
     "js": "",  # Execute custom JavaScript code by the headless browser
@@ -294,7 +320,7 @@ asyncio-pool dependency has been dropped
 your current subscription is used.
 
 ```python
-    async for result in scrapfly.concurrent_scrape(concurrency=10, scrape_configs=[ScrapConfig(...), ...]):
+    async for result in scrapfly.concurrent_scrape(concurrency=10, scrape_configs=[ScrapeConfig(...), ...]):
         print(result)
 ```
 

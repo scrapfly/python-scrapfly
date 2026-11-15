@@ -133,7 +133,7 @@ pages = artifact.get_pages()
 # Get content for a specific URL
 html = crawl.read('https://example.com/page1')
 if html:
-    print(html.decode('utf-8'))
+    print(html.content)
 ```
 
 #### 4. Statistics
@@ -155,8 +155,7 @@ config = CrawlerConfig(
     url='https://example.com',
     page_limit=100,
     max_depth=3,
-    exclude_paths=['/admin/*', '/api/*'],
-    include_paths=['/products/*'],
+    include_only_paths=['/products/*'],
     content_formats=['html', 'markdown'],
     # ... and many more options
 )

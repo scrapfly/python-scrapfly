@@ -1,10 +1,7 @@
-"""Anti-bot bypass with the proxy pools.
+"""Anti-bot bypass.
 
-`proxy_pool` takes ScrapeConfig.BASIC, ScrapeConfig.UNBLOCKER,
-ScrapeConfig.UNBLOCKER_ULTRA or ScrapeConfig.AUTO. `unblocker=True` (or `asp=True`) is
-deprecated: use `proxy_pool` (ScrapeConfig.UNBLOCKER_ULTRA for the Unblocker). The
-migration guide covers requests written before the proxy pools:
-https://scrapfly.io/new-pricing#legacy-spellings
+`unblocker` is the current name of the parameter. `asp` is its deprecated
+alias and keeps working, so existing code needs no change.
 """
 
 from scrapfly import ScrapeConfig, ScrapflyClient, ScrapeApiResponse
@@ -12,6 +9,6 @@ from scrapfly import ScrapeConfig, ScrapflyClient, ScrapeApiResponse
 scrapfly = ScrapflyClient(key='__API_KEY__')
 
 api_response:ScrapeApiResponse = scrapfly.scrape(scrape_config=ScrapeConfig(
-    url='https://amazon.com',
-    proxy_pool=ScrapeConfig.UNBLOCKER
+    url='https://web-scraping.dev/product/1',
+    unblocker=True
 ))

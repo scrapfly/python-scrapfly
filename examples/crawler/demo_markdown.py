@@ -94,7 +94,7 @@ crawl.wait(poll_interval=5, verbose=True)
 print("\n✅ Crawl completed!")
 final_status = crawl.status()
 print(f"  Total pages crawled: {final_status.state.urls_visited}")
-print(f"  Failed: {final_status.urls_failed}")
+print(f"  Failed: {final_status.state.urls_failed}")
 
 # Get all URLs from WARC to retrieve in batch
 print("\n📥 Getting URLs from WARC...")
