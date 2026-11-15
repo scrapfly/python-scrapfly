@@ -8,10 +8,14 @@ from .api_config import BaseApiConfig
 
 
 def _zstd():
-    if sys.version_info >= (3, 14):
-        from compression import zstd
-    else:
-        from backports import zstd
+    """compression.zstd on Python 3.14, backports.zstd below it, zstandard when neither imports."""
+    try:
+        if sys.version_info >= (3, 14):
+            from compression import zstd
+        else:
+            from backports import zstd
+    except ImportError:
+        import zstandard as zstd
 
     return zstd
 
@@ -133,7 +137,7 @@ class ExtractionConfig(BaseApiConfig):
                         zstd = _zstd()
                     except ImportError:
                         raise ExtractionConfigError(
-                            'zstd needs Python 3.14 or backports.zstd: pip install "scrapfly-sdk[speedups]"'
+                            'zstd needs Python 3.14, backports.zstd or zstandard: pip install "scrapfly-sdk[speedups]"'
                             ' to auto compress into zstd or use compression formats.'
                         )
                     self.body = zstd.compress(self.body)

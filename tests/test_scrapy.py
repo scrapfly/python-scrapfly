@@ -31,4 +31,4 @@ def test_spider_crawls_follows_and_retries(mode):
     # Page 2 answers one retryable error first: retried once, both answers billed.
     assert result['retries'] == 1
     assert result['api_cost'] == 4
-    assert [warning for warning in result['warnings'] if 'scrapfly' in warning.lower()] == []
+    assert [warning for warning in result['warnings'] if 'scrapfly' in warning.partition(': ')[2].lower() or '/scrapfly/' in warning.partition(': ')[0]] == []

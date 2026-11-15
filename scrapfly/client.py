@@ -15,6 +15,7 @@ import urllib3
 from requests import Response, Session
 
 # Every name this module held before the API moved to api.py.
+from . import __version__
 from .api import *
 from .api import ScrapflyApi, NetworkError, PromptEventDecoder
 from .api_response import ScrapeApiResponse, ScreenshotApiResponse, ExtractionApiResponse

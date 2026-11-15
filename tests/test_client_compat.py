@@ -119,3 +119,29 @@ def test_names_the_client_module_exported_are_still_there():
         HttpError, MonitoringAggregation, MonitoringTargetPeriod, NetworkError, ScrapeConfig, ScraperAPI, ScrapflyClient,
         ScrapflyError, ScreenshotConfig, UpstreamHttpError,
     )
+
+
+def test_the_client_module_still_holds_the_version():
+    import scrapfly
+    from scrapfly.client import __version__
+
+    assert __version__ == scrapfly.__version__
+
+
+def test_the_polyfill_cached_property_is_the_standard_one():
+    import functools
+    from scrapfly.polyfill.cached_property import cached_property
+
+    class Page:
+        loads = 0
+
+        @cached_property
+        def title(self):
+            Page.loads += 1
+
+            return 'web-scraping.dev'
+
+    page = Page()
+
+    assert cached_property is functools.cached_property
+    assert (page.title, page.title, Page.loads) == ('web-scraping.dev', 'web-scraping.dev', 1)

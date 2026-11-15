@@ -162,6 +162,80 @@ def _zstd_chunks(decoder, content: bytes) -> Iterator[bytes]:
         raise ValueError('truncated zstd frame or trailing data after it')
 
 
+_ZSTD_MAGIC = b'\x28\xb5\x2f\xfd'
+
+
+def _zstd_module():
+    """compression.zstd on Python 3.14, backports.zstd below it, None when neither imports."""
+    try:
+        if sys.version_info >= (3, 14):
+            from compression import zstd
+        else:
+            from backports import zstd
+    except ImportError:
+        return None
+
+    return zstd
+
+
+def _zstandard_frame_size(zstandard, content: bytes) -> int:
+    """The size of the zstd frame `content` starts with, read from its frame and block headers."""
+    if not content.startswith(_ZSTD_MAGIC):
+        raise ValueError('not a zstd frame')
+
+    try:
+        parameters = zstandard.get_frame_parameters(content)
+        at = zstandard.frame_header_size(content)
+    except zstandard.ZstdError as error:
+        raise ValueError('truncated zstd frame header') from error
+
+    while True:
+        if at + 3 > len(content):
+            raise ValueError('truncated zstd frame')
+
+        header = int.from_bytes(content[at:at + 3], 'little')
+        last_block = header & 1
+        block_type = (header >> 1) & 3
+        block_size = header >> 3
+
+        if block_type == 3:
+            raise ValueError('reserved zstd block type')
+
+        # An RLE block holds the one byte it repeats.
+        if block_type == 1:
+            block_size = 1
+
+        at += 3 + block_size
+
+        if at > len(content):
+            raise ValueError('truncated zstd frame')
+
+        if last_block:
+            break
+
+    if parameters.has_checksum:
+        at += 4
+
+    if at > len(content):
+        raise ValueError('truncated zstd frame')
+
+    return at
+
+
+def _zstandard_chunks(content: bytes) -> Iterator[bytes]:
+    """The one zstd frame of `content` decoded by zstandard, at most _DECOMPRESS_CHUNK bytes at a time."""
+    try:
+        import zstandard
+    except ImportError:
+        raise ImportError('decoding zstd needs Python 3.14, backports.zstd or zstandard: '
+                          'pip install "scrapfly-sdk[speedups]"') from None
+
+    if _zstandard_frame_size(zstandard, content) != len(content):
+        raise ValueError('trailing data after the zstd frame')
+
+    yield from zstandard.ZstdDecompressor().read_to_iter(content, read_size=_DECOMPRESS_CHUNK, write_size=_DECOMPRESS_CHUNK)
+
+
 def decompress(content: bytes, content_encoding: Optional[str], limit: int = MAX_DECOMPRESSED_SIZE) -> bytes:
     """
     Reverse the Content-Encoding applied to a webhook body.
@@ -195,11 +269,11 @@ def decompress(content: bytes, content_encoding: Optional[str], limit: int = MAX
         return _bounded(_brotli_chunks(decoder, content), limit)
 
     if encoding == 'zstd':
-        # Not zstandard: its decompressobj has no output cap and its reader no end of frame.
-        if sys.version_info >= (3, 14):
-            from compression import zstd
-        else:
-            from backports import zstd
+        zstd = _zstd_module()
+
+        # zstandard when neither standard module imports: its block headers checked first, then read in capped chunks.
+        if zstd is None:
+            return _bounded(_zstandard_chunks(content), limit)
 
         return _bounded(_zstd_chunks(zstd.ZstdDecompressor(), content), limit)
 
