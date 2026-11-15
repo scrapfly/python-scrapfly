@@ -118,10 +118,35 @@ el.replaceWith(d);
 </ul>
 <h3>Subclasses</h3>
 <ul class="hlist">
+<li><a title="scrapfly.errors.CrawlerExtractError" href="#scrapfly.errors.CrawlerExtractError">CrawlerExtractError</a></li>
 <li><a title="scrapfly.errors.CrawlerPromptError" href="#scrapfly.errors.CrawlerPromptError">CrawlerPromptError</a></li>
 <li><a title="scrapfly.errors.CrawlerRefreshError" href="#scrapfly.errors.CrawlerRefreshError">CrawlerRefreshError</a></li>
 <li><a title="scrapfly.errors.CrawlerSearchError" href="#scrapfly.errors.CrawlerSearchError">CrawlerSearchError</a></li>
 <li><a title="scrapfly.errors.ScrapflyCrawlerError" href="#scrapfly.errors.ScrapflyCrawlerError">ScrapflyCrawlerError</a></li>
+</ul>
+</dd>
+<dt id="scrapfly.errors.CrawlerExtractError"><code class="flex name class">
+<span>class <span class="ident">CrawlerExtractError</span></span>
+<span>(</span><span>message: str,<br>code: str,<br>http_status_code: int,<br>resource: str | None = None,<br>is_retryable: bool = False,<br>retry_delay: int | None = None,<br>retry_times: int | None = None,<br>documentation_url: str | None = None,<br>api_response: ForwardRef('ApiResponse') | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerExtractError(CrawlerError):
+    &#34;&#34;&#34;
+    Exception raised when ``POST /crawl/extract`` fails.
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>Exception raised when <code>POST /crawl/extract</code> fails.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.errors.CrawlerError" href="#scrapfly.errors.CrawlerError">CrawlerError</a></li>
+<li><a title="scrapfly.errors.ScrapflyError" href="#scrapfly.errors.ScrapflyError">ScrapflyError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
 </ul>
 </dd>
 <dt id="scrapfly.errors.CrawlerPromptError"><code class="flex name class">
@@ -621,6 +646,9 @@ A crawl that is merely skipped is <em>not</em> an error: it is reported in
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.CrawlerError" href="#scrapfly.errors.CrawlerError">CrawlerError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.errors.CrawlerExtractError" href="#scrapfly.errors.CrawlerExtractError">CrawlerExtractError</a></code></h4>
 </li>
 <li>
 <h4><code><a title="scrapfly.errors.CrawlerPromptError" href="#scrapfly.errors.CrawlerPromptError">CrawlerPromptError</a></code></h4>

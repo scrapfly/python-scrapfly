@@ -45,7 +45,7 @@ el.replaceWith(d);
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="scrapfly.webhook.create_server"><code class="name flex">
-<span>def <span class="ident">create_server</span></span>(<span>signing_secrets: str | Tuple[str, ...],<br>callback: Callable,<br>app: ForwardRef('flask.Flask') | None = None,<br>max_body_size: int = 268435456) ‑> flask.Flask</span>
+<span>def <span class="ident">create_server</span></span>(<span>signing_secrets: str | Tuple[str, ...],<br>callback: Callable,<br>app: ForwardRef('flask.Flask') | None = None,<br>max_body_size: int = 268435456,<br>max_concurrent_decodes: int = 2) ‑> flask.Flask</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -57,6 +57,7 @@ el.replaceWith(d);
     callback: Callable,
     app: Optional[&#39;flask.Flask&#39;] = None,
     max_body_size: int = MAX_DECOMPRESSED_SIZE,
+    max_concurrent_decodes: int = 2,
 ) -&gt; &#39;flask.Flask&#39;:
     &#34;&#34;&#34;
     Serve Scrapfly webhooks on POST /webhook and hand each verified body to
@@ -69,6 +70,8 @@ el.replaceWith(d);
     :param callback: receives the verified body, its resource type, and the request.
     :param app: optional Flask app to mount the route on.
     :param max_body_size: reject bodies larger than this, before and after decompression.
+    :param max_concurrent_decodes: bodies decoded at once. A body is decoded before its
+        signature is checked, so each can cost max_body_size to any sender.
     &#34;&#34;&#34;
     if not signing_secrets:
         raise ValueError(&#39;create_server requires the webhook signing secret(s) from your Scrapfly dashboard&#39;)
@@ -86,6 +89,7 @@ el.replaceWith(d);
     app.config[&#39;MAX_CONTENT_LENGTH&#39;] = max_body_size
 
     body_handler = ResponseBodyHandler(signing_secrets=signing_secrets)
+    decode_slots = BoundedSemaphore(max_concurrent_decodes)
     supported_resource_types = tuple(resource_type.value for resource_type in ResourceType)
 
     @app.route(&#34;/webhook&#34;, methods=[&#34;POST&#34;])
@@ -114,6 +118,10 @@ el.replaceWith(d);
                 logger.warning(&#34;Rejected alert webhook with a missing or stale timestamp from %s&#34;, request.remote_addr)
                 return make_response(&#34;&#34;, 401)
 
+        if not decode_slots.acquire(timeout=DECODE_WAIT_SECONDS):
+            logger.warning(&#34;Deferred %s webhook from %s: %d bodies already decoding&#34;, resource_type, request.remote_addr, max_concurrent_decodes)
+            return make_response(&#34;&#34;, 503)
+
         try:
             data = body_handler.read(
                 content=request.get_data(),
@@ -130,6 +138,8 @@ el.replaceWith(d);
             # Decoding runs before verification, so its failures are reachable unauthenticated.
             logger.exception(&#34;Rejected undecodable %s webhook from %s&#34;, resource_type, request.remote_addr)
             return make_response(&#34;&#34;, 400)
+        finally:
+            decode_slots.release()
 
         try:
             callback(data, resource_type, request)
@@ -147,7 +157,9 @@ is answered with 401 rather than delivered.</p>
 <p>:param signing_secrets: signing secret(s) from your webhook settings.
 :param callback: receives the verified body, its resource type, and the request.
 :param app: optional Flask app to mount the route on.
-:param max_body_size: reject bodies larger than this, before and after decompression.</p></div>
+:param max_body_size: reject bodies larger than this, before and after decompression.
+:param max_concurrent_decodes: bodies decoded at once. A body is decoded before its
+signature is checked, so each can cost max_body_size to any sender.</p></div>
 </dd>
 </dl>
 </section>
@@ -156,7 +168,7 @@ is answered with 401 rather than delivered.</p>
 <dl>
 <dt id="scrapfly.webhook.ResourceType"><code class="flex name class">
 <span>class <span class="ident">ResourceType</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
 <details class="source">

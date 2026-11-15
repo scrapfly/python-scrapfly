@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <meta name="generator" content="pdoc3 0.11.6">
 <title>scrapfly.polyfill.cached_property API documentation</title>
-<meta name="description" content="">
+<meta name="description" content="`functools.cached_property`, importable from here as it was up to 0.12.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
@@ -36,6 +36,7 @@ el.replaceWith(d);
 <h1 class="title">Module <code>scrapfly.polyfill.cached_property</code></h1>
 </header>
 <section id="section-intro">
+<p><code>functools.cached_property</code>, importable from here as it was up to 0.12.</p>
 </section>
 <section>
 </section>
@@ -48,24 +49,41 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.polyfill.cached_property.cached_property"><code class="flex name class">
 <span>class <span class="ident">cached_property</span></span>
-<span>(</span><span>factory)</span>
+<span>(</span><span>func)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def __get__(self, instance, owner):
-    # Build the attribute.
-    attr = self._factory(instance)
-
-    # Cache the value; hide ourselves.
-    setattr(instance, self._attr_name, attr)
-
-    return attr</code></pre>
+<pre><code class="python">def __get__(self, instance, owner=None):
+    if instance is None:
+        return self
+    if self.attrname is None:
+        raise TypeError(
+            &#34;Cannot use cached_property instance without calling __set_name__ on it.&#34;)
+    try:
+        cache = instance.__dict__
+    except AttributeError:  # not all objects have __dict__ (e.g. class defines slots)
+        msg = (
+            f&#34;No &#39;__dict__&#39; attribute on {type(instance).__name__!r} &#34;
+            f&#34;instance to cache {self.attrname!r} property.&#34;
+        )
+        raise TypeError(msg) from None
+    val = cache.get(self.attrname, _NOT_FOUND)
+    if val is _NOT_FOUND:
+        val = self.func(instance)
+        try:
+            cache[self.attrname] = val
+        except TypeError:
+            msg = (
+                f&#34;The &#39;__dict__&#39; attribute on {type(instance).__name__!r} instance &#34;
+                f&#34;does not support item assignment for caching {self.attrname!r} property.&#34;
+            )
+            raise TypeError(msg) from None
+    return val</code></pre>
 </details>
-<div class="desc"><p>Descriptor (non-data) for building an attribute on-demand on first use.</p>
-<p><factory> is called such: factory(instance) to build the attribute.</p></div>
+<div class="desc"></div>
 </dd>
 </dl>
 </section>

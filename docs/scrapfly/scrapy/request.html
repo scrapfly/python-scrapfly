@@ -119,7 +119,32 @@ el.replaceWith(d);
         return cls(*args, **kwargs)</code></pre>
 </details>
 <div class="desc"><p>Represents an HTTP request, which is usually generated in a Spider and
-executed by the Downloader, thus generating a :class:<code>~scrapy.http.Response</code>.</p></div>
+executed by the Downloader, thus generating a
+:class:<code>~scrapy.http.Response</code>.</p>
+<p><em>url</em> is the URL of the request. If it is invalid, :exc:<code>ValueError</code> is
+raised.</p>
+<p><em>method</em> is the HTTP method of the request.</p>
+<p><em>headers</em> are the request headers. Header values can be strings, for
+single-valued headers, or lists, for multi-valued headers. Headers with a
+<code>None</code> value are not sent.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution:&ensp;The :ref:<code>cookie middleware &lt;cookies&gt;</code> ignores cookies set</p>
+<p>through the <code>Cookie</code> header. Use <em>cookies</em> instead.</p>
+</div>
+<p><em>body</em> is the request body. A string body is encoded with <em>encoding</em>.</p>
+<p><em>cookies</em> are the request cookies, as a dict of cookie names and values or
+as a list of dicts with a cookie each. See :ref:<code>cookies</code>.</p>
+<p><em>encoding</em> is used to percent-encode <em>url</em>, unless the
+:reqmeta:<code>verbatim_url</code> request meta key is set, and to encode <em>body</em> if it
+is a string.</p>
+<p><em>flags</em> is a list of labels for the request, which are included in log
+messages about it.</p>
+<p><em>meta</em> and <em>cb_kwargs</em> are shallow copied into :attr:<code>meta</code> and
+:attr:<code>cb_kwargs</code>.</p>
+<p><em>callback</em>, <em>errback</em>, <em>priority</em>, <em>dont_filter</em> and <em>parent_id</em> set the
+attributes of the same name. Set <em>parent_id</em> when building a request on
+behalf of another request, e.g. in a downloader middleware:
+<code>Request(url, parent_id=request.id)</code>.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.http.request.Request</li>
@@ -172,7 +197,14 @@ executed by the Downloader, thus generating a :class:<code>~scrapy.http.Response
     cls = kwargs.pop(&#39;cls&#39;, self.__class__)
     return cls(*args, **kwargs)</code></pre>
 </details>
-<div class="desc"><p>Create a new Request with the same attributes except for those given new values</p></div>
+<div class="desc"><p>Return a new request with the same attributes as this one, except
+for those given new values as keyword arguments named after
+:attr:<code>attributes</code>.</p>
+<p>:attr:<code>cb_kwargs</code> and :attr:<code>meta</code> are :doc:<code>shallow copied
+&lt;library/copy&gt;</code> unless given new values. The new request gets a new
+:attr:<code>id</code>, and :attr:<code>parent_id</code> defaults to the :attr:<code>id</code> of this
+request. <em>cls</em> sets the class of the new request.</p>
+<p>See also :ref:<code>callback-data</code>.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.request.ScrapflyScrapyRequest.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self, *, spider: ForwardRef('scrapy.Spider') | None = None) ‑> dict</span>

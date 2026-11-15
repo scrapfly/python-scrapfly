@@ -191,28 +191,27 @@ so callers can branch on it without parsing the message string.</p></div>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ScheduleClientMixin:
-    &#34;&#34;&#34;Mixed into ScrapflyClient — provides the public schedule surface.
+    &#34;&#34;&#34;The schedule surface of ScrapflyClient and AsyncScrapflyClient.
 
-    All methods funnel through ``_schedule_request``, which uses the same
-    ``self._http_handler`` and ``self.host`` / ``self.key`` as the rest of the
-    client so retries, verify, headers and timeouts behave identically.
+    All methods funnel through ``_schedule_steps``, so verify, headers and
+    timeouts behave as in the rest of the client.
     &#34;&#34;&#34;
 
-    # Attributes provided by the concrete ``ScrapflyClient`` subclass. Declared
-    # here so type checkers can resolve them on the mixin without complaint.
+    # Attributes provided by ScrapflyApi. Declared here so type checkers can
+    # resolve them on the mixin without complaint.
     key: str
     host: str
     verify: bool
     ua: str
-    _http_handler: Callable[..., Any]
 
     # ---- Create ---------------------------------------------------------
 
+    @operation
     def create_scrape_schedule(
         self,
         scrape_config: Dict[str, Any],
         request: CreateScheduleRequest,
-    ) -&gt; Schedule:
+    ) -&gt; Steps[Schedule]:
         &#34;&#34;&#34;Create a Web Scraping API schedule.
 
         ``scrape_config`` is forwarded verbatim and its keys are WIRE keys, not
@@ -223,23 +222,23 @@ so callers can branch on it without parsing the message string.</p></div>
         wins, ``unblocker`` is read only when ``asp`` is absent, ``null`` or
         ``&#34;&#34;``), so both names reach the replayed scrape.
         &#34;&#34;&#34;
-        return self._create_schedule(&#34;/scrape/schedules&#34;, &#34;scrape_config&#34;, scrape_config, request)
+        return (yield from self._create_schedule_steps(&#34;/scrape/schedules&#34;, &#34;scrape_config&#34;, scrape_config, request))
 
+    @operation
     def create_screenshot_schedule(
         self,
         screenshot_config: Dict[str, Any],
         request: CreateScheduleRequest,
-    ) -&gt; Schedule:
+    ) -&gt; Steps[Schedule]:
         &#34;&#34;&#34;Create a Screenshot API schedule.&#34;&#34;&#34;
-        return self._create_schedule(
-            &#34;/screenshot/schedules&#34;, &#34;screenshot_config&#34;, screenshot_config, request
-        )
+        return (yield from self._create_schedule_steps(&#34;/screenshot/schedules&#34;, &#34;screenshot_config&#34;, screenshot_config, request))
 
+    @operation
     def create_crawler_schedule(
         self,
         crawler_config: Dict[str, Any],
         request: CreateScheduleRequest,
-    ) -&gt; Schedule:
+    ) -&gt; Steps[Schedule]:
         &#34;&#34;&#34;Create a Crawler API schedule.
 
         ``crawler_config`` is forwarded verbatim and its keys are WIRE keys, not
@@ -248,73 +247,79 @@ so callers can branch on it without parsing the message string.</p></div>
         ``asp`` or ``unblocker``: the API folds the alias into ``asp`` on the
         stored config before it is ever replayed.
         &#34;&#34;&#34;
-        return self._create_schedule(
-            &#34;/crawl/schedules&#34;, &#34;crawler_config&#34;, crawler_config, request
-        )
+        return (yield from self._create_schedule_steps(&#34;/crawl/schedules&#34;, &#34;crawler_config&#34;, crawler_config, request))
 
     # ---- Read -----------------------------------------------------------
 
-    def get_schedule(self, schedule_id: str) -&gt; Schedule:
+    @operation
+    def get_schedule(self, schedule_id: str) -&gt; Steps[Schedule]:
         &#34;&#34;&#34;Return a schedule by id (works across all kinds).&#34;&#34;&#34;
-        return self._schedule_request(&#34;GET&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))
+        return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;)))
 
+    @operation
     def list_schedules(
         self,
         *,
         kind: Optional[str] = None,
         status: Optional[str] = None,
-    ) -&gt; List[Schedule]:
-        &#34;&#34;&#34;List every schedule on the account, optionally filtered by kind or status.&#34;&#34;&#34;
+    ) -&gt; Steps[List[Schedule]]:
+        &#34;&#34;&#34;List the schedules of the API key&#39;s project and environment, optionally filtered by kind or status.&#34;&#34;&#34;
         params: Dict[str, str] = {}
         if kind:
             params[&#34;kind&#34;] = kind
         if status:
             params[&#34;status&#34;] = status
-        return self._schedule_request(&#34;GET&#34;, &#34;/schedules&#34;, query=params)
+        return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/schedules&#34;, query=params))
 
-    def list_scrape_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+    @operation
+    def list_scrape_schedules(self, *, status: Optional[str] = None) -&gt; Steps[List[Schedule]]:
         params = {&#34;status&#34;: status} if status else None
-        return self._schedule_request(&#34;GET&#34;, &#34;/scrape/schedules&#34;, query=params)
+        return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/scrape/schedules&#34;, query=params))
 
-    def list_screenshot_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+    @operation
+    def list_screenshot_schedules(self, *, status: Optional[str] = None) -&gt; Steps[List[Schedule]]:
         params = {&#34;status&#34;: status} if status else None
-        return self._schedule_request(&#34;GET&#34;, &#34;/screenshot/schedules&#34;, query=params)
+        return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/screenshot/schedules&#34;, query=params))
 
-    def list_crawler_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+    @operation
+    def list_crawler_schedules(self, *, status: Optional[str] = None) -&gt; Steps[List[Schedule]]:
         params = {&#34;status&#34;: status} if status else None
-        return self._schedule_request(&#34;GET&#34;, &#34;/crawl/schedules&#34;, query=params)
+        return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/crawl/schedules&#34;, query=params))
 
     # ---- Mutate ---------------------------------------------------------
 
-    def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -&gt; Schedule:
+    @operation
+    def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -&gt; Steps[Schedule]:
         &#34;&#34;&#34;Patch an active schedule. Only fields set in ``request`` change.&#34;&#34;&#34;
-        return self._schedule_request(
-            &#34;PATCH&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;), body=request.to_dict()
-        )
+        return (yield from self._schedule_steps(&#34;PATCH&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;), body=request.to_dict()))
 
-    def cancel_schedule(self, schedule_id: str) -&gt; None:
+    @operation
+    def cancel_schedule(self, schedule_id: str) -&gt; Steps[None]:
         &#34;&#34;&#34;Cancel a schedule. Cancellation is terminal (returns no body).&#34;&#34;&#34;
-        self._schedule_request(&#34;DELETE&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))
+        yield from self._schedule_steps(&#34;DELETE&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))
 
-    def pause_schedule(self, schedule_id: str) -&gt; Schedule:
-        return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/pause&#34;)
+    @operation
+    def pause_schedule(self, schedule_id: str) -&gt; Steps[Schedule]:
+        return (yield from self._schedule_steps(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/pause&#34;))
 
-    def resume_schedule(self, schedule_id: str) -&gt; Schedule:
-        return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/resume&#34;)
+    @operation
+    def resume_schedule(self, schedule_id: str) -&gt; Steps[Schedule]:
+        return (yield from self._schedule_steps(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/resume&#34;))
 
-    def execute_schedule(self, schedule_id: str) -&gt; Schedule:
+    @operation
+    def execute_schedule(self, schedule_id: str) -&gt; Steps[Schedule]:
         &#34;&#34;&#34;Fire a schedule immediately, regardless of next_scheduled_date.&#34;&#34;&#34;
-        return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/execute&#34;)
+        return (yield from self._schedule_steps(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/execute&#34;))
 
     # ---- Internals ------------------------------------------------------
 
-    def _create_schedule(
+    def _create_schedule_steps(
         self,
         path: str,
         config_key: str,
         config: Dict[str, Any],
         request: CreateScheduleRequest,
-    ) -&gt; Schedule:
+    ) -&gt; Steps[Schedule]:
         body: Dict[str, Any] = {
             config_key: config,
             &#34;webhook_name&#34;: request.webhook_name,
@@ -329,16 +334,16 @@ so callers can branch on it without parsing the message string.</p></div>
             body[&#34;max_retries&#34;] = request.max_retries
         if request.notes is not None:
             body[&#34;notes&#34;] = request.notes
-        return self._schedule_request(&#34;POST&#34;, path, body=body)
+        return (yield from self._schedule_steps(&#34;POST&#34;, path, body=body))
 
-    def _schedule_request(
+    def _schedule_steps(
         self,
         method: str,
         path: str,
         *,
         query: Optional[Dict[str, str]] = None,
         body: Optional[Dict[str, Any]] = None,
-    ) -&gt; Any:
+    ) -&gt; Steps[Any]:
         params: Dict[str, str] = {&#34;key&#34;: self.key}
         if query:
             params.update(query)
@@ -357,7 +362,7 @@ so callers can branch on it without parsing the message string.</p></div>
             kwargs[&#34;json&#34;] = body
             kwargs[&#34;headers&#34;][&#34;content-type&#34;] = &#34;application/json&#34;
 
-        response = self._http_handler(**kwargs)
+        response = yield Call(**kwargs)
 
         if response.status_code == 204:
             return None
@@ -390,13 +395,12 @@ so callers can branch on it without parsing the message string.</p></div>
             details=details,
         )</code></pre>
 </details>
-<div class="desc"><p>Mixed into ScrapflyClient — provides the public schedule surface.</p>
-<p>All methods funnel through <code>_schedule_request</code>, which uses the same
-<code>self._http_handler</code> and <code>self.host</code> / <code>self.key</code> as the rest of the
-client so retries, verify, headers and timeouts behave identically.</p></div>
+<div class="desc"><p>The schedule surface of ScrapflyClient and AsyncScrapflyClient.</p>
+<p>All methods funnel through <code>_schedule_steps</code>, so verify, headers and
+timeouts behave as in the rest of the client.</p></div>
 <h3>Subclasses</h3>
 <ul class="hlist">
-<li><a title="scrapfly.client.ScrapflyClient" href="client.html#scrapfly.client.ScrapflyClient">ScrapflyClient</a></li>
+<li><a title="scrapfly.api.ScrapflyApi" href="api.html#scrapfly.api.ScrapflyApi">ScrapflyApi</a></li>
 </ul>
 <h3>Class variables</h3>
 <dl>
@@ -420,32 +424,34 @@ client so retries, verify, headers and timeouts behave identically.</p></div>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.schedule.ScheduleClientMixin.cancel_schedule"><code class="name flex">
-<span>def <span class="ident">cancel_schedule</span></span>(<span>self, schedule_id: str) ‑> None</span>
+<span>def <span class="ident">cancel_schedule</span></span>(<span>self, schedule_id: str) ‑> Steps[None]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def cancel_schedule(self, schedule_id: str) -&gt; None:
+<pre><code class="python">@operation
+def cancel_schedule(self, schedule_id: str) -&gt; Steps[None]:
     &#34;&#34;&#34;Cancel a schedule. Cancellation is terminal (returns no body).&#34;&#34;&#34;
-    self._schedule_request(&#34;DELETE&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))</code></pre>
+    yield from self._schedule_steps(&#34;DELETE&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))</code></pre>
 </details>
 <div class="desc"><p>Cancel a schedule. Cancellation is terminal (returns no body).</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.create_crawler_schedule"><code class="name flex">
-<span>def <span class="ident">create_crawler_schedule</span></span>(<span>self,<br>crawler_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Dict[str, Any]</span>
+<span>def <span class="ident">create_crawler_schedule</span></span>(<span>self,<br>crawler_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Steps[typing.Dict[str, typing.Any]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def create_crawler_schedule(
+<pre><code class="python">@operation
+def create_crawler_schedule(
     self,
     crawler_config: Dict[str, Any],
     request: CreateScheduleRequest,
-) -&gt; Schedule:
+) -&gt; Steps[Schedule]:
     &#34;&#34;&#34;Create a Crawler API schedule.
 
     ``crawler_config`` is forwarded verbatim and its keys are WIRE keys, not
@@ -454,9 +460,7 @@ client so retries, verify, headers and timeouts behave identically.</p></div>
     ``asp`` or ``unblocker``: the API folds the alias into ``asp`` on the
     stored config before it is ever replayed.
     &#34;&#34;&#34;
-    return self._create_schedule(
-        &#34;/crawl/schedules&#34;, &#34;crawler_config&#34;, crawler_config, request
-    )</code></pre>
+    return (yield from self._create_schedule_steps(&#34;/crawl/schedules&#34;, &#34;crawler_config&#34;, crawler_config, request))</code></pre>
 </details>
 <div class="desc"><p>Create a Crawler API schedule.</p>
 <p><code>crawler_config</code> is forwarded verbatim and its keys are WIRE keys, not
@@ -466,18 +470,19 @@ client so retries, verify, headers and timeouts behave identically.</p></div>
 stored config before it is ever replayed.</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.create_scrape_schedule"><code class="name flex">
-<span>def <span class="ident">create_scrape_schedule</span></span>(<span>self,<br>scrape_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Dict[str, Any]</span>
+<span>def <span class="ident">create_scrape_schedule</span></span>(<span>self,<br>scrape_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Steps[typing.Dict[str, typing.Any]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def create_scrape_schedule(
+<pre><code class="python">@operation
+def create_scrape_schedule(
     self,
     scrape_config: Dict[str, Any],
     request: CreateScheduleRequest,
-) -&gt; Schedule:
+) -&gt; Steps[Schedule]:
     &#34;&#34;&#34;Create a Web Scraping API schedule.
 
     ``scrape_config`` is forwarded verbatim and its keys are WIRE keys, not
@@ -488,7 +493,7 @@ stored config before it is ever replayed.</p></div>
     wins, ``unblocker`` is read only when ``asp`` is absent, ``null`` or
     ``&#34;&#34;``), so both names reach the replayed scrape.
     &#34;&#34;&#34;
-    return self._create_schedule(&#34;/scrape/schedules&#34;, &#34;scrape_config&#34;, scrape_config, request)</code></pre>
+    return (yield from self._create_schedule_steps(&#34;/scrape/schedules&#34;, &#34;scrape_config&#34;, scrape_config, request))</code></pre>
 </details>
 <div class="desc"><p>Create a Web Scraping API schedule.</p>
 <p><code>scrape_config</code> is forwarded verbatim and its keys are WIRE keys, not
@@ -500,158 +505,164 @@ wins, <code>unblocker</code> is read only when <code>asp</code> is absent, <code
 <code>""</code>), so both names reach the replayed scrape.</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.create_screenshot_schedule"><code class="name flex">
-<span>def <span class="ident">create_screenshot_schedule</span></span>(<span>self,<br>screenshot_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Dict[str, Any]</span>
+<span>def <span class="ident">create_screenshot_schedule</span></span>(<span>self,<br>screenshot_config: Dict[str, Any],<br>request: <a title="scrapfly.schedule.CreateScheduleRequest" href="#scrapfly.schedule.CreateScheduleRequest">CreateScheduleRequest</a>) ‑> Steps[typing.Dict[str, typing.Any]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def create_screenshot_schedule(
+<pre><code class="python">@operation
+def create_screenshot_schedule(
     self,
     screenshot_config: Dict[str, Any],
     request: CreateScheduleRequest,
-) -&gt; Schedule:
+) -&gt; Steps[Schedule]:
     &#34;&#34;&#34;Create a Screenshot API schedule.&#34;&#34;&#34;
-    return self._create_schedule(
-        &#34;/screenshot/schedules&#34;, &#34;screenshot_config&#34;, screenshot_config, request
-    )</code></pre>
+    return (yield from self._create_schedule_steps(&#34;/screenshot/schedules&#34;, &#34;screenshot_config&#34;, screenshot_config, request))</code></pre>
 </details>
 <div class="desc"><p>Create a Screenshot API schedule.</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.execute_schedule"><code class="name flex">
-<span>def <span class="ident">execute_schedule</span></span>(<span>self, schedule_id: str) ‑> Dict[str, Any]</span>
+<span>def <span class="ident">execute_schedule</span></span>(<span>self, schedule_id: str) ‑> Steps[typing.Dict[str, typing.Any]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def execute_schedule(self, schedule_id: str) -&gt; Schedule:
+<pre><code class="python">@operation
+def execute_schedule(self, schedule_id: str) -&gt; Steps[Schedule]:
     &#34;&#34;&#34;Fire a schedule immediately, regardless of next_scheduled_date.&#34;&#34;&#34;
-    return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/execute&#34;)</code></pre>
+    return (yield from self._schedule_steps(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/execute&#34;))</code></pre>
 </details>
 <div class="desc"><p>Fire a schedule immediately, regardless of next_scheduled_date.</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.get_schedule"><code class="name flex">
-<span>def <span class="ident">get_schedule</span></span>(<span>self, schedule_id: str) ‑> Dict[str, Any]</span>
+<span>def <span class="ident">get_schedule</span></span>(<span>self, schedule_id: str) ‑> Steps[typing.Dict[str, typing.Any]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_schedule(self, schedule_id: str) -&gt; Schedule:
+<pre><code class="python">@operation
+def get_schedule(self, schedule_id: str) -&gt; Steps[Schedule]:
     &#34;&#34;&#34;Return a schedule by id (works across all kinds).&#34;&#34;&#34;
-    return self._schedule_request(&#34;GET&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;))</code></pre>
+    return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;)))</code></pre>
 </details>
 <div class="desc"><p>Return a schedule by id (works across all kinds).</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.list_crawler_schedules"><code class="name flex">
-<span>def <span class="ident">list_crawler_schedules</span></span>(<span>self, *, status: str | None = None) ‑> List[Dict[str, Any]]</span>
+<span>def <span class="ident">list_crawler_schedules</span></span>(<span>self, *, status: str | None = None) ‑> Steps[typing.List[typing.Dict[str, typing.Any]]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def list_crawler_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+<pre><code class="python">@operation
+def list_crawler_schedules(self, *, status: Optional[str] = None) -&gt; Steps[List[Schedule]]:
     params = {&#34;status&#34;: status} if status else None
-    return self._schedule_request(&#34;GET&#34;, &#34;/crawl/schedules&#34;, query=params)</code></pre>
+    return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/crawl/schedules&#34;, query=params))</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.list_schedules"><code class="name flex">
-<span>def <span class="ident">list_schedules</span></span>(<span>self, *, kind: str | None = None, status: str | None = None) ‑> List[Dict[str, Any]]</span>
+<span>def <span class="ident">list_schedules</span></span>(<span>self, *, kind: str | None = None, status: str | None = None) ‑> Steps[typing.List[typing.Dict[str, typing.Any]]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def list_schedules(
+<pre><code class="python">@operation
+def list_schedules(
     self,
     *,
     kind: Optional[str] = None,
     status: Optional[str] = None,
-) -&gt; List[Schedule]:
-    &#34;&#34;&#34;List every schedule on the account, optionally filtered by kind or status.&#34;&#34;&#34;
+) -&gt; Steps[List[Schedule]]:
+    &#34;&#34;&#34;List the schedules of the API key&#39;s project and environment, optionally filtered by kind or status.&#34;&#34;&#34;
     params: Dict[str, str] = {}
     if kind:
         params[&#34;kind&#34;] = kind
     if status:
         params[&#34;status&#34;] = status
-    return self._schedule_request(&#34;GET&#34;, &#34;/schedules&#34;, query=params)</code></pre>
+    return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/schedules&#34;, query=params))</code></pre>
 </details>
-<div class="desc"><p>List every schedule on the account, optionally filtered by kind or status.</p></div>
+<div class="desc"><p>List the schedules of the API key's project and environment, optionally filtered by kind or status.</p></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.list_scrape_schedules"><code class="name flex">
-<span>def <span class="ident">list_scrape_schedules</span></span>(<span>self, *, status: str | None = None) ‑> List[Dict[str, Any]]</span>
+<span>def <span class="ident">list_scrape_schedules</span></span>(<span>self, *, status: str | None = None) ‑> Steps[typing.List[typing.Dict[str, typing.Any]]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def list_scrape_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+<pre><code class="python">@operation
+def list_scrape_schedules(self, *, status: Optional[str] = None) -&gt; Steps[List[Schedule]]:
     params = {&#34;status&#34;: status} if status else None
-    return self._schedule_request(&#34;GET&#34;, &#34;/scrape/schedules&#34;, query=params)</code></pre>
+    return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/scrape/schedules&#34;, query=params))</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.list_screenshot_schedules"><code class="name flex">
-<span>def <span class="ident">list_screenshot_schedules</span></span>(<span>self, *, status: str | None = None) ‑> List[Dict[str, Any]]</span>
+<span>def <span class="ident">list_screenshot_schedules</span></span>(<span>self, *, status: str | None = None) ‑> Steps[typing.List[typing.Dict[str, typing.Any]]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def list_screenshot_schedules(self, *, status: Optional[str] = None) -&gt; List[Schedule]:
+<pre><code class="python">@operation
+def list_screenshot_schedules(self, *, status: Optional[str] = None) -&gt; Steps[List[Schedule]]:
     params = {&#34;status&#34;: status} if status else None
-    return self._schedule_request(&#34;GET&#34;, &#34;/screenshot/schedules&#34;, query=params)</code></pre>
+    return (yield from self._schedule_steps(&#34;GET&#34;, &#34;/screenshot/schedules&#34;, query=params))</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.pause_schedule"><code class="name flex">
-<span>def <span class="ident">pause_schedule</span></span>(<span>self, schedule_id: str) ‑> Dict[str, Any]</span>
+<span>def <span class="ident">pause_schedule</span></span>(<span>self, schedule_id: str) ‑> Steps[typing.Dict[str, typing.Any]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def pause_schedule(self, schedule_id: str) -&gt; Schedule:
-    return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/pause&#34;)</code></pre>
+<pre><code class="python">@operation
+def pause_schedule(self, schedule_id: str) -&gt; Steps[Schedule]:
+    return (yield from self._schedule_steps(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/pause&#34;))</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.resume_schedule"><code class="name flex">
-<span>def <span class="ident">resume_schedule</span></span>(<span>self, schedule_id: str) ‑> Dict[str, Any]</span>
+<span>def <span class="ident">resume_schedule</span></span>(<span>self, schedule_id: str) ‑> Steps[typing.Dict[str, typing.Any]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def resume_schedule(self, schedule_id: str) -&gt; Schedule:
-    return self._schedule_request(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/resume&#34;)</code></pre>
+<pre><code class="python">@operation
+def resume_schedule(self, schedule_id: str) -&gt; Steps[Schedule]:
+    return (yield from self._schedule_steps(&#34;POST&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;) + &#34;/resume&#34;))</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.schedule.ScheduleClientMixin.update_schedule"><code class="name flex">
-<span>def <span class="ident">update_schedule</span></span>(<span>self,<br>schedule_id: str,<br>request: <a title="scrapfly.schedule.UpdateScheduleRequest" href="#scrapfly.schedule.UpdateScheduleRequest">UpdateScheduleRequest</a>) ‑> Dict[str, Any]</span>
+<span>def <span class="ident">update_schedule</span></span>(<span>self,<br>schedule_id: str,<br>request: <a title="scrapfly.schedule.UpdateScheduleRequest" href="#scrapfly.schedule.UpdateScheduleRequest">UpdateScheduleRequest</a>) ‑> Steps[typing.Dict[str, typing.Any]]</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -&gt; Schedule:
+<pre><code class="python">@operation
+def update_schedule(self, schedule_id: str, request: UpdateScheduleRequest) -&gt; Steps[Schedule]:
     &#34;&#34;&#34;Patch an active schedule. Only fields set in ``request`` change.&#34;&#34;&#34;
-    return self._schedule_request(
-        &#34;PATCH&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;), body=request.to_dict()
-    )</code></pre>
+    return (yield from self._schedule_steps(&#34;PATCH&#34;, &#34;/schedules/&#34; + quote(schedule_id, safe=&#34;&#34;), body=request.to_dict()))</code></pre>
 </details>
 <div class="desc"><p>Patch an active schedule. Only fields set in <code>request</code> change.</p></div>
 </dd>

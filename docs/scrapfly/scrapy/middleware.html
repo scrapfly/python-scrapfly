@@ -48,6 +48,7 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware"><code class="flex name class">
 <span>class <span class="ident">ScrapflyMiddleware</span></span>
+<span>(</span><span>crawler=None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -57,9 +58,22 @@ el.replaceWith(d);
 <pre><code class="python">class ScrapflyMiddleware:
     MAX_API_RETRIES = 20
 
-    def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+    # Scrapy 2.15+ no longer passes the spider to these methods: it is the crawler&#39;s.
+    def __init__(self, crawler=None):
+        self.crawler = crawler
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler)
+
+    def _spider(self, spider: Optional[Spider]) -&gt; Spider:
+        return self.crawler.spider if spider is None else spider
+
+    def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Optional[Union[Spider, ScrapflySpider]] = None) -&gt; Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
             return None
+
+        spider = self._spider(spider)
 
         if not isinstance(spider, ScrapflySpider):
             raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
@@ -75,11 +89,13 @@ el.replaceWith(d);
 
         return None
 
-    def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+    async def process_exception(self, request, exception:Union[str, Exception], spider:Optional[ScrapflySpider] = None):
+        spider = self._spider(spider)
         delay = 1
 
-        if isinstance(exception, ResponseNeverReceived):
-            return spider.retry(request, exception, delay)
+        # ResponseNeverReceived from Twisted&#39;s HTTP client, TransportError from AsyncScrapflyClient&#39;s.
+        if isinstance(exception, (ResponseNeverReceived, httpx.TransportError)):
+            return await self._retried(spider.retry(request, exception, delay))
 
         if isinstance(exception, ScrapflyError):
             if exception.is_retryable:
@@ -87,14 +103,22 @@ el.replaceWith(d);
                     if &#39;retry-after&#39; in exception.response.headers:
                         delay = int(exception.response.headers[&#39;retry-after&#39;])
 
-                return spider.retry(request, exception, delay)
+                return await self._retried(spider.retry(request, exception, delay))
 
             if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
-                return spider.retry(request, exception, delay)
+                return await self._retried(spider.retry(request, exception, delay))
 
         raise exception
 
-    def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+    @staticmethod
+    async def _retried(scheduled) -&gt; None:
+        &#34;&#34;&#34;Wait until ScrapflySpider.retry() has scheduled the retry: a Deferred under a reactor, an asyncio task without one.&#34;&#34;&#34;
+        if isinstance(scheduled, Deferred):
+            await maybe_deferred_to_future(scheduled)
+        elif scheduled is not None:
+            await scheduled
+
+    def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Optional[Union[Spider, ScrapflySpider]] = None) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
         return response</code></pre>
 </details>
 <div class="desc"></div>
@@ -105,21 +129,32 @@ el.replaceWith(d);
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.from_crawler"><code class="name flex">
+<span>def <span class="ident">from_crawler</span></span>(<span>crawler)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_exception"><code class="name flex">
-<span>def <span class="ident">process_exception</span></span>(<span>self,<br>request,<br>exception: str | Exception,<br>spider: <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>)</span>
+<span>async def <span class="ident">process_exception</span></span>(<span>self,<br>request,<br>exception: str | Exception,<br>spider: <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a> | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+<pre><code class="python">async def process_exception(self, request, exception:Union[str, Exception], spider:Optional[ScrapflySpider] = None):
+    spider = self._spider(spider)
     delay = 1
 
-    if isinstance(exception, ResponseNeverReceived):
-        return spider.retry(request, exception, delay)
+    # ResponseNeverReceived from Twisted&#39;s HTTP client, TransportError from AsyncScrapflyClient&#39;s.
+    if isinstance(exception, (ResponseNeverReceived, httpx.TransportError)):
+        return await self._retried(spider.retry(request, exception, delay))
 
     if isinstance(exception, ScrapflyError):
         if exception.is_retryable:
@@ -127,26 +162,28 @@ el.replaceWith(d);
                 if &#39;retry-after&#39; in exception.response.headers:
                     delay = int(exception.response.headers[&#39;retry-after&#39;])
 
-            return spider.retry(request, exception, delay)
+            return await self._retried(spider.retry(request, exception, delay))
 
         if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
-            return spider.retry(request, exception, delay)
+            return await self._retried(spider.retry(request, exception, delay))
 
     raise exception</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request"><code class="name flex">
-<span>def <span class="ident">process_request</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | None</span>
+<span>def <span class="ident">process_request</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a> | None = None) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | None</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+<pre><code class="python">def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Optional[Union[Spider, ScrapflySpider]] = None) -&gt; Optional[ScrapflyScrapyResponse]:
     if not isinstance(request, ScrapflyScrapyRequest):
         return None
+
+    spider = self._spider(spider)
 
     if not isinstance(spider, ScrapflySpider):
         raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
@@ -165,14 +202,14 @@ el.replaceWith(d);
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_response"><code class="name flex">
-<span>def <span class="ident">process_response</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>response: scrapy.http.response.Response | <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></span>
+<span>def <span class="ident">process_response</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>response: scrapy.http.response.Response | <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a> | None = None) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+<pre><code class="python">def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Optional[Union[Spider, ScrapflySpider]] = None) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
     return response</code></pre>
 </details>
 <div class="desc"></div>
@@ -190,17 +227,25 @@ el.replaceWith(d);
 </summary>
 <pre><code class="python">class ScrapflyRefererMiddleware(ScrapyRefererMidleware):
 
-    def process_spider_output(self, response, result, spider) -&gt; Iterable:
-        if isinstance(response, ScrapflyScrapyResponse) and response.scrape_config.session is not None:
-            return result # bypass - already handled by scrapfly session system
+    if hasattr(ScrapyRefererMidleware, &#39;get_processed_request&#39;):  # Scrapy 2.13+
+        def get_processed_request(self, request, response):
+            if _in_session(response):
+                return request # bypass - already handled by scrapfly session system
 
-        return ScrapyRefererMidleware.process_spider_output(self, response, result, spider)
+            return super().get_processed_request(request, response)
+    else:
+        def process_spider_output(self, response, result, spider) -&gt; Iterable:
+            if _in_session(response):
+                return result # bypass - already handled by scrapfly session system
 
-    def request_scheduled(self, request, spider):
-        if isinstance(request, ScrapflyScrapyRequest) and request.scrape_config.session is not None:
-            return # bypass - already handled by scrapfly session system
+            return ScrapyRefererMidleware.process_spider_output(self, response, result, spider)
 
-        ScrapyRefererMidleware.request_scheduled(self, request, spider)</code></pre>
+    if hasattr(ScrapyRefererMidleware, &#39;request_scheduled&#39;):  # Scrapy &lt; 2.19
+        def request_scheduled(self, request, spider):
+            if isinstance(request, ScrapflyScrapyRequest) and request.scrape_config.session is not None:
+                return # bypass - already handled by scrapfly session system
+
+            ScrapyRefererMidleware.request_scheduled(self, request, spider)</code></pre>
 </details>
 <div class="desc"><p>Optional base class for spider middlewares.</p>
 <div class="admonition versionadded">
@@ -224,37 +269,31 @@ from the processing.</p></div>
 </ul>
 <h3>Methods</h3>
 <dl>
-<dt id="scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.process_spider_output"><code class="name flex">
-<span>def <span class="ident">process_spider_output</span></span>(<span>self, response, result, spider) ‑> Iterable</span>
+<dt id="scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.get_processed_request"><code class="name flex">
+<span>def <span class="ident">get_processed_request</span></span>(<span>self, request, response)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_spider_output(self, response, result, spider) -&gt; Iterable:
-    if isinstance(response, ScrapflyScrapyResponse) and response.scrape_config.session is not None:
-        return result # bypass - already handled by scrapfly session system
+<pre><code class="python">def get_processed_request(self, request, response):
+    if _in_session(response):
+        return request # bypass - already handled by scrapfly session system
 
-    return ScrapyRefererMidleware.process_spider_output(self, response, result, spider)</code></pre>
+    return super().get_processed_request(request, response)</code></pre>
 </details>
-<div class="desc"></div>
-</dd>
-<dt id="scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.request_scheduled"><code class="name flex">
-<span>def <span class="ident">request_scheduled</span></span>(<span>self, request, spider)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def request_scheduled(self, request, spider):
-    if isinstance(request, ScrapflyScrapyRequest) and request.scrape_config.session is not None:
-        return # bypass - already handled by scrapfly session system
-
-    ScrapyRefererMidleware.request_scheduled(self, request, spider)</code></pre>
-</details>
-<div class="desc"></div>
+<div class="desc"><p>Return a processed request from the spider output.</p>
+<p>This method is called with a single request from <code>start()</code> or the
+spider output. It should return the same or a different request, or
+<code>None</code> to ignore it.</p>
+<p>:param request: the input request
+:type request: :class:<code>~scrapy.Request</code> object</p>
+<p>:param response: the response being processed
+:type response: :class:<code>~scrapy.http.Response</code> object, or <code>None</code> for
+start requests and for the output of a request errback called
+because a download failed</p>
+<p>:return: the processed request or <code>None</code></p></div>
 </dd>
 </dl>
 </dd>
@@ -277,6 +316,7 @@ from the processing.</p></div>
 <h4><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware">ScrapflyMiddleware</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.MAX_API_RETRIES" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.MAX_API_RETRIES">MAX_API_RETRIES</a></code></li>
+<li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.from_crawler" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.from_crawler">from_crawler</a></code></li>
 <li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_exception" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.process_exception">process_exception</a></code></li>
 <li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.process_request">process_request</a></code></li>
 <li><code><a title="scrapfly.scrapy.middleware.ScrapflyMiddleware.process_response" href="#scrapfly.scrapy.middleware.ScrapflyMiddleware.process_response">process_response</a></code></li>
@@ -285,8 +325,7 @@ from the processing.</p></div>
 <li>
 <h4><code><a title="scrapfly.scrapy.middleware.ScrapflyRefererMiddleware" href="#scrapfly.scrapy.middleware.ScrapflyRefererMiddleware">ScrapflyRefererMiddleware</a></code></h4>
 <ul class="">
-<li><code><a title="scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.process_spider_output" href="#scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.process_spider_output">process_spider_output</a></code></li>
-<li><code><a title="scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.request_scheduled" href="#scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.request_scheduled">request_scheduled</a></code></li>
+<li><code><a title="scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.get_processed_request" href="#scrapfly.scrapy.middleware.ScrapflyRefererMiddleware.get_processed_request">get_processed_request</a></code></li>
 </ul>
 </li>
 </ul>

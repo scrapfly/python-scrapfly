@@ -234,10 +234,11 @@ el.replaceWith(d);
             refresh: Keep this crawl fresh by re-scraping its own URLs in place
             refresh_interval: Seconds between refresh runs (3600 to 7776000)
 
+            proxy_pool: Proxy pool for every crawled page: &#39;public_datacenter_pool&#39;
+                (the default), &#39;public_residential_pool&#39; or &#39;public_tor_pool&#39;
+                (ScrapeConfig.PUBLIC_DATACENTER_POOL, ...).
             unblocker: Enable the anti-bot bypass (Unblocker)
-            asp: Deprecated alias of `unblocker`, permanently supported. When
-                both are supplied, `asp` wins.
-            proxy_pool: Proxy pool to use (e.g., &#39;public_residential_pool&#39;)
+            asp: Deprecated alias of `unblocker`. When both are supplied, `asp` wins.
             country: Target country for geo-located content
 
             webhook_name: Webhook name for event notifications
@@ -393,7 +394,7 @@ el.replaceWith(d);
 
     @property
     def asp(self) -&gt; bool:
-        &#34;&#34;&#34;Deprecated alias of `unblocker`, permanently supported.&#34;&#34;&#34;
+        &#34;&#34;&#34;Deprecated alias of `unblocker`.&#34;&#34;&#34;
 
         return self.unblocker
 
@@ -435,7 +436,8 @@ el.replaceWith(d);
 <div class="desc"><p>Configuration for Scrapfly Crawler API</p>
 <p>The Crawler API performs recursive website crawling with advanced
 configuration, content extraction, and artifact storage.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig
 client = ScrapflyClient(key='YOUR_API_KEY')
 config = CrawlerConfig(
@@ -458,8 +460,9 @@ if status.is_complete:
     pages = artifact.get_pages()
 </code></pre>
 <p>Initialize a CrawlerConfig</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>Starting URL for the crawl (required)</dd>
 <dt><strong><code>page_limit</code></strong></dt>
@@ -510,13 +513,14 @@ if status.is_complete:
 <dd>Keep this crawl fresh by re-scraping its own URLs in place</dd>
 <dt><strong><code>refresh_interval</code></strong></dt>
 <dd>Seconds between refresh runs (3600 to 7776000)</dd>
+<dt><strong><code>proxy_pool</code></strong></dt>
+<dd>Proxy pool for every crawled page: 'public_datacenter_pool'
+(the default), 'public_residential_pool' or 'public_tor_pool'
+(ScrapeConfig.PUBLIC_DATACENTER_POOL, &hellip;).</dd>
 <dt><strong><code>unblocker</code></strong></dt>
 <dd>Enable the anti-bot bypass (Unblocker)</dd>
 <dt><strong><code>asp</code></strong></dt>
-<dd>Deprecated alias of <code>unblocker</code>, permanently supported. When
-both are supplied, <code>asp</code> wins.</dd>
-<dt><strong><code>proxy_pool</code></strong></dt>
-<dd>Proxy pool to use (e.g., 'public_residential_pool')</dd>
+<dd>Deprecated alias of <code>unblocker</code>. When both are supplied, <code>asp</code> wins.</dd>
 <dt><strong><code>country</code></strong></dt>
 <dd>Target country for geo-located content</dd>
 <dt><strong><code>webhook_name</code></strong></dt>
@@ -599,11 +603,11 @@ both are supplied, <code>asp</code> wins.</dd>
 </summary>
 <pre><code class="python">@property
 def asp(self) -&gt; bool:
-    &#34;&#34;&#34;Deprecated alias of `unblocker`, permanently supported.&#34;&#34;&#34;
+    &#34;&#34;&#34;Deprecated alias of `unblocker`.&#34;&#34;&#34;
 
     return self.unblocker</code></pre>
 </details>
-<div class="desc"><p>Deprecated alias of <code>unblocker</code>, permanently supported.</p></div>
+<div class="desc"><p>Deprecated alias of <code>unblocker</code>.</p></div>
 </dd>
 <dt id="scrapfly.crawler.crawler_config.CrawlerConfig.unblocker"><code class="name">prop <span class="ident">unblocker</span> : bool</code></dt>
 <dd>

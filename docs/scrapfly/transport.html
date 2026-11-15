@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>scrapfly.transport API documentation</title>
+<meta name="description" content="API calls written once, run by ScrapflyClient (requests) and AsyncScrapflyClient (httpx) …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.transport</code></h1>
+</header>
+<section id="section-intro">
+<p>API calls written once, run by ScrapflyClient (requests) and AsyncScrapflyClient (httpx).</p>
+<p>An operation is a generator: it yields a Call or a Sleep and is sent back the
+requests.Response (None after a Sleep), so building the request and reading the
+response are shared, and only the clients' run loops do I/O.</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="scrapfly.transport.ready"><code class="name flex">
+<span>def <span class="ident">ready</span></span>(<span>value: ~T) ‑> Steps[~T]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ready(value: T) -&gt; Steps[T]:
+    &#34;&#34;&#34;An operation that needs no call.&#34;&#34;&#34;
+    return value
+    yield</code></pre>
+</details>
+<div class="desc"><p>An operation that needs no call.</p></div>
+</dd>
+<dt id="scrapfly.transport.retry_delay"><code class="name flex">
+<span>def <span class="ident">retry_delay</span></span>(<span>attempt: int) ‑> float</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def retry_delay(attempt: int) -&gt; float:
+    &#34;&#34;&#34;Exponential backoff with full jitter, attempt 0 first.&#34;&#34;&#34;
+    return random.uniform(0, 2 ** attempt)</code></pre>
+</details>
+<div class="desc"><p>Exponential backoff with full jitter, attempt 0 first.</p></div>
+</dd>
+<dt id="scrapfly.transport.signed"><code class="name flex">
+<span>def <span class="ident">signed</span></span>(<span>method: Callable, steps: Callable, stream: type) ‑> Callable</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def signed(method: Callable, steps: Callable, stream: type) -&gt; Callable:
+    &#34;&#34;&#34;Give the client method that runs `steps` its signature: Steps[R] returns R, a Streamed[T] in R reads as stream[T].&#34;&#34;&#34;
+    signature = inspect.signature(steps)
+
+    if get_args(signature.return_annotation):
+        signature = signature.replace(return_annotation=_streams(get_args(signature.return_annotation)[0], stream))
+        method.__annotations__ = {**steps.__annotations__, &#39;return&#39;: signature.return_annotation}
+
+    method.__signature__ = signature
+
+    return method</code></pre>
+</details>
+<div class="desc"><p>Give the client method that runs <code>steps</code> its signature: Steps[R] returns R, a Streamed[T] in R reads as stream[T].</p></div>
+</dd>
+<dt id="scrapfly.transport.without_key"><code class="name flex">
+<span>def <span class="ident">without_key</span></span>(<span>error: BaseException) ‑> BaseException</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def without_key(error: BaseException) -&gt; BaseException:
+    &#34;&#34;&#34;The error with the API key masked, or the error itself when it does not print one.
+
+    requests puts the request URL in a connection error message, query and key included.
+    &#34;&#34;&#34;
+    message = str(error)
+    if not KEY_IN_URL.search(message):
+        return error
+
+    masked = KEY_IN_URL.sub(&#39;REDACTED&#39;, message)
+    if isinstance(error, RequestException):
+        return type(error)(masked, request=error.request, response=error.response)
+
+    return type(error)(masked)</code></pre>
+</details>
+<div class="desc"><p>The error with the API key masked, or the error itself when it does not print one.</p>
+<p>requests puts the request URL in a connection error message, query and key included.</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.transport.Call"><code class="flex name class">
+<span>class <span class="ident">Call</span></span>
+<span>(</span><span>method: str,<br>url: str,<br>*,<br>tries: int = 1,<br>retry_read_timeout: bool = True,<br>**options: Any)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Call:
+    &#34;&#34;&#34;One HTTP exchange, as the keyword arguments of requests.request.&#34;&#34;&#34;
+
+    def __init__(self, method: str, url: str, *, tries: int = 1, retry_read_timeout: bool = True, **options: Any):
+        self.method = method
+        self.url = url
+        # A retry on a network error sends the request again: only for calls safe to repeat.
+        self.tries = tries
+        # False: a read timeout is raised at once, the other network errors are retried.
+        self.retry_read_timeout = retry_read_timeout
+        self.options = options
+
+    @property
+    def stream(self) -&gt; bool:
+        return bool(self.options.get(&#39;stream&#39;))</code></pre>
+</details>
+<div class="desc"><p>One HTTP exchange, as the keyword arguments of requests.request.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.transport.Call.stream"><code class="name">prop <span class="ident">stream</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def stream(self) -&gt; bool:
+    return bool(self.options.get(&#39;stream&#39;))</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.transport.Sleep"><code class="flex name class">
+<span>class <span class="ident">Sleep</span></span>
+<span>(</span><span>seconds: float)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class Sleep:
+    seconds: float</code></pre>
+</details>
+<div class="desc"><p>Sleep(seconds: float)</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.transport.Sleep.seconds"><code class="name">var <span class="ident">seconds</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.transport.StreamDecoder"><code class="flex name class">
+<span>class <span class="ident">StreamDecoder</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class StreamDecoder(Protocol[T]):
+    &#34;&#34;&#34;Push decoder of a streamed body: done once it read what it needed.&#34;&#34;&#34;
+
+    done: bool
+
+    def feed(self, chunk: bytes) -&gt; Iterable[T]: ...
+
+    def close(self) -&gt; Iterable[T]: ...</code></pre>
+</details>
+<div class="desc"><p>Push decoder of a streamed body: done once it read what it needed.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>typing.Protocol</li>
+<li>typing.Generic</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.transport.StreamDecoder.done"><code class="name">var <span class="ident">done</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.transport.StreamDecoder.close"><code class="name flex">
+<span>def <span class="ident">close</span></span>(<span>self) ‑> Iterable[~T]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def close(self) -&gt; Iterable[T]: ...</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.transport.StreamDecoder.feed"><code class="name flex">
+<span>def <span class="ident">feed</span></span>(<span>self, chunk: bytes) ‑> Iterable[~T]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def feed(self, chunk: bytes) -&gt; Iterable[T]: ...</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.transport.Streamed"><code class="flex name class">
+<span>class <span class="ident">Streamed</span></span>
+<span>(</span><span>response: requests.models.Response,<br>decoder: <a title="scrapfly.transport.StreamDecoder" href="#scrapfly.transport.StreamDecoder">StreamDecoder</a>,<br>chunk_size: int | None = None,<br>finish: Callable[[Any], Steps[~T]] | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class Streamed(Generic[T]):
+    &#34;&#34;&#34;A response read as it arrives, each decoded item finished by an operation of its own.&#34;&#34;&#34;
+
+    response: Response
+    decoder: StreamDecoder
+    chunk_size: Optional[int] = None
+    finish: Optional[Callable[[Any], Steps[T]]] = None</code></pre>
+</details>
+<div class="desc"><p>A response read as it arrives, each decoded item finished by an operation of its own.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>typing.Generic</li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.transport.Streamed.chunk_size"><code class="name">var <span class="ident">chunk_size</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.transport.Streamed.decoder"><code class="name">var <span class="ident">decoder</span> : <a title="scrapfly.transport.StreamDecoder" href="#scrapfly.transport.StreamDecoder">StreamDecoder</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.transport.Streamed.finish"><code class="name">var <span class="ident">finish</span> : Callable[[Any], Steps[~T]] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.transport.Streamed.response"><code class="name">var <span class="ident">response</span> : requests.models.Response</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.transport.operation"><code class="flex name class">
+<span>class <span class="ident">operation</span></span>
+<span>(</span><span>steps: Callable[Concatenate[Any, ~P], Steps[~R]])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def __get__(self, client: Any, owner: type) -&gt; Any:
+    return self</code></pre>
+</details>
+<div class="desc"><p>A method written once as Steps: a plain method of ScrapflyClient, a coroutine of AsyncScrapflyClient.</p>
+<p>ScrapflyApi.<strong>init_subclass</strong> replaces it by the client's method; <strong>get</strong> only types that method.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>typing.Generic</li>
+</ul>
+</dd>
+<dt id="scrapfly.transport.streaming"><code class="flex name class">
+<span>class <span class="ident">streaming</span></span>
+<span>(</span><span>steps: Callable[Concatenate[Any, ~P], Steps[<a title="scrapfly.transport.Streamed" href="#scrapfly.transport.Streamed">Streamed</a>[~T]]])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def __get__(self, client: Any, owner: type) -&gt; Any:
+    return self</code></pre>
+</details>
+<div class="desc"><p>An operation whose result arrives as a stream: an iterator of ScrapflyClient, an async iterator of AsyncScrapflyClient.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>typing.Generic</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly" href="index.html">scrapfly</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="scrapfly.transport.ready" href="#scrapfly.transport.ready">ready</a></code></li>
+<li><code><a title="scrapfly.transport.retry_delay" href="#scrapfly.transport.retry_delay">retry_delay</a></code></li>
+<li><code><a title="scrapfly.transport.signed" href="#scrapfly.transport.signed">signed</a></code></li>
+<li><code><a title="scrapfly.transport.without_key" href="#scrapfly.transport.without_key">without_key</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.transport.Call" href="#scrapfly.transport.Call">Call</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.transport.Call.stream" href="#scrapfly.transport.Call.stream">stream</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.transport.Sleep" href="#scrapfly.transport.Sleep">Sleep</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.transport.Sleep.seconds" href="#scrapfly.transport.Sleep.seconds">seconds</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.transport.StreamDecoder" href="#scrapfly.transport.StreamDecoder">StreamDecoder</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.transport.StreamDecoder.close" href="#scrapfly.transport.StreamDecoder.close">close</a></code></li>
+<li><code><a title="scrapfly.transport.StreamDecoder.done" href="#scrapfly.transport.StreamDecoder.done">done</a></code></li>
+<li><code><a title="scrapfly.transport.StreamDecoder.feed" href="#scrapfly.transport.StreamDecoder.feed">feed</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.transport.Streamed" href="#scrapfly.transport.Streamed">Streamed</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.transport.Streamed.chunk_size" href="#scrapfly.transport.Streamed.chunk_size">chunk_size</a></code></li>
+<li><code><a title="scrapfly.transport.Streamed.decoder" href="#scrapfly.transport.Streamed.decoder">decoder</a></code></li>
+<li><code><a title="scrapfly.transport.Streamed.finish" href="#scrapfly.transport.Streamed.finish">finish</a></code></li>
+<li><code><a title="scrapfly.transport.Streamed.response" href="#scrapfly.transport.Streamed.response">response</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.transport.operation" href="#scrapfly.transport.operation">operation</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.transport.streaming" href="#scrapfly.transport.streaming">streaming</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

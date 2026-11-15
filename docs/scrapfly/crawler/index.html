@@ -113,17 +113,18 @@ el.replaceWith(d);
     return WarcParser(warc_data)</code></pre>
 </details>
 <div class="desc"><p>Convenience function to create a WARC parser</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>warc_data</code></strong></dt>
 <dd>WARC data as bytes or file-like object</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
+<dt>Returns</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.crawler.WarcParser" href="#scrapfly.crawler.WarcParser">WarcParser</a></code></dt>
 <dd>Parser instance</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import parse_warc
 
 # Quick way to get all pages
@@ -133,7 +134,7 @@ for page in pages:
 </code></pre></div>
 </dd>
 <dt id="scrapfly.crawler.webhook_from_payload"><code class="name flex">
-<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict[str, Any] | None = None,<br>signing_secrets: Tuple[str, ...] | None = None,<br>signature: str | None = None,<br>raw_body: bytes | None = None,<br>content_encoding: str | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook">CrawlerUrlVisitedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook">CrawlerUrlSkippedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook">CrawlerUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook">CrawlerUrlFailedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerSearchWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerSearchWebhook">CrawlerSearchWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUpdatedWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUpdatedWebhook">CrawlerUpdatedWebhook</a></span>
+<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict[str, Any] | None = None,<br>signing_secrets: Tuple[str, ...] | None = None,<br>signature: str | None = None,<br>raw_body: bytes | None = None,<br>content_encoding: str | None = None,<br>max_body_size: int | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook">CrawlerUrlVisitedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook">CrawlerUrlSkippedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook">CrawlerUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook">CrawlerUrlFailedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerSearchWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerSearchWebhook">CrawlerSearchWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUpdatedWebhook" href="crawler_webhook.html#scrapfly.crawler.crawler_webhook.CrawlerUpdatedWebhook">CrawlerUpdatedWebhook</a></span>
 </code></dt>
 <dd>
 <details class="source">
@@ -146,6 +147,7 @@ for page in pages:
     signature: Optional[str] = None,
     raw_body: Optional[bytes] = None,
     content_encoding: Optional[str] = None,
+    max_body_size: Optional[int] = None,
 ) -&gt; CrawlerWebhook:
     &#34;&#34;&#34;
     Parse a raw crawler webhook envelope into a typed dataclass.
@@ -173,6 +175,9 @@ for page in pages:
         content_encoding: The ``Content-Encoding`` header, when the webhook is
             configured to compress. Signing happens before encoding, so a
             compressed body has to be inflated before the digest matches.
+        max_body_size: Refuse a body that inflates past this many bytes. It is
+            decoded before it is verified, so any sender reaches it. ``None``
+            keeps the 256 MiB default of ``create_server``.
 
     Returns:
         A typed webhook instance matching the event.
@@ -183,6 +188,10 @@ for page in pages:
             ``signing_secrets`` is set without ``raw_body``, or if neither
             ``payload`` nor ``signing_secrets`` is supplied.
         WebhookSignatureMissMatch: If the signature is absent or does not match.
+        WebhookBodyTooLarge: If the body inflates past ``max_body_size``.
+        Exception: The decoder&#39;s own error (``zlib.error``, ``brotli.error``,
+            ``ValueError`` for a truncated stream...) for a body that does not
+            decode: answer it as a bad request, any sender can post one.
 
     Example:
         &gt;&gt;&gt; from flask import Flask, request
@@ -190,8 +199,8 @@ for page in pages:
         &gt;&gt;&gt; app = Flask(__name__)
         &gt;&gt;&gt; @app.route(&#39;/webhook&#39;, methods=[&#39;POST&#39;])
         ... def handle_webhook():
+        ...     # No request.json: Flask cannot parse a compressed body.
         ...     wh = webhook_from_payload(
-        ...         request.json,
         ...         signing_secrets=(&#39;YOUR-WEBHOOK-SIGNING-SECRET&#39;,),
         ...         signature=request.headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;),
         ...         raw_body=request.get_data(),
@@ -206,7 +215,7 @@ for page in pages:
         # Imported here rather than at module scope to avoid a circular import.
         from json import loads
 
-        from ..api_response import ResponseBodyHandler, decompress
+        from ..api_response import MAX_DECOMPRESSED_SIZE, ResponseBodyHandler, decompress
         from ..errors import WebhookSignatureMissMatch
 
         if raw_body is None:
@@ -217,7 +226,7 @@ for page in pages:
 
         handler = ResponseBodyHandler(signing_secrets=signing_secrets)
         # Signing happens before Content-Encoding is applied.
-        verified = decompress(raw_body, content_encoding)
+        verified = decompress(raw_body, content_encoding, MAX_DECOMPRESSED_SIZE if max_body_size is None else max_body_size)
 
         if not handler.verify(verified, signature):
             raise WebhookSignatureMissMatch()
@@ -243,8 +252,9 @@ for page in pages:
 <p>The envelope shape is <code>{"event": &lt;name&gt;, "payload": {...}}</code>. This
 function inspects <code>event</code> and returns the corresponding typed
 dataclass — one of :data:<code>CrawlerWebhook</code>.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>payload</code></strong></dt>
 <dd>The full webhook body as a dict (i.e. what you get from
 <code>request.json</code>). Ignored when <code>signing_secrets</code> is set, because
@@ -268,11 +278,17 @@ all encoder-dependent).</dd>
 <dd>The <code>Content-Encoding</code> header, when the webhook is
 configured to compress. Signing happens before encoding, so a
 compressed body has to be inflated before the digest matches.</dd>
+<dt><strong><code>max_body_size</code></strong></dt>
+<dd>Refuse a body that inflates past this many bytes. It is
+decoded before it is verified, so any sender reaches it. <code>None</code>
+keeps the 256 MiB default of <code>create_server</code>.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>A typed webhook instance matching the event.</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+A typed webhook instance matching the event.</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>KeyError</code></dt>
 <dd>If the envelope is missing required fields.</dd>
 <dt><code>ValueError</code></dt>
@@ -281,15 +297,22 @@ compressed body has to be inflated before the digest matches.</dd>
 <code>payload</code> nor <code>signing_secrets</code> is supplied.</dd>
 <dt><code>WebhookSignatureMissMatch</code></dt>
 <dd>If the signature is absent or does not match.</dd>
+<dt><code>WebhookBodyTooLarge</code></dt>
+<dd>If the body inflates past <code>max_body_size</code>.</dd>
+<dt><code>Exception</code></dt>
+<dd>The decoder's own error (<code>zlib.error</code>, <code>brotli.error</code>,
+<code>ValueError</code> for a truncated stream&hellip;) for a body that does not
+decode: answer it as a bad request, any sender can post one.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python-repl">&gt;&gt;&gt; from flask import Flask, request
 &gt;&gt;&gt; from scrapfly import webhook_from_payload, CrawlerLifecycleWebhook
 &gt;&gt;&gt; app = Flask(__name__)
 &gt;&gt;&gt; @app.route('/webhook', methods=['POST'])
 ... def handle_webhook():
+...     # No request.json: Flask cannot parse a compressed body.
 ...     wh = webhook_from_payload(
-...         request.json,
 ...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
 ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
 ...         raw_body=request.get_data(),
@@ -698,6 +721,43 @@ compressed body has to be inflated before the digest matches.</dd>
             search=search,
             model=model,
             stream=stream,
+        )
+
+    def extract(
+        self,
+        prompt: str,
+        schema: Dict[str, Any],
+        search: Optional[Dict[str, Any]] = None,
+    ) -&gt; CrawlerExtractResponse:
+        &#34;&#34;&#34;
+        Extract a structured object from this crawl&#39;s content.
+
+        Sugar over :meth:`ScrapflyClient.crawl_extract` with a one-element
+        crawl list.
+
+        Args:
+            prompt: What to extract.
+            schema: JSON Schema of the result.
+            search: Optional retrieval overrides: &#39;limit&#39;, &#39;mode&#39;, &#39;filters&#39;.
+
+        Returns:
+            CrawlerExtractResponse, its ``data`` shaped by ``schema``.
+
+        Raises:
+            ScrapflyCrawlerError: if the crawler has not been started yet.
+            CrawlerExtractError: if the extraction fails.
+        &#34;&#34;&#34;
+        if self._uuid is None:
+            raise ScrapflyCrawlerError(
+                message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+                code=&#34;NOT_STARTED&#34;,
+                http_status_code=400,
+            )
+        return self._client.crawl_extract(
+            crawl_ids=[self._uuid],
+            prompt=prompt,
+            schema=schema,
+            search=search,
         )
 
     def refresh_now(self) -&gt; CrawlerRefreshState:
@@ -1341,7 +1401,8 @@ compressed body has to be inflated before the digest matches.</dd>
 <div class="desc"><p>High-level abstraction for managing a crawler job</p>
 <p>The Crawl object maintains the state of a crawler job and provides
 convenient methods for managing its lifecycle.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig, Crawl
 
 client = ScrapflyClient(key='your-key')
@@ -1363,8 +1424,9 @@ for page in pages:
 html = crawl.read('https://example.com/page1', format='html')
 </code></pre>
 <p>Initialize a Crawl object</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>client</code></strong></dt>
 <dd>ScrapflyClient instance</dd>
 <dt><strong><code>config</code></strong></dt>
@@ -1438,14 +1500,17 @@ def uuid(self) -&gt; Optional[str]:
     return self._client.cancel_crawl(self._uuid)</code></pre>
 </details>
 <div class="desc"><p>Cancel the running crawler job</p>
-<h2 id="returns">Returns</h2>
-<p>True if cancelled successfully</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+True if cancelled successfully</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Start a crawl
 crawl = Crawl(client, config).crawl()
 
@@ -1489,17 +1554,90 @@ crawl.cancel()
     return self</code></pre>
 </details>
 <div class="desc"><p>Start the crawler job</p>
-<h2 id="returns">Returns</h2>
-<p>Self for method chaining</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+Self for method chaining</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler already started</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">crawl = Crawl(client, config)
 crawl.crawl()  # Start crawling
 </code></pre></div>
+</dd>
+<dt id="scrapfly.crawler.Crawl.extract"><code class="name flex">
+<span>def <span class="ident">extract</span></span>(<span>self, prompt: str, schema: Dict[str, Any], search: Dict[str, Any] | None = None) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerExtractResponse" href="crawler_response.html#scrapfly.crawler.crawler_response.CrawlerExtractResponse">CrawlerExtractResponse</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def extract(
+    self,
+    prompt: str,
+    schema: Dict[str, Any],
+    search: Optional[Dict[str, Any]] = None,
+) -&gt; CrawlerExtractResponse:
+    &#34;&#34;&#34;
+    Extract a structured object from this crawl&#39;s content.
+
+    Sugar over :meth:`ScrapflyClient.crawl_extract` with a one-element
+    crawl list.
+
+    Args:
+        prompt: What to extract.
+        schema: JSON Schema of the result.
+        search: Optional retrieval overrides: &#39;limit&#39;, &#39;mode&#39;, &#39;filters&#39;.
+
+    Returns:
+        CrawlerExtractResponse, its ``data`` shaped by ``schema``.
+
+    Raises:
+        ScrapflyCrawlerError: if the crawler has not been started yet.
+        CrawlerExtractError: if the extraction fails.
+    &#34;&#34;&#34;
+    if self._uuid is None:
+        raise ScrapflyCrawlerError(
+            message=&#34;Crawler not started yet. Call crawl() first.&#34;,
+            code=&#34;NOT_STARTED&#34;,
+            http_status_code=400,
+        )
+    return self._client.crawl_extract(
+        crawl_ids=[self._uuid],
+        prompt=prompt,
+        schema=schema,
+        search=search,
+    )</code></pre>
+</details>
+<div class="desc"><p>Extract a structured object from this crawl's content.</p>
+<p>Sugar over :meth:<code>ScrapflyClient.crawl_extract</code> with a one-element
+crawl list.</p>
+<dl>
+<dt>Args</dt>
+<dt>-----=</dt>
+<dt><strong><code>prompt</code></strong></dt>
+<dd>What to extract.</dd>
+<dt><strong><code>schema</code></strong></dt>
+<dd>JSON Schema of the result.</dd>
+<dt><strong><code>search</code></strong></dt>
+<dd>Optional retrieval overrides: 'limit', 'mode', 'filters'.</dd>
+</dl>
+<p>Returns
+-----=
+CrawlerExtractResponse, its <code>data</code> shaped by <code>schema</code>.</p>
+<dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
+<dt><code>ScrapflyCrawlerError</code></dt>
+<dd>if the crawler has not been started yet.</dd>
+<dt><code>CrawlerExtractError</code></dt>
+<dd>if the extraction fails.</dd>
+</dl></div>
 </dd>
 <dt id="scrapfly.crawler.Crawl.har"><code class="name flex">
 <span>def <span class="ident">har</span></span>(<span>self) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerArtifactResponse" href="crawler_response.html#scrapfly.crawler.crawler_response.CrawlerArtifactResponse">CrawlerArtifactResponse</a></span>
@@ -1546,14 +1684,17 @@ crawl.crawl()  # Start crawling
     )</code></pre>
 </details>
 <div class="desc"><p>Download the crawler artifact in HAR (HTTP Archive) format</p>
-<h2 id="returns">Returns</h2>
-<p>CrawlerArtifactResponse with parsed HAR data</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerArtifactResponse with parsed HAR data</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get HAR artifact
 artifact = crawl.har()
 
@@ -1625,8 +1766,9 @@ for entry in artifact.iter_responses():
 <div class="desc"><p>Ask a question answered from this crawl's content.</p>
 <p>Sugar over :meth:<code>ScrapflyClient.crawl_prompt</code> with a one-element
 crawl list.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>prompt</code></strong></dt>
 <dd>The question.</dd>
 <dt><strong><code>search</code></strong></dt>
@@ -1636,17 +1778,20 @@ crawl list.</p>
 <dt><strong><code>stream</code></strong></dt>
 <dd>Yield SSE frames (True) or return one dict (False).</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>Iterator[CrawlerPromptEvent] when streaming, else Dict.</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+Iterator[CrawlerPromptEvent] when streaming, else Dict.</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>if the crawler has not been started yet.</dd>
 <dt><code>CrawlerPromptError</code></dt>
 <dd>on a server-sent error frame, which can arrive
 after tokens have already been yielded.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">for event in crawl.prompt('What does this site sell?'):
     if event.is_token:
         print(event.data, end='', flush=True)
@@ -1779,17 +1924,20 @@ after tokens have already been yielded.</dd>
         return None</code></pre>
 </details>
 <div class="desc"><p>Read content from a specific URL in the crawl results</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL to retrieve content for</dd>
 <dt><strong><code>format</code></strong></dt>
 <dd>Content format - 'html', 'markdown', 'text', 'clean_html', 'json',
 'extracted_data', 'page_metadata'</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlContent object with content and metadata, or None if URL not found</p>
-<h2 id="example">Example</h2>
+<p>Returns
+-----=
+CrawlContent object with content and metadata, or None if URL not found</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get HTML content for a specific URL
 content = crawl.read('https://example.com/page1')
 if content:
@@ -1983,16 +2131,18 @@ if crawl.read('https://example.com/missing') is None:
 <div class="desc"><p>Retrieve content for multiple URLs in a single batch request</p>
 <p>This is more efficient than calling read() multiple times as it retrieves
 all content in a single API call. Maximum 100 URLs per request.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>List of URLs to retrieve (max 100)</dd>
 <dt><strong><code>formats</code></strong></dt>
 <dd>List of content formats to retrieve (e.g., ['markdown', 'text'])
 If None, defaults to ['html']</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>Dictionary mapping URLs to their content in requested formats:
+<p>Returns
+-----=
+Dictionary mapping URLs to their content in requested formats:
 {
 'https://example.com/page1': {
 'markdown': '# Page 1&hellip;',
@@ -2003,7 +2153,8 @@ If None, defaults to ['html']</dd>
 'text': 'Page 2&hellip;'
 }
 }</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get markdown and text for multiple URLs
 urls = ['https://example.com/page1', 'https://example.com/page2']
 contents = crawl.read_batch(urls, formats=['markdown', 'text'])
@@ -2013,8 +2164,9 @@ for url, formats in contents.items():
     text = formats.get('text', '')
     print(f&quot;{url}: {len(markdown)} chars markdown, {len(text)} chars text&quot;)
 </code></pre>
-<h2 id="raises">Raises</h2>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ValueError</code></dt>
 <dd>If more than 100 URLs are provided</dd>
 <dt><code>ScrapflyCrawlerError</code></dt>
@@ -2144,17 +2296,20 @@ for url, formats in contents.items():
 </details>
 <div class="desc"><p>Iterate through URLs matching a pattern and yield their content</p>
 <p>Supports wildcard patterns using * and ? for flexible URL matching.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>pattern</code></strong></dt>
-<dd>URL pattern with wildcards (<em> matches any characters, ? matches one)
-Examples: "/products?page=</em>", "https://example.com/<em>/detail", "</em>/product/*"</dd>
+<dd>URL pattern with wildcards (* matches any characters, ? matches one)
+Examples: "/products?page=<em>", "https://example.com/</em>/detail", "<em>/product/</em>"</dd>
 <dt><strong><code>format</code></strong></dt>
 <dd>Content format to retrieve</dd>
 </dl>
-<h2 id="yields">Yields</h2>
-<p>CrawlContent objects for each matching URL</p>
-<h2 id="example">Example</h2>
+<p>Yields
+-----=
+CrawlContent objects for each matching URL</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get all product pages in markdown
 for content in crawl.read_iter(pattern=&quot;*/products?page=*&quot;, format=&quot;markdown&quot;):
     print(f&quot;{content.url}: {len(content.content)} chars&quot;)
@@ -2209,19 +2364,23 @@ for content in crawl.read_iter(pattern=&quot;*/detail/*&quot;):
 </details>
 <div class="desc"><p>Read this crawl's refresh timeline, newest last.</p>
 <p>Sugar over :meth:<code>ScrapflyClient.crawl_refresh_history</code>.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>limit</code></strong></dt>
 <dd>Keep only the last N rows.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>List[CrawlerRefreshEntry]</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+List[CrawlerRefreshEntry]</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>if the crawler has not been started yet.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">for entry in crawl.refresh_history(limit=5):
     print(entry.at, entry.added, entry.updated, entry.removed)
 </code></pre></div>
@@ -2268,14 +2427,17 @@ for content in crawl.read_iter(pattern=&quot;*/detail/*&quot;):
 its uuid, its artifacts and its search index; only pages whose content
 changed are re-indexed and pages that disappeared are dropped, so
 anything already pointing at this crawl keeps working.</p>
-<h2 id="returns">Returns</h2>
-<p>CrawlerRefreshState</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerRefreshState</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>if the crawler has not been started yet.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">state = crawl.refresh_now()
 print(state.status)
 </code></pre></div>
@@ -2329,21 +2491,25 @@ print(state.status)
 <div class="desc"><p>Change this crawl's refresh schedule.</p>
 <p>Sugar over :meth:<code>ScrapflyClient.crawl_refresh_settings</code>. Only what is
 passed is changed.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>enabled</code></strong></dt>
 <dd>Turn auto-refresh on or off.</dd>
 <dt><strong><code>interval_seconds</code></strong></dt>
 <dd>Period between runs, 3600 to 7776000.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerRefreshState</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerRefreshState</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>if the crawler has not been started yet.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">crawl.refresh_settings(enabled=True, interval_seconds=86400)
 </code></pre></div>
 </dd>
@@ -2420,8 +2586,9 @@ implementation so single and multi-crawl search cannot drift.</p>
 <code>READY</code>/<code>PARTIAL</code>; poll :attr:<code>CrawlerStatusResponse.search</code> or
 subscribe to the <code>crawler_search_ready</code> webhook. An index that is
 not ready yet comes back in <code>response.skipped</code>, not as an error.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>query</code></strong></dt>
 <dd>Free-text query.</dd>
 <dt><strong><code>limit</code></strong></dt>
@@ -2433,14 +2600,17 @@ not ready yet comes back in <code>response.skipped</code>, not as an error.</p>
 <dt><strong><code>cursor</code></strong></dt>
 <dd>Opaque next-page token from a previous response.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerSearchResponse</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerSearchResponse</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>if the crawler has not been started yet.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">crawl = Crawl(client, CrawlerConfig(url='https://example.com', search=True)).crawl().wait()
 for hit in crawl.search('pricing', limit=5):
     print(hit.rank, hit.url)
@@ -2514,9 +2684,11 @@ for hit in crawl.search('pricing', limit=5):
     return stats_dict</code></pre>
 </details>
 <div class="desc"><p>Get comprehensive statistics about the crawl</p>
-<h2 id="returns">Returns</h2>
-<p>Dictionary with crawl statistics</p>
-<h2 id="example">Example</h2>
+<p>Returns
+-----=
+Dictionary with crawl statistics</p>
+<p>Example
+-----=</p>
 <pre><code class="language-python">stats = crawl.stats()
 print(f&quot;URLs extracted: {stats['urls_extracted']}&quot;)
 print(f&quot;URLs visited: {stats['urls_visited']}&quot;)
@@ -2565,19 +2737,23 @@ print(f&quot;Total size: {stats['total_size_kb']:.2f} KB&quot;)
     return self._status_cache</code></pre>
 </details>
 <div class="desc"><p>Get current crawler status</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>refresh</code></strong></dt>
 <dd>If True, fetch fresh status from API. If False, return cached status.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerStatusResponse with current status</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerStatusResponse with current status</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">status = crawl.status()
 print(f&quot;Progress: {status.progress_pct}%&quot;)
 print(f&quot;URLs visited: {status.state.urls_visited}&quot;)
@@ -2638,8 +2814,9 @@ print(f&quot;URLs visited: {status.state.urls_visited}&quot;)
 <div class="desc"><p>List the crawled URLs, optionally filtered by status.</p>
 <p>Convenience wrapper around :meth:<code>ScrapflyClient.get_crawl_urls</code> that
 pre-fills the crawler UUID.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>status</code></strong></dt>
 <dd>Filter by URL status: 'visited', 'pending', 'failed' or
 'skipped'. When None, the server defaults to 'visited'.</dd>
@@ -2648,14 +2825,17 @@ pre-fills the crawler UUID.</p>
 <dt><strong><code>per_page</code></strong></dt>
 <dd>Page size, echoed on the response.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerUrlsResponse with the URL records and the echoed pagination.</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerUrlsResponse with the URL records and the echoed pagination.</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>if the crawler has not been started yet.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">crawl = Crawl(client, config).crawl().wait()
 for entry in crawl.urls(status='visited'):
     print(f&quot;{entry.url} ({entry.status})&quot;)
@@ -2766,8 +2946,9 @@ for entry in crawl.urls(status='visited'):
 </details>
 <div class="desc"><p>Wait for crawler to complete</p>
 <p>Polls the status endpoint until the crawler finishes.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>poll_interval</code></strong></dt>
 <dd>Seconds between status checks (default: 5)</dd>
 <dt><strong><code>max_wait</code></strong></dt>
@@ -2782,15 +2963,18 @@ cancellation. Defaults to False (raises ScrapflyCrawlerError
 with code='CANCELLED' on user_cancelled), preserving prior
 behavior for callers that observe external cancellations.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>Self for method chaining</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+Self for method chaining</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>ScrapflyCrawlerError</code></dt>
 <dd>If crawler not started, failed, or timed out.
 Also raised on cancellation when <code>allow_cancelled=False</code>.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Wait with progress updates
 crawl.crawl().wait(verbose=True)
 
@@ -2852,19 +3036,23 @@ crawl.wait(allow_cancelled=True)
     return self._artifact_cache</code></pre>
 </details>
 <div class="desc"><p>Download the crawler artifact (WARC file)</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>artifact_type</code></strong></dt>
 <dd>Type of artifact to download (default: 'warc')</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>CrawlerArtifactResponse with parsed WARC data</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+CrawlerArtifactResponse with parsed WARC data</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>RuntimeError</code></dt>
 <dd>If crawler not started yet</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get WARC artifact
 artifact = crawl.warc()
 
@@ -2989,8 +3177,9 @@ for record in artifact.iter_responses():
 <div class="desc"><p>Response object for a single crawled URL</p>
 <p>Provides access to content and metadata for a crawled page.
 Similar to ScrapeApiResponse but for crawler results.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL (mandatory)</dd>
 <dt><strong><code>content</code></strong></dt>
@@ -3008,7 +3197,8 @@ Similar to ScrapeApiResponse but for crawler results.</p>
 <dt><strong><code>country</code></strong></dt>
 <dd>Country the request was made from (optional)</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get content for a URL
 content = crawl.read('https://example.com', format='markdown')
 
@@ -3022,8 +3212,9 @@ if content.log_url:
     print(f&quot;View logs: {content.log_url}&quot;)
 </code></pre>
 <p>Initialize CrawlContent</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL</dd>
 <dt><strong><code>content</code></strong></dt>
@@ -3075,8 +3266,9 @@ def log_url(self) -&gt; Optional[str]:
     return None</code></pre>
 </details>
 <div class="desc"><p>Get URL to view scrape logs</p>
-<h2 id="returns">Returns</h2>
-<p>Log URL if log_id is available, None otherwise</p></div>
+<p>Returns
+-----=
+Log URL if log_id is available, None otherwise</p></div>
 </dd>
 <dt id="scrapfly.crawler.CrawlContent.success"><code class="name">prop <span class="ident">success</span> : bool</code></dt>
 <dd>
@@ -3266,7 +3458,8 @@ def success(self) -&gt; bool:
 <p>Returned by ScrapflyClient.get_crawl_artifact() method.</p>
 <p>Provides high-level access to crawl results with automatic WARC/HAR parsing.
 Users don't need to understand WARC or HAR format to use this class.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get WARC artifact (default)
 artifact = client.get_crawl_artifact(uuid)
 
@@ -3288,8 +3481,9 @@ for record in artifact.iter_responses():
 artifact.save('crawl_results.warc.gz')
 </code></pre>
 <p>Initialize from artifact data</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>artifact_data</code></strong></dt>
 <dd>Raw artifact file bytes</dd>
 <dt><strong><code>artifact_type</code></strong></dt>
@@ -3415,12 +3609,14 @@ def warc_data(self) -&gt; bytes:
 <div class="desc"><p>Get all crawled pages as simple dictionaries</p>
 <p>This is the easiest way to access crawl results.
 Works with both WARC and HAR formats.</p>
-<h2 id="returns">Returns</h2>
 <dl>
+<dt>Returns</dt>
+<dt>-----=</dt>
 <dt><code>List</code> of <code>dicts with keys</code></dt>
 <dd>url, status_code, headers, content</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">pages = artifact.get_pages()
 for page in pages:
     print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
@@ -3453,8 +3649,9 @@ for page in pages:
 <div class="desc"><p>Iterate through all records</p>
 <p>For WARC: iterates through all WARC records
 For HAR: iterates through all HAR entries</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.crawler.WarcRecord" href="#scrapfly.crawler.WarcRecord">WarcRecord</a></code> or <code><a title="scrapfly.crawler.HarEntry" href="#scrapfly.crawler.HarEntry">HarEntry</a></code></dt>
 <dd>Each record in the artifact</dd>
 </dl></div>
@@ -3488,8 +3685,9 @@ For HAR: iterates through all HAR entries</p>
 <p>This is more memory-efficient than get_pages() for large crawls.</p>
 <p>For WARC: iterates through response records
 For HAR: iterates through all entries (HAR only contains responses)</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.crawler.WarcRecord" href="#scrapfly.crawler.WarcRecord">WarcRecord</a></code> or <code><a title="scrapfly.crawler.HarEntry" href="#scrapfly.crawler.HarEntry">HarEntry</a></code></dt>
 <dd>HTTP response records with url, status_code, headers, content</dd>
 </dl></div>
@@ -3518,12 +3716,14 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         f.write(self.warc_data)</code></pre>
 </details>
 <div class="desc"><p>Save WARC data to file</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>filepath</code></strong></dt>
 <dd>Path to save the WARC file</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">artifact.save('crawl_results.warc.gz')
 </code></pre></div>
 </dd>
@@ -3715,10 +3915,11 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
             refresh: Keep this crawl fresh by re-scraping its own URLs in place
             refresh_interval: Seconds between refresh runs (3600 to 7776000)
 
+            proxy_pool: Proxy pool for every crawled page: &#39;public_datacenter_pool&#39;
+                (the default), &#39;public_residential_pool&#39; or &#39;public_tor_pool&#39;
+                (ScrapeConfig.PUBLIC_DATACENTER_POOL, ...).
             unblocker: Enable the anti-bot bypass (Unblocker)
-            asp: Deprecated alias of `unblocker`, permanently supported. When
-                both are supplied, `asp` wins.
-            proxy_pool: Proxy pool to use (e.g., &#39;public_residential_pool&#39;)
+            asp: Deprecated alias of `unblocker`. When both are supplied, `asp` wins.
             country: Target country for geo-located content
 
             webhook_name: Webhook name for event notifications
@@ -3874,7 +4075,7 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 
     @property
     def asp(self) -&gt; bool:
-        &#34;&#34;&#34;Deprecated alias of `unblocker`, permanently supported.&#34;&#34;&#34;
+        &#34;&#34;&#34;Deprecated alias of `unblocker`.&#34;&#34;&#34;
 
         return self.unblocker
 
@@ -3916,7 +4117,8 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
 <div class="desc"><p>Configuration for Scrapfly Crawler API</p>
 <p>The Crawler API performs recursive website crawling with advanced
 configuration, content extraction, and artifact storage.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">from scrapfly import ScrapflyClient, CrawlerConfig
 client = ScrapflyClient(key='YOUR_API_KEY')
 config = CrawlerConfig(
@@ -3939,8 +4141,9 @@ if status.is_complete:
     pages = artifact.get_pages()
 </code></pre>
 <p>Initialize a CrawlerConfig</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>Starting URL for the crawl (required)</dd>
 <dt><strong><code>page_limit</code></strong></dt>
@@ -3991,13 +4194,14 @@ if status.is_complete:
 <dd>Keep this crawl fresh by re-scraping its own URLs in place</dd>
 <dt><strong><code>refresh_interval</code></strong></dt>
 <dd>Seconds between refresh runs (3600 to 7776000)</dd>
+<dt><strong><code>proxy_pool</code></strong></dt>
+<dd>Proxy pool for every crawled page: 'public_datacenter_pool'
+(the default), 'public_residential_pool' or 'public_tor_pool'
+(ScrapeConfig.PUBLIC_DATACENTER_POOL, &hellip;).</dd>
 <dt><strong><code>unblocker</code></strong></dt>
 <dd>Enable the anti-bot bypass (Unblocker)</dd>
 <dt><strong><code>asp</code></strong></dt>
-<dd>Deprecated alias of <code>unblocker</code>, permanently supported. When
-both are supplied, <code>asp</code> wins.</dd>
-<dt><strong><code>proxy_pool</code></strong></dt>
-<dd>Proxy pool to use (e.g., 'public_residential_pool')</dd>
+<dd>Deprecated alias of <code>unblocker</code>. When both are supplied, <code>asp</code> wins.</dd>
 <dt><strong><code>country</code></strong></dt>
 <dd>Target country for geo-located content</dd>
 <dt><strong><code>webhook_name</code></strong></dt>
@@ -4080,11 +4284,11 @@ both are supplied, <code>asp</code> wins.</dd>
 </summary>
 <pre><code class="python">@property
 def asp(self) -&gt; bool:
-    &#34;&#34;&#34;Deprecated alias of `unblocker`, permanently supported.&#34;&#34;&#34;
+    &#34;&#34;&#34;Deprecated alias of `unblocker`.&#34;&#34;&#34;
 
     return self.unblocker</code></pre>
 </details>
-<div class="desc"><p>Deprecated alias of <code>unblocker</code>, permanently supported.</p></div>
+<div class="desc"><p>Deprecated alias of <code>unblocker</code>.</p></div>
 </dd>
 <dt id="scrapfly.crawler.CrawlerConfig.unblocker"><code class="name">prop <span class="ident">unblocker</span> : bool</code></dt>
 <dd>
@@ -4173,6 +4377,112 @@ the key entirely, which is how "disabled" has always been expressed.</p></div>
 </dd>
 </dl>
 </dd>
+<dt id="scrapfly.crawler.CrawlerExtractResponse"><code class="flex name class">
+<span>class <span class="ident">CrawlerExtractResponse</span></span>
+<span>(</span><span>response_data: Dict[str, Any])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerExtractResponse:
+    &#34;&#34;&#34;
+    Response from ``POST /crawl/extract``.
+
+    Returned by :py:meth:`ScrapflyClient.crawl_extract`. The schema the request
+    carried constrains the model as it generates ``data``; it is not validated
+    again afterwards, so validate on your side anything you act on.
+
+    Attributes:
+        prompt: The prompt as the server understood it.
+        data: The extracted object, shaped by the schema.
+        sources: The retrieved chunks ``data`` was built from.
+        sources_dropped: Retrieved chunks that did not fit the context window.
+        truncated: Whether the model hit its output cap.
+        completeness: ``exact`` or ``partial``, as for :class:`CrawlerSearchResponse`.
+        crawls_requested: Crawls in the request.
+        crawls_searched: Crawls opened.
+        crawls_pruned_exact: Crawls the bound proved could not contribute.
+        skipped: Requested crawls that contributed nothing, with a reason.
+    &#34;&#34;&#34;
+
+    def __init__(self, response_data: Dict[str, Any]):
+        self._data = response_data
+
+        self.prompt: str = response_data[&#39;prompt&#39;]
+        self.data: Any = response_data[&#39;data&#39;]
+        self.sources: List[CrawlerPromptSource] = [
+            CrawlerPromptSource.from_dict(s) for s in (response_data.get(&#39;sources&#39;) or [])
+        ]
+        self.sources_dropped: int = response_data.get(&#39;sources_dropped&#39;, 0)
+        self.truncated: bool = response_data.get(&#39;truncated&#39;, False)
+
+        search = response_data.get(&#39;search&#39;) or {}
+        self.completeness: Optional[str] = search.get(&#39;completeness&#39;)
+        self.crawls_requested: int = search.get(&#39;crawls_requested&#39;, 0)
+        self.crawls_searched: int = search.get(&#39;crawls_searched&#39;, 0)
+        self.crawls_pruned_exact: int = search.get(&#39;crawls_pruned_exact&#39;, 0)
+        self.skipped: List[CrawlerSearchSkipped] = [
+            CrawlerSearchSkipped.from_dict(s) for s in (search.get(&#39;skipped&#39;) or [])
+        ]
+
+    @property
+    def is_exact(self) -&gt; bool:
+        &#34;&#34;&#34;Whether retrieval provably saw the best chunks of every requested crawl.&#34;&#34;&#34;
+        return self.completeness == &#39;exact&#39;
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerExtractResponse(sources={len(self.sources)}, completeness={self.completeness}, &#34;
+            f&#34;skipped={len(self.skipped)}, truncated={self.truncated})&#34;
+        )</code></pre>
+</details>
+<div class="desc"><p>Response from <code>POST /crawl/extract</code>.</p>
+<p>Returned by :py:meth:<code>ScrapflyClient.crawl_extract</code>. The schema the request
+carried constrains the model as it generates <code>data</code>; it is not validated
+again afterwards, so validate on your side anything you act on.</p>
+<dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
+<dt><strong><code>prompt</code></strong></dt>
+<dd>The prompt as the server understood it.</dd>
+<dt><strong><code>data</code></strong></dt>
+<dd>The extracted object, shaped by the schema.</dd>
+<dt><strong><code>sources</code></strong></dt>
+<dd>The retrieved chunks <code>data</code> was built from.</dd>
+<dt><strong><code>sources_dropped</code></strong></dt>
+<dd>Retrieved chunks that did not fit the context window.</dd>
+<dt><strong><code>truncated</code></strong></dt>
+<dd>Whether the model hit its output cap.</dd>
+<dt><strong><code>completeness</code></strong></dt>
+<dd><code>exact</code> or <code>partial</code>, as for :class:<code><a title="scrapfly.crawler.CrawlerSearchResponse" href="#scrapfly.crawler.CrawlerSearchResponse">CrawlerSearchResponse</a></code>.</dd>
+<dt><strong><code>crawls_requested</code></strong></dt>
+<dd>Crawls in the request.</dd>
+<dt><strong><code>crawls_searched</code></strong></dt>
+<dd>Crawls opened.</dd>
+<dt><strong><code>crawls_pruned_exact</code></strong></dt>
+<dd>Crawls the bound proved could not contribute.</dd>
+<dt><strong><code>skipped</code></strong></dt>
+<dd>Requested crawls that contributed nothing, with a reason.</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.CrawlerExtractResponse.is_exact"><code class="name">prop <span class="ident">is_exact</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_exact(self) -&gt; bool:
+    &#34;&#34;&#34;Whether retrieval provably saw the best chunks of every requested crawl.&#34;&#34;&#34;
+    return self.completeness == &#39;exact&#39;</code></pre>
+</details>
+<div class="desc"><p>Whether retrieval provably saw the best chunks of every requested crawl.</p></div>
+</dd>
+</dl>
+</dd>
 <dt id="scrapfly.crawler.CrawlerLifecycleWebhook"><code class="flex name class">
 <span>class <span class="ident">CrawlerLifecycleWebhook</span></span>
 <span>(</span><span>event: str,<br>crawler_uuid: str,<br>project: str,<br>env: str,<br>action: str,<br>state: <a title="scrapfly.crawler.crawler_response.CrawlerState" href="crawler_response.html#scrapfly.crawler.crawler_response.CrawlerState">CrawlerState</a>,<br>seed_url: str,<br>status_link: str)</span>
@@ -4216,8 +4526,9 @@ class CrawlerLifecycleWebhook(CrawlerWebhookBase):
 (crawler_uuid / project / env / action / state), and a <code>links.status</code>
 URL pointing at the crawl status endpoint. Disambiguate by inspecting
 <code>self.event</code> (use :class:<code><a title="scrapfly.crawler.CrawlerWebhookEvent" href="#scrapfly.crawler.CrawlerWebhookEvent">CrawlerWebhookEvent</a></code>).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>seed_url</code></strong></dt>
 <dd>The root URL the crawl was started from.</dd>
 <dt><strong><code>status_link</code></strong></dt>
@@ -4283,10 +4594,11 @@ class CrawlerPromptEvent:
         return self.event == &#39;done&#39;</code></pre>
 </details>
 <div class="desc"><p>One frame of the <code>POST /crawl/prompt</code> SSE stream.</p>
-<p>Frame order is <code>source</code><em> → <code>token</code></em> → (<code>error</code>) → <code>done</code>.
+<p>Frame order is <code>source</code>* → <code>token</code>* → (<code>error</code>) → <code>done</code>.
 Keepalive comment frames are consumed by the reader and never surfaced.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>event</code></strong></dt>
 <dd><code>source</code>, <code>token</code>, <code>error</code> or <code>done</code>.</dd>
 <dt><strong><code>data</code></strong></dt>
@@ -4325,6 +4637,69 @@ def is_done(self) -&gt; bool:
 def is_token(self) -&gt; bool:
     return self.event == &#39;token&#39;</code></pre>
 </details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.CrawlerPromptSource"><code class="flex name class">
+<span>class <span class="ident">CrawlerPromptSource</span></span>
+<span>(</span><span>id: int, crawler_uuid: str, url: str, title: str, score: float)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerPromptSource:
+    &#34;&#34;&#34;A retrieved chunk an answer may cite, by ``id``.&#34;&#34;&#34;
+
+    id: int
+    crawler_uuid: str
+    url: str
+    title: str
+    score: float
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;CrawlerPromptSource&#39;:
+        return cls(
+            id=data[&#39;id&#39;],
+            crawler_uuid=data[&#39;crawler_uuid&#39;],
+            url=data[&#39;url&#39;],
+            title=data.get(&#39;title&#39;, &#39;&#39;),
+            score=data.get(&#39;score&#39;, 0.0),
+        )</code></pre>
+</details>
+<div class="desc"><p>A retrieved chunk an answer may cite, by <code>id</code>.</p></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.CrawlerPromptSource.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerPromptSource" href="crawler_response.html#scrapfly.crawler.crawler_response.CrawlerPromptSource">CrawlerPromptSource</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.CrawlerPromptSource.crawler_uuid"><code class="name">var <span class="ident">crawler_uuid</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.CrawlerPromptSource.id"><code class="name">var <span class="ident">id</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.CrawlerPromptSource.score"><code class="name">var <span class="ident">score</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.CrawlerPromptSource.title"><code class="name">var <span class="ident">title</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.CrawlerPromptSource.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
+<dd>
 <div class="desc"></div>
 </dd>
 </dl>
@@ -4403,8 +4778,9 @@ class CrawlerRefreshEntry:
 <p>Counts describe the whole run; <code>sample_updated</code> / <code>sample_removed</code>
 carry at most ten URLs each. The full URL lists are never inlined, so a
 5,000-page crawl does not put 5,000 strings into every status poll.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>at</code></strong></dt>
 <dd>ISO-8601 timestamp of the run.</dd>
 <dt><strong><code>generation</code></strong></dt>
@@ -4587,8 +4963,9 @@ def changed(self) -&gt; int:
 </details>
 <div class="desc"><p>The <code>refresh</code> block of a crawl, as carried by
 <code>GET /crawl/{uuid}/status</code> and returned by the three refresh calls.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>enabled</code></strong></dt>
 <dd>Whether the crawl re-scrapes itself on a period.</dd>
 <dt><strong><code>interval_seconds</code></strong></dt>
@@ -4686,8 +5063,9 @@ class CrawlerScrapeResult:
         )</code></pre>
 </details>
 <div class="desc"><p>The <code>scrape</code> sub-object of a <code>crawler_url_visited</code> payload.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>status_code</code></strong></dt>
 <dd>HTTP status code returned by the target URL.</dd>
 <dt><strong><code>country</code></strong></dt>
@@ -4891,8 +5269,9 @@ class CrawlerSearchCrawl:
 most crawls unopened is the normal outcome, because the fan-out proves via
 an admissible bound that the unopened crawls held nothing better.
 <code>'partial'</code> means the deadline cut the fan-out short.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>query</code></strong></dt>
 <dd>The query as the server understood it.</dd>
 <dt><strong><code>mode</code></strong></dt>
@@ -5013,8 +5392,9 @@ class CrawlerSearchResult:
 crawled document and <code>text</code> is only the matched slice. Use
 <code>contents_url</code> (or <code>warc_offset</code>/<code>warc_end</code>) to expand a hit back to
 the full document.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>rank</code></strong></dt>
 <dd>1-based position in the merged ranking.</dd>
 <dt><strong><code>score</code></strong></dt>
@@ -5241,8 +5621,9 @@ class CrawlerSearchState:
 </details>
 <div class="desc"><p>The <code>search</code> block describing a crawl's index, as carried by
 <code>GET /crawl/{uuid}/status</code> and by the two search webhooks.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>status</code></strong></dt>
 <dd><code>DISABLED</code>, <code>BUILDING</code>, <code>READY</code>, <code>PARTIAL</code> or <code>FAILED</code>.
 Only <code>READY</code> and <code>PARTIAL</code> are searchable.</dd>
@@ -5392,8 +5773,9 @@ class CrawlerSearchWebhook(CrawlerWebhookBase):
 classification and can fail without the crawl failing, so these events are
 emitted separately from the lifecycle ones. Disambiguate on <code>self.event</code>
 or on <code>self.search.status</code>.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>seed_url</code></strong></dt>
 <dd>The root URL the crawl was started from.</dd>
 <dt><strong><code>status_link</code></strong></dt>
@@ -5488,16 +5870,18 @@ or on <code>self.search.status</code>.</p>
 <p>Strict parsing: <code>uuid</code> and <code>status</code> are part of the documented contract
 and are required. A missing field raises <code>KeyError</code> so the caller knows
 immediately that the API contract changed.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Unique identifier for the crawler job</dd>
 <dt><strong><code>status</code></strong></dt>
 <dd>Initial status (typically 'PENDING')</dd>
 </dl>
 <p>Initialize from API response</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary</dd>
 </dl></div>
@@ -5569,8 +5953,9 @@ immediately that the API contract changed.</p>
 <p>Field names match the wire format emitted by Scrapfly, which
 is the single source of truth. Go and TypeScript SDKs expose the same
 names on their <code>status.state</code> object.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls_visited</code></strong></dt>
 <dd>Number of URLs successfully crawled.</dd>
 <dt><strong><code>urls_extracted</code></strong></dt>
@@ -6369,8 +6754,9 @@ counters via the nested <code>state</code> attribute:</p>
 &gt;&gt;&gt; status.state.urls_extracted
 34
 </code></pre>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Crawler job UUID.</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -6394,8 +6780,9 @@ on a period, otherwise <code>None</code>.</dd>
 metrics) are read with direct access so missing keys raise
 <code>KeyError</code> at parse time. This catches API contract drift loud and
 early.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary.</dd>
 </dl></div>
@@ -6537,8 +6924,9 @@ class CrawlerUpdatedDocuments:
 than that arrives with <code>truncated</code> set and the counts on
 :class:<code><a title="scrapfly.crawler.CrawlerRefreshEntry" href="#scrapfly.crawler.CrawlerRefreshEntry">CrawlerRefreshEntry</a></code> describing the whole run. There is no cursor:
 the event is a notification, the crawl itself is the export.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>updated</code></strong></dt>
 <dd>Re-indexed URLs, added and changed alike. Which of the two a
 URL was only survives in the counts.</dd>
@@ -6622,8 +7010,9 @@ class CrawlerUpdatedWebhook(CrawlerWebhookBase):
 over a site that stood still, and a run that failed outright, change
 nothing and are not delivered, so receiving this event is by itself proof
 of a diff.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>seed_url</code></strong></dt>
 <dd>The root URL the crawl was started from.</dd>
 <dt><strong><code>status_link</code></strong></dt>
@@ -6705,8 +7094,9 @@ class CrawlerUrlDiscoveredWebhook(CrawlerWebhookBase):
 </details>
 <div class="desc"><p>Payload for the <code>crawler_url_discovered</code> event.</p>
 <p>Emitted when the crawler extracts one or more new URLs from a source.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>origin</code></strong></dt>
 <dd>How the URLs were discovered (e.g. <code>"navigation"</code>,
 <code>"sitemap"</code>).</dd>
@@ -6789,8 +7179,9 @@ class CrawlerUrlDiscoveredWebhook(CrawlerWebhookBase):
 or <code>skipped</code> URLs the line is <code>url,reason</code>. Streaming text is used
 because this endpoint is expected to scale to millions of records per
 job — JSON is not a suitable wire format at that volume.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -6986,8 +7377,9 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
 <div class="desc"><p>Payload for the <code>crawler_url_failed</code> event.</p>
 <p>Emitted when a URL cannot be crawled (network error, scrape error,
 blocked, etc.).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL that failed.</dd>
 <dt><strong><code>error</code></strong></dt>
@@ -7074,8 +7466,9 @@ class CrawlerUrlSkippedWebhook(CrawlerWebhookBase):
 <p>Emitted in a single batch when the crawler decides to skip a set of
 URLs (e.g. when reaching <code>page_limit</code> with discovered-but-unvisited
 URLs still in the queue).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>Mapping from URL to the reason it was skipped
 (e.g. <code>"page_limit"</code>, <code>"excluded"</code>, <code>"robots_txt"</code>).</dd>
@@ -7136,8 +7529,9 @@ class CrawlerUrlVisitedWebhook(CrawlerWebhookBase):
 </details>
 <div class="desc"><p>Payload for the <code>crawler_url_visited</code> event.</p>
 <p>Emitted after each URL has been successfully scraped.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL that was just visited.</dd>
 <dt><strong><code>scrape</code></strong></dt>
@@ -7271,8 +7665,9 @@ line. This class parses that stream into a materialised <code>List</code> of
 forwards only the status filter to the crawler, so <code>page</code> and
 <code>per_page</code> are echoes of the caller's request parameters over a body
 that already holds the whole server-side page.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>List of :class:<code><a title="scrapfly.crawler.CrawlerUrlEntry" href="#scrapfly.crawler.CrawlerUrlEntry">CrawlerUrlEntry</a></code> records on this page</dd>
 <dt><strong><code>page</code></strong></dt>
@@ -7295,8 +7690,9 @@ that already holds the whole server-side page.</p>
 <code>visited</code>; the caller is expected to pass that as <code>status_hint</code>
 so every parsed record gets the right status tag.</li>
 </ul>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>body</code></strong></dt>
 <dd>Raw response body text.</dd>
 <dt><strong><code>status_hint</code></strong></dt>
@@ -7642,8 +8038,9 @@ class CrawlerWebhookBase:
         }</code></pre>
 </details>
 <div class="desc"><p>Common fields carried by every crawler webhook payload.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>event</code></strong></dt>
 <dd>The wire event name (<code>crawler_started</code>, etc.).</dd>
 <dt><strong><code>crawler_uuid</code></strong></dt>
@@ -7699,7 +8096,7 @@ class CrawlerWebhookBase:
 </dd>
 <dt id="scrapfly.crawler.CrawlerWebhookEvent"><code class="flex name class">
 <span>class <span class="ident">CrawlerWebhookEvent</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -7933,8 +8330,9 @@ class <code>WebhookEvents</code>. Scrapfly is the source of truth.</p></div>
 </details>
 <div class="desc"><p>Parser and accessor for HAR (HTTP Archive) format data</p>
 <p>Initialize HAR archive from bytes</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>har_data</code></strong></dt>
 <dd>HAR file content as bytes (JSON format, may be gzipped)</dd>
 </dl></div>
@@ -8004,13 +8402,15 @@ def version(self) -&gt; str:
             if content_type.lower() in entry.content_type.lower()]</code></pre>
 </details>
 <div class="desc"><p>Filter entries by content type (substring match)</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>content_type</code></strong></dt>
 <dd>Content type to filter by (e.g., 'text/html')</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>List of matching HarEntry objects</p></div>
+<p>Returns
+-----=
+List of matching HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.crawler.HarArchive.filter_by_status"><code class="name flex">
 <span>def <span class="ident">filter_by_status</span></span>(<span>self, status_code: int) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="har_utils.html#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -8034,13 +8434,15 @@ def version(self) -&gt; str:
             if entry.status_code == status_code]</code></pre>
 </details>
 <div class="desc"><p>Filter entries by status code</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>status_code</code></strong></dt>
 <dd>HTTP status code to filter by</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>List of matching HarEntry objects</p></div>
+<p>Returns
+-----=
+List of matching HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.crawler.HarArchive.find_by_url"><code class="name flex">
 <span>def <span class="ident">find_by_url</span></span>(<span>self, url: str) ‑> <a title="scrapfly.crawler.har_utils.HarEntry" href="har_utils.html#scrapfly.crawler.har_utils.HarEntry">HarEntry</a> | None</span>
@@ -8066,13 +8468,15 @@ def version(self) -&gt; str:
     return None</code></pre>
 </details>
 <div class="desc"><p>Find entry by exact URL match</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>URL to search for</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>First matching HarEntry or None</p></div>
+<p>Returns
+-----=
+First matching HarEntry or None</p></div>
 </dd>
 <dt id="scrapfly.crawler.HarArchive.get_entries"><code class="name flex">
 <span>def <span class="ident">get_entries</span></span>(<span>self) ‑> List[<a title="scrapfly.crawler.har_utils.HarEntry" href="har_utils.html#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -8092,8 +8496,9 @@ def version(self) -&gt; str:
     return [HarEntry(entry) for entry in self._entries]</code></pre>
 </details>
 <div class="desc"><p>Get all entries as list</p>
-<h2 id="returns">Returns</h2>
-<p>List of HarEntry objects</p></div>
+<p>Returns
+-----=
+List of HarEntry objects</p></div>
 </dd>
 <dt id="scrapfly.crawler.HarArchive.get_urls"><code class="name flex">
 <span>def <span class="ident">get_urls</span></span>(<span>self) ‑> List[str]</span>
@@ -8118,8 +8523,9 @@ def version(self) -&gt; str:
     return urls</code></pre>
 </details>
 <div class="desc"><p>Get all URLs in the archive</p>
-<h2 id="returns">Returns</h2>
-<p>List of unique URLs</p></div>
+<p>Returns
+-----=
+List of unique URLs</p></div>
 </dd>
 <dt id="scrapfly.crawler.HarArchive.iter_entries"><code class="name flex">
 <span>def <span class="ident">iter_entries</span></span>(<span>self) ‑> Iterator[<a title="scrapfly.crawler.har_utils.HarEntry" href="har_utils.html#scrapfly.crawler.har_utils.HarEntry">HarEntry</a>]</span>
@@ -8140,8 +8546,9 @@ def version(self) -&gt; str:
         yield HarEntry(entry)</code></pre>
 </details>
 <div class="desc"><p>Iterate through all HAR entries</p>
-<h2 id="yields">Yields</h2>
-<p>HarEntry objects</p></div>
+<p>Yields
+-----=
+HarEntry objects</p></div>
 </dd>
 </dl>
 </dd>
@@ -8261,8 +8668,9 @@ def version(self) -&gt; str:
 </details>
 <div class="desc"><p>Represents a single HAR entry (HTTP request/response pair)</p>
 <p>Initialize from HAR entry dict</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>entry_data</code></strong></dt>
 <dd>HAR entry dictionary</dd>
 </dl></div>
@@ -8678,7 +9086,8 @@ def url(self) -&gt; str:
 </details>
 <div class="desc"><p>Parser for WARC files with automatic decompression</p>
 <p>Provides methods to iterate through WARC records and extract page data.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># From bytes
 parser = WarcParser(warc_bytes)
 
@@ -8697,8 +9106,9 @@ for page in pages:
     print(f&quot;{page['url']}: {page['status_code']}&quot;)
 </code></pre>
 <p>Initialize WARC parser</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>warc_data</code></strong></dt>
 <dd>WARC data as bytes or file-like object
 (supports both gzip-compressed and uncompressed)</dd>
@@ -8744,12 +9154,14 @@ for page in pages:
 <div class="desc"><p>Get all crawled pages as simple dictionaries</p>
 <p>This is the easiest way to access crawl results without dealing
 with WARC format details.</p>
-<h2 id="returns">Returns</h2>
 <dl>
+<dt>Returns</dt>
+<dt>-----=</dt>
 <dt><code>List</code> of <code>dicts with keys</code></dt>
 <dd>url, status_code, headers, content</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">pages = parser.get_pages()
 for page in pages:
     print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
@@ -8800,8 +9212,9 @@ for page in pages:
             yield record</code></pre>
 </details>
 <div class="desc"><p>Iterate through all WARC records</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.crawler.WarcRecord" href="#scrapfly.crawler.WarcRecord">WarcRecord</a></code></dt>
 <dd>Each record in the WARC file</dd>
 </dl></div>
@@ -8829,8 +9242,9 @@ for page in pages:
 </details>
 <div class="desc"><p>Iterate through HTTP response records only</p>
 <p>Filters out non-response records (requests, metadata, etc.)</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code><a title="scrapfly.crawler.WarcRecord" href="#scrapfly.crawler.WarcRecord">WarcRecord</a></code></dt>
 <dd>HTTP response records only</dd>
 </dl></div>
@@ -8932,6 +9346,7 @@ HTTP transaction or metadata.</p></div>
 <ul class="two-column">
 <li><code><a title="scrapfly.crawler.Crawl.cancel" href="#scrapfly.crawler.Crawl.cancel">cancel</a></code></li>
 <li><code><a title="scrapfly.crawler.Crawl.crawl" href="#scrapfly.crawler.Crawl.crawl">crawl</a></code></li>
+<li><code><a title="scrapfly.crawler.Crawl.extract" href="#scrapfly.crawler.Crawl.extract">extract</a></code></li>
 <li><code><a title="scrapfly.crawler.Crawl.har" href="#scrapfly.crawler.Crawl.har">har</a></code></li>
 <li><code><a title="scrapfly.crawler.Crawl.prompt" href="#scrapfly.crawler.Crawl.prompt">prompt</a></code></li>
 <li><code><a title="scrapfly.crawler.Crawl.read" href="#scrapfly.crawler.Crawl.read">read</a></code></li>
@@ -8996,6 +9411,12 @@ HTTP transaction or metadata.</p></div>
 </ul>
 </li>
 <li>
+<h4><code><a title="scrapfly.crawler.CrawlerExtractResponse" href="#scrapfly.crawler.CrawlerExtractResponse">CrawlerExtractResponse</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.CrawlerExtractResponse.is_exact" href="#scrapfly.crawler.CrawlerExtractResponse.is_exact">is_exact</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="scrapfly.crawler.CrawlerLifecycleWebhook" href="#scrapfly.crawler.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.crawler.CrawlerLifecycleWebhook.from_payload" href="#scrapfly.crawler.CrawlerLifecycleWebhook.from_payload">from_payload</a></code></li>
@@ -9010,6 +9431,17 @@ HTTP transaction or metadata.</p></div>
 <li><code><a title="scrapfly.crawler.CrawlerPromptEvent.event" href="#scrapfly.crawler.CrawlerPromptEvent.event">event</a></code></li>
 <li><code><a title="scrapfly.crawler.CrawlerPromptEvent.is_done" href="#scrapfly.crawler.CrawlerPromptEvent.is_done">is_done</a></code></li>
 <li><code><a title="scrapfly.crawler.CrawlerPromptEvent.is_token" href="#scrapfly.crawler.CrawlerPromptEvent.is_token">is_token</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.CrawlerPromptSource" href="#scrapfly.crawler.CrawlerPromptSource">CrawlerPromptSource</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.CrawlerPromptSource.crawler_uuid" href="#scrapfly.crawler.CrawlerPromptSource.crawler_uuid">crawler_uuid</a></code></li>
+<li><code><a title="scrapfly.crawler.CrawlerPromptSource.from_dict" href="#scrapfly.crawler.CrawlerPromptSource.from_dict">from_dict</a></code></li>
+<li><code><a title="scrapfly.crawler.CrawlerPromptSource.id" href="#scrapfly.crawler.CrawlerPromptSource.id">id</a></code></li>
+<li><code><a title="scrapfly.crawler.CrawlerPromptSource.score" href="#scrapfly.crawler.CrawlerPromptSource.score">score</a></code></li>
+<li><code><a title="scrapfly.crawler.CrawlerPromptSource.title" href="#scrapfly.crawler.CrawlerPromptSource.title">title</a></code></li>
+<li><code><a title="scrapfly.crawler.CrawlerPromptSource.url" href="#scrapfly.crawler.CrawlerPromptSource.url">url</a></code></li>
 </ul>
 </li>
 <li>

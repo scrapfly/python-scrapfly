@@ -42,6 +42,50 @@ el.replaceWith(d);
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="scrapfly.scrapy.downloader.asyncio_available"><code class="name flex">
+<span>def <span class="ident">asyncio_available</span></span>(<span>) ‑> bool</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def asyncio_available() -&gt; bool:
+    &#34;&#34;&#34;Whether an asyncio loop drives Scrapy: the asyncio reactor, or no reactor at all (Scrapy 2.15+).&#34;&#34;&#34;
+    try:
+        from scrapy.utils.asyncio import is_asyncio_available  # Scrapy 2.14+
+    except ImportError:
+        from scrapy.utils.reactor import is_asyncio_reactor_installed
+
+        return is_asyncio_reactor_installed()
+
+    return is_asyncio_available()</code></pre>
+</details>
+<div class="desc"><p>Whether an asyncio loop drives Scrapy: the asyncio reactor, or no reactor at all (Scrapy 2.15+).</p></div>
+</dd>
+<dt id="scrapfly.scrapy.downloader.with_default_http_handlers"><code class="name flex">
+<span>def <span class="ident">with_default_http_handlers</span></span>(<span>crawler)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def with_default_http_handlers(crawler):
+    &#34;&#34;&#34;A copy of the crawler whose settings send http and https to Scrapy&#39;s default handler.&#34;&#34;&#34;
+    settings = crawler.settings.copy()
+    del settings[&#39;DOWNLOAD_HANDLERS&#39;][&#39;http&#39;]
+    del settings[&#39;DOWNLOAD_HANDLERS&#39;][&#39;https&#39;]
+
+    default = copy(crawler)
+    default.settings = settings
+    return default</code></pre>
+</details>
+<div class="desc"><p>A copy of the crawler whose settings send http and https to Scrapy's default handler.</p></div>
+</dd>
+</dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
@@ -253,22 +297,20 @@ differing chunk sizes, down to one byte at a time.</p></div>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class ScrapflyHTTPDownloader:
+    &#34;&#34;&#34;
+    Sends a ScrapflyScrapyRequest of a ScrapflySpider to the Scrapfly API, through AsyncScrapflyClient when an
+    asyncio loop drives Scrapy and through Twisted&#39;s HTTP client under another reactor. Any other request goes
+    to the handler Scrapy has for its scheme.
+    &#34;&#34;&#34;
+
+    # Built on the first request.
+    lazy = True
 
     def __init__(self, settings, crawler=None):
         self._crawler = crawler
-        self.agent = Agent(reactor)
-        self._donwload_handler = DownloadHandlers(crawler)
-
-        # Restore default downloader for http/https when not using ScraplyRequest following Scrapy&#39;s default behavior
-        settings_without_scrapfly_http_downloader = copy(settings)
-        del settings_without_scrapfly_http_downloader[&#39;DOWNLOAD_HANDLERS&#39;][&#39;http&#39;]
-        del settings_without_scrapfly_http_downloader[&#39;DOWNLOAD_HANDLERS&#39;][&#39;https&#39;]
-        self._donwload_handler.handlers = without_none_values(settings_without_scrapfly_http_downloader.getwithbase(&#34;DOWNLOAD_HANDLERS&#34;))
-
-        for scheme, clspath in self._donwload_handler.handlers.items():
-            self._donwload_handler._schemes[scheme] = clspath
-            self._donwload_handler._load_handler(scheme, skip_lazy=True)
-        # End
+        # Scrapy&#39;s own handlers, for the requests that are not a ScrapflyScrapyRequest.
+        self._donwload_handler = DownloadHandlers(with_default_http_handlers(crawler))
+        self._client: Optional[AsyncScrapflyClient] = None
 
         if settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;) is False:
             import twisted.internet._sslverify as v
@@ -278,7 +320,97 @@ differing chunk sizes, down to one byte at a time.</p></div>
     def from_crawler(cls, crawler):
         return cls(crawler.settings, crawler)
 
-    def _cb_bodydone(self, twisted_response:Response, request:ScrapflyScrapyRequest, spider:ScrapflySpider) -&gt; Deferred:
+    if ASYNC_HANDLERS:
+        async def download_request(self, request):
+            return await self._download(request)
+
+        async def close(self):
+            await self._close()
+    else:
+        def download_request(self, request, spider):
+            return deferred_from_coro(self._download(request))
+
+        def close(self):
+            return deferred_from_coro(self._close())
+
+    async def _download(self, request):
+        spider = self._crawler.spider
+
+        if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):
+            if ASYNC_HANDLERS:
+                return await self._donwload_handler.download_request_async(request)
+
+            return await maybe_deferred_to_future(self._donwload_handler.download_request(request, spider))
+
+        request.scrape_config.raise_on_upstream_error = False
+
+        try:
+            if asyncio_available():
+                api_response = await (await self._async_client(spider)).scrape(request.scrape_config)
+            else:
+                api_response = await self._scrape_over_twisted(request, spider)
+        except HttpError as error:
+            self._count_cost(error.response)
+            raise
+        except ScrapflyError as error:
+            self._count_cost(None if error.api_response is None else error.api_response.response)
+            raise
+
+        self._count_cost(api_response.response)
+
+        return ScrapflyScrapyResponse(request=request, scrape_api_response=api_response)
+
+    def _count_cost(self, response: Optional[requests.Response]):
+        &#34;&#34;&#34;Every API answer is billed, an error included.&#34;&#34;&#34;
+        if response is not None and &#39;x-scrapfly-api-cost&#39; in response.headers:
+            self._crawler.stats.inc_value(&#39;scrapfly/api_call_cost&#39;, count=int(response.headers[&#39;x-scrapfly-api-cost&#39;]))
+
+    async def _async_client(self, spider: ScrapflySpider) -&gt; AsyncScrapflyClient:
+        &#34;&#34;&#34;An AsyncScrapflyClient set like the spider&#39;s ScrapflyClient, its connections kept until the handler closes.&#34;&#34;&#34;
+        if self._client is None:
+            settings = spider.scrapfly_client
+            self._client = AsyncScrapflyClient(
+                key=settings.key,
+                host=settings.host,
+                verify=settings.verify,
+                connect_timeout=settings.connect_timeout,
+                web_scraping_api_read_timeout=settings.web_scraping_api_read_timeout,
+                default_read_timeout=settings.default_read_timeout,
+            )
+            self._client.version = settings.version
+            await self._client.open()
+
+        return self._client
+
+    async def _close(self):
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
+
+    def _scrape_over_twisted(self, request: ScrapflyScrapyRequest, spider: ScrapflySpider) -&gt; Deferred:
+        from twisted.internet import reactor
+        from twisted.web.client import Agent
+        from twisted.web.http_headers import Headers
+
+        request_data = spider.scrapfly_client._scrape_request(scrape_config=request.scrape_config)
+
+        uri = &#39;%s?%s&#39; % (request_data[&#39;url&#39;], urlencode(request_data[&#39;params&#39;]))
+
+        request_kwargs = {
+            &#39;method&#39;: request_data[&#39;method&#39;].encode(&#39;utf-8&#39;),
+            &#39;uri&#39;: uri.encode(&#39;utf-8&#39;),
+            &#39;headers&#39;: Headers({name: [value] for name, value in request_data[&#39;headers&#39;].items()})
+        }
+
+        if request_data[&#39;method&#39;] in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
+            request_kwargs[&#39;bodyProducer&#39;] = BodyProducer(request_data[&#39;data&#39;].encode(&#39;utf-8&#39;))
+
+        d = Agent(reactor).request(**request_kwargs)
+        d.addCallback(self._cb_bodydone, request, spider)
+
+        return d
+
+    def _cb_bodydone(self, twisted_response, request:ScrapflyScrapyRequest, spider:ScrapflySpider) -&gt; Deferred:
 
         headers = CaseInsensitiveDict()
         status_code = twisted_response.code
@@ -289,9 +421,6 @@ differing chunk sizes, down to one byte at a time.</p></div>
 
         deferred = Deferred()
         body_receiver = BodyReceiver(deferred)
-
-        if &#39;x-scrapfly-api-cost&#39; in headers:
-            self._crawler.stats.inc_value(&#39;scrapfly/api_call_cost&#39;, count=int(headers[&#39;x-scrapfly-api-cost&#39;]))
 
         def on_body_downloaded(body):
             if &#39;content-encoding&#39; in headers:
@@ -308,7 +437,7 @@ differing chunk sizes, down to one byte at a time.</p></div>
                         raise
 
                     body = brotli.decompress(body)
-        
+
             response = requests.Response()
             response.status_code = status_code
             response.reason = reason
@@ -317,46 +446,23 @@ differing chunk sizes, down to one byte at a time.</p></div>
             response.headers.update(headers)
             response.url = request.url
 
-            request.scrape_config.raise_on_upstream_error = False
-
-            scrapfly_api_response:ScrapeApiResponse = spider.scrapfly_client._handle_response(
-                response=response,
-                scrape_config=request.scrape_config
-            )
-
-            return ScrapflyScrapyResponse(request=request, scrape_api_response=scrapfly_api_response)
+            return spider.scrapfly_client._handle_response(response=response, scrape_config=request.scrape_config)
 
         deferred.addCallback(on_body_downloaded)
         twisted_response.deliverBody(body_receiver)
 
-        return deferred
-
-    def download_request(self, request, spider):
-        if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):
-            return mustbe_deferred(self._donwload_handler.download_request, request, spider)
-
-        request_data = spider.scrapfly_client._scrape_request(scrape_config=request.scrape_config)
-
-        uri = &#39;%s?%s&#39; % (request_data[&#39;url&#39;], urlencode(request_data[&#39;params&#39;]))
-
-        request_kwargs = {
-            &#39;method&#39;: request_data[&#39;method&#39;].encode(&#39;utf-8&#39;),
-            &#39;uri&#39;: uri.encode(&#39;utf-8&#39;),
-            &#39;headers&#39;: Headers({name: [value] for name, value in request_data[&#39;headers&#39;].items()})
-        }
-
-        if request_data[&#39;method&#39;] in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
-            request_kwargs[&#39;bodyProducer&#39;] = BodyProducer(request_data[&#39;data&#39;].encode(&#39;utf-8&#39;))
-
-        d = self.agent.request(**request_kwargs)
-        d.addCallback(self._cb_bodydone, request, spider)
-
-        return d
-
-    def close(self):
-        pass</code></pre>
+        return deferred</code></pre>
 </details>
+<div class="desc"><p>Sends a ScrapflyScrapyRequest of a ScrapflySpider to the Scrapfly API, through AsyncScrapflyClient when an
+asyncio loop drives Scrapy and through Twisted's HTTP client under another reactor. Any other request goes
+to the handler Scrapy has for its scheme.</p></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.lazy"><code class="name">var <span class="ident">lazy</span></code></dt>
+<dd>
 <div class="desc"></div>
+</dd>
+</dl>
 <h3>Static methods</h3>
 <dl>
 <dt id="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.from_crawler"><code class="name flex">
@@ -369,47 +475,28 @@ differing chunk sizes, down to one byte at a time.</p></div>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.close"><code class="name flex">
-<span>def <span class="ident">close</span></span>(<span>self)</span>
+<span>async def <span class="ident">close</span></span>(<span>self)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def close(self):
-    pass</code></pre>
+<pre><code class="python">async def close(self):
+    await self._close()</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.download_request"><code class="name flex">
-<span>def <span class="ident">download_request</span></span>(<span>self, request, spider)</span>
+<span>async def <span class="ident">download_request</span></span>(<span>self, request)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def download_request(self, request, spider):
-    if not isinstance(request, ScrapflyScrapyRequest) or not isinstance(spider, ScrapflySpider):
-        return mustbe_deferred(self._donwload_handler.download_request, request, spider)
-
-    request_data = spider.scrapfly_client._scrape_request(scrape_config=request.scrape_config)
-
-    uri = &#39;%s?%s&#39; % (request_data[&#39;url&#39;], urlencode(request_data[&#39;params&#39;]))
-
-    request_kwargs = {
-        &#39;method&#39;: request_data[&#39;method&#39;].encode(&#39;utf-8&#39;),
-        &#39;uri&#39;: uri.encode(&#39;utf-8&#39;),
-        &#39;headers&#39;: Headers({name: [value] for name, value in request_data[&#39;headers&#39;].items()})
-    }
-
-    if request_data[&#39;method&#39;] in [&#39;POST&#39;, &#39;PUT&#39;, &#39;PATCH&#39;]:
-        request_kwargs[&#39;bodyProducer&#39;] = BodyProducer(request_data[&#39;data&#39;].encode(&#39;utf-8&#39;))
-
-    d = self.agent.request(**request_kwargs)
-    d.addCallback(self._cb_bodydone, request, spider)
-
-    return d</code></pre>
+<pre><code class="python">async def download_request(self, request):
+    return await self._download(request)</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -426,6 +513,12 @@ differing chunk sizes, down to one byte at a time.</p></div>
 <li><h3>Super-module</h3>
 <ul>
 <li><code><a title="scrapfly.scrapy" href="index.html">scrapfly.scrapy</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="scrapfly.scrapy.downloader.asyncio_available" href="#scrapfly.scrapy.downloader.asyncio_available">asyncio_available</a></code></li>
+<li><code><a title="scrapfly.scrapy.downloader.with_default_http_handlers" href="#scrapfly.scrapy.downloader.with_default_http_handlers">with_default_http_handlers</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
@@ -457,6 +550,7 @@ differing chunk sizes, down to one byte at a time.</p></div>
 <li><code><a title="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.close" href="#scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.close">close</a></code></li>
 <li><code><a title="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.download_request" href="#scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.download_request">download_request</a></code></li>
 <li><code><a title="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.from_crawler" href="#scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.from_crawler">from_crawler</a></code></li>
+<li><code><a title="scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.lazy" href="#scrapfly.scrapy.downloader.ScrapflyHTTPDownloader.lazy">lazy</a></code></li>
 </ul>
 </li>
 </ul>

@@ -221,7 +221,8 @@ el.replaceWith(d);
 <p>Returned by ScrapflyClient.get_crawl_artifact() method.</p>
 <p>Provides high-level access to crawl results with automatic WARC/HAR parsing.
 Users don't need to understand WARC or HAR format to use this class.</p>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python"># Get WARC artifact (default)
 artifact = client.get_crawl_artifact(uuid)
 
@@ -243,8 +244,9 @@ for record in artifact.iter_responses():
 artifact.save('crawl_results.warc.gz')
 </code></pre>
 <p>Initialize from artifact data</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>artifact_data</code></strong></dt>
 <dd>Raw artifact file bytes</dd>
 <dt><strong><code>artifact_type</code></strong></dt>
@@ -370,12 +372,14 @@ def warc_data(self) -&gt; bytes:
 <div class="desc"><p>Get all crawled pages as simple dictionaries</p>
 <p>This is the easiest way to access crawl results.
 Works with both WARC and HAR formats.</p>
-<h2 id="returns">Returns</h2>
 <dl>
+<dt>Returns</dt>
+<dt>-----=</dt>
 <dt><code>List</code> of <code>dicts with keys</code></dt>
 <dd>url, status_code, headers, content</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">pages = artifact.get_pages()
 for page in pages:
     print(f&quot;{page['url']}: {len(page['content'])} bytes&quot;)
@@ -408,8 +412,9 @@ for page in pages:
 <div class="desc"><p>Iterate through all records</p>
 <p>For WARC: iterates through all WARC records
 For HAR: iterates through all HAR entries</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code>WarcRecord</code> or <code>HarEntry</code></dt>
 <dd>Each record in the artifact</dd>
 </dl></div>
@@ -443,8 +448,9 @@ For HAR: iterates through all HAR entries</p>
 <p>This is more memory-efficient than get_pages() for large crawls.</p>
 <p>For WARC: iterates through response records
 For HAR: iterates through all entries (HAR only contains responses)</p>
-<h2 id="yields">Yields</h2>
 <dl>
+<dt>Yields</dt>
+<dt>-----=</dt>
 <dt><code>WarcRecord</code> or <code>HarEntry</code></dt>
 <dd>HTTP response records with url, status_code, headers, content</dd>
 </dl></div>
@@ -473,14 +479,122 @@ For HAR: iterates through all entries (HAR only contains responses)</p>
         f.write(self.warc_data)</code></pre>
 </details>
 <div class="desc"><p>Save WARC data to file</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>filepath</code></strong></dt>
 <dd>Path to save the WARC file</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python">artifact.save('crawl_results.warc.gz')
 </code></pre></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerExtractResponse"><code class="flex name class">
+<span>class <span class="ident">CrawlerExtractResponse</span></span>
+<span>(</span><span>response_data: Dict[str, Any])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CrawlerExtractResponse:
+    &#34;&#34;&#34;
+    Response from ``POST /crawl/extract``.
+
+    Returned by :py:meth:`ScrapflyClient.crawl_extract`. The schema the request
+    carried constrains the model as it generates ``data``; it is not validated
+    again afterwards, so validate on your side anything you act on.
+
+    Attributes:
+        prompt: The prompt as the server understood it.
+        data: The extracted object, shaped by the schema.
+        sources: The retrieved chunks ``data`` was built from.
+        sources_dropped: Retrieved chunks that did not fit the context window.
+        truncated: Whether the model hit its output cap.
+        completeness: ``exact`` or ``partial``, as for :class:`CrawlerSearchResponse`.
+        crawls_requested: Crawls in the request.
+        crawls_searched: Crawls opened.
+        crawls_pruned_exact: Crawls the bound proved could not contribute.
+        skipped: Requested crawls that contributed nothing, with a reason.
+    &#34;&#34;&#34;
+
+    def __init__(self, response_data: Dict[str, Any]):
+        self._data = response_data
+
+        self.prompt: str = response_data[&#39;prompt&#39;]
+        self.data: Any = response_data[&#39;data&#39;]
+        self.sources: List[CrawlerPromptSource] = [
+            CrawlerPromptSource.from_dict(s) for s in (response_data.get(&#39;sources&#39;) or [])
+        ]
+        self.sources_dropped: int = response_data.get(&#39;sources_dropped&#39;, 0)
+        self.truncated: bool = response_data.get(&#39;truncated&#39;, False)
+
+        search = response_data.get(&#39;search&#39;) or {}
+        self.completeness: Optional[str] = search.get(&#39;completeness&#39;)
+        self.crawls_requested: int = search.get(&#39;crawls_requested&#39;, 0)
+        self.crawls_searched: int = search.get(&#39;crawls_searched&#39;, 0)
+        self.crawls_pruned_exact: int = search.get(&#39;crawls_pruned_exact&#39;, 0)
+        self.skipped: List[CrawlerSearchSkipped] = [
+            CrawlerSearchSkipped.from_dict(s) for s in (search.get(&#39;skipped&#39;) or [])
+        ]
+
+    @property
+    def is_exact(self) -&gt; bool:
+        &#34;&#34;&#34;Whether retrieval provably saw the best chunks of every requested crawl.&#34;&#34;&#34;
+        return self.completeness == &#39;exact&#39;
+
+    def __repr__(self):
+        return (
+            f&#34;CrawlerExtractResponse(sources={len(self.sources)}, completeness={self.completeness}, &#34;
+            f&#34;skipped={len(self.skipped)}, truncated={self.truncated})&#34;
+        )</code></pre>
+</details>
+<div class="desc"><p>Response from <code>POST /crawl/extract</code>.</p>
+<p>Returned by :py:meth:<code>ScrapflyClient.crawl_extract</code>. The schema the request
+carried constrains the model as it generates <code>data</code>; it is not validated
+again afterwards, so validate on your side anything you act on.</p>
+<dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
+<dt><strong><code>prompt</code></strong></dt>
+<dd>The prompt as the server understood it.</dd>
+<dt><strong><code>data</code></strong></dt>
+<dd>The extracted object, shaped by the schema.</dd>
+<dt><strong><code>sources</code></strong></dt>
+<dd>The retrieved chunks <code>data</code> was built from.</dd>
+<dt><strong><code>sources_dropped</code></strong></dt>
+<dd>Retrieved chunks that did not fit the context window.</dd>
+<dt><strong><code>truncated</code></strong></dt>
+<dd>Whether the model hit its output cap.</dd>
+<dt><strong><code>completeness</code></strong></dt>
+<dd><code>exact</code> or <code>partial</code>, as for :class:<code><a title="scrapfly.crawler.crawler_response.CrawlerSearchResponse" href="#scrapfly.crawler.crawler_response.CrawlerSearchResponse">CrawlerSearchResponse</a></code>.</dd>
+<dt><strong><code>crawls_requested</code></strong></dt>
+<dd>Crawls in the request.</dd>
+<dt><strong><code>crawls_searched</code></strong></dt>
+<dd>Crawls opened.</dd>
+<dt><strong><code>crawls_pruned_exact</code></strong></dt>
+<dd>Crawls the bound proved could not contribute.</dd>
+<dt><strong><code>skipped</code></strong></dt>
+<dd>Requested crawls that contributed nothing, with a reason.</dd>
+</dl></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerExtractResponse.is_exact"><code class="name">prop <span class="ident">is_exact</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def is_exact(self) -&gt; bool:
+    &#34;&#34;&#34;Whether retrieval provably saw the best chunks of every requested crawl.&#34;&#34;&#34;
+    return self.completeness == &#39;exact&#39;</code></pre>
+</details>
+<div class="desc"><p>Whether retrieval provably saw the best chunks of every requested crawl.</p></div>
 </dd>
 </dl>
 </dd>
@@ -519,10 +633,11 @@ class CrawlerPromptEvent:
         return self.event == &#39;done&#39;</code></pre>
 </details>
 <div class="desc"><p>One frame of the <code>POST /crawl/prompt</code> SSE stream.</p>
-<p>Frame order is <code>source</code><em> → <code>token</code></em> → (<code>error</code>) → <code>done</code>.
+<p>Frame order is <code>source</code>* → <code>token</code>* → (<code>error</code>) → <code>done</code>.
 Keepalive comment frames are consumed by the reader and never surfaced.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>event</code></strong></dt>
 <dd><code>source</code>, <code>token</code>, <code>error</code> or <code>done</code>.</dd>
 <dt><strong><code>data</code></strong></dt>
@@ -561,6 +676,69 @@ def is_done(self) -&gt; bool:
 def is_token(self) -&gt; bool:
     return self.event == &#39;token&#39;</code></pre>
 </details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptSource"><code class="flex name class">
+<span>class <span class="ident">CrawlerPromptSource</span></span>
+<span>(</span><span>id: int, crawler_uuid: str, url: str, title: str, score: float)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CrawlerPromptSource:
+    &#34;&#34;&#34;A retrieved chunk an answer may cite, by ``id``.&#34;&#34;&#34;
+
+    id: int
+    crawler_uuid: str
+    url: str
+    title: str
+    score: float
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;CrawlerPromptSource&#39;:
+        return cls(
+            id=data[&#39;id&#39;],
+            crawler_uuid=data[&#39;crawler_uuid&#39;],
+            url=data[&#39;url&#39;],
+            title=data.get(&#39;title&#39;, &#39;&#39;),
+            score=data.get(&#39;score&#39;, 0.0),
+        )</code></pre>
+</details>
+<div class="desc"><p>A retrieved chunk an answer may cite, by <code>id</code>.</p></div>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptSource.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="scrapfly.crawler.crawler_response.CrawlerPromptSource" href="#scrapfly.crawler.crawler_response.CrawlerPromptSource">CrawlerPromptSource</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptSource.crawler_uuid"><code class="name">var <span class="ident">crawler_uuid</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptSource.id"><code class="name">var <span class="ident">id</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptSource.score"><code class="name">var <span class="ident">score</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptSource.title"><code class="name">var <span class="ident">title</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.crawler.crawler_response.CrawlerPromptSource.url"><code class="name">var <span class="ident">url</span> : str</code></dt>
+<dd>
 <div class="desc"></div>
 </dd>
 </dl>
@@ -639,8 +817,9 @@ class CrawlerRefreshEntry:
 <p>Counts describe the whole run; <code>sample_updated</code> / <code>sample_removed</code>
 carry at most ten URLs each. The full URL lists are never inlined, so a
 5,000-page crawl does not put 5,000 strings into every status poll.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>at</code></strong></dt>
 <dd>ISO-8601 timestamp of the run.</dd>
 <dt><strong><code>generation</code></strong></dt>
@@ -823,8 +1002,9 @@ def changed(self) -&gt; int:
 </details>
 <div class="desc"><p>The <code>refresh</code> block of a crawl, as carried by
 <code>GET /crawl/{uuid}/status</code> and returned by the three refresh calls.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>enabled</code></strong></dt>
 <dd>Whether the crawl re-scrapes itself on a period.</dd>
 <dt><strong><code>interval_seconds</code></strong></dt>
@@ -1036,8 +1216,9 @@ class CrawlerSearchCrawl:
 most crawls unopened is the normal outcome, because the fan-out proves via
 an admissible bound that the unopened crawls held nothing better.
 <code>'partial'</code> means the deadline cut the fan-out short.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>query</code></strong></dt>
 <dd>The query as the server understood it.</dd>
 <dt><strong><code>mode</code></strong></dt>
@@ -1158,8 +1339,9 @@ class CrawlerSearchResult:
 crawled document and <code>text</code> is only the matched slice. Use
 <code>contents_url</code> (or <code>warc_offset</code>/<code>warc_end</code>) to expand a hit back to
 the full document.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>rank</code></strong></dt>
 <dd>1-based position in the merged ranking.</dd>
 <dt><strong><code>score</code></strong></dt>
@@ -1386,8 +1568,9 @@ class CrawlerSearchState:
 </details>
 <div class="desc"><p>The <code>search</code> block describing a crawl's index, as carried by
 <code>GET /crawl/{uuid}/status</code> and by the two search webhooks.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>status</code></strong></dt>
 <dd><code>DISABLED</code>, <code>BUILDING</code>, <code>READY</code>, <code>PARTIAL</code> or <code>FAILED</code>.
 Only <code>READY</code> and <code>PARTIAL</code> are searchable.</dd>
@@ -1544,16 +1727,18 @@ def is_searchable(self) -&gt; bool:
 <p>Strict parsing: <code>uuid</code> and <code>status</code> are part of the documented contract
 and are required. A missing field raises <code>KeyError</code> so the caller knows
 immediately that the API contract changed.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Unique identifier for the crawler job</dd>
 <dt><strong><code>status</code></strong></dt>
 <dd>Initial status (typically 'PENDING')</dd>
 </dl>
 <p>Initialize from API response</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary</dd>
 </dl></div>
@@ -1625,8 +1810,9 @@ immediately that the API contract changed.</p>
 <p>Field names match the wire format emitted by Scrapfly, which
 is the single source of truth. Go and TypeScript SDKs expose the same
 names on their <code>status.state</code> object.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls_visited</code></strong></dt>
 <dd>Number of URLs successfully crawled.</dd>
 <dt><strong><code>urls_extracted</code></strong></dt>
@@ -2425,8 +2611,9 @@ counters via the nested <code>state</code> attribute:</p>
 &gt;&gt;&gt; status.state.urls_extracted
 34
 </code></pre>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>uuid</code></strong></dt>
 <dd>Crawler job UUID.</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -2450,8 +2637,9 @@ on a period, otherwise <code>None</code>.</dd>
 metrics) are read with direct access so missing keys raise
 <code>KeyError</code> at parse time. This catches API contract drift loud and
 early.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>response_data</code></strong></dt>
 <dd>Raw API response dictionary.</dd>
 </dl></div>
@@ -2601,8 +2789,9 @@ def progress_pct(self) -&gt; float:
 or <code>skipped</code> URLs the line is <code>url,reason</code>. Streaming text is used
 because this endpoint is expected to scale to millions of records per
 job — JSON is not a suitable wire format at that volume.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The crawled URL</dd>
 <dt><strong><code>status</code></strong></dt>
@@ -2851,8 +3040,9 @@ line. This class parses that stream into a materialised <code>List</code> of
 forwards only the status filter to the crawler, so <code>page</code> and
 <code>per_page</code> are echoes of the caller's request parameters over a body
 that already holds the whole server-side page.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>List of :class:<code><a title="scrapfly.crawler.crawler_response.CrawlerUrlEntry" href="#scrapfly.crawler.crawler_response.CrawlerUrlEntry">CrawlerUrlEntry</a></code> records on this page</dd>
 <dt><strong><code>page</code></strong></dt>
@@ -2875,8 +3065,9 @@ that already holds the whole server-side page.</p>
 <code>visited</code>; the caller is expected to pass that as <code>status_hint</code>
 so every parsed record gets the right status tag.</li>
 </ul>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>body</code></strong></dt>
 <dd>Raw response body text.</dd>
 <dt><strong><code>status_hint</code></strong></dt>
@@ -3204,12 +3395,29 @@ so every parsed record gets the right status tag.</li>
 </ul>
 </li>
 <li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerExtractResponse" href="#scrapfly.crawler.crawler_response.CrawlerExtractResponse">CrawlerExtractResponse</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerExtractResponse.is_exact" href="#scrapfly.crawler.crawler_response.CrawlerExtractResponse.is_exact">is_exact</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent">CrawlerPromptEvent</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent.data" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent.data">data</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent.event" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent.event">event</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_done" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_done">is_done</a></code></li>
 <li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_token" href="#scrapfly.crawler.crawler_response.CrawlerPromptEvent.is_token">is_token</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptSource" href="#scrapfly.crawler.crawler_response.CrawlerPromptSource">CrawlerPromptSource</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptSource.crawler_uuid" href="#scrapfly.crawler.crawler_response.CrawlerPromptSource.crawler_uuid">crawler_uuid</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptSource.from_dict" href="#scrapfly.crawler.crawler_response.CrawlerPromptSource.from_dict">from_dict</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptSource.id" href="#scrapfly.crawler.crawler_response.CrawlerPromptSource.id">id</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptSource.score" href="#scrapfly.crawler.crawler_response.CrawlerPromptSource.score">score</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptSource.title" href="#scrapfly.crawler.crawler_response.CrawlerPromptSource.title">title</a></code></li>
+<li><code><a title="scrapfly.crawler.crawler_response.CrawlerPromptSource.url" href="#scrapfly.crawler.crawler_response.CrawlerPromptSource.url">url</a></code></li>
 </ul>
 </li>
 <li>

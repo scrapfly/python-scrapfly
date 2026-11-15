@@ -65,7 +65,7 @@ dataclass handles all four.</li>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="scrapfly.crawler.crawler_webhook.webhook_from_payload"><code class="name flex">
-<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict[str, Any] | None = None,<br>signing_secrets: Tuple[str, ...] | None = None,<br>signature: str | None = None,<br>raw_body: bytes | None = None,<br>content_encoding: str | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook">CrawlerUrlVisitedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook">CrawlerUrlSkippedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook">CrawlerUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook">CrawlerUrlFailedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerSearchWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerSearchWebhook">CrawlerSearchWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUpdatedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUpdatedWebhook">CrawlerUpdatedWebhook</a></span>
+<span>def <span class="ident">webhook_from_payload</span></span>(<span>payload: Dict[str, Any] | None = None,<br>signing_secrets: Tuple[str, ...] | None = None,<br>signature: str | None = None,<br>raw_body: bytes | None = None,<br>content_encoding: str | None = None,<br>max_body_size: int | None = None) ‑> <a title="scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerLifecycleWebhook">CrawlerLifecycleWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlVisitedWebhook">CrawlerUrlVisitedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlSkippedWebhook">CrawlerUrlSkippedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlDiscoveredWebhook">CrawlerUrlDiscoveredWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUrlFailedWebhook">CrawlerUrlFailedWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerSearchWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerSearchWebhook">CrawlerSearchWebhook</a> | <a title="scrapfly.crawler.crawler_webhook.CrawlerUpdatedWebhook" href="#scrapfly.crawler.crawler_webhook.CrawlerUpdatedWebhook">CrawlerUpdatedWebhook</a></span>
 </code></dt>
 <dd>
 <details class="source">
@@ -78,6 +78,7 @@ dataclass handles all four.</li>
     signature: Optional[str] = None,
     raw_body: Optional[bytes] = None,
     content_encoding: Optional[str] = None,
+    max_body_size: Optional[int] = None,
 ) -&gt; CrawlerWebhook:
     &#34;&#34;&#34;
     Parse a raw crawler webhook envelope into a typed dataclass.
@@ -105,6 +106,9 @@ dataclass handles all four.</li>
         content_encoding: The ``Content-Encoding`` header, when the webhook is
             configured to compress. Signing happens before encoding, so a
             compressed body has to be inflated before the digest matches.
+        max_body_size: Refuse a body that inflates past this many bytes. It is
+            decoded before it is verified, so any sender reaches it. ``None``
+            keeps the 256 MiB default of ``create_server``.
 
     Returns:
         A typed webhook instance matching the event.
@@ -115,6 +119,10 @@ dataclass handles all four.</li>
             ``signing_secrets`` is set without ``raw_body``, or if neither
             ``payload`` nor ``signing_secrets`` is supplied.
         WebhookSignatureMissMatch: If the signature is absent or does not match.
+        WebhookBodyTooLarge: If the body inflates past ``max_body_size``.
+        Exception: The decoder&#39;s own error (``zlib.error``, ``brotli.error``,
+            ``ValueError`` for a truncated stream...) for a body that does not
+            decode: answer it as a bad request, any sender can post one.
 
     Example:
         &gt;&gt;&gt; from flask import Flask, request
@@ -122,8 +130,8 @@ dataclass handles all four.</li>
         &gt;&gt;&gt; app = Flask(__name__)
         &gt;&gt;&gt; @app.route(&#39;/webhook&#39;, methods=[&#39;POST&#39;])
         ... def handle_webhook():
+        ...     # No request.json: Flask cannot parse a compressed body.
         ...     wh = webhook_from_payload(
-        ...         request.json,
         ...         signing_secrets=(&#39;YOUR-WEBHOOK-SIGNING-SECRET&#39;,),
         ...         signature=request.headers.get(&#39;X-Scrapfly-Webhook-Signature&#39;),
         ...         raw_body=request.get_data(),
@@ -138,7 +146,7 @@ dataclass handles all four.</li>
         # Imported here rather than at module scope to avoid a circular import.
         from json import loads
 
-        from ..api_response import ResponseBodyHandler, decompress
+        from ..api_response import MAX_DECOMPRESSED_SIZE, ResponseBodyHandler, decompress
         from ..errors import WebhookSignatureMissMatch
 
         if raw_body is None:
@@ -149,7 +157,7 @@ dataclass handles all four.</li>
 
         handler = ResponseBodyHandler(signing_secrets=signing_secrets)
         # Signing happens before Content-Encoding is applied.
-        verified = decompress(raw_body, content_encoding)
+        verified = decompress(raw_body, content_encoding, MAX_DECOMPRESSED_SIZE if max_body_size is None else max_body_size)
 
         if not handler.verify(verified, signature):
             raise WebhookSignatureMissMatch()
@@ -175,8 +183,9 @@ dataclass handles all four.</li>
 <p>The envelope shape is <code>{"event": &lt;name&gt;, "payload": {...}}</code>. This
 function inspects <code>event</code> and returns the corresponding typed
 dataclass — one of :data:<code>CrawlerWebhook</code>.</p>
-<h2 id="args">Args</h2>
 <dl>
+<dt>Args</dt>
+<dt>-----=</dt>
 <dt><strong><code>payload</code></strong></dt>
 <dd>The full webhook body as a dict (i.e. what you get from
 <code>request.json</code>). Ignored when <code>signing_secrets</code> is set, because
@@ -200,11 +209,17 @@ all encoder-dependent).</dd>
 <dd>The <code>Content-Encoding</code> header, when the webhook is
 configured to compress. Signing happens before encoding, so a
 compressed body has to be inflated before the digest matches.</dd>
+<dt><strong><code>max_body_size</code></strong></dt>
+<dd>Refuse a body that inflates past this many bytes. It is
+decoded before it is verified, so any sender reaches it. <code>None</code>
+keeps the 256 MiB default of <code>create_server</code>.</dd>
 </dl>
-<h2 id="returns">Returns</h2>
-<p>A typed webhook instance matching the event.</p>
-<h2 id="raises">Raises</h2>
+<p>Returns
+-----=
+A typed webhook instance matching the event.</p>
 <dl>
+<dt>Raises</dt>
+<dt>-----=</dt>
 <dt><code>KeyError</code></dt>
 <dd>If the envelope is missing required fields.</dd>
 <dt><code>ValueError</code></dt>
@@ -213,15 +228,22 @@ compressed body has to be inflated before the digest matches.</dd>
 <code>payload</code> nor <code>signing_secrets</code> is supplied.</dd>
 <dt><code>WebhookSignatureMissMatch</code></dt>
 <dd>If the signature is absent or does not match.</dd>
+<dt><code>WebhookBodyTooLarge</code></dt>
+<dd>If the body inflates past <code>max_body_size</code>.</dd>
+<dt><code>Exception</code></dt>
+<dd>The decoder's own error (<code>zlib.error</code>, <code>brotli.error</code>,
+<code>ValueError</code> for a truncated stream&hellip;) for a body that does not
+decode: answer it as a bad request, any sender can post one.</dd>
 </dl>
-<h2 id="example">Example</h2>
+<p>Example
+-----=</p>
 <pre><code class="language-python-repl">&gt;&gt;&gt; from flask import Flask, request
 &gt;&gt;&gt; from scrapfly import webhook_from_payload, CrawlerLifecycleWebhook
 &gt;&gt;&gt; app = Flask(__name__)
 &gt;&gt;&gt; @app.route('/webhook', methods=['POST'])
 ... def handle_webhook():
+...     # No request.json: Flask cannot parse a compressed body.
 ...     wh = webhook_from_payload(
-...         request.json,
 ...         signing_secrets=('YOUR-WEBHOOK-SIGNING-SECRET',),
 ...         signature=request.headers.get('X-Scrapfly-Webhook-Signature'),
 ...         raw_body=request.get_data(),
@@ -281,8 +303,9 @@ class CrawlerLifecycleWebhook(CrawlerWebhookBase):
 (crawler_uuid / project / env / action / state), and a <code>links.status</code>
 URL pointing at the crawl status endpoint. Disambiguate by inspecting
 <code>self.event</code> (use :class:<code><a title="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent" href="#scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent">CrawlerWebhookEvent</a></code>).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>seed_url</code></strong></dt>
 <dd>The root URL the crawl was started from.</dd>
 <dt><strong><code>status_link</code></strong></dt>
@@ -355,8 +378,9 @@ class CrawlerScrapeResult:
         )</code></pre>
 </details>
 <div class="desc"><p>The <code>scrape</code> sub-object of a <code>crawler_url_visited</code> payload.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>status_code</code></strong></dt>
 <dd>HTTP status code returned by the target URL.</dd>
 <dt><strong><code>country</code></strong></dt>
@@ -455,8 +479,9 @@ class CrawlerSearchWebhook(CrawlerWebhookBase):
 classification and can fail without the crawl failing, so these events are
 emitted separately from the lifecycle ones. Disambiguate on <code>self.event</code>
 or on <code>self.search.status</code>.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>seed_url</code></strong></dt>
 <dd>The root URL the crawl was started from.</dd>
 <dt><strong><code>status_link</code></strong></dt>
@@ -536,8 +561,9 @@ class CrawlerUpdatedDocuments:
 than that arrives with <code>truncated</code> set and the counts on
 :class:<code>CrawlerRefreshEntry</code> describing the whole run. There is no cursor:
 the event is a notification, the crawl itself is the export.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>updated</code></strong></dt>
 <dd>Re-indexed URLs, added and changed alike. Which of the two a
 URL was only survives in the counts.</dd>
@@ -621,8 +647,9 @@ class CrawlerUpdatedWebhook(CrawlerWebhookBase):
 over a site that stood still, and a run that failed outright, change
 nothing and are not delivered, so receiving this event is by itself proof
 of a diff.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>seed_url</code></strong></dt>
 <dd>The root URL the crawl was started from.</dd>
 <dt><strong><code>status_link</code></strong></dt>
@@ -704,8 +731,9 @@ class CrawlerUrlDiscoveredWebhook(CrawlerWebhookBase):
 </details>
 <div class="desc"><p>Payload for the <code>crawler_url_discovered</code> event.</p>
 <p>Emitted when the crawler extracts one or more new URLs from a source.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>origin</code></strong></dt>
 <dd>How the URLs were discovered (e.g. <code>"navigation"</code>,
 <code>"sitemap"</code>).</dd>
@@ -787,8 +815,9 @@ class CrawlerUrlFailedWebhook(CrawlerWebhookBase):
 <div class="desc"><p>Payload for the <code>crawler_url_failed</code> event.</p>
 <p>Emitted when a URL cannot be crawled (network error, scrape error,
 blocked, etc.).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL that failed.</dd>
 <dt><strong><code>error</code></strong></dt>
@@ -875,8 +904,9 @@ class CrawlerUrlSkippedWebhook(CrawlerWebhookBase):
 <p>Emitted in a single batch when the crawler decides to skip a set of
 URLs (e.g. when reaching <code>page_limit</code> with discovered-but-unvisited
 URLs still in the queue).</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>urls</code></strong></dt>
 <dd>Mapping from URL to the reason it was skipped
 (e.g. <code>"page_limit"</code>, <code>"excluded"</code>, <code>"robots_txt"</code>).</dd>
@@ -937,8 +967,9 @@ class CrawlerUrlVisitedWebhook(CrawlerWebhookBase):
 </details>
 <div class="desc"><p>Payload for the <code>crawler_url_visited</code> event.</p>
 <p>Emitted after each URL has been successfully scraped.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>url</code></strong></dt>
 <dd>The URL that was just visited.</dd>
 <dt><strong><code>scrape</code></strong></dt>
@@ -1017,8 +1048,9 @@ class CrawlerWebhookBase:
         }</code></pre>
 </details>
 <div class="desc"><p>Common fields carried by every crawler webhook payload.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>event</code></strong></dt>
 <dd>The wire event name (<code>crawler_started</code>, etc.).</dd>
 <dt><strong><code>crawler_uuid</code></strong></dt>
@@ -1074,7 +1106,7 @@ class CrawlerWebhookBase:
 </dd>
 <dt id="scrapfly.crawler.crawler_webhook.CrawlerWebhookEvent"><code class="flex name class">
 <span>class <span class="ident">CrawlerWebhookEvent</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
 <details class="source">

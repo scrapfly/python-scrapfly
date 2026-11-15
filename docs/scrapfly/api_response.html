@@ -60,62 +60,91 @@ el.replaceWith(d);
     &#34;&#34;&#34;
     encoding = (content_encoding or &#39;&#39;).lower()
 
-    if encoding in (&#39;&#39;, &#39;none&#39;, &#39;identity&#39;):
+    if encoding in (&#39;&#39;, &#39;none&#39;, &#39;identity&#39;) or not content:
         return content
 
+    # One member, as Scrapfly sends: GzipFile parses member headers in Python, slowly.
     if encoding in (&#39;gzip&#39;, &#39;gz&#39;):
-        import gzip
-
-        with gzip.GzipFile(fileobj=BytesIO(content)) as decoder:
-            return _bounded(iter(lambda: decoder.read(_DECOMPRESS_CHUNK), b&#39;&#39;), limit)
+        return _bounded(_zlib_chunks(content, 16 + zlib.MAX_WBITS), limit)
 
     if encoding == &#39;deflate&#39;:
-        import zlib
-
-        decoder = zlib.decompressobj()
-
-        def deflate_chunks():
-            data = content
-            while data:
-                yield decoder.decompress(data, _DECOMPRESS_CHUNK)
-                data = decoder.unconsumed_tail
-
-            yield decoder.flush()
-
-        return _bounded(deflate_chunks(), limit)
+        return _bounded(_zlib_chunks(content, zlib.MAX_WBITS), limit)
 
     if encoding in (&#39;brotli&#39;, &#39;br&#39;):
-        try:
-            import brotlicffi as brotli
-        except ImportError:
-            import brotli
+        decoder = _brotli_decoder()
 
-        decoder = brotli.Decompressor()
+        # brotlipy and brotli &lt; 1.2 cannot cap one call: decode as before, with a warning.
+        if not hasattr(decoder, &#39;can_accept_more_data&#39;):
+            warnings.warn(&#39;%s cannot cap its output, so a brotli body is not bounded until it is decoded: &#39;
+                          &#39;pip uninstall brotlipy, then install brotli&gt;=1.2.0 or brotlicffi&gt;=1.2.0.0&#39;
+                          % type(decoder).__module__)
+            step = decoder.process if hasattr(decoder, &#39;process&#39;) else decoder.decompress
 
-        return _bounded(
-            (decoder.decompress(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)),
-            limit,
-        )
+            return _bounded((step(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)), limit)
+
+        return _bounded(_brotli_chunks(decoder, content), limit)
 
     if encoding == &#39;zstd&#39;:
-        try:
-            from compression import zstd as _zstd  # Python 3.14+
+        zstd = _zstd_module()
 
-            decoder = _zstd.ZstdDecompressor()
-        except ImportError:
-            import zstandard
+        # zstandard when neither standard module imports: its block headers checked first, then read in capped chunks.
+        if zstd is None:
+            return _bounded(_zstandard_chunks(content), limit)
 
-            decoder = zstandard.ZstdDecompressor().decompressobj()
-
-        return _bounded(
-            (decoder.decompress(content[at:at + _DECOMPRESS_CHUNK]) for at in range(0, len(content), _DECOMPRESS_CHUNK)),
-            limit,
-        )
+        return _bounded(_zstd_chunks(zstd.ZstdDecompressor(), content), limit)
 
     raise ValueError(&#39;unsupported webhook content encoding: %s&#39; % content_encoding)</code></pre>
 </details>
 <div class="desc"><p>Reverse the Content-Encoding applied to a webhook body.</p>
 <p>Every branch stops as soon as <code>limit</code> is passed.</p></div>
+</dd>
+<dt id="scrapfly.api_response.error_without_envelope"><code class="name flex">
+<span>def <span class="ident">error_without_envelope</span></span>(<span>response: requests.models.Response) ‑> <a title="scrapfly.frozen_dict.FrozenDict" href="frozen_dict.html#scrapfly.frozen_dict.FrozenDict">FrozenDict</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def error_without_envelope(response: Response) -&gt; FrozenDict:
+    &#34;&#34;&#34;What an error answer with no API envelope (a proxy&#39;s 502 page) says, in the envelope&#39;s fields.&#34;&#34;&#34;
+    message = response.reason or &#39;HTTP %d&#39; % response.status_code
+
+    if response.headers.get(&#39;content-type&#39;, &#39;&#39;).startswith(&#39;text/&#39;):
+        text = response.text.strip()
+
+        if text:
+            message = text[:200]
+
+    return FrozenDict({&#39;http_code&#39;: response.status_code, &#39;reason&#39;: response.reason or &#39;&#39;, &#39;message&#39;: message})</code></pre>
+</details>
+<div class="desc"><p>What an error answer with no API envelope (a proxy's 502 page) says, in the envelope's fields.</p></div>
+</dd>
+<dt id="scrapfly.api_response.raise_for_an_error_without_envelope"><code class="name flex">
+<span>def <span class="ident">raise_for_an_error_without_envelope</span></span>(<span>api_response: <a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a>,<br>error_class) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def raise_for_an_error_without_envelope(api_response: ApiResponse, error_class) -&gt; None:
+    &#34;&#34;&#34;Raise the typed error of an error answer that carries no API envelope; one with an envelope is the base class&#39;s.&#34;&#34;&#34;
+    if &#39;error_id&#39; in api_response.result:
+        return
+
+    try:
+        api_response.response.raise_for_status()
+    except HTTPError as error:
+        args = api_error_args(api_response.result, http_status_code=error.response.status_code)
+        args.update(request=error.request, response=error.response, api_response=api_response)
+
+        if error.response.status_code &gt;= 500:
+            raise ApiHttpServerError(**args) from without_key(error)
+
+        raise error_class(**args) from without_key(error)</code></pre>
+</details>
+<div class="desc"><p>Raise the typed error of an error answer that carries no API envelope; one with an envelope is the base class's.</p></div>
 </dd>
 </dl>
 </section>
@@ -135,6 +164,23 @@ el.replaceWith(d);
     def __init__(self, request: Request, response: Response):
         self.request = request
         self.response = response
+
+    def decompress(self) -&gt; bytes:
+        &#34;&#34;&#34;The body, with a Content-Encoding the HTTP client left in place undone.&#34;&#34;&#34;
+        content = self.response.content
+        content_encoding = self.response.headers.get(&#39;content-encoding&#39;, &#39;&#39;).lower()
+
+        # urllib3 inflated these already: a second pass corrupts some bodies.
+        if content_encoding in urllib3.response.HTTPResponse.CONTENT_DECODERS:
+            return content
+
+        try:
+            return decompress(content, content_encoding, MAX_DECOMPRESSED_SIZE)
+        except WebhookBodyTooLarge:
+            raise
+        except Exception:
+            # The client advertises only what it decodes: a body that does not decode was decoded already.
+            return content
 
     @property
     def headers(self) -&gt; CaseInsensitiveDict:
@@ -221,18 +267,19 @@ el.replaceWith(d);
                 args.update(request=e.request, response=e.response, api_response=self)
 
                 if e.response.status_code &gt;= 500:
-                    raise ApiHttpServerError(**args) from e
+                    raise ApiHttpServerError(**args) from without_key(e)
 
                 # respect raise_on_upstream_error with screenshot and extraction only
                 if error_class in (ScreenshotAPIError, ExtractionAPIError) and not raise_on_upstream_error:
                     return
 
-                raise error_class(**args) from e</code></pre>
+                raise error_class(**args) from without_key(e)</code></pre>
 </details>
 <div class="desc"></div>
 <h3>Subclasses</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_response.ExtractionApiResponse" href="#scrapfly.api_response.ExtractionApiResponse">ExtractionApiResponse</a></li>
+<li><a title="scrapfly.api_response.LargeObjectApiResponse" href="#scrapfly.api_response.LargeObjectApiResponse">LargeObjectApiResponse</a></li>
 <li><a title="scrapfly.api_response.ScrapeApiResponse" href="#scrapfly.api_response.ScrapeApiResponse">ScrapeApiResponse</a></li>
 <li><a title="scrapfly.api_response.ScreenshotApiResponse" href="#scrapfly.api_response.ScreenshotApiResponse">ScreenshotApiResponse</a></li>
 </ul>
@@ -351,6 +398,33 @@ def status_code(self) -&gt; int:
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="scrapfly.api_response.ApiResponse.decompress"><code class="name flex">
+<span>def <span class="ident">decompress</span></span>(<span>self) ‑> bytes</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def decompress(self) -&gt; bytes:
+    &#34;&#34;&#34;The body, with a Content-Encoding the HTTP client left in place undone.&#34;&#34;&#34;
+    content = self.response.content
+    content_encoding = self.response.headers.get(&#39;content-encoding&#39;, &#39;&#39;).lower()
+
+    # urllib3 inflated these already: a second pass corrupts some bodies.
+    if content_encoding in urllib3.response.HTTPResponse.CONTENT_DECODERS:
+        return content
+
+    try:
+        return decompress(content, content_encoding, MAX_DECOMPRESSED_SIZE)
+    except WebhookBodyTooLarge:
+        raise
+    except Exception:
+        # The client advertises only what it decodes: a body that does not decode was decoded already.
+        return content</code></pre>
+</details>
+<div class="desc"><p>The body, with a Content-Encoding the HTTP client left in place undone.</p></div>
+</dd>
 <dt id="scrapfly.api_response.ApiResponse.prevent_extra_usage"><code class="name flex">
 <span>def <span class="ident">prevent_extra_usage</span></span>(<span>self)</span>
 </code></dt>
@@ -392,13 +466,13 @@ def status_code(self) -&gt; int:
             args.update(request=e.request, response=e.response, api_response=self)
 
             if e.response.status_code &gt;= 500:
-                raise ApiHttpServerError(**args) from e
+                raise ApiHttpServerError(**args) from without_key(e)
 
             # respect raise_on_upstream_error with screenshot and extraction only
             if error_class in (ScreenshotAPIError, ExtractionAPIError) and not raise_on_upstream_error:
                 return
 
-            raise error_class(**args) from e</code></pre>
+            raise error_class(**args) from without_key(e)</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -418,6 +492,10 @@ def status_code(self) -&gt; int:
         super().__init__(request, response)
         self.extraction_config = extraction_config
         self.result = self.handle_api_result(api_result)
+
+        # An error answer without an envelope is not a result.
+        if not response.ok and &#39;error_id&#39; not in self.result:
+            self.result = error_without_envelope(response)
 
     @property
     def extraction_result(self) -&gt; Optional[Dict]:
@@ -451,10 +529,10 @@ def status_code(self) -&gt; int:
 
     @property
     def error(self) -&gt; Optional[Dict]:
-        if self.extraction_result is None:
-            return self.result
+        if &#39;result&#39; in self.result:
+            return None
 
-        return None
+        return self.result
 
     def _is_api_error(self, api_result: Dict) -&gt; bool:
         if api_result is None:
@@ -469,7 +547,8 @@ def status_code(self) -&gt; int:
         return FrozenDict({&#39;result&#39;: api_result})
 
     def raise_for_result(self, raise_on_upstream_error=True, error_class=ExtractionAPIError):
-        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+        raise_for_an_error_without_envelope(self, error_class)</code></pre>
 </details>
 <div class="desc"></div>
 <h3>Ancestors</h3>
@@ -516,10 +595,10 @@ def data(self) -&gt; Union[Dict, List, str]:  # depends on the LLM prompt
 </summary>
 <pre><code class="python">@property
 def error(self) -&gt; Optional[Dict]:
-    if self.extraction_result is None:
-        return self.result
+    if &#39;result&#39; in self.result:
+        return None
 
-    return None</code></pre>
+    return self.result</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -583,7 +662,8 @@ def extraction_success(self) -&gt; bool:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def raise_for_result(self, raise_on_upstream_error=True, error_class=ExtractionAPIError):
-    super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
+    super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+    raise_for_an_error_without_envelope(self, error_class)</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -592,6 +672,107 @@ def extraction_success(self) -&gt; bool:
 <ul class="hlist">
 <li><code><b><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></b></code>:
 <ul class="hlist">
+<li><code><a title="scrapfly.api_response.ApiResponse.decompress" href="#scrapfly.api_response.ApiResponse.decompress">decompress</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.status_code" href="#scrapfly.api_response.ApiResponse.status_code">status_code</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="scrapfly.api_response.LargeObjectApiResponse"><code class="flex name class">
+<span>class <span class="ident">LargeObjectApiResponse</span></span>
+<span>(</span><span>request: requests.models.Request,<br>response: requests.models.Response,<br>format: Literal['clob', 'blob'],<br>body_handler: <a title="scrapfly.api_response.ResponseBodyHandler" href="#scrapfly.api_response.ResponseBodyHandler">ResponseBodyHandler</a>)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class LargeObjectApiResponse(ApiResponse):
+    &#34;&#34;&#34;The clob or blob a scrape result points to: the scraped page itself, never an API envelope.&#34;&#34;&#34;
+
+    def __init__(self, request: Request, response: Response, format: Literal[&#39;clob&#39;, &#39;blob&#39;], body_handler: &#39;ResponseBodyHandler&#39;):
+        super().__init__(request, response)
+        self.format = format
+        self.error = None
+        # Only an error answer is an API envelope.
+        self.result = {}
+
+        if not response.ok and body_handler.support(headers=response.headers):
+            with suppress(EncoderError):
+                self.result = body_handler(content=response.content, content_type=response.headers[&#39;content-type&#39;])
+
+    def raise_for_result(self, raise_on_upstream_error: bool = True, error_class=ApiHttpClientError):
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+        # An error answer without an envelope (a proxy&#39;s 502 page) is not the page either.
+        self.response.raise_for_status()
+
+    @property
+    def content(self) -&gt; Union[str, BytesIO]:
+        content = self.decompress()
+
+        return content.decode(&#39;utf-8&#39;) if self.format == &#39;clob&#39; else BytesIO(content)
+
+    @property
+    def content_format(self) -&gt; Literal[&#39;text&#39;, &#39;binary&#39;]:
+        return &#39;text&#39; if self.format == &#39;clob&#39; else &#39;binary&#39;</code></pre>
+</details>
+<div class="desc"><p>The clob or blob a scrape result points to: the scraped page itself, never an API envelope.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></li>
+</ul>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.api_response.LargeObjectApiResponse.content"><code class="name">prop <span class="ident">content</span> : str | _io.BytesIO</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def content(self) -&gt; Union[str, BytesIO]:
+    content = self.decompress()
+
+    return content.decode(&#39;utf-8&#39;) if self.format == &#39;clob&#39; else BytesIO(content)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.api_response.LargeObjectApiResponse.content_format"><code class="name">prop <span class="ident">content_format</span> : Literal['text', 'binary']</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def content_format(self) -&gt; Literal[&#39;text&#39;, &#39;binary&#39;]:
+    return &#39;text&#39; if self.format == &#39;clob&#39; else &#39;binary&#39;</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.api_response.LargeObjectApiResponse.raise_for_result"><code class="name flex">
+<span>def <span class="ident">raise_for_result</span></span>(<span>self,<br>raise_on_upstream_error: bool = True,<br>error_class=scrapfly.errors.ApiHttpClientError)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def raise_for_result(self, raise_on_upstream_error: bool = True, error_class=ApiHttpClientError):
+    super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+    # An error answer without an envelope (a proxy&#39;s 502 page) is not the page either.
+    self.response.raise_for_status()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.api_response.ApiResponse.decompress" href="#scrapfly.api_response.ApiResponse.decompress">decompress</a></code></li>
 <li><code><a title="scrapfly.api_response.ApiResponse.status_code" href="#scrapfly.api_response.ApiResponse.status_code">status_code</a></code></li>
 </ul>
 </li>
@@ -1622,6 +1803,7 @@ def upstream_status_code(self) -&gt; Optional[int]:
 <ul class="hlist">
 <li><code><b><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></b></code>:
 <ul class="hlist">
+<li><code><a title="scrapfly.api_response.ApiResponse.decompress" href="#scrapfly.api_response.ApiResponse.decompress">decompress</a></code></li>
 <li><code><a title="scrapfly.api_response.ApiResponse.status_code" href="#scrapfly.api_response.ApiResponse.status_code">status_code</a></code></li>
 </ul>
 </li>
@@ -1641,6 +1823,10 @@ def upstream_status_code(self) -&gt; Optional[int]:
         super().__init__(request, response)
         self.screenshot_config = screenshot_config
         self.result = self.handle_api_result(api_result)
+
+        # An error answer without an envelope is not an image.
+        if not response.ok and &#39;error_id&#39; not in self.result:
+            self.result = error_without_envelope(response)
 
     @property
     def image(self) -&gt; Optional[str]:
@@ -1692,7 +1878,8 @@ def upstream_status_code(self) -&gt; Optional[int]:
         return api_result
 
     def raise_for_result(self, raise_on_upstream_error=True, error_class=ScreenshotAPIError):
-        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
+        super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+        raise_for_an_error_without_envelope(self, error_class)</code></pre>
 </details>
 <div class="desc"></div>
 <h3>Ancestors</h3>
@@ -1798,7 +1985,8 @@ def screenshot_success(self) -&gt; bool:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def raise_for_result(self, raise_on_upstream_error=True, error_class=ScreenshotAPIError):
-    super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)</code></pre>
+    super().raise_for_result(raise_on_upstream_error=raise_on_upstream_error, error_class=error_class)
+    raise_for_an_error_without_envelope(self, error_class)</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
@@ -1807,6 +1995,7 @@ def screenshot_success(self) -&gt; bool:
 <ul class="hlist">
 <li><code><b><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></b></code>:
 <ul class="hlist">
+<li><code><a title="scrapfly.api_response.ApiResponse.decompress" href="#scrapfly.api_response.ApiResponse.decompress">decompress</a></code></li>
 <li><code><a title="scrapfly.api_response.ApiResponse.status_code" href="#scrapfly.api_response.ApiResponse.status_code">status_code</a></code></li>
 </ul>
 </li>
@@ -1848,6 +2037,8 @@ def screenshot_success(self) -&gt; bool:
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="scrapfly.api_response.decompress" href="#scrapfly.api_response.decompress">decompress</a></code></li>
+<li><code><a title="scrapfly.api_response.error_without_envelope" href="#scrapfly.api_response.error_without_envelope">error_without_envelope</a></code></li>
+<li><code><a title="scrapfly.api_response.raise_for_an_error_without_envelope" href="#scrapfly.api_response.raise_for_an_error_without_envelope">raise_for_an_error_without_envelope</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
@@ -1856,6 +2047,7 @@ def screenshot_success(self) -&gt; bool:
 <h4><code><a title="scrapfly.api_response.ApiResponse" href="#scrapfly.api_response.ApiResponse">ApiResponse</a></code></h4>
 <ul class="two-column">
 <li><code><a title="scrapfly.api_response.ApiResponse.cost" href="#scrapfly.api_response.ApiResponse.cost">cost</a></code></li>
+<li><code><a title="scrapfly.api_response.ApiResponse.decompress" href="#scrapfly.api_response.ApiResponse.decompress">decompress</a></code></li>
 <li><code><a title="scrapfly.api_response.ApiResponse.duration_ms" href="#scrapfly.api_response.ApiResponse.duration_ms">duration_ms</a></code></li>
 <li><code><a title="scrapfly.api_response.ApiResponse.error_message" href="#scrapfly.api_response.ApiResponse.error_message">error_message</a></code></li>
 <li><code><a title="scrapfly.api_response.ApiResponse.headers" href="#scrapfly.api_response.ApiResponse.headers">headers</a></code></li>
@@ -1875,6 +2067,14 @@ def screenshot_success(self) -&gt; bool:
 <li><code><a title="scrapfly.api_response.ExtractionApiResponse.extraction_success" href="#scrapfly.api_response.ExtractionApiResponse.extraction_success">extraction_success</a></code></li>
 <li><code><a title="scrapfly.api_response.ExtractionApiResponse.handle_api_result" href="#scrapfly.api_response.ExtractionApiResponse.handle_api_result">handle_api_result</a></code></li>
 <li><code><a title="scrapfly.api_response.ExtractionApiResponse.raise_for_result" href="#scrapfly.api_response.ExtractionApiResponse.raise_for_result">raise_for_result</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.api_response.LargeObjectApiResponse" href="#scrapfly.api_response.LargeObjectApiResponse">LargeObjectApiResponse</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.api_response.LargeObjectApiResponse.content" href="#scrapfly.api_response.LargeObjectApiResponse.content">content</a></code></li>
+<li><code><a title="scrapfly.api_response.LargeObjectApiResponse.content_format" href="#scrapfly.api_response.LargeObjectApiResponse.content_format">content_format</a></code></li>
+<li><code><a title="scrapfly.api_response.LargeObjectApiResponse.raise_for_result" href="#scrapfly.api_response.LargeObjectApiResponse.raise_for_result">raise_for_result</a></code></li>
 </ul>
 </li>
 <li>

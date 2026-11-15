@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>scrapfly.browser_downloads API documentation</title>
+<meta name="description" content="Retrieve the files a Cloud Browser session downloaded …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>scrapfly.browser_downloads</code></h1>
+</header>
+<section id="section-intro">
+<p>Retrieve the files a Cloud Browser session downloaded.</p>
+<p>Connect with <code>BrowserConfig(downloads_stream=True)</code>: <code>ScrapiumBrowser.getDownloads</code> then returns
+each small file inline and each large one as an IO stream handle, which these helpers read in
+chunks with <code>IO.read</code>, so no CDP message is larger than one chunk. Without the option every file
+comes back inline, and the helpers read that shape too.</p>
+<p>A session is any object with a <code>send(method, params)</code> method answering the CDP result as a dict,
+or such a callable: Playwright's <code>CDPSession</code> (sync API for <code><a title="scrapfly.browser_downloads.CloudBrowserDownloads" href="#scrapfly.browser_downloads.CloudBrowserDownloads">CloudBrowserDownloads</a></code>, async API for
+<code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads">AsyncCloudBrowserDownloads</a></code>), or your own client over the WebSocket.</p>
+<pre><code>downloads = CloudBrowserDownloads(page.context.new_cdp_session(page))
+downloads.wait_for('report.pdf')
+for path in downloads.save_all('downloads'):
+    print(path)
+</code></pre>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="scrapfly.browser_downloads.parse_downloads"><code class="name flex">
+<span>def <span class="ident">parse_downloads</span></span>(<span>result: Dict[str, Any]) ‑> List[<a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def parse_downloads(result: Dict[str, Any]) -&gt; List[BrowserDownload]:
+    &#34;&#34;&#34;The downloads of a `ScrapiumBrowser.getDownloads` result, in either of its shapes.&#34;&#34;&#34;
+    downloads = []
+    if &#39;guid_names&#39; in result or &#39;streams&#39; in result:
+        guid_names = result.get(&#39;guid_names&#39;) or {}
+        for guid, data in (result.get(&#39;files_by_guid&#39;) or {}).items():
+            name = guid_names.get(guid) or guid
+            downloads.append(BrowserDownload(name=name, guid=guid, size=_decoded_size(data), data=data))
+        for guid, entry in (result.get(&#39;streams&#39;) or {}).items():
+            name = entry.get(&#39;name&#39;) or guid_names.get(guid) or guid
+            downloads.append(BrowserDownload(name=name, guid=guid, size=entry.get(&#39;size&#39;), stream=entry[&#39;stream&#39;]))
+        # A file on disk with no download GUID, such as one finished before this session attached.
+        for name, data in (result.get(&#39;files&#39;) or {}).items():
+            downloads.append(BrowserDownload(name=name, size=_decoded_size(data), data=data))
+        return downloads
+
+    # Without downloads_stream every file is inline under `files`, and again under
+    # `files_by_guid` with no name: `files` alone holds each file once.
+    for name, data in (result.get(&#39;files&#39;) or {}).items():
+        downloads.append(BrowserDownload(name=name, size=_decoded_size(data), data=data))
+    return downloads</code></pre>
+</details>
+<div class="desc"><p>The downloads of a <code>ScrapiumBrowser.getDownloads</code> result, in either of its shapes.</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="scrapfly.browser_downloads.AsyncCloudBrowserDownloads"><code class="flex name class">
+<span>class <span class="ident">AsyncCloudBrowserDownloads</span></span>
+<span>(</span><span>session: Any, chunk_size: int = 8388608)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class AsyncCloudBrowserDownloads:
+    &#34;&#34;&#34;Download helpers over an asynchronous CDP session (Playwright&#39;s async `CDPSession`).&#34;&#34;&#34;
+
+    def __init__(self, session: Any, chunk_size: int = DEFAULT_CHUNK_SIZE):
+        self._send: Callable[[str, Dict[str, Any]], Awaitable[Dict[str, Any]]] = _sender(session)
+        self.chunk_size = _check_chunk_size(chunk_size)
+
+    async def metadata(self) -&gt; Dict[str, int]:
+        &#34;&#34;&#34;The size in bytes of every completed download, by filename.&#34;&#34;&#34;
+        reply = await self._send(&#39;ScrapiumBrowser.getDownloadsMetadatas&#39;, {})
+        return reply.get(&#39;metadata&#39;) or {}
+
+    async def wait_for(self, filename: str, timeout: float = DEFAULT_WAIT_TIMEOUT, interval: float = DEFAULT_WAIT_INTERVAL) -&gt; int:
+        &#34;&#34;&#34;Wait until `filename` is listed with the same size twice in a row, and return that size.&#34;&#34;&#34;
+        deadline = time.monotonic() + timeout
+        last = -1
+        while time.monotonic() &lt; deadline:
+            size = (await self.metadata()).get(filename, -1)
+            if size &gt;= 0 and size == last:
+                return size
+            last = size
+            await asyncio.sleep(interval)
+        raise TimeoutError(&#39;%s did not finish downloading in %gs&#39; % (filename, timeout))
+
+    async def list(self) -&gt; List[BrowserDownload]:
+        &#34;&#34;&#34;Every download of the session: small ones with their content, large ones as handles.&#34;&#34;&#34;
+        return parse_downloads(await self._send(&#39;ScrapiumBrowser.getDownloads&#39;, {}))
+
+    async def iter_chunks(self, download: BrowserDownload) -&gt; AsyncGenerator[bytes, None]:
+        &#34;&#34;&#34;The bytes of a download, one decoded chunk at a time. A stream handle is read once.&#34;&#34;&#34;
+        if not download.streamed:
+            yield base64.b64decode(download.data or &#39;&#39;)
+            return
+        written = 0
+        try:
+            while True:
+                reply = await self._send(&#39;IO.read&#39;, {&#39;handle&#39;: download.stream, &#39;size&#39;: self.chunk_size})
+                chunk = _decode_chunk(reply)
+                written += len(chunk)
+                if chunk:
+                    yield chunk
+                if reply.get(&#39;eof&#39;):
+                    break
+        finally:
+            await self._send(&#39;IO.close&#39;, {&#39;handle&#39;: download.stream})
+        if download.size is not None and written != download.size:
+            raise BrowserDownloadError(&#39;%s: read %d bytes, expected %d&#39; % (download.name, written, download.size))
+
+    async def read(self, download: BrowserDownload) -&gt; bytes:
+        &#34;&#34;&#34;The whole content of a download, in memory.&#34;&#34;&#34;
+        chunks = []
+        async for chunk in self.iter_chunks(download):
+            chunks.append(chunk)
+        return b&#39;&#39;.join(chunks)
+
+    async def save(self, download: BrowserDownload, path: Optional[str] = None) -&gt; str:
+        &#34;&#34;&#34;Write a download to `path` (a file or a directory, the current one by default) chunk by chunk.&#34;&#34;&#34;
+        target = _target_path(download, path)
+        with open(target, &#39;wb&#39;) as out:
+            async for chunk in self.iter_chunks(download):
+                out.write(chunk)
+        return target
+
+    async def save_all(self, directory: str = &#39;.&#39;) -&gt; List[str]:
+        &#34;&#34;&#34;Write every download of the session into `directory` and return their paths.&#34;&#34;&#34;
+        os.makedirs(directory, exist_ok=True)
+        paths = []
+        for download in await self.list():
+            paths.append(await self.save(download, directory))
+        return paths</code></pre>
+</details>
+<div class="desc"><p>Download helpers over an asynchronous CDP session (Playwright's async <code>CDPSession</code>).</p></div>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.iter_chunks"><code class="name flex">
+<span>async def <span class="ident">iter_chunks</span></span>(<span>self,<br>download: <a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>) ‑> AsyncGenerator[bytes, None]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def iter_chunks(self, download: BrowserDownload) -&gt; AsyncGenerator[bytes, None]:
+    &#34;&#34;&#34;The bytes of a download, one decoded chunk at a time. A stream handle is read once.&#34;&#34;&#34;
+    if not download.streamed:
+        yield base64.b64decode(download.data or &#39;&#39;)
+        return
+    written = 0
+    try:
+        while True:
+            reply = await self._send(&#39;IO.read&#39;, {&#39;handle&#39;: download.stream, &#39;size&#39;: self.chunk_size})
+            chunk = _decode_chunk(reply)
+            written += len(chunk)
+            if chunk:
+                yield chunk
+            if reply.get(&#39;eof&#39;):
+                break
+    finally:
+        await self._send(&#39;IO.close&#39;, {&#39;handle&#39;: download.stream})
+    if download.size is not None and written != download.size:
+        raise BrowserDownloadError(&#39;%s: read %d bytes, expected %d&#39; % (download.name, written, download.size))</code></pre>
+</details>
+<div class="desc"><p>The bytes of a download, one decoded chunk at a time. A stream handle is read once.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.list"><code class="name flex">
+<span>async def <span class="ident">list</span></span>(<span>self) ‑> List[<a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def list(self) -&gt; List[BrowserDownload]:
+    &#34;&#34;&#34;Every download of the session: small ones with their content, large ones as handles.&#34;&#34;&#34;
+    return parse_downloads(await self._send(&#39;ScrapiumBrowser.getDownloads&#39;, {}))</code></pre>
+</details>
+<div class="desc"><p>Every download of the session: small ones with their content, large ones as handles.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.metadata"><code class="name flex">
+<span>async def <span class="ident">metadata</span></span>(<span>self) ‑> Dict[str, int]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def metadata(self) -&gt; Dict[str, int]:
+    &#34;&#34;&#34;The size in bytes of every completed download, by filename.&#34;&#34;&#34;
+    reply = await self._send(&#39;ScrapiumBrowser.getDownloadsMetadatas&#39;, {})
+    return reply.get(&#39;metadata&#39;) or {}</code></pre>
+</details>
+<div class="desc"><p>The size in bytes of every completed download, by filename.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.read"><code class="name flex">
+<span>async def <span class="ident">read</span></span>(<span>self,<br>download: <a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>) ‑> bytes</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def read(self, download: BrowserDownload) -&gt; bytes:
+    &#34;&#34;&#34;The whole content of a download, in memory.&#34;&#34;&#34;
+    chunks = []
+    async for chunk in self.iter_chunks(download):
+        chunks.append(chunk)
+    return b&#39;&#39;.join(chunks)</code></pre>
+</details>
+<div class="desc"><p>The whole content of a download, in memory.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.save"><code class="name flex">
+<span>async def <span class="ident">save</span></span>(<span>self,<br>download: <a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>,<br>path: str | None = None) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def save(self, download: BrowserDownload, path: Optional[str] = None) -&gt; str:
+    &#34;&#34;&#34;Write a download to `path` (a file or a directory, the current one by default) chunk by chunk.&#34;&#34;&#34;
+    target = _target_path(download, path)
+    with open(target, &#39;wb&#39;) as out:
+        async for chunk in self.iter_chunks(download):
+            out.write(chunk)
+    return target</code></pre>
+</details>
+<div class="desc"><p>Write a download to <code>path</code> (a file or a directory, the current one by default) chunk by chunk.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.save_all"><code class="name flex">
+<span>async def <span class="ident">save_all</span></span>(<span>self, directory: str = '.') ‑> List[str]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def save_all(self, directory: str = &#39;.&#39;) -&gt; List[str]:
+    &#34;&#34;&#34;Write every download of the session into `directory` and return their paths.&#34;&#34;&#34;
+    os.makedirs(directory, exist_ok=True)
+    paths = []
+    for download in await self.list():
+        paths.append(await self.save(download, directory))
+    return paths</code></pre>
+</details>
+<div class="desc"><p>Write every download of the session into <code>directory</code> and return their paths.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.wait_for"><code class="name flex">
+<span>async def <span class="ident">wait_for</span></span>(<span>self, filename: str, timeout: float = 60.0, interval: float = 0.5) ‑> int</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def wait_for(self, filename: str, timeout: float = DEFAULT_WAIT_TIMEOUT, interval: float = DEFAULT_WAIT_INTERVAL) -&gt; int:
+    &#34;&#34;&#34;Wait until `filename` is listed with the same size twice in a row, and return that size.&#34;&#34;&#34;
+    deadline = time.monotonic() + timeout
+    last = -1
+    while time.monotonic() &lt; deadline:
+        size = (await self.metadata()).get(filename, -1)
+        if size &gt;= 0 and size == last:
+            return size
+        last = size
+        await asyncio.sleep(interval)
+    raise TimeoutError(&#39;%s did not finish downloading in %gs&#39; % (filename, timeout))</code></pre>
+</details>
+<div class="desc"><p>Wait until <code>filename</code> is listed with the same size twice in a row, and return that size.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.browser_downloads.BrowserDownload"><code class="flex name class">
+<span>class <span class="ident">BrowserDownload</span></span>
+<span>(</span><span>name: str,<br>guid: str | None = None,<br>size: int | None = None,<br>data: str | None = None,<br>stream: str | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class BrowserDownload:
+    &#34;&#34;&#34;One file of the session&#39;s download directory.
+
+    A small file carries its base64 content in `data`. A large one, with `downloads_stream`,
+    carries the IO handle to read in `stream` instead, and its size in bytes in `size`.
+    &#34;&#34;&#34;
+
+    name: str
+    guid: Optional[str] = None
+    size: Optional[int] = None
+    data: Optional[str] = None
+    stream: Optional[str] = None
+
+    @property
+    def streamed(self) -&gt; bool:
+        return self.stream is not None</code></pre>
+</details>
+<div class="desc"><p>One file of the session's download directory.</p>
+<p>A small file carries its base64 content in <code>data</code>. A large one, with <code>downloads_stream</code>,
+carries the IO handle to read in <code>stream</code> instead, and its size in bytes in <code>size</code>.</p></div>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.browser_downloads.BrowserDownload.data"><code class="name">var <span class="ident">data</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.browser_downloads.BrowserDownload.guid"><code class="name">var <span class="ident">guid</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.browser_downloads.BrowserDownload.name"><code class="name">var <span class="ident">name</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.browser_downloads.BrowserDownload.size"><code class="name">var <span class="ident">size</span> : int | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.browser_downloads.BrowserDownload.stream"><code class="name">var <span class="ident">stream</span> : str | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.browser_downloads.BrowserDownload.streamed"><code class="name">prop <span class="ident">streamed</span> : bool</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def streamed(self) -&gt; bool:
+    return self.stream is not None</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="scrapfly.browser_downloads.BrowserDownloadError"><code class="flex name class">
+<span>class <span class="ident">BrowserDownloadError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class BrowserDownloadError(Exception):
+    &#34;&#34;&#34;A download could not be read whole.&#34;&#34;&#34;</code></pre>
+</details>
+<div class="desc"><p>A download could not be read whole.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="scrapfly.browser_downloads.CloudBrowserDownloads"><code class="flex name class">
+<span>class <span class="ident">CloudBrowserDownloads</span></span>
+<span>(</span><span>session: Any, chunk_size: int = 8388608)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CloudBrowserDownloads:
+    &#34;&#34;&#34;Download helpers over a synchronous CDP session (Playwright&#39;s sync `CDPSession`).&#34;&#34;&#34;
+
+    def __init__(self, session: Any, chunk_size: int = DEFAULT_CHUNK_SIZE):
+        self._send = _sender(session)
+        self.chunk_size = _check_chunk_size(chunk_size)
+
+    def metadata(self) -&gt; Dict[str, int]:
+        &#34;&#34;&#34;The size in bytes of every completed download, by filename.&#34;&#34;&#34;
+        return self._send(&#39;ScrapiumBrowser.getDownloadsMetadatas&#39;, {}).get(&#39;metadata&#39;) or {}
+
+    def wait_for(self, filename: str, timeout: float = DEFAULT_WAIT_TIMEOUT, interval: float = DEFAULT_WAIT_INTERVAL) -&gt; int:
+        &#34;&#34;&#34;Wait until `filename` is listed with the same size twice in a row, and return that size.&#34;&#34;&#34;
+        deadline = time.monotonic() + timeout
+        last = -1
+        while time.monotonic() &lt; deadline:
+            size = self.metadata().get(filename, -1)
+            if size &gt;= 0 and size == last:
+                return size
+            last = size
+            time.sleep(interval)
+        raise TimeoutError(&#39;%s did not finish downloading in %gs&#39; % (filename, timeout))
+
+    def list(self) -&gt; List[BrowserDownload]:
+        &#34;&#34;&#34;Every download of the session: small ones with their content, large ones as handles.&#34;&#34;&#34;
+        return parse_downloads(self._send(&#39;ScrapiumBrowser.getDownloads&#39;, {}))
+
+    def iter_chunks(self, download: BrowserDownload) -&gt; Generator[bytes, None, None]:
+        &#34;&#34;&#34;The bytes of a download, one decoded chunk at a time. A stream handle is read once.&#34;&#34;&#34;
+        if not download.streamed:
+            yield base64.b64decode(download.data or &#39;&#39;)
+            return
+        written = 0
+        try:
+            while True:
+                reply = self._send(&#39;IO.read&#39;, {&#39;handle&#39;: download.stream, &#39;size&#39;: self.chunk_size})
+                chunk = _decode_chunk(reply)
+                written += len(chunk)
+                if chunk:
+                    yield chunk
+                if reply.get(&#39;eof&#39;):
+                    break
+        finally:
+            self._send(&#39;IO.close&#39;, {&#39;handle&#39;: download.stream})
+        if download.size is not None and written != download.size:
+            raise BrowserDownloadError(&#39;%s: read %d bytes, expected %d&#39; % (download.name, written, download.size))
+
+    def read(self, download: BrowserDownload) -&gt; bytes:
+        &#34;&#34;&#34;The whole content of a download, in memory.&#34;&#34;&#34;
+        return b&#39;&#39;.join(self.iter_chunks(download))
+
+    def save(self, download: BrowserDownload, path: Optional[str] = None) -&gt; str:
+        &#34;&#34;&#34;Write a download to `path` (a file or a directory, the current one by default) chunk by chunk.&#34;&#34;&#34;
+        target = _target_path(download, path)
+        with open(target, &#39;wb&#39;) as out:
+            for chunk in self.iter_chunks(download):
+                out.write(chunk)
+        return target
+
+    def save_all(self, directory: str = &#39;.&#39;) -&gt; List[str]:
+        &#34;&#34;&#34;Write every download of the session into `directory` and return their paths.&#34;&#34;&#34;
+        os.makedirs(directory, exist_ok=True)
+        paths = []
+        for download in self.list():
+            paths.append(self.save(download, directory))
+        return paths</code></pre>
+</details>
+<div class="desc"><p>Download helpers over a synchronous CDP session (Playwright's sync <code>CDPSession</code>).</p></div>
+<h3>Methods</h3>
+<dl>
+<dt id="scrapfly.browser_downloads.CloudBrowserDownloads.iter_chunks"><code class="name flex">
+<span>def <span class="ident">iter_chunks</span></span>(<span>self,<br>download: <a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>) ‑> Generator[bytes, None, None]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def iter_chunks(self, download: BrowserDownload) -&gt; Generator[bytes, None, None]:
+    &#34;&#34;&#34;The bytes of a download, one decoded chunk at a time. A stream handle is read once.&#34;&#34;&#34;
+    if not download.streamed:
+        yield base64.b64decode(download.data or &#39;&#39;)
+        return
+    written = 0
+    try:
+        while True:
+            reply = self._send(&#39;IO.read&#39;, {&#39;handle&#39;: download.stream, &#39;size&#39;: self.chunk_size})
+            chunk = _decode_chunk(reply)
+            written += len(chunk)
+            if chunk:
+                yield chunk
+            if reply.get(&#39;eof&#39;):
+                break
+    finally:
+        self._send(&#39;IO.close&#39;, {&#39;handle&#39;: download.stream})
+    if download.size is not None and written != download.size:
+        raise BrowserDownloadError(&#39;%s: read %d bytes, expected %d&#39; % (download.name, written, download.size))</code></pre>
+</details>
+<div class="desc"><p>The bytes of a download, one decoded chunk at a time. A stream handle is read once.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.CloudBrowserDownloads.list"><code class="name flex">
+<span>def <span class="ident">list</span></span>(<span>self) ‑> List[<a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list(self) -&gt; List[BrowserDownload]:
+    &#34;&#34;&#34;Every download of the session: small ones with their content, large ones as handles.&#34;&#34;&#34;
+    return parse_downloads(self._send(&#39;ScrapiumBrowser.getDownloads&#39;, {}))</code></pre>
+</details>
+<div class="desc"><p>Every download of the session: small ones with their content, large ones as handles.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.CloudBrowserDownloads.metadata"><code class="name flex">
+<span>def <span class="ident">metadata</span></span>(<span>self) ‑> Dict[str, int]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def metadata(self) -&gt; Dict[str, int]:
+    &#34;&#34;&#34;The size in bytes of every completed download, by filename.&#34;&#34;&#34;
+    return self._send(&#39;ScrapiumBrowser.getDownloadsMetadatas&#39;, {}).get(&#39;metadata&#39;) or {}</code></pre>
+</details>
+<div class="desc"><p>The size in bytes of every completed download, by filename.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.CloudBrowserDownloads.read"><code class="name flex">
+<span>def <span class="ident">read</span></span>(<span>self,<br>download: <a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>) ‑> bytes</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read(self, download: BrowserDownload) -&gt; bytes:
+    &#34;&#34;&#34;The whole content of a download, in memory.&#34;&#34;&#34;
+    return b&#39;&#39;.join(self.iter_chunks(download))</code></pre>
+</details>
+<div class="desc"><p>The whole content of a download, in memory.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.CloudBrowserDownloads.save"><code class="name flex">
+<span>def <span class="ident">save</span></span>(<span>self,<br>download: <a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a>,<br>path: str | None = None) ‑> str</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save(self, download: BrowserDownload, path: Optional[str] = None) -&gt; str:
+    &#34;&#34;&#34;Write a download to `path` (a file or a directory, the current one by default) chunk by chunk.&#34;&#34;&#34;
+    target = _target_path(download, path)
+    with open(target, &#39;wb&#39;) as out:
+        for chunk in self.iter_chunks(download):
+            out.write(chunk)
+    return target</code></pre>
+</details>
+<div class="desc"><p>Write a download to <code>path</code> (a file or a directory, the current one by default) chunk by chunk.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.CloudBrowserDownloads.save_all"><code class="name flex">
+<span>def <span class="ident">save_all</span></span>(<span>self, directory: str = '.') ‑> List[str]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save_all(self, directory: str = &#39;.&#39;) -&gt; List[str]:
+    &#34;&#34;&#34;Write every download of the session into `directory` and return their paths.&#34;&#34;&#34;
+    os.makedirs(directory, exist_ok=True)
+    paths = []
+    for download in self.list():
+        paths.append(self.save(download, directory))
+    return paths</code></pre>
+</details>
+<div class="desc"><p>Write every download of the session into <code>directory</code> and return their paths.</p></div>
+</dd>
+<dt id="scrapfly.browser_downloads.CloudBrowserDownloads.wait_for"><code class="name flex">
+<span>def <span class="ident">wait_for</span></span>(<span>self, filename: str, timeout: float = 60.0, interval: float = 0.5) ‑> int</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def wait_for(self, filename: str, timeout: float = DEFAULT_WAIT_TIMEOUT, interval: float = DEFAULT_WAIT_INTERVAL) -&gt; int:
+    &#34;&#34;&#34;Wait until `filename` is listed with the same size twice in a row, and return that size.&#34;&#34;&#34;
+    deadline = time.monotonic() + timeout
+    last = -1
+    while time.monotonic() &lt; deadline:
+        size = self.metadata().get(filename, -1)
+        if size &gt;= 0 and size == last:
+            return size
+        last = size
+        time.sleep(interval)
+    raise TimeoutError(&#39;%s did not finish downloading in %gs&#39; % (filename, timeout))</code></pre>
+</details>
+<div class="desc"><p>Wait until <code>filename</code> is listed with the same size twice in a row, and return that size.</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="scrapfly" href="index.html">scrapfly</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="scrapfly.browser_downloads.parse_downloads" href="#scrapfly.browser_downloads.parse_downloads">parse_downloads</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads">AsyncCloudBrowserDownloads</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.iter_chunks" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads.iter_chunks">iter_chunks</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.list" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads.list">list</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.metadata" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads.metadata">metadata</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.read" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads.read">read</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.save" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads.save">save</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.save_all" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads.save_all">save_all</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.AsyncCloudBrowserDownloads.wait_for" href="#scrapfly.browser_downloads.AsyncCloudBrowserDownloads.wait_for">wait_for</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.browser_downloads.BrowserDownload" href="#scrapfly.browser_downloads.BrowserDownload">BrowserDownload</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.browser_downloads.BrowserDownload.data" href="#scrapfly.browser_downloads.BrowserDownload.data">data</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.BrowserDownload.guid" href="#scrapfly.browser_downloads.BrowserDownload.guid">guid</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.BrowserDownload.name" href="#scrapfly.browser_downloads.BrowserDownload.name">name</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.BrowserDownload.size" href="#scrapfly.browser_downloads.BrowserDownload.size">size</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.BrowserDownload.stream" href="#scrapfly.browser_downloads.BrowserDownload.stream">stream</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.BrowserDownload.streamed" href="#scrapfly.browser_downloads.BrowserDownload.streamed">streamed</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.browser_downloads.BrowserDownloadError" href="#scrapfly.browser_downloads.BrowserDownloadError">BrowserDownloadError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="scrapfly.browser_downloads.CloudBrowserDownloads" href="#scrapfly.browser_downloads.CloudBrowserDownloads">CloudBrowserDownloads</a></code></h4>
+<ul class="two-column">
+<li><code><a title="scrapfly.browser_downloads.CloudBrowserDownloads.iter_chunks" href="#scrapfly.browser_downloads.CloudBrowserDownloads.iter_chunks">iter_chunks</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.CloudBrowserDownloads.list" href="#scrapfly.browser_downloads.CloudBrowserDownloads.list">list</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.CloudBrowserDownloads.metadata" href="#scrapfly.browser_downloads.CloudBrowserDownloads.metadata">metadata</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.CloudBrowserDownloads.read" href="#scrapfly.browser_downloads.CloudBrowserDownloads.read">read</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.CloudBrowserDownloads.save" href="#scrapfly.browser_downloads.CloudBrowserDownloads.save">save</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.CloudBrowserDownloads.save_all" href="#scrapfly.browser_downloads.CloudBrowserDownloads.save_all">save_all</a></code></li>
+<li><code><a title="scrapfly.browser_downloads.CloudBrowserDownloads.wait_for" href="#scrapfly.browser_downloads.CloudBrowserDownloads.wait_for">wait_for</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

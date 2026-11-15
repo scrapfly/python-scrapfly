@@ -48,7 +48,7 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.browser_config.BrowserConfig"><code class="flex name class">
 <span>class <span class="ident">BrowserConfig</span></span>
-<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>lang: str | None = None,<br>languages: str | List[str] | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None,<br>vault: str | None = None,<br>vault_key: str | None = None,<br>enable_vnc: bool | None = None,<br>vnc_password: str | None = None,<br>enable_rtc: bool | None = None,<br>rtc_username: str | None = None,<br>rtc_password: str | None = None,<br>hitl_allowed_networks: str | List[str] | None = None)</span>
+<span>(</span><span>proxy_pool: str | <a title="scrapfly.browser_config.ProxyPool" href="#scrapfly.browser_config.ProxyPool">ProxyPool</a> | None = None,<br>os: str | <a title="scrapfly.browser_config.OperatingSystem" href="#scrapfly.browser_config.OperatingSystem">OperatingSystem</a> | None = None,<br>session: str | None = None,<br>country: str | None = None,<br>lang: str | None = None,<br>languages: str | List[str] | None = None,<br>auto_close: bool | None = None,<br>timeout: int | None = None,<br>debug: bool | None = None,<br>extensions: List[str] | None = None,<br>block_images: bool | None = None,<br>block_styles: bool | None = None,<br>block_fonts: bool | None = None,<br>block_media: bool | None = None,<br>screenshot: bool | None = None,<br>resolution: str | None = None,<br>target_url: str | None = None,<br>cache: bool | None = None,<br>blacklist: bool | None = None,<br>unblock: bool | None = None,<br>unblock_timeout: int | None = None,<br>browser_brand: str | None = None,<br>byop_proxy: str | None = None,<br>enable_mcp: bool | None = None,<br>solve_captcha: bool | None = None,<br>vault: str | None = None,<br>vault_key: str | None = None,<br>enable_vnc: bool | None = None,<br>vnc_password: str | None = None,<br>enable_rtc: bool | None = None,<br>rtc_username: str | None = None,<br>rtc_password: str | None = None,<br>hitl_allowed_networks: str | List[str] | None = None,<br>downloads_stream: bool | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -56,6 +56,17 @@ el.replaceWith(d);
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class BrowserConfig(BaseApiConfig):
+    &#34;&#34;&#34;Cloud Browser session options, sent as query parameters of the WebSocket URL.
+
+    `proxy_pool` takes the Cloud Browser&#39;s own pools: &#39;datacenter&#39;, &#39;residential&#39; (ProxyPool) or
+    &#39;tor&#39;; a session on `byop_proxy` runs as &#39;byop&#39;.
+
+    Deprecated:
+        unblock, unblock_timeout: the Cloud Browser never reads them, so no anti-bot
+            bypass runs on the session. Setting either emits a DeprecationWarning.
+            For an unblocked session, call `ScrapflyClient.cloud_browser_unblock(url)`
+            and connect to the `ws_url` it returns.
+    &#34;&#34;&#34;
 
     CLOUD_BROWSER_HOST = &#39;wss://browser.scrapfly.io&#39;
 
@@ -94,9 +105,19 @@ el.replaceWith(d);
         rtc_username: Optional[str] = None,
         rtc_password: Optional[str] = None,
         hitl_allowed_networks: Optional[Union[str, List[str]]] = None,
+        downloads_stream: Optional[bool] = None,
     ):
         if timeout is not None and timeout &gt; 1800:
             raise ValueError(&#39;timeout cannot exceed 1800 seconds (30 minutes)&#39;)
+
+        if unblock is not None or unblock_timeout is not None:
+            warnings.warn(
+                &#34;BrowserConfig &#39;unblock&#39; and &#39;unblock_timeout&#39; are deprecated: the Cloud Browser &#34;
+                &#34;never reads them, so no anti-bot bypass runs on the session. Use &#34;
+                &#34;ScrapflyClient.cloud_browser_unblock(url) and connect to the ws_url it returns.&#34;,
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if isinstance(proxy_pool, str):
             try:
@@ -175,6 +196,10 @@ el.replaceWith(d);
         if isinstance(hitl_allowed_networks, list):
             hitl_allowed_networks = &#39;,&#39;.join(s.strip() for s in hitl_allowed_networks if s and s.strip())
         self.hitl_allowed_networks = hitl_allowed_networks or None
+        # Large downloaded files come back from ScrapiumBrowser.getDownloads as IO stream
+        # handles instead of inline base64: read them with CloudBrowserDownloads.
+        # https://scrapfly.io/docs/cloud-browser-api/file-downloads#large-downloads
+        self.downloads_stream = downloads_stream
 
     @staticmethod
     def project_salt(api_key: str) -&gt; str:
@@ -258,6 +283,8 @@ el.replaceWith(d);
         if self.blacklist is not None:
             params[&#39;blacklist&#39;] = self._bool_to_http(self.blacklist)
 
+        # Deprecated and unread by the Cloud Browser; still forwarded so the URL a
+        # caller already builds stays byte-identical.
         if self.unblock is not None:
             params[&#39;unblock&#39;] = self._bool_to_http(self.unblock)
 
@@ -300,6 +327,9 @@ el.replaceWith(d);
         if self.hitl_allowed_networks is not None:
             params[&#39;hitl_allowed_networks&#39;] = self.hitl_allowed_networks
 
+        if self.downloads_stream is not None:
+            params[&#39;downloads_stream&#39;] = self._bool_to_http(self.downloads_stream)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + &#39;?&#39; + urlencode(params)
 
@@ -338,6 +368,7 @@ el.replaceWith(d);
             &#39;rtc_username&#39;: self.rtc_username,
             &#39;rtc_password&#39;: self.rtc_password,
             &#39;hitl_allowed_networks&#39;: self.hitl_allowed_networks,
+            &#39;downloads_stream&#39;: self.downloads_stream,
         }
 
     @staticmethod
@@ -376,9 +407,18 @@ el.replaceWith(d);
             rtc_username=browser_config_dict.get(&#39;rtc_username&#39;, None),
             rtc_password=browser_config_dict.get(&#39;rtc_password&#39;, None),
             hitl_allowed_networks=browser_config_dict.get(&#39;hitl_allowed_networks&#39;, None),
+            downloads_stream=browser_config_dict.get(&#39;downloads_stream&#39;, None),
         )</code></pre>
 </details>
-<div class="desc"></div>
+<div class="desc"><p>Cloud Browser session options, sent as query parameters of the WebSocket URL.</p>
+<p><code>proxy_pool</code> takes the Cloud Browser's own pools: 'datacenter', 'residential' (ProxyPool) or
+'tor'; a session on <code>byop_proxy</code> runs as 'byop'.</p>
+<p>Deprecated
+-----=
+unblock, unblock_timeout: the Cloud Browser never reads them, so no anti-bot
+bypass runs on the session. Setting either emits a DeprecationWarning.
+For an unblocked session, call <code>ScrapflyClient.cloud_browser_unblock(url)</code>
+and connect to the <code>ws_url</code> it returns.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.api_config.BaseApiConfig" href="api_config.html#scrapfly.api_config.BaseApiConfig">BaseApiConfig</a></li>
@@ -436,6 +476,7 @@ def from_dict(browser_config_dict: Dict) -&gt; &#39;BrowserConfig&#39;:
         rtc_username=browser_config_dict.get(&#39;rtc_username&#39;, None),
         rtc_password=browser_config_dict.get(&#39;rtc_password&#39;, None),
         hitl_allowed_networks=browser_config_dict.get(&#39;hitl_allowed_networks&#39;, None),
+        downloads_stream=browser_config_dict.get(&#39;downloads_stream&#39;, None),
     )</code></pre>
 </details>
 <div class="desc"></div>
@@ -508,6 +549,7 @@ the salt is also the VNC password prefix (<salt>-<password>).</p></div>
         &#39;rtc_username&#39;: self.rtc_username,
         &#39;rtc_password&#39;: self.rtc_password,
         &#39;hitl_allowed_networks&#39;: self.hitl_allowed_networks,
+        &#39;downloads_stream&#39;: self.downloads_stream,
     }</code></pre>
 </details>
 <div class="desc"></div>
@@ -607,6 +649,8 @@ vnc_password instead.</p></div>
     if self.blacklist is not None:
         params[&#39;blacklist&#39;] = self._bool_to_http(self.blacklist)
 
+    # Deprecated and unread by the Cloud Browser; still forwarded so the URL a
+    # caller already builds stays byte-identical.
     if self.unblock is not None:
         params[&#39;unblock&#39;] = self._bool_to_http(self.unblock)
 
@@ -649,6 +693,9 @@ vnc_password instead.</p></div>
     if self.hitl_allowed_networks is not None:
         params[&#39;hitl_allowed_networks&#39;] = self.hitl_allowed_networks
 
+    if self.downloads_stream is not None:
+        params[&#39;downloads_stream&#39;] = self._bool_to_http(self.downloads_stream)
+
     base_host = host or self.CLOUD_BROWSER_HOST
     return base_host + &#39;?&#39; + urlencode(params)</code></pre>
 </details>
@@ -656,9 +703,50 @@ vnc_password instead.</p></div>
 </dd>
 </dl>
 </dd>
+<dt id="scrapfly.browser_config.LinkedService"><code class="flex name class">
+<span>class <span class="ident">LinkedService</span></span>
+<span>(</span><span>*args, **kwds)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class LinkedService(Enum):
+    &#34;&#34;&#34;
+    Secret managers a Cloud Browser vault can mirror its items from.
+
+    The value is the `linked_service` discriminator on the vault endpoints, and
+    the same string is the `source` of every item the syncer owns.
+
+    ONE_PASSWORD is the only provider the server accepts today. A plain string
+    is still accepted wherever this enum is, so a provider the server registers
+    later is reachable without an SDK release.
+    &#34;&#34;&#34;
+
+    ONE_PASSWORD = &#34;1password&#34;</code></pre>
+</details>
+<div class="desc"><p>Secret managers a Cloud Browser vault can mirror its items from.</p>
+<p>The value is the <code>linked_service</code> discriminator on the vault endpoints, and
+the same string is the <code>source</code> of every item the syncer owns.</p>
+<p>ONE_PASSWORD is the only provider the server accepts today. A plain string
+is still accepted wherever this enum is, so a provider the server registers
+later is reachable without an SDK release.</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="scrapfly.browser_config.LinkedService.ONE_PASSWORD"><code class="name">var <span class="ident">ONE_PASSWORD</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
 <dt id="scrapfly.browser_config.OperatingSystem"><code class="flex name class">
 <span>class <span class="ident">OperatingSystem</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -673,7 +761,56 @@ vnc_password instead.</p></div>
     IPHONE = &#34;iphone&#34;
     IPAD = &#34;ipad&#34;</code></pre>
 </details>
-<div class="desc"><p>An enumeration.</p></div>
+<div class="desc"><p>Create a collection of name/value pairs.</p>
+<p>Example enumeration:</p>
+<pre><code class="language-python-repl">&gt;&gt;&gt; class Color(Enum):
+...     RED = 1
+...     BLUE = 2
+...     GREEN = 3
+</code></pre>
+<p>Access them by:</p>
+<ul>
+<li>attribute access:</li>
+</ul>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>Color.RED
+<Color.RED: 1></p>
+</blockquote>
+</blockquote>
+</blockquote>
+<ul>
+<li>value lookup:</li>
+</ul>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>Color(1)
+<Color.RED: 1></p>
+</blockquote>
+</blockquote>
+</blockquote>
+<ul>
+<li>name lookup:</li>
+</ul>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>Color['RED']
+<Color.RED: 1></p>
+</blockquote>
+</blockquote>
+</blockquote>
+<p>Enumerations can be iterated over, and know how many members they have:</p>
+<pre><code class="language-python-repl">&gt;&gt;&gt; len(Color)
+3
+</code></pre>
+<pre><code class="language-python-repl">&gt;&gt;&gt; list(Color)
+[&lt;Color.RED: 1&gt;, &lt;Color.BLUE: 2&gt;, &lt;Color.GREEN: 3&gt;]
+</code></pre>
+<p>Methods can be added to enumerations, and members can have their own
+attributes &ndash; see the documentation for details.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>enum.Enum</li>
@@ -708,7 +845,7 @@ vnc_password instead.</p></div>
 </dd>
 <dt id="scrapfly.browser_config.ProxyPool"><code class="flex name class">
 <span>class <span class="ident">ProxyPool</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -719,7 +856,56 @@ vnc_password instead.</p></div>
     DATACENTER = &#34;datacenter&#34;
     RESIDENTIAL = &#34;residential&#34;</code></pre>
 </details>
-<div class="desc"><p>An enumeration.</p></div>
+<div class="desc"><p>Create a collection of name/value pairs.</p>
+<p>Example enumeration:</p>
+<pre><code class="language-python-repl">&gt;&gt;&gt; class Color(Enum):
+...     RED = 1
+...     BLUE = 2
+...     GREEN = 3
+</code></pre>
+<p>Access them by:</p>
+<ul>
+<li>attribute access:</li>
+</ul>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>Color.RED
+<Color.RED: 1></p>
+</blockquote>
+</blockquote>
+</blockquote>
+<ul>
+<li>value lookup:</li>
+</ul>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>Color(1)
+<Color.RED: 1></p>
+</blockquote>
+</blockquote>
+</blockquote>
+<ul>
+<li>name lookup:</li>
+</ul>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>Color['RED']
+<Color.RED: 1></p>
+</blockquote>
+</blockquote>
+</blockquote>
+<p>Enumerations can be iterated over, and know how many members they have:</p>
+<pre><code class="language-python-repl">&gt;&gt;&gt; len(Color)
+3
+</code></pre>
+<pre><code class="language-python-repl">&gt;&gt;&gt; list(Color)
+[&lt;Color.RED: 1&gt;, &lt;Color.BLUE: 2&gt;, &lt;Color.GREEN: 3&gt;]
+</code></pre>
+<p>Methods can be added to enumerations, and members can have their own
+attributes &ndash; see the documentation for details.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>enum.Enum</li>
@@ -760,6 +946,12 @@ vnc_password instead.</p></div>
 <li><code><a title="scrapfly.browser_config.BrowserConfig.to_dict" href="#scrapfly.browser_config.BrowserConfig.to_dict">to_dict</a></code></li>
 <li><code><a title="scrapfly.browser_config.BrowserConfig.vnc_client_password" href="#scrapfly.browser_config.BrowserConfig.vnc_client_password">vnc_client_password</a></code></li>
 <li><code><a title="scrapfly.browser_config.BrowserConfig.websocket_url" href="#scrapfly.browser_config.BrowserConfig.websocket_url">websocket_url</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="scrapfly.browser_config.LinkedService" href="#scrapfly.browser_config.LinkedService">LinkedService</a></code></h4>
+<ul class="">
+<li><code><a title="scrapfly.browser_config.LinkedService.ONE_PASSWORD" href="#scrapfly.browser_config.LinkedService.ONE_PASSWORD">ONE_PASSWORD</a></code></li>
 </ul>
 </li>
 <li>

@@ -120,7 +120,7 @@ def comparable_version(version: str) -&gt; int:
 
         return requests</code></pre>
 </details>
-<div class="desc"><p>Abstract pipeline that implement the file downloading</p>
+<div class="desc"><p>Pipeline that implements file downloading.</p>
 <p>This pipeline tries to minimize network transfers and file processing,
 doing stat of the files and determining if file is new, up-to-date or
 expired.</p>
@@ -197,7 +197,7 @@ refresh it in case of change.</p></div>
 
         return requests</code></pre>
 </details>
-<div class="desc"><p>Abstract pipeline that implement the image thumbnail generation logic</p></div>
+<div class="desc"><p>Pipeline that implements the handling logic specific to images.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.pipelines.images.ImagesPipeline</li>
@@ -335,7 +335,12 @@ refresh it in case of change.</p></div>
 <div class="desc"><p>Base class that any spider must subclass.</p>
 <p>It provides a default :meth:<code>start</code> implementation that sends
 requests based on the :attr:<code>start_urls</code> class attribute and calls the
-:meth:<code>parse</code> method for each response.</p></div>
+:meth:<code>parse</code> method for each response.</p>
+<p>Like :ref:<code>Scrapy components &lt;topics-components&gt;</code>, spiders are
+:ref:<code>initialized from the crawler &lt;from-crawler&gt;</code>, through
+:meth:<code>~scrapy.Spider.from_crawler</code>, and can be :ref:<code>configured through
+settings &lt;component-settings&gt;</code>, which they may also override through
+:attr:<code>custom_settings</code> or :meth:<code>~scrapy.Spider.update_settings</code>.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li><a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></li>
@@ -345,15 +350,6 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <h3>Class variables</h3>
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyCrawlSpider.rules"><code class="name">var <span class="ident">rules</span> : Sequence[scrapy.spiders.crawl.Rule]</code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-</dl>
-<h3>Static methods</h3>
-<dl>
-<dt id="scrapfly.scrapy.ScrapflyCrawlSpider.from_crawler"><code class="name flex">
-<span>def <span class="ident">from_crawler</span></span>(<span>crawler, *args, **kwargs)</span>
-</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -387,9 +383,20 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a></b></code>:
+<ul class="hlist">
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.from_crawler" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider.from_crawler">from_crawler</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.start" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider.start">start</a></code></li>
+<li><code><a title="scrapfly.scrapy.spider.ScrapflySpider.update_settings" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider.update_settings">update_settings</a></code></li>
+</ul>
+</li>
+</ul>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware"><code class="flex name class">
 <span>class <span class="ident">ScrapflyMiddleware</span></span>
+<span>(</span><span>crawler=None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -399,9 +406,22 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <pre><code class="python">class ScrapflyMiddleware:
     MAX_API_RETRIES = 20
 
-    def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+    # Scrapy 2.15+ no longer passes the spider to these methods: it is the crawler&#39;s.
+    def __init__(self, crawler=None):
+        self.crawler = crawler
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler)
+
+    def _spider(self, spider: Optional[Spider]) -&gt; Spider:
+        return self.crawler.spider if spider is None else spider
+
+    def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Optional[Union[Spider, ScrapflySpider]] = None) -&gt; Optional[ScrapflyScrapyResponse]:
         if not isinstance(request, ScrapflyScrapyRequest):
             return None
+
+        spider = self._spider(spider)
 
         if not isinstance(spider, ScrapflySpider):
             raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
@@ -417,11 +437,13 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 
         return None
 
-    def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+    async def process_exception(self, request, exception:Union[str, Exception], spider:Optional[ScrapflySpider] = None):
+        spider = self._spider(spider)
         delay = 1
 
-        if isinstance(exception, ResponseNeverReceived):
-            return spider.retry(request, exception, delay)
+        # ResponseNeverReceived from Twisted&#39;s HTTP client, TransportError from AsyncScrapflyClient&#39;s.
+        if isinstance(exception, (ResponseNeverReceived, httpx.TransportError)):
+            return await self._retried(spider.retry(request, exception, delay))
 
         if isinstance(exception, ScrapflyError):
             if exception.is_retryable:
@@ -429,14 +451,22 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
                     if &#39;retry-after&#39; in exception.response.headers:
                         delay = int(exception.response.headers[&#39;retry-after&#39;])
 
-                return spider.retry(request, exception, delay)
+                return await self._retried(spider.retry(request, exception, delay))
 
             if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
-                return spider.retry(request, exception, delay)
+                return await self._retried(spider.retry(request, exception, delay))
 
         raise exception
 
-    def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+    @staticmethod
+    async def _retried(scheduled) -&gt; None:
+        &#34;&#34;&#34;Wait until ScrapflySpider.retry() has scheduled the retry: a Deferred under a reactor, an asyncio task without one.&#34;&#34;&#34;
+        if isinstance(scheduled, Deferred):
+            await maybe_deferred_to_future(scheduled)
+        elif scheduled is not None:
+            await scheduled
+
+    def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Optional[Union[Spider, ScrapflySpider]] = None) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
         return response</code></pre>
 </details>
 <div class="desc"></div>
@@ -447,21 +477,32 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <div class="desc"></div>
 </dd>
 </dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="scrapfly.scrapy.ScrapflyMiddleware.from_crawler"><code class="name flex">
+<span>def <span class="ident">from_crawler</span></span>(<span>crawler)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.process_exception"><code class="name flex">
-<span>def <span class="ident">process_exception</span></span>(<span>self,<br>request,<br>exception: str | Exception,<br>spider: <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>)</span>
+<span>async def <span class="ident">process_exception</span></span>(<span>self,<br>request,<br>exception: str | Exception,<br>spider: <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a> | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_exception(self, request, exception:Union[str, Exception], spider:ScrapflySpider):
+<pre><code class="python">async def process_exception(self, request, exception:Union[str, Exception], spider:Optional[ScrapflySpider] = None):
+    spider = self._spider(spider)
     delay = 1
 
-    if isinstance(exception, ResponseNeverReceived):
-        return spider.retry(request, exception, delay)
+    # ResponseNeverReceived from Twisted&#39;s HTTP client, TransportError from AsyncScrapflyClient&#39;s.
+    if isinstance(exception, (ResponseNeverReceived, httpx.TransportError)):
+        return await self._retried(spider.retry(request, exception, delay))
 
     if isinstance(exception, ScrapflyError):
         if exception.is_retryable:
@@ -469,26 +510,28 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
                 if &#39;retry-after&#39; in exception.response.headers:
                     delay = int(exception.response.headers[&#39;retry-after&#39;])
 
-            return spider.retry(request, exception, delay)
+            return await self._retried(spider.retry(request, exception, delay))
 
         if spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;, False) and exception.code in spider.settings.get(&#39;SCRAPFLY_CUSTOM_RETRY_CODE&#39;):
-            return spider.retry(request, exception, delay)
+            return await self._retried(spider.retry(request, exception, delay))
 
     raise exception</code></pre>
 </details>
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.process_request"><code class="name flex">
-<span>def <span class="ident">process_request</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | None</span>
+<span>def <span class="ident">process_request</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a> | None = None) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | None</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Union[Spider, ScrapflySpider]) -&gt; Optional[ScrapflyScrapyResponse]:
+<pre><code class="python">def process_request(self, request: Union[Request, ScrapflyScrapyRequest], spider: Optional[Union[Spider, ScrapflySpider]] = None) -&gt; Optional[ScrapflyScrapyResponse]:
     if not isinstance(request, ScrapflyScrapyRequest):
         return None
+
+    spider = self._spider(spider)
 
     if not isinstance(spider, ScrapflySpider):
         raise RuntimeError(&#39;ScrapflyScrapyRequest must be fired from ScrapflySpider, %s given&#39; % type(spider))
@@ -507,14 +550,14 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyMiddleware.process_response"><code class="name flex">
-<span>def <span class="ident">process_response</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>response: scrapy.http.response.Response | <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a>) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></span>
+<span>def <span class="ident">process_response</span></span>(<span>self,<br>request: scrapy.http.request.Request | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>,<br>response: scrapy.http.response.Response | <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a>,<br>spider: scrapy.spiders.Spider | <a title="scrapfly.scrapy.spider.ScrapflySpider" href="spider.html#scrapfly.scrapy.spider.ScrapflySpider">ScrapflySpider</a> | None = None) ‑> <a title="scrapfly.scrapy.response.ScrapflyScrapyResponse" href="response.html#scrapfly.scrapy.response.ScrapflyScrapyResponse">ScrapflyScrapyResponse</a> | <a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a></span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Union[Spider, ScrapflySpider]) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
+<pre><code class="python">def process_response(self, request: Union[Request, ScrapflyScrapyRequest], response: Union[Response, ScrapflyScrapyResponse], spider: Optional[Union[Spider, ScrapflySpider]] = None) -&gt; Union[ScrapflyScrapyResponse, ScrapflyScrapyRequest]:
     return response</code></pre>
 </details>
 <div class="desc"></div>
@@ -594,7 +637,32 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
         return cls(*args, **kwargs)</code></pre>
 </details>
 <div class="desc"><p>Represents an HTTP request, which is usually generated in a Spider and
-executed by the Downloader, thus generating a :class:<code>~scrapy.http.Response</code>.</p></div>
+executed by the Downloader, thus generating a
+:class:<code>~scrapy.http.Response</code>.</p>
+<p><em>url</em> is the URL of the request. If it is invalid, :exc:<code>ValueError</code> is
+raised.</p>
+<p><em>method</em> is the HTTP method of the request.</p>
+<p><em>headers</em> are the request headers. Header values can be strings, for
+single-valued headers, or lists, for multi-valued headers. Headers with a
+<code>None</code> value are not sent.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution:&ensp;The :ref:<code>cookie middleware &lt;cookies&gt;</code> ignores cookies set</p>
+<p>through the <code>Cookie</code> header. Use <em>cookies</em> instead.</p>
+</div>
+<p><em>body</em> is the request body. A string body is encoded with <em>encoding</em>.</p>
+<p><em>cookies</em> are the request cookies, as a dict of cookie names and values or
+as a list of dicts with a cookie each. See :ref:<code>cookies</code>.</p>
+<p><em>encoding</em> is used to percent-encode <em>url</em>, unless the
+:reqmeta:<code>verbatim_url</code> request meta key is set, and to encode <em>body</em> if it
+is a string.</p>
+<p><em>flags</em> is a list of labels for the request, which are included in log
+messages about it.</p>
+<p><em>meta</em> and <em>cb_kwargs</em> are shallow copied into :attr:<code>meta</code> and
+:attr:<code>cb_kwargs</code>.</p>
+<p><em>callback</em>, <em>errback</em>, <em>priority</em>, <em>dont_filter</em> and <em>parent_id</em> set the
+attributes of the same name. Set <em>parent_id</em> when building a request on
+behalf of another request, e.g. in a downloader middleware:
+<code>Request(url, parent_id=request.id)</code>.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.http.request.Request</li>
@@ -647,7 +715,14 @@ executed by the Downloader, thus generating a :class:<code>~scrapy.http.Response
     cls = kwargs.pop(&#39;cls&#39;, self.__class__)
     return cls(*args, **kwargs)</code></pre>
 </details>
-<div class="desc"><p>Create a new Request with the same attributes except for those given new values</p></div>
+<div class="desc"><p>Return a new request with the same attributes as this one, except
+for those given new values as keyword arguments named after
+:attr:<code>attributes</code>.</p>
+<p>:attr:<code>cb_kwargs</code> and :attr:<code>meta</code> are :doc:<code>shallow copied
+&lt;library/copy&gt;</code> unless given new values. The new request gets a new
+:attr:<code>id</code>, and :attr:<code>parent_id</code> defaults to the :attr:<code>id</code> of this
+request. <em>cls</em> sets the class of the new request.</p>
+<p>See also :ref:<code>callback-data</code>.</p></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflyScrapyRequest.to_dict"><code class="name flex">
 <span>def <span class="ident">to_dict</span></span>(<span>self, *, spider: ForwardRef('scrapy.Spider') | None = None) ‑> dict</span>
@@ -822,12 +897,91 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.status"><code class="name">var <span class="ident">status</span> : str</code></dt>
+<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.success"><code class="name">var <span class="ident">success</span> : bool</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.success"><code class="name">var <span class="ident">success</span> : bool</code></dt>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="scrapfly.scrapy.ScrapflyScrapyResponse.status"><code class="name">var <span class="ident">status</span> : str</code></dt>
 <dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ScrapflyScrapyResponse(TextResponse):
+
+    content:Union[str, BytesIO]
+    scrape_api_response:ScrapeApiResponse
+
+    context:Dict
+    scrape_config:ScrapeConfig
+    log_url:str
+    status:str
+    config:Dict
+    success:bool
+    duration:float
+    format:str
+    screenshots:Dict
+    dns:Optional[Dict]
+    ssl:Optional[Dict]
+    iframes:Dict
+    browser_data:Dict
+    error:Optional[Dict]
+
+    DEFAULT_ENCODING = &#39;utf-8&#39;
+
+    def __init__(self, request:ScrapflyScrapyRequest, scrape_api_response:ScrapeApiResponse):
+        self.scrape_api_response = scrape_api_response
+        self.content = self.scrape_api_response.scrape_result[&#39;content&#39;]
+
+        self.context = self.scrape_api_response.context
+        self.scrape_config = self.scrape_api_response.scrape_config
+        self.log_url = self.scrape_api_response.scrape_result[&#39;log_url&#39;]
+        self.status = self.scrape_api_response.scrape_result[&#39;status&#39;]
+        self.success = self.scrape_api_response.scrape_result[&#39;success&#39;]
+        self.duration = self.scrape_api_response.scrape_result[&#39;duration&#39;]
+        self.format = self.scrape_api_response.scrape_result[&#39;format&#39;]
+        self.screenshots = self.scrape_api_response.scrape_result[&#39;screenshots&#39;]
+        self.dns = self.scrape_api_response.scrape_result[&#39;dns&#39;]
+        self.ssl = self.scrape_api_response.scrape_result[&#39;ssl&#39;]
+        self.iframes = self.scrape_api_response.scrape_result[&#39;iframes&#39;]
+        self.browser_data = self.scrape_api_response.scrape_result[&#39;browser_data&#39;]
+        self.error = self.scrape_api_response.scrape_result[&#39;error&#39;]
+        self.ip_address = None
+
+        if isinstance(self.content, str):
+            content = self.content.encode(&#39;utf-8&#39;)
+        elif isinstance(self.content, (BytesIO, TextIO)):
+            content = self.content.read()
+        else:
+            raise RuntimeError(&#39;Unsupported body %s&#39; % type(self.content))
+
+        TextResponse.__init__(
+            self,
+            url=self.scrape_api_response.scrape_result[&#39;url&#39;],
+            status=self.scrape_api_response.scrape_result[&#39;status_code&#39;],
+            headers=self.scrape_api_response.scrape_result[&#39;response_headers&#39;],
+            body=content,
+            request=request,
+            ip_address=None
+        )
+
+    @property
+    def __class__(self):
+        response_headers = self.scrape_api_response.scrape_result[&#39;response_headers&#39;]
+
+        if &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;text/html&#39;) &gt;= 0:
+            return HtmlResponse
+        elif &#39;content-type&#39; in response_headers and response_headers[&#39;content-type&#39;].find(&#39;application/xml&#39;) &gt;= 0:
+            return XmlResponse
+        else:
+            return TextResponse
+
+    def sink(self, path: Optional[str] = None, name: Optional[str] = None, file: Optional[Union[TextIO, BytesIO]] = None):
+        self.scrape_api_response.sink(path=path, name=name, file=file)</code></pre>
+</details>
 <div class="desc"></div>
 </dd>
 </dl>
@@ -947,6 +1101,11 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
     def closed(self, reason:str):
         self.scrapfly_client.close()
 
+    async def start(self):
+        # Scrapy 2.13+ starts from start(), and from 2.19 its default no longer calls start_requests().
+        for request in self.start_requests():
+            yield request
+
     def start_requests(self) -&gt; Iterable[ScrapflyScrapyRequest]:
         for scrape_config in self.start_urls:
             if not isinstance(scrape_config, ScrapeConfig):
@@ -980,18 +1139,24 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 
         logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
 
-        if delay is None:
-            deferred = Deferred()
-            deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
-        else:
-            from twisted.internet import reactor # prevent reactor already install issue
-            from . import current_scrapy_version, comparable_version
-            if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
-                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
-            else:
-                deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
+        return self._crawl_later(retryreq, delay or 0)
 
-        return deferred
+    def _crawl_later(self, request: ScrapflyScrapyRequest, delay: float):
+        &#34;&#34;&#34;Crawl `request` in `delay` seconds: a Deferred under a Twisted reactor, an asyncio task without one (Scrapy 2.15+).&#34;&#34;&#34;
+        from . import current_scrapy_version, comparable_version
+
+        args = (request,) if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;) else (request, self)
+
+        if &#39;twisted.internet.reactor&#39; not in sys.modules:
+            async def crawl():
+                await asyncio.sleep(delay)
+                self.crawler.engine.crawl(*args)
+
+            return asyncio.ensure_future(crawl())
+
+        from twisted.internet import reactor # prevent reactor already install issue
+
+        return task.deferLater(reactor, delay, self.crawler.engine.crawl, *args)
 
     @classmethod
     def from_crawler(cls, crawler:Crawler, *args, **kwargs):
@@ -1002,7 +1167,6 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
             host=crawler.settings.get(&#39;SCRAPFLY_HOST&#39;, ScrapflyClient.HOST),
             verify=crawler.settings.get(&#39;SCRAPFLY_SSL_VERIFY&#39;, True),
             debug=crawler.settings.get(&#39;SCRAPFLY_DEBUG&#39;, False),
-            distributed_mode=crawler.settings.get(&#39;SCRAPFLY_DISTRIBUTED_MODE&#39;, False),
             connect_timeout=crawler.settings.get(&#39;SCRAPFLY_CONNECT_TIMEOUT&#39;, ScrapflyClient.DEFAULT_CONNECT_TIMEOUT),
             read_timeout=crawler.settings.get(&#39;SCRAPFLY_READ_TIMEOUT&#39;, ScrapflyClient.DEFAULT_READ_TIMEOUT),
         )
@@ -1045,7 +1209,12 @@ downloaded (by the Downloader) and fed to the Spiders for processing.</p></div>
 <div class="desc"><p>Base class that any spider must subclass.</p>
 <p>It provides a default :meth:<code>start</code> implementation that sends
 requests based on the :attr:<code>start_urls</code> class attribute and calls the
-:meth:<code>parse</code> method for each response.</p></div>
+:meth:<code>parse</code> method for each response.</p>
+<p>Like :ref:<code>Scrapy components &lt;topics-components&gt;</code>, spiders are
+:ref:<code>initialized from the crawler &lt;from-crawler&gt;</code>, through
+:meth:<code>~scrapy.Spider.from_crawler</code>, and can be :ref:<code>configured through
+settings &lt;component-settings&gt;</code>, which they may also override through
+:attr:<code>custom_settings</code> or :meth:<code>~scrapy.Spider.update_settings</code>.</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
 <li>scrapy.spiders.Spider</li>
@@ -1076,13 +1245,62 @@ requests based on the :attr:<code>start_urls</code> class attribute and calls th
 <span>def <span class="ident">from_crawler</span></span>(<span>crawler: scrapy.crawler.Crawler, *args, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Return a new spider instance bound to <em>crawler</em>.</p>
+<p>You probably won't need to override this directly because the default
+implementation acts as a proxy to the <code>__init__()</code> method, calling
+it with the given arguments <em>args</em> and named arguments <em>kwargs</em>, which
+is how :ref:<code>spider arguments &lt;spiderargs&gt;</code> reach a spider.</p>
+<p>Nonetheless, this method sets the :attr:<code>crawler</code> and :attr:<code>settings</code>
+attributes in the new instance so they can be accessed later inside the
+spider's code.</p>
+<p>The settings in <code>crawler.settings</code> can be modified in this method,
+which is handy if you want to modify them based on arguments. As a
+consequence, these settings aren't the final values as they can be
+modified later by e.g. :ref:<code>add-ons &lt;topics-addons&gt;</code>. For the same
+reason, most of the :class:<code>~scrapy.crawler.Crawler</code> attributes aren't
+initialized at this point.</p>
+<p>The settings are final and those :class:<code>~scrapy.crawler.Crawler</code>
+attributes are initialized by the time the :meth:<code>start</code> method runs
+and the :signal:<code>engine_started</code> signal is sent, which is the earliest
+point where your spider code can rely on them.</p>
+<div class="admonition seealso">
+<p class="admonition-title">Seealso:&ensp;:ref:<code>from-crawler</code></p>
+</div></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider.update_settings"><code class="name flex">
 <span>def <span class="ident">update_settings</span></span>(<span>settings: scrapy.settings.BaseSettings) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Modify <em>settings</em>, the settings of the spider.</p>
+<p>This method is called during the initialization of a spider instance.
+It can add or update the spider's configuration values. It is a class
+method, meaning that it is called on the :class:<code>~scrapy.Spider</code> class
+and allows all instances of the spider to share the same configuration.</p>
+<p>While per-spider settings can be set in :attr:<code>custom_settings</code>, using
+this method allows you to dynamically add, remove or change settings
+based on other settings, spider attributes or other factors, and to use
+setting priorities other than <code>'spider'</code>. Also, it's easy to extend
+this method in a subclass by overriding it, while doing the same with
+:attr:<code>custom_settings</code> can be hard.</p>
+<p>For example, suppose a spider needs to modify :setting:<code>FEEDS</code>:</p>
+<p>.. code-block:: python</p>
+<pre><code>import scrapy
+
+
+class MySpider(scrapy.Spider):
+    name = "myspider"
+    custom_feed = {
+        "/home/user/documents/items.json": {
+            "format": "json",
+            "indent": 4,
+        }
+    }
+
+    @classmethod
+    def update_settings(cls, settings):
+        super().update_settings(settings)
+        settings.setdefault("FEEDS", {}).update(cls.custom_feed)
+</code></pre></div>
 </dd>
 </dl>
 <h3>Instance variables</h3>
@@ -1150,20 +1368,61 @@ def run_id(self):
 
     logger.warning(f&#34;Retrying {request} for x{retries - 1}: {reason}&#34;, extra={&#39;spider&#39;: self})
 
-    if delay is None:
-        deferred = Deferred()
-        deferred.addCallback(self.crawler.engine.schedule, request=retryreq, spider=self)
-    else:
-        from twisted.internet import reactor # prevent reactor already install issue
-        from . import current_scrapy_version, comparable_version
-        if current_scrapy_version &gt;= comparable_version(&#39;2.10.0&#39;):
-            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq)
-        else:
-            deferred = task.deferLater(reactor, delay, self.crawler.engine.crawl, retryreq, self)
-
-    return deferred</code></pre>
+    return self._crawl_later(retryreq, delay or 0)</code></pre>
 </details>
 <div class="desc"></div>
+</dd>
+<dt id="scrapfly.scrapy.ScrapflySpider.start"><code class="name flex">
+<span>async def <span class="ident">start</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def start(self):
+    # Scrapy 2.13+ starts from start(), and from 2.19 its default no longer calls start_requests().
+    for request in self.start_requests():
+        yield request</code></pre>
+</details>
+<div class="desc"><p>Yield the initial :class:<code>~scrapy.Request</code> objects to send.</p>
+<div class="admonition versionadded">
+<p class="admonition-title">Added in version:&ensp;2.13</p>
+</div>
+<p>For example:</p>
+<p>.. code-block:: python</p>
+<pre><code>from scrapy import Request, Spider
+
+
+class MySpider(Spider):
+    name = "myspider"
+
+    async def start(self):
+        yield Request("https://toscrape.com/")
+</code></pre>
+<p>The default implementation reads URLs from :attr:<code>start_urls</code> and
+yields a request for each with :attr:<code>~scrapy.Request.dont_filter</code>
+enabled. It is functionally equivalent to:</p>
+<p>.. code-block:: python</p>
+<pre><code>async def start(self):
+    for url in self.start_urls:
+        yield Request(url, dont_filter=True)
+</code></pre>
+<p>You can also yield :ref:<code>items &lt;topics-items&gt;</code>. For example:</p>
+<p>.. code-block:: python</p>
+<pre><code>async def start(self):
+    yield {"foo": "bar"}
+</code></pre>
+<p>To write spiders that work on Scrapy versions lower than 2.13,
+define also a synchronous <code>start_requests()</code> method that returns an
+iterable. For example:</p>
+<p>.. code-block:: python</p>
+<pre><code>def start_requests(self):
+    yield Request("https://toscrape.com/")
+</code></pre>
+<div class="admonition seealso">
+<p class="admonition-title">Seealso:&ensp;:ref:<code>start-requests</code></p>
+</div></div>
 </dd>
 <dt id="scrapfly.scrapy.ScrapflySpider.start_requests"><code class="name flex">
 <span>def <span class="ident">start_requests</span></span>(<span>self) ‑> Iterable[<a title="scrapfly.scrapy.request.ScrapflyScrapyRequest" href="request.html#scrapfly.scrapy.request.ScrapflyScrapyRequest">ScrapflyScrapyRequest</a>]</span>
@@ -1228,7 +1487,6 @@ def run_id(self):
 <li>
 <h4><code><a title="scrapfly.scrapy.ScrapflyCrawlSpider" href="#scrapfly.scrapy.ScrapflyCrawlSpider">ScrapflyCrawlSpider</a></code></h4>
 <ul class="">
-<li><code><a title="scrapfly.scrapy.ScrapflyCrawlSpider.from_crawler" href="#scrapfly.scrapy.ScrapflyCrawlSpider.from_crawler">from_crawler</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyCrawlSpider.parse_start_url" href="#scrapfly.scrapy.ScrapflyCrawlSpider.parse_start_url">parse_start_url</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyCrawlSpider.process_results" href="#scrapfly.scrapy.ScrapflyCrawlSpider.process_results">process_results</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyCrawlSpider.rules" href="#scrapfly.scrapy.ScrapflyCrawlSpider.rules">rules</a></code></li>
@@ -1238,6 +1496,7 @@ def run_id(self):
 <h4><code><a title="scrapfly.scrapy.ScrapflyMiddleware" href="#scrapfly.scrapy.ScrapflyMiddleware">ScrapflyMiddleware</a></code></h4>
 <ul class="">
 <li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.MAX_API_RETRIES" href="#scrapfly.scrapy.ScrapflyMiddleware.MAX_API_RETRIES">MAX_API_RETRIES</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.from_crawler" href="#scrapfly.scrapy.ScrapflyMiddleware.from_crawler">from_crawler</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.process_exception" href="#scrapfly.scrapy.ScrapflyMiddleware.process_exception">process_exception</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.process_request" href="#scrapfly.scrapy.ScrapflyMiddleware.process_request">process_request</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflyMiddleware.process_response" href="#scrapfly.scrapy.ScrapflyMiddleware.process_response">process_response</a></code></li>
@@ -1286,6 +1545,7 @@ def run_id(self):
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.run_id" href="#scrapfly.scrapy.ScrapflySpider.run_id">run_id</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.scrapfly_client" href="#scrapfly.scrapy.ScrapflySpider.scrapfly_client">scrapfly_client</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.scrapfly_settings" href="#scrapfly.scrapy.ScrapflySpider.scrapfly_settings">scrapfly_settings</a></code></li>
+<li><code><a title="scrapfly.scrapy.ScrapflySpider.start" href="#scrapfly.scrapy.ScrapflySpider.start">start</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.start_requests" href="#scrapfly.scrapy.ScrapflySpider.start_requests">start_requests</a></code></li>
 <li><code><a title="scrapfly.scrapy.ScrapflySpider.update_settings" href="#scrapfly.scrapy.ScrapflySpider.update_settings">update_settings</a></code></li>
 </ul>

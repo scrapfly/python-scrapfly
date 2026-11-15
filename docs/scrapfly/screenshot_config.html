@@ -48,7 +48,7 @@ el.replaceWith(d);
 <dl>
 <dt id="scrapfly.screenshot_config.Format"><code class="flex name class">
 <span>class <span class="ident">Format</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -72,8 +72,9 @@ el.replaceWith(d);
     GIF = &#34;gif&#34;</code></pre>
 </details>
 <div class="desc"><p>Format of the screenshot image.</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>JPG</code></strong></dt>
 <dd>JPG format.</dd>
 <dt><strong><code>PNG</code></strong></dt>
@@ -109,7 +110,7 @@ el.replaceWith(d);
 </dd>
 <dt id="scrapfly.screenshot_config.Options"><code class="flex name class">
 <span>class <span class="ident">Options</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -133,8 +134,9 @@ el.replaceWith(d);
     PRINT_MEDIA_FORMAT = &#34;print_media_format&#34;</code></pre>
 </details>
 <div class="desc"><p>Options to customize the screenshot behavior</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>LOAD_IMAGES</code></strong></dt>
 <dd>Enable image rendering with the request, add extra usage for the bandwidth consumed.</dd>
 <dt><strong><code>DARK_MODE</code></strong></dt>
@@ -170,7 +172,7 @@ el.replaceWith(d);
 </dd>
 <dt id="scrapfly.screenshot_config.ScreenshotConfig"><code class="flex name class">
 <span>class <span class="ident">ScreenshotConfig</span></span>
-<span>(</span><span>url: str,<br>format: <a title="scrapfly.screenshot_config.Format" href="#scrapfly.screenshot_config.Format">Format</a> | None = None,<br>capture: str | None = None,<br>resolution: str | None = None,<br>country: str | None = None,<br>timeout: int | None = None,<br>rendering_wait: int | None = None,<br>wait_for_selector: str | None = None,<br>options: List[<a title="scrapfly.screenshot_config.Options" href="#scrapfly.screenshot_config.Options">Options</a>] | None = None,<br>auto_scroll: bool | None = None,<br>js: str | None = None,<br>cache: bool | None = None,<br>cache_ttl: int | None = None,<br>cache_clear: bool | None = None,<br>vision_deficiency: <a title="scrapfly.screenshot_config.VisionDeficiency" href="#scrapfly.screenshot_config.VisionDeficiency">VisionDeficiency</a> | None = None,<br>webhook: str | None = None,<br>raise_on_upstream_error: bool = True)</span>
+<span>(</span><span>url: str,<br>format: <a title="scrapfly.screenshot_config.Format" href="#scrapfly.screenshot_config.Format">Format</a> | None = None,<br>capture: str | None = None,<br>resolution: str | None = None,<br>country: str | None = None,<br>timeout: int | None = None,<br>rendering_wait: int | None = None,<br>wait_for_selector: str | None = None,<br>options: List[<a title="scrapfly.screenshot_config.Options" href="#scrapfly.screenshot_config.Options">Options</a>] | None = None,<br>auto_scroll: bool | None = None,<br>js: str | None = None,<br>cache: bool | None = None,<br>cache_ttl: int | None = None,<br>cache_clear: bool | None = None,<br>vision_deficiency: <a title="scrapfly.screenshot_config.VisionDeficiency" href="#scrapfly.screenshot_config.VisionDeficiency">VisionDeficiency</a> | None = None,<br>webhook: str | None = None,<br>raise_on_upstream_error: bool = True,<br>proxy_pool: str | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -194,6 +196,8 @@ el.replaceWith(d);
     cache_clear: Optional[bool] = None
     webhook: Optional[str] = None
     raise_on_upstream_error: bool = True
+    # Sent as `proxy_pool`. The Screenshot API picks its pool itself and ignores this value.
+    proxy_pool: Optional[str] = None
 
     def __init__(
         self,
@@ -213,7 +217,8 @@ el.replaceWith(d);
         cache_clear: Optional[bool] = None,
         vision_deficiency: Optional[VisionDeficiency] = None,
         webhook: Optional[str] = None,
-        raise_on_upstream_error: bool = True
+        raise_on_upstream_error: bool = True,
+        proxy_pool: Optional[str] = None
     ):
         assert(type(url) is str)
 
@@ -235,6 +240,7 @@ el.replaceWith(d);
         self.vision_deficiency = vision_deficiency
         self.webhook = webhook
         self.raise_on_upstream_error = raise_on_upstream_error
+        self.proxy_pool = proxy_pool
 
     def to_api_params(self, key:str) -&gt; Dict:
         params = {
@@ -294,6 +300,9 @@ el.replaceWith(d);
         if self.webhook is not None:
             params[&#39;webhook_name&#39;] = self.webhook
 
+        if self.proxy_pool is not None:
+            params[&#39;proxy_pool&#39;] = self.proxy_pool
+
         return params
 
     def to_dict(self) -&gt; Dict:
@@ -317,7 +326,8 @@ el.replaceWith(d);
             &#39;cache_clear&#39;: self.cache_clear,
             &#39;vision_deficiency&#39;: self.vision_deficiency.value if self.vision_deficiency else None,
             &#39;webhook&#39;: self.webhook,
-            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error
+            &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+            &#39;proxy_pool&#39;: self.proxy_pool,
         }
     
     @staticmethod
@@ -346,6 +356,7 @@ el.replaceWith(d);
         vision_deficiency = screenshot_config_dict.get(&#39;vision_deficiency&#39;, None)
         webhook = screenshot_config_dict.get(&#39;webhook&#39;, None)
         raise_on_upstream_error = screenshot_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+        proxy_pool = screenshot_config_dict.get(&#39;proxy_pool&#39;, None)
 
         return ScreenshotConfig(
             url=url,
@@ -364,7 +375,8 @@ el.replaceWith(d);
             cache_clear=cache_clear,
             vision_deficiency=vision_deficiency,
             webhook=webhook,
-            raise_on_upstream_error=raise_on_upstream_error
+            raise_on_upstream_error=raise_on_upstream_error,
+            proxy_pool=proxy_pool
         )</code></pre>
 </details>
 <div class="desc"></div>
@@ -407,6 +419,10 @@ el.replaceWith(d);
 <div class="desc"></div>
 </dd>
 <dt id="scrapfly.screenshot_config.ScreenshotConfig.options"><code class="name">var <span class="ident">options</span> : List[<a title="scrapfly.screenshot_config.Options" href="#scrapfly.screenshot_config.Options">Options</a>] | None</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="scrapfly.screenshot_config.ScreenshotConfig.proxy_pool"><code class="name">var <span class="ident">proxy_pool</span> : str | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -475,6 +491,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
     vision_deficiency = screenshot_config_dict.get(&#39;vision_deficiency&#39;, None)
     webhook = screenshot_config_dict.get(&#39;webhook&#39;, None)
     raise_on_upstream_error = screenshot_config_dict.get(&#39;raise_on_upstream_error&#39;, True)
+    proxy_pool = screenshot_config_dict.get(&#39;proxy_pool&#39;, None)
 
     return ScreenshotConfig(
         url=url,
@@ -493,7 +510,8 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
         cache_clear=cache_clear,
         vision_deficiency=vision_deficiency,
         webhook=webhook,
-        raise_on_upstream_error=raise_on_upstream_error
+        raise_on_upstream_error=raise_on_upstream_error,
+        proxy_pool=proxy_pool
     )</code></pre>
 </details>
 <div class="desc"><p>Create a ScreenshotConfig instance from a dictionary.</p></div>
@@ -567,6 +585,9 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
     if self.webhook is not None:
         params[&#39;webhook_name&#39;] = self.webhook
 
+    if self.proxy_pool is not None:
+        params[&#39;proxy_pool&#39;] = self.proxy_pool
+
     return params</code></pre>
 </details>
 <div class="desc"></div>
@@ -600,7 +621,8 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
         &#39;cache_clear&#39;: self.cache_clear,
         &#39;vision_deficiency&#39;: self.vision_deficiency.value if self.vision_deficiency else None,
         &#39;webhook&#39;: self.webhook,
-        &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error
+        &#39;raise_on_upstream_error&#39;: self.raise_on_upstream_error,
+        &#39;proxy_pool&#39;: self.proxy_pool,
     }</code></pre>
 </details>
 <div class="desc"><p>Export the ScreenshotConfig instance to a plain dictionary.</p></div>
@@ -609,7 +631,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 </dd>
 <dt id="scrapfly.screenshot_config.VisionDeficiency"><code class="flex name class">
 <span>class <span class="ident">VisionDeficiency</span></span>
-<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+<span>(</span><span>*args, **kwds)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -636,8 +658,9 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
     BLURRED_VISION = &#34;blurredVision&#34;</code></pre>
 </details>
 <div class="desc"><p>Simulate vision deficiency for accessibility testing (WCAG compliance)</p>
-<h2 id="attributes">Attributes</h2>
 <dl>
+<dt>Attributes</dt>
+<dt>-----=</dt>
 <dt><strong><code>DEUTERANOPIA</code></strong></dt>
 <dd>Difficulty distinguishing green from red; green appears beige/gray</dd>
 <dt><strong><code>PROTANOPIA</code></strong></dt>
@@ -729,6 +752,7 @@ def from_dict(screenshot_config_dict: Dict) -&gt; &#39;ScreenshotConfig&#39;:
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.from_dict" href="#scrapfly.screenshot_config.ScreenshotConfig.from_dict">from_dict</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.js" href="#scrapfly.screenshot_config.ScreenshotConfig.js">js</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.options" href="#scrapfly.screenshot_config.ScreenshotConfig.options">options</a></code></li>
+<li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.proxy_pool" href="#scrapfly.screenshot_config.ScreenshotConfig.proxy_pool">proxy_pool</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.raise_on_upstream_error" href="#scrapfly.screenshot_config.ScreenshotConfig.raise_on_upstream_error">raise_on_upstream_error</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.rendering_wait" href="#scrapfly.screenshot_config.ScreenshotConfig.rendering_wait">rendering_wait</a></code></li>
 <li><code><a title="scrapfly.screenshot_config.ScreenshotConfig.resolution" href="#scrapfly.screenshot_config.ScreenshotConfig.resolution">resolution</a></code></li>
