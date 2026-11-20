@@ -811,11 +811,10 @@ popular
 
  
 
- Proxy country location in ISO 3166-1 alpha-2 (2 letters) country codes. The available countries are listed on your [proxy dashboard](https://scrapfly.io/dashboard/proxy). Supports exclusions (minus prefix) and weighted distribution (colon suffix with weight 0-255). 
+ Proxy country location in ISO 3166-1 alpha-2 (2 letters) country codes. The available countries are listed on your [proxy dashboard](https://scrapfly.io/dashboard/proxy). Supports lists and exclusions (minus prefix). 
 
 - `country=us`
-- `country=us,ca,mx` (random distribution)
-- `country=us:10,gb:5` (weighted, 0-255)
+- `country=us,ca,mx` (one of them is drawn, the country of the website's domain first when it is in the list)
 - `country=-gb` (exclude GB)
  
  
