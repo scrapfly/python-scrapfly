@@ -19,13 +19,13 @@ from http.cookies import SimpleCookie
 from io import BytesIO
 from json import JSONDecoder, loads
 
-from dateutil.parser import parse
 from requests import Request, Response, HTTPError
 from typing import List, Dict, Literal, Optional, Iterable, Iterator, Union, TextIO, Tuple, Callable
 
 import urllib3
 from requests.structures import CaseInsensitiveDict
 
+from .cookie_utils import parse_cookie_expires
 from .scrape_config import ScrapeConfig
 from .screenshot_config import ScreenshotConfig
 from .extraction_config import ExtractionConfig
@@ -815,16 +815,7 @@ class ScrapeApiResponse(ApiResponse):
                         expires = None
 
                     if expires:
-                        try:
-                            expires = parse(expires).timestamp()
-                        except ValueError:
-                            expires = None
-
-                    if type(expires) == str:
-                        if '.' in expires:
-                            expires = float(expires)
-                        else:
-                            expires = int(expires)
+                        expires = parse_cookie_expires(expires)
 
                     response.cookies.set_cookie(Cookie(
                         version=cookie.get('version') if cookie.get('version') else None,
