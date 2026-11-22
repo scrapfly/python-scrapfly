@@ -622,12 +622,13 @@ class ScrapeApiResponse(ApiResponse):
             }
 
             if 'X-Scrapfly-Reject-Code' in self.response.headers:
+                retryable = self.response.headers.get('X-Scrapfly-Reject-Retryable', '').strip().lower()
                 api_result['result']['error'] = {
                     'code': self.response.headers['X-Scrapfly-Reject-Code'],
                     'http_code': int(self.response.headers['X-Scrapfly-Reject-Http-Code']),
                     'message': self.response.headers['X-Scrapfly-Reject-Description'],
                     'error_id': self.response.headers['X-Scrapfly-Reject-ID'],
-                    'retryable': True if self.response.headers['X-Scrapfly-Reject-Retryable'] == 'yes' else False,
+                    'retryable': retryable in ('true', 'yes'),
                     'doc_url': '',
                     'links': {}
                 }

@@ -146,6 +146,41 @@ def test_retryable_flag_reaches_the_exception():
     assert info.value.documentation_url == THROTTLE['doc_url']
 
 
+@pytest.mark.parametrize(('wire_flag', 'retryable'), [
+    pytest.param('true', True, id='true'),
+    pytest.param('false', False, id='false'),
+    pytest.param('yes', True, id='legacy yes'),
+    pytest.param('no', False, id='legacy no'),
+    pytest.param(' TRUE ', True, id='case and whitespace'),
+    pytest.param(None, False, id='missing'),
+])
+def test_head_retryability_header_reaches_the_exception(wire_flag, retryable):
+    url = 'https://httpbin.dev/status/503'
+    response = _response(503, url=url)
+    response.request = Request(method='HEAD', url=url).prepare()
+    response.reason = 'Service Unavailable'
+    response.headers.update({
+        'X-Scrapfly-Reject-Code': 'ERR::SCRAPE::BAD_UPSTREAM_RESPONSE',
+        'X-Scrapfly-Reject-Http-Code': '200',
+        'X-Scrapfly-Reject-Description': 'The website is unavailable',
+        'X-Scrapfly-Reject-ID': 'a3deb248-0000-4000-8000-000000000000',
+    })
+    if wire_flag is not None:
+        response.headers['X-Scrapfly-Reject-Retryable'] = wire_flag
+
+    api_response = ScrapeApiResponse(
+        request=response.request,
+        response=response,
+        scrape_config=ScrapeConfig(url=url, method='HEAD'),
+    )
+
+    assert api_response.error['retryable'] is retryable
+    with pytest.raises(ApiHttpServerError) as info:
+        api_response.raise_for_result()
+    assert info.value.is_retryable is retryable
+    assert info.value.code == 'ERR::SCRAPE::BAD_UPSTREAM_RESPONSE'
+
+
 def test_server_error_carries_the_wire_code():
     envelope = {
         'code': 'ERR::SCRAPE::INTERNAL_ERROR',
