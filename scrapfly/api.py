@@ -710,6 +710,12 @@ class ScrapflyApi(ScheduleClientMixin):
         :param no_raise: bool - if True, do not raise exception on error while the api response is a ScrapflyError for seamless integration
         :return: ScrapeApiResponse
 
+        A scrape whose connection cannot be made or drops before the answer is sent again, up to
+        5 times in all. One whose read times out (web_scraping_api_read_timeout) is not sent again:
+        the timeout is raised at once, requests.ReadTimeout from ScrapflyClient (a
+        requests.ConnectionError when the body stopped arriving), httpx.ReadTimeout from
+        AsyncScrapflyClient.
+
         If you use no_raise=True, make sure to check the api_response.scrape_result.error attribute to handle the error.
         If the error is not none, you will get the following structure for example
 
@@ -728,7 +734,7 @@ class ScrapflyApi(ScheduleClientMixin):
     def _scrape(self, scrape_config:ScrapeConfig, no_raise:bool=False) -> Steps[ScrapeApiResponse]:
         try:
             logger.debug('--> %s Scrapping %s' % (scrape_config.method, scrape_config.url))
-            response = yield Call(tries=5, **self._scrape_request(scrape_config=scrape_config))
+            response = yield Call(tries=5, retry_read_timeout=False, **self._scrape_request(scrape_config=scrape_config))
 
             if scrape_config.proxified_response is True:
                 # Proxified mode: the API returns the raw upstream response
@@ -1430,7 +1436,7 @@ class ScrapflyApi(ScheduleClientMixin):
                 f"Crawler API multipart config: {parts['config']} ; "
                 f"urls part: {len(urls_blob.splitlines())} URL(s)"
             )
-            response = yield Call(tries=5, 
+            response = yield Call(tries=5, retry_read_timeout=False,
                 method='POST',
                 url=url,
                 params=query_params,
@@ -1441,7 +1447,7 @@ class ScrapflyApi(ScheduleClientMixin):
             )
         else:
             logger.debug(f"Crawler API body: {parts['config']}")
-            response = yield Call(tries=5, 
+            response = yield Call(tries=5, retry_read_timeout=False,
                 method='POST',
                 url=url,
                 params=query_params,
@@ -1783,7 +1789,7 @@ class ScrapflyApi(ScheduleClientMixin):
 
         timeout = (self.connect_timeout, self.DEFAULT_CRAWLER_SEARCH_API_READ_TIMEOUT)
 
-        response = yield Call(tries=5, 
+        response = yield Call(tries=5, retry_read_timeout=False,
             method='POST',
             url=f'{self.host}/crawl/search',
             params={'key': self.key},

@@ -14,7 +14,7 @@ import pytest
 import requests
 import urllib3
 
-from scrapfly import AsyncScrapflyClient, ExtractionConfig, ScrapeApiResponse, ScrapeConfig, ScreenshotConfig, ScrapflyClient
+from scrapfly import AsyncScrapflyClient, CrawlerConfig, ExtractionConfig, ScrapeApiResponse, ScrapeConfig, ScreenshotConfig, ScrapflyClient
 from scrapfly import api_response, async_client, client
 from scrapfly.api_response import ApiResponse
 from scrapfly.errors import ApiHttpClientError, ApiHttpServerError, CrawlerPromptError, ExtractionAPIError, ScrapflyError, ScreenshotAPIError
@@ -27,6 +27,8 @@ CLIENTS = ('sync', 'async')
 
 # The fake API drops the connection when it answers this.
 DROP = object()
+# The connection to the fake API is not made in time when it answers this.
+CONNECT_TIMEOUT = object()
 # The fake API takes the request and never answers when it answers this.
 READ_TIMEOUT = object()
 # The fake API sends the headers and stops in the body when it answers this.
@@ -101,6 +103,9 @@ def run(kind: str, server: Callable[[Seen], object], scenario, monkeypatch=None)
             if reply is DROP:
                 raise requests.ConnectionError('dropped')
 
+            if reply is CONNECT_TIMEOUT:
+                raise requests.ConnectTimeout(urllib3.exceptions.MaxRetryError(None, url, urllib3.exceptions.ConnectTimeoutError(None, 'timed out')))
+
             if reply is READ_TIMEOUT:
                 raise requests.ReadTimeout('timed out')
 
@@ -128,8 +133,18 @@ def run(kind: str, server: Callable[[Seen], object], scenario, monkeypatch=None)
         if reply is DROP:
             raise httpx.ConnectError('dropped', request=request)
 
-        if reply is READ_TIMEOUT or reply is BODY_READ_TIMEOUT:
+        if reply is CONNECT_TIMEOUT:
+            raise httpx.ConnectTimeout('timed out', request=request)
+
+        if reply is READ_TIMEOUT:
             raise httpx.ReadTimeout('timed out', request=request)
+
+        if reply is BODY_READ_TIMEOUT:
+            async def a_body_that_stops():
+                yield b'{"result": '
+                raise httpx.ReadTimeout('timed out', request=request)
+
+            return httpx.Response(200, headers={'content-type': 'application/json'}, content=a_body_that_stops())
 
         status, reply_headers, chunks = reply
 
@@ -394,29 +409,53 @@ def test_a_json_scrape_envelope_is_still_parsed(kind):
     assert len(seen) == 1
 
 
-@pytest.mark.parametrize('kind', CLIENTS)
-def test_a_dropped_connection_is_retried(kind, monkeypatch):
-    drops = [DROP, DROP]
-
-    async def scenario(scrapfly):
-        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')))
-
-    response, seen = run(kind, lambda seen: drops.pop() if drops else json_reply(envelope('ok')), scenario, monkeypatch)
-
-    assert response.content == 'ok'
-    assert len(seen) == 3
-
-
 CAPTURE_AND_EXTRACTION = [
     pytest.param(lambda scrapfly: scrapfly.screenshot(ScreenshotConfig(url='https://web-scraping.dev/')), id='screenshot'),
     pytest.param(lambda scrapfly: scrapfly.extract(ExtractionConfig(body='<h1>x</h1>', content_type='text/html', extraction_prompt='title')), id='extraction'),
 ]
 
+# The calls the API runs: one whose read times out is not sent again.
+RUN_BY_THE_API = [
+    pytest.param(lambda scrapfly: scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')), id='scrape'),
+    *CAPTURE_AND_EXTRACTION,
+    pytest.param(lambda scrapfly: scrapfly.start_crawl(CrawlerConfig(url='https://web-scraping.dev/')), id='start-crawl'),
+    pytest.param(lambda scrapfly: scrapfly.start_crawl(CrawlerConfig(url_list=['https://web-scraping.dev/product/1'])), id='start-crawl-url-list'),
+    pytest.param(lambda scrapfly: scrapfly.crawl_search(crawl_ids=['0198aaaa'], query='product'), id='crawl-search'),
+]
+
+# The reads of a result: one whose read times out is sent again.
+READS = [
+    pytest.param(lambda scrapfly: scrapfly.get_crawl_status('0198aaaa'), id='crawl-status'),
+    pytest.param(lambda scrapfly: scrapfly.get_crawl_urls('0198aaaa'), id='crawl-urls'),
+    pytest.param(lambda scrapfly: scrapfly.get_crawl_contents('0198aaaa'), id='crawl-contents'),
+    pytest.param(lambda scrapfly: scrapfly.get_crawl_artifact('0198aaaa'), id='crawl-artifact'),
+    pytest.param(lambda scrapfly: scrapfly.crawl_refresh_history('0198aaaa'), id='crawl-refresh-history'),
+]
+
+CRAWL_STATE = {'urls_visited': 1, 'urls_extracted': 1, 'urls_to_crawl': 0, 'urls_failed': 0, 'urls_skipped': 0, 'api_credit_used': 1, 'duration': 2}
+
+# What the fake API answers on each path once it answers.
+ANSWERS = {
+    '/scrape': json_reply(envelope('ok')),
+    '/screenshot': (200, {'content-type': 'image/jpeg'}, [b'image']),
+    '/extraction': (200, {'content-type': 'image/jpeg'}, [b'image']),
+    '/crawl': json_reply({'crawler_uuid': '0198aaaa', 'status': 'PENDING'}, status=201),
+    '/crawl/search': json_reply({'query': 'product', 'mode': 'hybrid', 'limit': 10, 'completeness': 'exact', 'results': []}),
+    '/crawl/0198aaaa/status': json_reply({'crawler_uuid': '0198aaaa', 'status': 'DONE', 'is_success': True, 'is_finished': True, 'state': CRAWL_STATE}),
+    '/crawl/0198aaaa/urls': (200, {'content-type': 'text/plain'}, [b'https://web-scraping.dev/product/1\n']),
+    '/crawl/0198aaaa/contents': json_reply({'contents': {'https://web-scraping.dev/product/1': '<h1>Product</h1>'}, 'links': {}}),
+    '/crawl/0198aaaa/artifact': (200, {'content-type': 'application/gzip'}, [b'warc']),
+    '/crawl/0198aaaa/refresh/history': json_reply({'enabled': True, 'interval_seconds': 86400, 'status': 'SCHEDULED', 'history': []}),
+}
+
 
 @pytest.mark.parametrize('kind', CLIENTS)
-@pytest.mark.parametrize('call', CAPTURE_AND_EXTRACTION)
+@pytest.mark.parametrize('call,sends', [
+    *[pytest.param(*row.values, 1, id=row.id) for row in RUN_BY_THE_API],
+    *[pytest.param(*row.values, 5, id=row.id) for row in READS],
+])
 @pytest.mark.parametrize('timeout', [READ_TIMEOUT, BODY_READ_TIMEOUT], ids=['waiting-for-the-headers', 'reading-the-body'])
-def test_a_read_timeout_is_not_sent_again(kind, call, timeout, monkeypatch):
+def test_a_read_timeout_sends_a_call_again_only_when_it_reads_a_result(kind, call, sends, timeout, monkeypatch):
     requests_seen = []
 
     def server(seen: Seen):
@@ -430,44 +469,27 @@ def test_a_read_timeout_is_not_sent_again(kind, call, timeout, monkeypatch):
     with pytest.raises((requests.ReadTimeout, requests.ConnectionError, httpx.ReadTimeout)):
         run(kind, server, scenario, monkeypatch)
 
-    assert len(requests_seen) == 1
+    assert len(requests_seen) == sends
 
 
 @pytest.mark.parametrize('kind', CLIENTS)
-@pytest.mark.parametrize('call', CAPTURE_AND_EXTRACTION)
-def test_a_dropped_connection_is_sent_again(kind, call, monkeypatch):
-    drops = [DROP, DROP]
+@pytest.mark.parametrize('call', [*RUN_BY_THE_API, *READS])
+@pytest.mark.parametrize('failure', [DROP, CONNECT_TIMEOUT], ids=['dropped', 'connect-timeout'])
+def test_a_connection_that_fails_is_sent_again(kind, call, failure, monkeypatch):
+    failures = [failure, failure]
 
     async def scenario(scrapfly):
         return await resolve(call(scrapfly))
 
     def server(seen: Seen):
-        if drops:
-            return drops.pop()
+        if failures:
+            return failures.pop()
 
-        return 200, {'content-type': 'image/jpeg'}, [b'image']
+        return ANSWERS[seen.path]
 
     _, seen = run(kind, server, scenario, monkeypatch)
 
     assert len(seen) == 3
-
-
-@pytest.mark.parametrize('kind', CLIENTS)
-def test_a_read_timeout_of_a_scrape_is_sent_again(kind, monkeypatch):
-    requests_seen = []
-
-    def server(seen: Seen):
-        requests_seen.append(seen)
-
-        return READ_TIMEOUT
-
-    async def scenario(scrapfly):
-        return await resolve(scrapfly.scrape(ScrapeConfig(url='https://web-scraping.dev/')))
-
-    with pytest.raises((requests.ReadTimeout, httpx.ReadTimeout)):
-        run(kind, server, scenario, monkeypatch)
-
-    assert len(requests_seen) == 5
 
 
 @pytest.mark.parametrize('kind', CLIENTS)

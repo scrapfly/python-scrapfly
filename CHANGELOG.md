@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- `scrape()`, `start_crawl()` and `crawl_search()` are sent once when the read times out, as `screenshot()` and
+  `extract()` are since 1.0.0: the timeout is raised at once, `requests.ReadTimeout` from `ScrapflyClient` (a
+  `requests.ConnectionError` when the body stopped arriving) and `httpx.ReadTimeout` from `AsyncScrapflyClient`.
+  1.0.0 sent them up to 5 times. A connection that cannot be made or drops is still sent again.
+  `ScrapflyMiddleware` no longer retries a read timeout of `AsyncScrapflyClient`.
+  To do: keep `web_scraping_api_read_timeout` above the scrape's `timeout`, or retry a `ReadTimeout` yourself if
+  you need to.
+
 ## 1.0.0 (2026-11-15)
 
 ### Breaking changes

@@ -138,6 +138,27 @@ class also keeps it, because the API status it carries is still `ERR::ASP::*` â€
 from scrapfly import ScrapflyUnblockerError  # the same class as ScrapflyAspError
 ```
 
+## Timeouts and retries
+
+A call waits for its answer up to its read timeout. The client sets those of a scrape,
+`web_scraping_api_read_timeout` (160 s by default), of a screenshot, `screenshot_api_read_timeout` (130 s), and of an
+extraction, `extraction_api_read_timeout` (165 s).
+
+```python
+from scrapfly import ScrapflyClient
+
+scrapfly = ScrapflyClient(key='__API_KEY__', web_scraping_api_read_timeout=200)
+```
+
+- `scrape()`, `screenshot()`, `extract()`, `start_crawl()` and `crawl_search()` are sent once when their read
+  times out, and the timeout is raised at once: `requests.ReadTimeout` from `ScrapflyClient` (a
+  `requests.ConnectionError` when the body stopped arriving), `httpx.ReadTimeout` from `AsyncScrapflyClient`.
+  `ScrapflyMiddleware` does not retry it either.
+- When the connection cannot be made or drops before the answer, they are sent again with an exponential backoff,
+  up to 5 times in all.
+- The reads of a crawl (`get_crawl_status()`, `get_crawl_urls()`, `get_crawl_contents()`, `get_crawl_artifact()`,
+  `crawl_refresh_history()`) are sent again on a read timeout too.
+
 ## Integrations  
 
 Scrapfly Python SDKs are integrated with [LlamaIndex](https://www.llamaindex.ai/) and [LangChain](https://www.langchain.com/). Both framework allows training Large Language Models (LLMs) using augmented context.
