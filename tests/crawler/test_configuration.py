@@ -378,9 +378,7 @@ class TestCrawlLimits:
         assert duration < 20  # Allow for overhead
 
         # If stopped by duration, stop_reason should indicate it
-        # (check if status has stop_reason attribute)
-        if hasattr(status, 'stop_reason'):
-            assert status.stop_reason in ('max_duration', 'page_limit', 'no_more_urls')
+        assert status.state.stop_reason in ('max_duration_reached', 'page_limit', 'backlog_empty', 'retry_backlog_only', 'no_more_urls')
 
     def test_max_api_credit(self, client, test_url):
         """Test max_api_credit limits API credit consumption"""
@@ -395,8 +393,7 @@ class TestCrawlLimits:
 
         # Should stop before page_limit due to credit limit
         # Exact behavior depends on API pricing, but should stop early
-        if hasattr(status, 'stop_reason'):
-            assert status.stop_reason in ('max_api_credit', 'page_limit', 'no_more_urls')
+        assert status.state.stop_reason in ('max_api_credit', 'page_limit', 'backlog_empty', 'retry_backlog_only', 'no_more_urls')
 
     def test_combined_limits_duration_and_pages(self, client, test_url):
         """Test max_duration with page_limit"""

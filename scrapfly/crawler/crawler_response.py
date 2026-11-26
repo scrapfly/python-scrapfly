@@ -75,8 +75,14 @@ class CrawlerState:
             or ``None`` while the job is still in ``PENDING``.
         stop_time: Unix epoch seconds when the crawler reached a terminal state,
             or ``None`` while still running.
-        stop_reason: Reason for stop (``page_limit``, ``max_duration``, etc.),
-            or ``None`` while still running.
+        stop_reason: Why the crawl stopped, or ``None`` while still running:
+            ``backlog_empty`` or ``retry_backlog_only`` when it crawled
+            everything, a limit (``page_limit``, ``max_duration_reached``,
+            ``max_api_credit``), ``crawler_error``, ``seed_url_failed``,
+            ``user_cancelled``, and so on. A stop on a limit or on
+            ``crawler_error`` after a visited page keeps its pages and ends
+            with ``is_success`` true; a stop on ``max_api_credit`` is a
+            success.
     """
 
     __slots__ = (

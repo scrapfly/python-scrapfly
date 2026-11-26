@@ -104,14 +104,21 @@
     
      | Stop Reason | Description |
     |---|---|
-    | `no_more_urls` | All discovered URLs have been crawled - **normal completion** |
-    | `page_limit` | Reached the configured `page_limit` |
-    | `max_duration` | Exceeded the `max_duration` time limit |
-    | `max_api_credit` | Reached the `max_api_credit` limit |
+    | `backlog_empty` | Every URL found within the rules has been crawled - **normal completion** |
+    | `retry_backlog_only` | Only URLs waiting for a retry were left - **normal completion** |
+    | `no_more_urls` | The crawl ended with no other reason recorded |
+    | `page_limit` | Reached the configured `page_limit` - **a success**, the pages visited are kept |
+    | `max_duration_reached` | Exceeded the `max_duration` time limit - **a success**, the pages visited are kept |
+    | `max_api_credit` | Reached the `max_api_credit` limit - **a success**, the pages visited are kept |
     | `seed_url_failed` | The starting URL failed to crawl - **no URLs visited** |
     | `user_cancelled` | User manually cancelled the crawl via API |
-    | `crawler_error` | Internal crawler error occurred |
-    | `no_api_credit_left` | Account ran out of API credits during crawl |
+    | `crawler_error` | Stopped on an error of the account, such as its quota or a suspension, or on a high failure rate; the pages visited are kept |
+    | `target_not_allowed` | The starting URL's website cannot be crawled |
+    | `webhook_not_found` | The `webhook_name` names no webhook of the project |
+    | `storage_error` | An error occurred while saving the content |
+    | `remote_list_fetch_failed`, `remote_list_too_large` | The `remote_url_list` could not be used |
+    | `worker_interrupted` | A restart of the crawl's worker paused it: it resumes by itself while `is_finished` is false |
+    | `internal_error` | An internal error paused or ended the crawl: it resumes by itself while `is_finished` is false |
 3. **Retrieve Results**Once `is_finished: true`, download artifacts or query content:
     
      ```
@@ -4174,13 +4181,13 @@ curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=$SCRAPFLY_API_KE
 
 #####  crawler\_finished
 
-**When:** Crawler completes successfully (at least one URL visited)
+**When:** Crawler ends successfully (at least one URL visited): by itself, or stopped on a limit or on `crawler_error`
 
 **Use case:** Trigger post-processing, download results, send completion notifications
 
 **Frequency:** Once per successful crawl
 
-  **Success Indicators:** `state.urls_visited` > 0 confirms at least one URL was crawled. Check `state.stop_reason` to understand why the crawler completed (e.g., `no_more_urls`, `page_limit`). 
+  **Success Indicators:** `state.urls_visited` > 0 confirms at least one URL was crawled. Check `state.stop_reason` to understand why the crawler stopped: `backlog_empty` or `retry_backlog_only` when it crawled everything, `page_limit`, `max_duration_reached` or `max_api_credit` when it reached a limit you set (a success: the pages visited are kept), `crawler_error` after an error of the account or a high failure rate (the pages visited are kept too). 
 
  ```
 {
@@ -4221,16 +4228,19 @@ curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=$SCRAPFLY_API_KE
 
 #####  crawler\_stopped
 
-**When:** Crawler stops due to failure (seed URL failed, errors, no URLs visited)
+**When:** The crawl ended with `is_success: false` (no page visited, its archive could not be saved, an unusable `remote_url_list`, a crawl that could not start), or a graceful restart of its worker or an internal error paused it: the crawl then resumes by itself
 
 **Use case:** Error alerting, failure logging, retry automation
 
-**Frequency:** Once per failed crawl
+**Frequency:** Once per failed crawl, and once per graceful pause
 
-  **Failure Reasons:** Check `state.stop_reason` for the exact cause: - `seed_url_failed` - Initial URL couldn't be crawled
-- `crawler_error` - Internal crawler error occurred
-- `no_api_credit_left` - Account ran out of API credits mid-crawl
-- `max_api_credit` - Configured credit limit reached
+  **Failure Reasons:** Check `state.stop_reason` for the exact cause: - `seed_url_failed` - Initial URL couldn't be crawled and no page was visited
+- `storage_error` - The crawl's archive could not be saved
+- `remote_list_fetch_failed`, `remote_list_too_large` - The `remote_url_list` could not be used
+- `internal_error` - The crawl could not start
+- `worker_interrupted` - A graceful restart of the crawl's worker paused it: it resumes by itself and sends `crawler_finished` or `crawler_stopped` again when it ends
+
+A crawl stopped on a limit (`page_limit`, `max_duration_reached`, `max_api_credit`) or on `crawler_error` after visiting at least one page keeps its pages: it ends with `is_success: true` and sends `crawler_finished`, and a stop on `max_api_credit` is a success.
  
  
 
@@ -4619,7 +4629,7 @@ The crawl status endpoint includes cost information:
 
 ### Q: What happens if I exceed my budget limit?
 
- The crawler automatically stops when `max_api_credit` is reached. You can resume it by increasing the limit.
+ The crawler automatically stops when `max_api_credit` is reached. It ends successfully (`is_success: true`, `state.stop_reason` is `max_api_credit`) and keeps the pages it visited. To crawl further, start a new crawl with a higher limit.
 
 ### Q: Can I get a refund for a failed crawl?
 
