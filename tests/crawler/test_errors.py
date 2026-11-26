@@ -199,7 +199,7 @@ class TestFailedCrawls:
     def test_invalid_domain(self, client):
         """Test crawl with invalid domain"""
         config = CrawlerConfig(
-            url='https://this-domain-does-not-exist-12345.com',
+            url='https://this-host-does-not-exist-12345.web-scraping.dev',
             page_limit=1
         )
 

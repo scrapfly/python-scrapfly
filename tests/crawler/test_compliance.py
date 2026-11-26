@@ -436,8 +436,8 @@ class TestExternalBoundary:
             follow_external_links=False,
         )
         # No hard assertion on a trap counter; the test passes if the
-        # crawl completes (i.e. did not get redirected forever to
-        # example.com or crash on the boundary).
+        # crawl completes (i.e. did not follow the external redirect
+        # forever or crash on the boundary).
         assert_crawl_successful(crawl)
 
         report = fetch_report()

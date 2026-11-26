@@ -440,7 +440,7 @@ class TestExternalLinks:
             url='https://web-scraping.dev',
             page_limit=10,
             follow_external_links=True,
-            allowed_external_domains=['example.com', 'test.com']
+            allowed_external_domains=['httpbin.dev']
         )
         crawl = Crawl(client, config).crawl().wait(verbose=False)
 
@@ -452,7 +452,7 @@ class TestExternalLinks:
         for url in urls:
             domain = urlparse(url).netloc
             # Should be either the seed domain or an allowed external domain
-            assert domain in ('web-scraping.dev', 'example.com', 'test.com') or \
+            assert domain in ('web-scraping.dev', 'httpbin.dev') or \
                    domain.endswith('.web-scraping.dev')
 
     def test_ignore_base_path_restriction(self, client):
