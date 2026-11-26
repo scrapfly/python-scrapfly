@@ -181,43 +181,41 @@ for url, content in all_contents.items():
 
 ## 🎯 Use Cases
 
-### 1. Documentation Sites
+### 1. A Whole Site
 
-Convert your entire documentation into an LLM-friendly format:
+Convert a whole site into an LLM-friendly format:
 
 ```python
 generate_llm_txt(
-    base_url="https://docs.yourproject.com",
-    site_name="YourProject Documentation",
-    description="Complete API and usage documentation",
-    path_filter="/docs/*",
+    base_url="https://web-scraping.dev",
+    site_name="web-scraping.dev",
+    description="Every page of the web-scraping.dev demo store",
 )
 ```
 
-### 2. Blog Content
+### 2. One Section
 
-Create an LLM-optimized archive of your blog:
+Create an LLM-optimized archive of one section of a site, here its product pages:
 
 ```python
 generate_llm_txt(
-    base_url="https://yourblog.com/posts",
-    site_name="YourBlog Articles",
-    description="Collection of technical blog posts and tutorials",
-    path_filter="/posts/*",
+    base_url="https://web-scraping.dev/products",
+    site_name="Product Catalog",
+    description="The product pages of the web-scraping.dev demo store",
+    path_filter="/product/*",
     page_limit=100,
 )
 ```
 
-### 3. Knowledge Bases
+### 3. One Page
 
-Archive support articles or knowledge base content:
+Archive a single page and what it links to:
 
 ```python
 generate_llm_txt(
-    base_url="https://support.yourcompany.com",
-    site_name="Support Knowledge Base",
-    description="Help articles and troubleshooting guides",
-    path_filter="/kb/*",
+    base_url="https://web-scraping.dev/testimonials",
+    site_name="Testimonials",
+    description="The customer testimonials of the web-scraping.dev demo store",
 )
 ```
 
@@ -286,13 +284,13 @@ Context and information about this document
 
 ---
 
-### https://example.com/page1
+### https://web-scraping.dev/page1
 
 [Markdown content of page 1]
 
 ---
 
-### https://example.com/page2
+### https://web-scraping.dev/page2
 
 [Markdown content of page 2]
 
@@ -301,7 +299,7 @@ Context and information about this document
 ## Metadata
 
 - Total pages: 50
-- Source: https://example.com
+- Source: https://web-scraping.dev
 - Format: llms.txt (https://llmstxt.org)
 ```
 
@@ -364,11 +362,11 @@ Efficient content retrieval via multipart/related responses:
 ```python
 # Single API call for up to 100 URLs
 contents = crawl.read_batch(
-    urls=['https://example.com/page1', ...],
+    urls=['https://web-scraping.dev/page1', ...],
     formats=['markdown']  # Can also request 'html', 'text'
 )
 
-# Returns: {'https://example.com/page1': {'markdown': '...'}, ...}
+# Returns: {'https://web-scraping.dev/page1': {'markdown': '...'}, ...}
 ```
 
 ## 🛟 Troubleshooting

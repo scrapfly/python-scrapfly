@@ -13,7 +13,7 @@ import pytest
 
 from scrapfly import BrowserConfig, CrawlerConfig, ScrapeConfig, ScreenshotConfig
 
-URL = "https://example.com"
+URL = "https://web-scraping.dev"
 
 POOLS = {
     "BASIC": "basic",

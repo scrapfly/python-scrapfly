@@ -1402,7 +1402,7 @@ class ScrapflyApi(ScheduleClientMixin):
 
             client = ScrapflyClient(key='YOUR_API_KEY')
             config = CrawlerConfig(
-                url='https://example.com',
+                url='https://web-scraping.dev',
                 page_limit=100,
                 max_depth=3
             )

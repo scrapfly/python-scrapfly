@@ -44,7 +44,7 @@ def generate_llm_txt(
     Generate an llms.txt file by crawling a website.
 
     Args:
-        base_url: The starting URL to crawl (e.g., "https://example.com/docs")
+        base_url: The starting URL to crawl (e.g., "https://web-scraping.dev/docs")
         site_name: Name of the site/project for the H1 heading
         description: Short description for the blockquote summary
         output_file: Name of the output file (default: "llms-full.txt")

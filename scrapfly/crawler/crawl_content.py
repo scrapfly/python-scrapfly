@@ -27,7 +27,7 @@ class CrawlContent:
     Example:
         ```python
         # Get content for a URL
-        content = crawl.read('https://example.com', format='markdown')
+        content = crawl.read('https://web-scraping.dev', format='markdown')
 
         print(f"URL: {content.url}")
         print(f"Status: {content.status_code}")

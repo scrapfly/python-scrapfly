@@ -21,7 +21,7 @@ class CrawlerConfig(BaseApiConfig):
         from scrapfly import ScrapflyClient, CrawlerConfig
         client = ScrapflyClient(key='YOUR_API_KEY')
         config = CrawlerConfig(
-            url='https://example.com',
+            url='https://web-scraping.dev',
             page_limit=100,
             max_depth=3,
             content_formats=['markdown', 'html']
