@@ -102,7 +102,7 @@ class TestResultsContentRead:
         assert_crawl_successful(crawl)
 
         # Try to read URL that wasn't crawled
-        content = crawl.read('https://example.com/nonexistent')
+        content = crawl.read('https://web-scraping.dev/nonexistent')
         # Should return None or empty result
         assert content is None or content.get('content') is None
 
