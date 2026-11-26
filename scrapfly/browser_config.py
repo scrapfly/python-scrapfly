@@ -42,6 +42,8 @@ class BrowserConfig(BaseApiConfig):
     `proxy_pool` takes the Cloud Browser's own pools: 'datacenter', 'residential' (ProxyPool) or
     'tor'; a session on `byop_proxy` runs as 'byop'.
 
+    Set `share_cdp=True` to join an existing named session in a new tab.
+
     Deprecated:
         unblock, unblock_timeout: the Cloud Browser never reads them, so no anti-bot
             bypass runs on the session. Setting either emits a DeprecationWarning.
@@ -87,6 +89,7 @@ class BrowserConfig(BaseApiConfig):
         rtc_password: Optional[str] = None,
         hitl_allowed_networks: Optional[Union[str, List[str]]] = None,
         downloads_stream: Optional[bool] = None,
+        share_cdp: Optional[bool] = None,
     ):
         if timeout is not None and timeout > 1800:
             raise ValueError('timeout cannot exceed 1800 seconds (30 minutes)')
@@ -128,6 +131,7 @@ class BrowserConfig(BaseApiConfig):
             languages = ','.join(s.strip() for s in languages if s and s.strip())
         self.languages = languages or None
         self.auto_close = auto_close
+        self.share_cdp = share_cdp
         self.timeout = timeout
         self.debug = debug
         self.extensions = extensions
@@ -227,6 +231,8 @@ class BrowserConfig(BaseApiConfig):
 
         if self.auto_close is not None:
             params['auto_close'] = self._bool_to_http(self.auto_close)
+        if self.share_cdp is not None:
+            params['share_cdp'] = self._bool_to_http(self.share_cdp)
 
         if self.timeout is not None:
             params['timeout'] = str(self.timeout)
@@ -323,6 +329,7 @@ class BrowserConfig(BaseApiConfig):
             'lang': self.lang,
             'languages': self.languages,
             'auto_close': self.auto_close,
+            'share_cdp': self.share_cdp,
             'timeout': self.timeout,
             'debug': self.debug,
             'extensions': self.extensions,
@@ -362,6 +369,7 @@ class BrowserConfig(BaseApiConfig):
             lang=browser_config_dict.get('lang', None),
             languages=browser_config_dict.get('languages', None),
             auto_close=browser_config_dict.get('auto_close', None),
+            share_cdp=browser_config_dict.get('share_cdp', None),
             timeout=browser_config_dict.get('timeout', None),
             debug=browser_config_dict.get('debug', None),
             extensions=browser_config_dict.get('extensions', None),
