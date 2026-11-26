@@ -51,7 +51,7 @@ def test_invalid_cookie_expiration(value):
 
 
 def _upstream_response(set_cookie):
-    url = 'https://example.com'
+    url = 'https://web-scraping.dev'
     response = Response()
     response.status_code = 200
     response.reason = 'OK'

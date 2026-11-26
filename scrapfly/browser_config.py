@@ -159,7 +159,8 @@ class BrowserConfig(BaseApiConfig):
         # SolveCaptcha: arm the Cloud Browser's built-in captcha detector + solver on
         # the first page attach. Turnstile, DataDome slider, reCAPTCHA,
         # GeeTest, PerimeterX hold, and puzzle captchas are handled
-        # automatically. Billed per solve; failures cost nothing.
+        # automatically. Billed per solve; a failure costs nothing unless the
+        # captcha's solve had started.
         # https://scrapfly.io/docs/cloud-browser-api/captcha-solver
         self.solve_captcha = solve_captcha
         # Cloud Browser Credential Vault binding. `vault` is the vault NAME

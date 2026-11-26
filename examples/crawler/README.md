@@ -131,7 +131,7 @@ pages = artifact.get_pages()
 
 ```python
 # Get content for a specific URL
-html = crawl.read('https://example.com/page1')
+html = crawl.read('https://web-scraping.dev/page1')
 if html:
     print(html.content)
 ```
@@ -152,7 +152,7 @@ The `CrawlerConfig` class supports all crawler parameters:
 
 ```python
 config = CrawlerConfig(
-    url='https://example.com',
+    url='https://web-scraping.dev',
     page_limit=100,
     max_depth=3,
     include_only_paths=['/products/*'],

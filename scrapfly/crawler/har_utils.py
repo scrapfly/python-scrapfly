@@ -15,7 +15,7 @@ Structure:
         "startedDateTime": "2025-01-01T00:00:00.000Z",
         "request": {
           "method": "GET",
-          "url": "https://example.com",
+          "url": "https://web-scraping.dev",
           "headers": [...],
           ...
         },

@@ -37,7 +37,7 @@ from scrapfly.errors import ApiHttpClientError
 API_KEY = os.environ.get("SCRAPFLY_KEY", "scp-live-YOUR_API_KEY_HERE")
 API_HOST = os.environ.get("SCRAPFLY_API_HOST", "https://api.scrapfly.io")
 
-IPIFY_URL = "https://api.ipify.org?format=json"
+IP_URL = "https://httpbin.dev/get"
 PROXY_POOL = os.environ.get("SCRAPFLY_TEST_POOL", "public_residential_pool")
 COUNTRY = "us"
 
@@ -55,7 +55,7 @@ def session_name() -> str:
 def _scrape_country(client: ScrapflyClient, **overrides) -> str:
     """Country the request actually went out from, as reported by the API."""
     cfg = ScrapeConfig(
-        url=IPIFY_URL,
+        url=IP_URL,
         render_js=False,
         country=COUNTRY,
         proxy_pool=PROXY_POOL,
@@ -68,7 +68,7 @@ def _scrape_country(client: ScrapflyClient, **overrides) -> str:
 
 def _scrape_ip(client: ScrapflyClient, **overrides) -> str:
     cfg = ScrapeConfig(
-        url=IPIFY_URL,
+        url=IP_URL,
         render_js=False,
         country=COUNTRY,
         proxy_pool=PROXY_POOL,
@@ -76,8 +76,8 @@ def _scrape_ip(client: ScrapflyClient, **overrides) -> str:
     )
     result = client.scrape(cfg)
     payload = json.loads(result.content)
-    ip = payload.get("ip")
-    assert ip, f"ipify returned no ip field: {result.content[:200]!r}"
+    ip = payload.get("origin")
+    assert ip, f"httpbin returned no origin field: {result.content[:200]!r}"
     return ip
 
 

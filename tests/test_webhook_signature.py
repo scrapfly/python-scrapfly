@@ -118,7 +118,7 @@ CRAWLER_PAYLOAD = {
         'project': 'café',
         'env': 'prod',
         'action': 'crawl',
-        'seed_url': 'https://example.com',
+        'seed_url': 'https://web-scraping.dev',
         'links': {'status': 'https://api.scrapfly.io/crawl/abc'},
         'state': {
             'urls_visited': 3, 'urls_extracted': 9, 'urls_to_crawl': 6,
