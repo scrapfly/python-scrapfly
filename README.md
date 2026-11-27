@@ -92,6 +92,17 @@ accept yet: a request naming one fails with `ERR::PROXY::POOL_NOT_FOUND`. The Sc
 pool itself and ignores the `proxy_pool` of `ScreenshotConfig` (added in 1.0.0). The Cloud Browser keeps
 its own pools, `datacenter`, `residential`, `tor` and `byop`.
 
+## Cloud Browser network policy
+
+```python
+from scrapfly import BrowserConfig, NetworkPolicy, ScrapflyClient
+
+client = ScrapflyClient(key='__API_KEY__')
+ws_url = client.cloud_browser(BrowserConfig(network_policy=NetworkPolicy.block('httpbin.dev')))
+```
+
+An allow rule blocks every unmatched host. For example, `NetworkPolicy.allow('web-scraping.dev')` allows that domain and its subdomains.
+
 ## Unblocker
 
 `unblocker` turns on the anti-bot bypass. It defeats blocking and antibot solutions such as
