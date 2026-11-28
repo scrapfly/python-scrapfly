@@ -18,8 +18,23 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install ".[speedups,webhook-server,scrapy]" pytest
+      - run: pip install ".[speedups,webhook-server,scrapy]" sentry-sdk pytest
       - run: python -m pytest -q
+
+  # A client app brings its own sentry-sdk: SentryReporter runs on the newest of each major. The unit jobs run the newest.
+  sentry:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sentry-sdk: ['1.*', '2.*', '3.*']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: pip install . "sentry-sdk==${{ matrix.sentry-sdk }}" pytest
+      - run: python -m pytest -q tests/test_sentry_reporter.py
 
   # The oldest Scrapy supported, the first with the async start() and handlers, and 2.19. The unit jobs run the newest.
   scrapy:

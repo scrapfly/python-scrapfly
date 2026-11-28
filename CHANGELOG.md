@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1 (unreleased)
+
+### Fixed
+
+- `SentryReporter` works with sentry-sdk 3: it raised `ImportError: cannot import name 'push_scope'`, and the scrape
+  error never reached Sentry. It reports through `new_scope()` on sentry-sdk 2 and 3, and through `push_scope()` on
+  sentry-sdk 1.x, so an app keeps the sentry-sdk version it pins. On sentry-sdk 2 it no longer warns that
+  `push_scope` is deprecated.
+
 ## 1.0.0 (2026-11-15)
 
 ### Breaking changes
