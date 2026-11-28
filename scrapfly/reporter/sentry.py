@@ -52,9 +52,12 @@ class SentryReporter:
         scrape_api_response: Optional['ScrapeApiResponse'] = None,  # noqa: F821
     ):
         # Late import — already validated in __init__, safe to import here.
-        from sentry_sdk import capture_exception, push_scope
+        import sentry_sdk
 
-        with push_scope() as scope:
+        # push_scope() was removed in sentry-sdk 3; new_scope() exists since 2.0
+        new_scope = getattr(sentry_sdk, 'new_scope', None) or sentry_sdk.push_scope
+
+        with new_scope() as scope:
             if scrape_api_response is not None:
                 scope.set_tag('scrapfly_project', scrape_api_response.config['project'])
                 scope.set_tag('scrapfly_env', scrape_api_response.config['env'])
@@ -72,4 +75,4 @@ class SentryReporter:
                     scope.set_tag('scrapfly_error_code', scrape_api_response.error['code'])
 
             if error is not None:
-                capture_exception(error)
+                sentry_sdk.capture_exception(error)
