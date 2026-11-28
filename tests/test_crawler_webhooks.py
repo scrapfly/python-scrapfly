@@ -564,7 +564,7 @@ def test_missing_scrape_link_on_url_failed_raises_keyerror():
             "env": "LIVE",
             "action": "failed",
             "state": _state(),
-            "url": "https://example.com/",
+            "url": "https://web-scraping.dev/",
             "error": "ERR::X",
             "scrape_config": {},
             "links": {"log": None},  # no 'scrape' — drift!

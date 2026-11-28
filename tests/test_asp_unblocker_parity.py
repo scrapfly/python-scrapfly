@@ -33,7 +33,7 @@ import pytest
 from scrapfly import CrawlerConfig, ScrapeConfig
 from scrapfly.scrape_config import Format, FormatOption, ScreenshotFlag
 
-URL = "https://example.com"
+URL = "https://web-scraping.dev"
 KEY = "scp-test-key"
 
 
@@ -89,9 +89,9 @@ _LOADED_CRAWLER = dict(
     exclude_paths=["/admin"],
     ignore_base_path_restriction=True,
     follow_external_links=True,
-    allowed_external_domains=["cdn.example.com"],
+    allowed_external_domains=["httpbin.dev"],
     follow_internal_subdomains=False,
-    allowed_internal_subdomains=["blog.example.com"],
+    allowed_internal_subdomains=["blog.web-scraping.dev"],
     headers={"x-parity": "1"},
     delay=250,
     user_agent="parity/1.0",

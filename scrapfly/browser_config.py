@@ -1,4 +1,5 @@
 import hashlib
+import json
 import warnings
 from enum import Enum
 from typing import Optional, Union, Dict, List
@@ -36,11 +37,46 @@ class LinkedService(Enum):
     ONE_PASSWORD = "1password"
 
 
+class NetworkPolicy:
+    """Domains (including subdomains) and IP addresses a Cloud Browser session may allow or block.
+
+    Adding an allow rule blocks every unmatched host.
+    """
+
+    def __init__(self, *, allow: Optional[List[str]] = None, block: Optional[List[str]] = None):
+        self._rules: Dict[str, List[str]] = {}
+        for action, hosts in (('allow', allow), ('block', block)):
+            if hosts is None:
+                continue
+            if not isinstance(hosts, list):
+                raise ValueError('Network policy hosts must be a list')
+            if any(not isinstance(host, str) or not host.strip() for host in hosts):
+                raise ValueError('A network policy host must be a non-empty string')
+            if hosts:
+                self._rules[action] = list(hosts)
+
+    @classmethod
+    def allow(cls, host: str, *hosts: str) -> 'NetworkPolicy':
+        return cls(allow=[host, *hosts])
+
+    @classmethod
+    def block(cls, host: str, *hosts: str) -> 'NetworkPolicy':
+        return cls(block=[host, *hosts])
+
+    def __bool__(self) -> bool:
+        return bool(self._rules)
+
+    def to_dict(self) -> Dict[str, List[str]]:
+        return {action: list(hosts) for action, hosts in self._rules.items()}
+
+
 class BrowserConfig(BaseApiConfig):
     """Cloud Browser session options, sent as query parameters of the WebSocket URL.
 
     `proxy_pool` takes the Cloud Browser's own pools: 'datacenter', 'residential' (ProxyPool) or
     'tor'; a session on `byop_proxy` runs as 'byop'.
+
+    Set `share_cdp=True` to join an existing named session in a new tab.
 
     Deprecated:
         unblock, unblock_timeout: the Cloud Browser never reads them, so no anti-bot
@@ -87,6 +123,8 @@ class BrowserConfig(BaseApiConfig):
         rtc_password: Optional[str] = None,
         hitl_allowed_networks: Optional[Union[str, List[str]]] = None,
         downloads_stream: Optional[bool] = None,
+        share_cdp: Optional[bool] = None,
+        network_policy: Optional[NetworkPolicy] = None,
     ):
         if timeout is not None and timeout > 1800:
             raise ValueError('timeout cannot exceed 1800 seconds (30 minutes)')
@@ -128,6 +166,8 @@ class BrowserConfig(BaseApiConfig):
             languages = ','.join(s.strip() for s in languages if s and s.strip())
         self.languages = languages or None
         self.auto_close = auto_close
+        self.share_cdp = share_cdp
+        self.network_policy = network_policy
         self.timeout = timeout
         self.debug = debug
         self.extensions = extensions
@@ -155,7 +195,8 @@ class BrowserConfig(BaseApiConfig):
         # SolveCaptcha: arm the Cloud Browser's built-in captcha detector + solver on
         # the first page attach. Turnstile, DataDome slider, reCAPTCHA,
         # GeeTest, PerimeterX hold, and puzzle captchas are handled
-        # automatically. Billed per solve; failures cost nothing.
+        # automatically. Billed per solve; a failure costs nothing unless the
+        # captcha's solve had started.
         # https://scrapfly.io/docs/cloud-browser-api/captcha-solver
         self.solve_captcha = solve_captcha
         # Cloud Browser Credential Vault binding. `vault` is the vault NAME
@@ -227,6 +268,8 @@ class BrowserConfig(BaseApiConfig):
 
         if self.auto_close is not None:
             params['auto_close'] = self._bool_to_http(self.auto_close)
+        if self.share_cdp is not None:
+            params['share_cdp'] = self._bool_to_http(self.share_cdp)
 
         if self.timeout is not None:
             params['timeout'] = str(self.timeout)
@@ -311,11 +354,14 @@ class BrowserConfig(BaseApiConfig):
         if self.downloads_stream is not None:
             params['downloads_stream'] = self._bool_to_http(self.downloads_stream)
 
+        if self.network_policy:
+            params['network_policy'] = json.dumps(self.network_policy.to_dict(), separators=(',', ':'), ensure_ascii=False)
+
         base_host = host or self.CLOUD_BROWSER_HOST
         return base_host + '?' + urlencode(params)
 
     def to_dict(self) -> Dict:
-        return {
+        config = {
             'proxy_pool': self.proxy_pool.value if isinstance(self.proxy_pool, ProxyPool) else self.proxy_pool,
             'os': self.os.value if isinstance(self.os, OperatingSystem) else self.os,
             'session': self.session,
@@ -323,6 +369,7 @@ class BrowserConfig(BaseApiConfig):
             'lang': self.lang,
             'languages': self.languages,
             'auto_close': self.auto_close,
+            'share_cdp': self.share_cdp,
             'timeout': self.timeout,
             'debug': self.debug,
             'extensions': self.extensions,
@@ -351,9 +398,13 @@ class BrowserConfig(BaseApiConfig):
             'hitl_allowed_networks': self.hitl_allowed_networks,
             'downloads_stream': self.downloads_stream,
         }
+        if self.network_policy:
+            config['network_policy'] = self.network_policy.to_dict()
+        return config
 
     @staticmethod
     def from_dict(browser_config_dict: Dict) -> 'BrowserConfig':
+        policy = browser_config_dict.get('network_policy')
         return BrowserConfig(
             proxy_pool=browser_config_dict.get('proxy_pool', None),
             os=browser_config_dict.get('os', None),
@@ -362,6 +413,8 @@ class BrowserConfig(BaseApiConfig):
             lang=browser_config_dict.get('lang', None),
             languages=browser_config_dict.get('languages', None),
             auto_close=browser_config_dict.get('auto_close', None),
+            share_cdp=browser_config_dict.get('share_cdp', None),
+            network_policy=NetworkPolicy(**policy) if policy is not None else None,
             timeout=browser_config_dict.get('timeout', None),
             debug=browser_config_dict.get('debug', None),
             extensions=browser_config_dict.get('extensions', None),

@@ -17,7 +17,7 @@ import pytest
 
 from scrapfly import CrawlerConfig, ScrapeConfig
 
-URL = "https://example.com"
+URL = "https://web-scraping.dev"
 
 
 def _params(**kwargs):

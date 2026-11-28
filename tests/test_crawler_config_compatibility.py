@@ -7,7 +7,7 @@ from scrapfly import CrawlerConfig
 def test_legacy_positional_arguments_keep_their_meaning(include_webhook):
     # The positional signature published before search/refresh were added.
     args = [
-        'https://example.test/', None, None,  # URL sources
+        'https://web-scraping.dev/', None, None,  # URL sources
         None, None, None,  # limits
         None, None,  # path filters
         False, False, None, None, None,  # crawl scope
@@ -18,7 +18,7 @@ def test_legacy_positional_arguments_keep_their_meaning(include_webhook):
         True, 'public_residential_pool',  # asp, proxy_pool
     ]
     expected = {
-        'url': 'https://example.test/',
+        'url': 'https://web-scraping.dev/',
         'asp': True,
         'proxy_pool': 'public_residential_pool',
     }

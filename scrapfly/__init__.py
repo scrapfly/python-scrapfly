@@ -73,7 +73,7 @@ from .crawler import (
     CrawlerWebhook,
     webhook_from_payload,
 )
-from .browser_config import BrowserConfig, ProxyPool, OperatingSystem, LinkedService
+from .browser_config import BrowserConfig, NetworkPolicy, ProxyPool, OperatingSystem, LinkedService
 from .browser_downloads import (
     BrowserDownload,
     BrowserDownloadError,
@@ -120,6 +120,7 @@ __all__: Tuple[str, ...] = (
     'ScreenshotConfig',
     'VisionDeficiency',
     'BrowserConfig',
+    'NetworkPolicy',
     'ProxyPool',
     'OperatingSystem',
     'LinkedService',

@@ -24,7 +24,7 @@
     curl -X POST "https://api.scrapfly.io/crawl?key=$SCRAPFLY_API_KEY" \
       -H 'Content-Type: application/json' \
       -d '{
-        "url": "https://example.com",
+        "url": "https://web-scraping.dev",
         "page_limit": 100
       }'
     ```
@@ -104,14 +104,21 @@
     
      | Stop Reason | Description |
     |---|---|
-    | `no_more_urls` | All discovered URLs have been crawled - **normal completion** |
-    | `page_limit` | Reached the configured `page_limit` |
-    | `max_duration` | Exceeded the `max_duration` time limit |
-    | `max_api_credit` | Reached the `max_api_credit` limit |
+    | `backlog_empty` | Every URL found within the rules has been crawled - **normal completion** |
+    | `retry_backlog_only` | Only URLs waiting for a retry were left - **normal completion** |
+    | `no_more_urls` | The crawl ended with no other reason recorded |
+    | `page_limit` | Reached the configured `page_limit` - **a success**, the pages visited are kept |
+    | `max_duration_reached` | Exceeded the `max_duration` time limit - **a success**, the pages visited are kept |
+    | `max_api_credit` | Reached the `max_api_credit` limit - **a success**, the pages visited are kept |
     | `seed_url_failed` | The starting URL failed to crawl - **no URLs visited** |
     | `user_cancelled` | User manually cancelled the crawl via API |
-    | `crawler_error` | Internal crawler error occurred |
-    | `no_api_credit_left` | Account ran out of API credits during crawl |
+    | `crawler_error` | Stopped on an error of the account, such as its quota or a suspension, or on a high failure rate; the pages visited are kept |
+    | `target_not_allowed` | The starting URL's website cannot be crawled |
+    | `webhook_not_found` | The `webhook_name` names no webhook of the project |
+    | `storage_error` | An error occurred while saving the content |
+    | `remote_list_fetch_failed`, `remote_list_too_large` | The `remote_url_list` could not be used |
+    | `worker_interrupted` | A restart of the crawl's worker paused it: it resumes by itself while `is_finished` is false |
+    | `internal_error` | An internal error paused or ended the crawl: it resumes by itself while `is_finished` is false |
 3. **Retrieve Results**Once `is_finished: true`, download artifacts or query content:
     
      ```
@@ -119,14 +126,14 @@
     curl https://api.scrapfly.io/crawl/{uuid}/artifact?key=$SCRAPFLY_API_KEY&type=warc -o crawl.warc.gz
     
     # Query specific URL content
-    curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com/page&format=markdown
+    curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://web-scraping.dev/page&format=markdown
     
     # Or batch retrieve multiple URLs (max 100 per request)
     curl -X POST https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=$SCRAPFLY_API_KEY&formats=markdown \
       -H 'Content-Type: text/plain' \
-      -d 'https://example.com/page1
-    https://example.com/page2
-    https://example.com/page3'
+      -d 'https://web-scraping.dev/page1
+    https://web-scraping.dev/page2
+    https://web-scraping.dev/page3'
     ```
     
      
@@ -159,7 +166,7 @@
     curl -X POST "https://api.scrapfly.io/crawl?key=$SCRAPFLY_API_KEY" \
       -H 'Content-Type: application/json' \
       -d '{
-        "url": "https://example.com",
+        "url": "https://web-scraping.dev",
         "page_limit": 100,
         "webhook_name": "my-crawler-webhook",
         "webhook_events": [
@@ -192,7 +199,7 @@
       "event": "crawler_url_visited",
       "payload": {
         "crawler_uuid": "550e8400-e29b-41d4-a716-446655440000",
-        "url": "https://example.com/page",
+        "url": "https://web-scraping.dev/page",
         "status_code": 200,
         "depth": 1,
         "state": {
@@ -328,7 +335,7 @@ required
 
  Starting URL for the crawl. Must be a valid HTTP/HTTPS URL. The crawler will begin discovering and crawling linked pages from this seed URL. [ Must be URL encoded  ](https://scrapfly.io/web-scraping-tools/urlencode) 
 
- `url=https://example.com` `url=https://example.com/blog` 
+ `url=https://web-scraping.dev` `url=https://web-scraping.dev/blog` 
 
  
 
@@ -410,7 +417,7 @@ popular
 
  
 
- By default, the crawler only follows links within the same base path as the starting URL. For example, starting from `https://example.com/blog` restricts crawling to `/blog/*`. Enable this to allow crawling any path on the same domain. 
+ By default, the crawler only follows links within the same base path as the starting URL. For example, starting from `https://web-scraping.dev/blog` restricts crawling to `/blog/*`. Enable this to allow crawling any path on the same domain. 
 
 - `ignore_base_path_restriction=true`
 - `ignore_base_path_restriction=false`
@@ -456,23 +463,23 @@ popular
 
  Whitelist of external domains to crawl when `follow_external_links=true`. **Maximum 250 domains.** Supports fnmatch-style wildcards (`*`) for flexible pattern matching. 
 
- **Pattern Matching Examples:**- `*.example.com` - Matches all subdomains of example.com
-- `specific.org` - Exact domain match only
-- `blog.*.com` - Matches blog.anything.com
+ **Pattern Matching Examples:**- `*.httpbin.dev` - Matches all subdomains of httpbin.dev
+- `httpbin.dev` - Exact domain match only
+- `*bin.dev` - Matches httpbin.dev and any other domain ending in bin.dev
  
   **Scraping vs. Crawling External Pages** When a page contains a link to an allowed external domain: 
  **The crawler WILL:** Scrape the external page (extract content, consume credits) 
  **The crawler WILL NOT:** Follow links found on that external page 
 
- *Example:* Crawling `example.com` with `allowed_external_domains=["*.wikipedia.org"]` will scrape Wikipedia pages linked from example.com, but will NOT crawl additional links discovered on Wikipedia.
+ *Example:* Crawling `web-scraping.dev` with `allowed_external_domains=["httpbin.dev"]` will scrape httpbin.dev pages linked from web-scraping.dev, but will NOT crawl additional links discovered on httpbin.dev.
 
  
 
  
 
-- `allowed_external_domains=["cdn.example.com"]` Only follow links to cdn.example.com
-- `allowed_external_domains=["*.example.com"]` Follow all subdomains of example.com
-- `allowed_external_domains=["blog.example.com", "docs.example.com"]` Follow multiple specific domains
+- `allowed_external_domains=["httpbin.dev"]` Only follow links to httpbin.dev
+- `allowed_external_domains=["*.httpbin.dev"]` Follow all subdomains of httpbin.dev
+- `allowed_external_domains=["httpbin.dev", "*.httpbin.dev"]` Follow multiple domains
  
  
 
@@ -519,7 +526,7 @@ popular
 
  `headers={"Authorization": "Bearer token"}` 
 
- `headers={"Referer": "https://example.com"}` 
+ `headers={"Referer": "https://web-scraping.dev"}` 
 
  
 
@@ -560,7 +567,7 @@ popular
 
  
 
- `user_agent=MyBot/1.0 (+https://example.com/bot)` 
+ `user_agent=MyBot/1.0 (+https://web-scraping.dev/bot)` 
 
  
 
@@ -918,7 +925,7 @@ curl "https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY&status=fai
 curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&format=markdown"
 
 # Get content for a specific URL
-curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&format=html&url=https://example.com/page"
+curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&format=html&url=https://web-scraping.dev/page"
 ```
 
  
@@ -947,9 +954,9 @@ curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&format
 # Batch retrieve content for multiple URLs
 curl -X POST "https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=$SCRAPFLY_API_KEY&formats=markdown,text" \
   -H "Content-Type: text/plain" \
-  -d "https://example.com/page1
-https://example.com/page2
-https://example.com/page3"
+  -d "https://web-scraping.dev/page1
+https://web-scraping.dev/page2
+https://web-scraping.dev/page3"
 ```
 
  
@@ -1164,14 +1171,14 @@ Response includes URL metadata:
 {
   "urls": [
     {
-      "url": "https://example.com",
+      "url": "https://web-scraping.dev",
       "status": "visited",
       "depth": 0,
       "status_code": 200,
       "crawled_at": "2025-01-15T10:30:20Z"
     },
     {
-      "url": "https://example.com/about",
+      "url": "https://web-scraping.dev/about",
       "status": "visited",
       "depth": 1,
       "status_code": 200,
@@ -1216,7 +1223,7 @@ Response includes URL metadata:
 Retrieve content for one specific URL using the `url` query parameter:
 
  ```
-curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com/page&format=markdown
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://web-scraping.dev/page&format=markdown
 ```
 
  
@@ -1261,7 +1268,7 @@ Return raw content directly without JSON wrapper by adding `plain=true`. Perfect
 
  ```
 # Get raw markdown content (no JSON wrapper)
-curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com&formats=markdown&plain=true
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://web-scraping.dev&formats=markdown&plain=true
 
 # Direct output - pure markdown, no JSON parsing needed:
 # Homepage
@@ -1269,7 +1276,7 @@ curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=htt
 # Welcome to our site...
 
 # Pipe directly to file
-curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com&formats=markdown&plain=true > page.md
+curl https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://web-scraping.dev&formats=markdown&plain=true > page.md
 ```
 
  
@@ -1295,7 +1302,7 @@ Request a multipart response for single URLs by setting the `Accept` header. Sam
 
  ```
 # Request multipart format for single URL
-curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://example.com&formats=markdown,text" \
+curl "https://api.scrapfly.io/crawl/{uuid}/contents?key=$SCRAPFLY_API_KEY&url=https://web-scraping.dev&formats=markdown,text" \
   -H "Accept: multipart/related; boundary=custom123"
 ```
 
@@ -1314,7 +1321,7 @@ Response returns multiple formats for the same URL as separate parts:
  ```
 HTTP/1.1 200 OK
 Content-Type: multipart/related; boundary=custom123
-Content-Location: https://example.com
+Content-Location: https://web-scraping.dev
 
 --custom123
 Content-Type: text/markdown
@@ -1354,9 +1361,9 @@ Retrieve content for multiple URLs in a single request. Maximum **100 URLs per r
  ```
 curl -X POST "https://api.scrapfly.io/crawl/{uuid}/contents/batch?key=$SCRAPFLY_API_KEY&formats=markdown,text" \
   -H "Content-Type: text/plain" \
-  -d "https://example.com/page1
-https://example.com/page2
-https://example.com/page3"
+  -d "https://web-scraping.dev/page1
+https://web-scraping.dev/page2
+https://web-scraping.dev/page3"
 ```
 
  
@@ -1379,19 +1386,19 @@ X-Scrapfly-Found-URLs: 3
 
 --abc123
 Content-Type: text/markdown
-Content-Location: https://example.com/page1
+Content-Location: https://web-scraping.dev/page1
 
 # Page 1
 
 Content here...
 --abc123
 Content-Type: text/plain
-Content-Location: https://example.com/page1
+Content-Location: https://web-scraping.dev/page1
 
 Page 1 Content here...
 --abc123
 Content-Type: text/markdown
-Content-Location: https://example.com/page2
+Content-Location: https://web-scraping.dev/page2
 
 # Page 2
 
@@ -1428,7 +1435,7 @@ response = requests.post(
     f"https://api.scrapfly.io/crawl/{uuid}/contents/batch",
     params={"key": api_key, "formats": "markdown,text"},
     headers={"Content-Type": "text/plain"},
-    data="https://example.com/page1\nhttps://example.com/page2"
+    data="https://web-scraping.dev/page1\nhttps://web-scraping.dev/page2"
 )
 
 # Parse multipart response
@@ -1474,7 +1481,7 @@ const response = await fetch(
     {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: 'https://example.com/page1\nhttps://example.com/page2'
+        body: 'https://web-scraping.dev/page1\nhttps://web-scraping.dev/page2'
     }
 );
 
@@ -1640,9 +1647,9 @@ Response contains contents mapped by URL:
  ```
 {
   "contents": {
-    "https://example.com": "# Homepage\n\nWelcome to our site...",
-    "https://example.com/about": "# About Us\n\nWe are a company...",
-    "https://example.com/contact": "# Contact\n\nReach us at..."
+    "https://web-scraping.dev": "# Homepage\n\nWelcome to our site...",
+    "https://web-scraping.dev/about": "# About Us\n\nWe are a company...",
+    "https://web-scraping.dev/contact": "# Contact\n\nReach us at..."
   }
 }
 ```
@@ -2875,7 +2882,7 @@ Search for specific content without decompressing.
 
  ```
 # Search for specific URL
-zgrep "WARC-Target-URI: https://example.com" crawl.warc.gz
+zgrep "WARC-Target-URI: https://web-scraping.dev" crawl.warc.gz
 
 # Search for specific log ID
 zgrep "WARC-Scrape-Log-Id: abc123" crawl.warc.gz
@@ -4174,13 +4181,13 @@ curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=$SCRAPFLY_API_KE
 
 #####  crawler\_finished
 
-**When:** Crawler completes successfully (at least one URL visited)
+**When:** Crawler ends successfully (at least one URL visited): by itself, or stopped on a limit or on `crawler_error`
 
 **Use case:** Trigger post-processing, download results, send completion notifications
 
 **Frequency:** Once per successful crawl
 
-  **Success Indicators:** `state.urls_visited` > 0 confirms at least one URL was crawled. Check `state.stop_reason` to understand why the crawler completed (e.g., `no_more_urls`, `page_limit`). 
+  **Success Indicators:** `state.urls_visited` > 0 confirms at least one URL was crawled. Check `state.stop_reason` to understand why the crawler stopped: `backlog_empty` or `retry_backlog_only` when it crawled everything, `page_limit`, `max_duration_reached` or `max_api_credit` when it reached a limit you set (a success: the pages visited are kept), `crawler_error` after an error of the account or a high failure rate (the pages visited are kept too). 
 
  ```
 {
@@ -4221,16 +4228,19 @@ curl "https://api.scrapfly.io/crawl/{crawler_uuid}/artifact?key=$SCRAPFLY_API_KE
 
 #####  crawler\_stopped
 
-**When:** Crawler stops due to failure (seed URL failed, errors, no URLs visited)
+**When:** The crawl ended with `is_success: false` (no page visited, its archive could not be saved, an unusable `remote_url_list`, a crawl that could not start), or a graceful restart of its worker or an internal error paused it: the crawl then resumes by itself
 
 **Use case:** Error alerting, failure logging, retry automation
 
-**Frequency:** Once per failed crawl
+**Frequency:** Once per failed crawl, and once per graceful pause
 
-  **Failure Reasons:** Check `state.stop_reason` for the exact cause: - `seed_url_failed` - Initial URL couldn't be crawled
-- `crawler_error` - Internal crawler error occurred
-- `no_api_credit_left` - Account ran out of API credits mid-crawl
-- `max_api_credit` - Configured credit limit reached
+  **Failure Reasons:** Check `state.stop_reason` for the exact cause: - `seed_url_failed` - Initial URL couldn't be crawled and no page was visited
+- `storage_error` - The crawl's archive could not be saved
+- `remote_list_fetch_failed`, `remote_list_too_large` - The `remote_url_list` could not be used
+- `internal_error` - The crawl could not start
+- `worker_interrupted` - A graceful restart of the crawl's worker paused it: it resumes by itself and sends `crawler_finished` or `crawler_stopped` again when it ends
+
+A crawl stopped on a limit (`page_limit`, `max_duration_reached`, `max_api_credit`) or on `crawler_error` after visiting at least one page keeps its pages: it ends with `is_success: true` and sends `crawler_finished`, and a stop on `max_api_credit` is a success.
  
  
 
@@ -4419,7 +4429,7 @@ else:
 
  ```
 {
-  "url": "https://example.com",
+  "url": "https://web-scraping.dev",
   "max_pages": 100,
   "asp": false
 }
@@ -4441,7 +4451,7 @@ else:
 
  ```
 {
-  "url": "https://example.com",
+  "url": "https://web-scraping.dev",
   "max_pages": 100,
   "asp": true
 }
@@ -4463,7 +4473,7 @@ else:
 
  ```
 {
-  "url": "https://example.com",
+  "url": "https://web-scraping.dev",
   "max_pages": 100,
   "proxy_pool": "public_residential_pool"
 }
@@ -4497,7 +4507,7 @@ else:
  
  ```
 {
-  "url": "https://example.com",
+  "url": "https://web-scraping.dev",
   "max_pages": 500,
   "max_duration": 1800,
   "max_api_credit": 3000
@@ -4539,7 +4549,7 @@ else:
 
  ```
 {
-  "url": "https://example.com",
+  "url": "https://web-scraping.dev",
   "cache": true,
   "cache_ttl": 86400
 }
@@ -4619,7 +4629,7 @@ The crawl status endpoint includes cost information:
 
 ### Q: What happens if I exceed my budget limit?
 
- The crawler automatically stops when `max_api_credit` is reached. You can resume it by increasing the limit.
+ The crawler automatically stops when `max_api_credit` is reached. It ends successfully (`is_success: true`, `state.stop_reason` is `max_api_credit`) and keeps the pages it visited. To crawl further, start a new crawl with a higher limit.
 
 ### Q: Can I get a refund for a failed crawl?
 
@@ -6054,7 +6064,7 @@ The most common cause is overly restrictive `include_only_paths` or `exclude_pat
 ##### Common Issues:
 
 1. **Missing `follow_external_links=true`** - By default, the crawler stays within the starting domain. You must explicitly enable external link following.
-2. **Too restrictive `allowed_external_domains`** - If you specify this parameter, ONLY domains matching the patterns will be followed. Check your fnmatch patterns (e.g., `*.example.com`).
+2. **Too restrictive `allowed_external_domains`** - If you specify this parameter, ONLY domains matching the patterns will be followed. Check your fnmatch patterns (e.g., `*.web-scraping.dev`).
 3. **External pages not being re-crawled** - This is expected behavior! External pages are scraped (content extracted, credits consumed), but their links are NOT followed. The crawler only goes "one hop" into external domains.
  
  
@@ -6069,7 +6079,7 @@ The most common cause is overly restrictive `include_only_paths` or `exclude_pat
 - **With `allowed_external_domains`:** Only matching domains are followed (supports fnmatch patterns)
  
  **Key limitation:** External pages ARE scraped but their outbound links are NOT followed. 
- *Example:* Crawling `example.com` → finds link to `wikipedia.org/page1` → scrapes wikipedia.org/page1 → does NOT follow links from wikipedia.org/page1
+ *Example:* Crawling `web-scraping.dev` → finds link to `httpbin.dev/get` → scrapes httpbin.dev/get → does NOT follow links from httpbin.dev/get
 
  
 
@@ -6133,7 +6143,7 @@ curl https://api.scrapfly.io/crawl/{uuid}/urls?key=$SCRAPFLY_API_KEY&status=fail
 
  ```
 {
-  "url": "https://example.com",
+  "url": "https://web-scraping.dev",
   "max_duration": 3600,
   "max_pages": 1000
 }
@@ -6161,7 +6171,7 @@ This crawler will stop after 1 hour or 1000 pages, whichever comes first
 
  ```
 {
-  "url": "https://example.com",
+  "url": "https://web-scraping.dev",
   "max_api_credit": 1000,
   "max_pages": 10000
 }

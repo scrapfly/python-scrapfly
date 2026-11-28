@@ -92,6 +92,17 @@ accept yet: a request naming one fails with `ERR::PROXY::POOL_NOT_FOUND`. The Sc
 pool itself and ignores the `proxy_pool` of `ScreenshotConfig` (added in 1.0.0). The Cloud Browser keeps
 its own pools, `datacenter`, `residential`, `tor` and `byop`.
 
+## Cloud Browser network policy
+
+```python
+from scrapfly import BrowserConfig, NetworkPolicy, ScrapflyClient
+
+client = ScrapflyClient(key='__API_KEY__')
+ws_url = client.cloud_browser(BrowserConfig(network_policy=NetworkPolicy.block('httpbin.dev')))
+```
+
+An allow rule blocks every unmatched host. For example, `NetworkPolicy.allow('web-scraping.dev')` allows that domain and its subdomains.
+
 ## Unblocker
 
 `unblocker` turns on the anti-bot bypass. It defeats blocking and antibot solutions such as
@@ -137,6 +148,27 @@ class also keeps it, because the API status it carries is still `ERR::ASP::*` â€
 ```python
 from scrapfly import ScrapflyUnblockerError  # the same class as ScrapflyAspError
 ```
+
+## Timeouts and retries
+
+A call waits for its answer up to its read timeout. The client sets those of a scrape,
+`web_scraping_api_read_timeout` (160 s by default), of a screenshot, `screenshot_api_read_timeout` (130 s), and of an
+extraction, `extraction_api_read_timeout` (165 s).
+
+```python
+from scrapfly import ScrapflyClient
+
+scrapfly = ScrapflyClient(key='__API_KEY__', web_scraping_api_read_timeout=200)
+```
+
+- `scrape()`, `screenshot()`, `extract()`, `start_crawl()` and `crawl_search()` are sent once when their read
+  times out, and the timeout is raised at once: `requests.ReadTimeout` from `ScrapflyClient` (a
+  `requests.ConnectionError` when the body stopped arriving), `httpx.ReadTimeout` from `AsyncScrapflyClient`.
+  `ScrapflyMiddleware` does not retry it either.
+- When the connection cannot be made or drops before the answer, they are sent again with an exponential backoff,
+  up to 5 times in all.
+- The reads of a crawl (`get_crawl_status()`, `get_crawl_urls()`, `get_crawl_contents()`, `get_crawl_artifact()`,
+  `crawl_refresh_history()`) are sent again on a read timeout too.
 
 ## Integrations  
 

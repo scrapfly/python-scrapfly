@@ -314,7 +314,7 @@ class TestFormatEdgeCases:
     def test_empty_page_content(self, client):
         """Test handling of pages with minimal content"""
         config = CrawlerConfig(
-            url='https://httpbin.org/status/200',
+            url='https://httpbin.dev/status/200',
             page_limit=1,
             content_formats=['html', 'text']
         )

@@ -48,7 +48,7 @@ class TestErrorHandling:
         # Crawl might complete but with 0 URLs if seed failed
         if status.is_complete and status.state.urls_visited == 0:
             # This is expected - seed URL returned 503
-            assert status.stop_reason in ['seed_url_failed', 'no_more_urls']
+            assert status.state.stop_reason in ['seed_url_failed', 'backlog_empty', 'no_more_urls']
 
 
 class TestStopReasons:
@@ -64,7 +64,7 @@ class TestStopReasons:
 
         # Should stop due to page limit
         if status.state.urls_visited >= 3:
-            assert status.stop_reason == 'page_limit'
+            assert status.state.stop_reason == 'page_limit'
 
     def test_stop_reason_no_more_urls(self, client):
         """Test stop reason when no more URLs to crawl"""
@@ -79,7 +79,7 @@ class TestStopReasons:
 
         # Might fail or complete with no_more_urls
         if status.is_complete and status.state.urls_visited > 0:
-            assert status.stop_reason in ['no_more_urls', 'page_limit']
+            assert status.state.stop_reason in ['backlog_empty', 'retry_backlog_only', 'no_more_urls', 'page_limit']
 
     def test_stop_reason_max_duration(self, client, test_url):
         """Test stop reason when max duration is reached"""
@@ -94,7 +94,7 @@ class TestStopReasons:
         assert status.is_complete
 
         # Might stop due to max_duration
-        if status.stop_reason == 'max_duration':
+        if status.state.stop_reason == 'max_duration_reached':
             assert status.state.urls_visited < 100
 
 
@@ -180,7 +180,7 @@ class TestFailedCrawls:
         # Should complete but with 0 or very few successful URLs
         assert status.is_complete
         if status.state.urls_visited == 0:
-            assert status.stop_reason in ['seed_url_failed', 'no_more_urls']
+            assert status.state.stop_reason in ['seed_url_failed', 'backlog_empty', 'no_more_urls']
 
     def test_network_timeout(self, client):
         """Test handling of network timeouts"""
@@ -199,7 +199,7 @@ class TestFailedCrawls:
     def test_invalid_domain(self, client):
         """Test crawl with invalid domain"""
         config = CrawlerConfig(
-            url='https://this-domain-does-not-exist-12345.com',
+            url='https://this-host-does-not-exist-12345.web-scraping.dev',
             page_limit=1
         )
 
@@ -264,7 +264,7 @@ class TestCancellation:
         status = crawl.status()
 
         if status.is_cancelled:
-            assert status.stop_reason == 'cancelled'
+            assert status.state.stop_reason == 'user_cancelled'
 
 
 class TestConfigValidation:
@@ -403,21 +403,22 @@ class TestStopReasonsExtended:
     """Extended tests for stop reasons"""
 
     def test_stop_reason_error(self, client):
-        """Test stop_reason when crawl encounters an error"""
+        """Test stop_reason when the crawl cannot crawl its seed"""
         config = CrawlerConfig(
-            url='https://this-absolutely-does-not-exist-domain-12345.com',
+            url='https://httpbin.dev/status/503',
             page_limit=5
         )
+        crawl = Crawl(client, config).crawl()
 
         try:
-            crawl = Crawl(client, config).crawl().wait(verbose=False)
-            status = crawl.status()
-
-            if status.is_failed:
-                assert status.stop_reason in ('error', 'seed_url_failed')
-        except Exception:
-            # Might raise exception instead
+            crawl.wait(verbose=False)
+        except ScrapflyCrawlerError:
+            # wait() raises when the crawl ends with is_success false
             pass
+
+        status = crawl.status()
+        assert status.is_finished
+        assert status.state.stop_reason in ('crawler_error', 'seed_url_failed')
 
     def test_stop_reason_max_api_credit(self, client, test_url):
         """Test stop_reason when API credit limit is hit"""
@@ -431,5 +432,7 @@ class TestStopReasonsExtended:
         status = crawl.status()
 
         # Should stop early due to credit limit
-        if hasattr(status, 'stop_reason') and status.stop_reason == 'max_api_credit':
+        if status.state.stop_reason == 'max_api_credit':
             assert status.state.urls_visited < 100
+            # A stop on the cap is a success: the pages visited are kept
+            assert status.is_complete

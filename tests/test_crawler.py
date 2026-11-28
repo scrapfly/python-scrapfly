@@ -65,7 +65,7 @@ SEARCH_ENVELOPE = {
             'score': 0.927,
             'scores': {'vector': 0.91, 'fts': 12.4, 'rrf': 0.0312},
             'crawler_uuid': '0198aaaa',
-            'url': 'https://example.com/foo',
+            'url': 'https://web-scraping.dev/foo',
             'title': 'Foo Product',
             'source_format': 'markdown',
             'content_type': 'application/markdown',
@@ -489,7 +489,7 @@ class TestContentFormats:
         assert_crawl_successful(crawl)
 
         # Try to read a URL that wasn't crawled
-        content = crawl.read('https://example.com/nonexistent-page-12345', format='html')
+        content = crawl.read('https://web-scraping.dev/nonexistent-page-12345', format='html')
         assert content is None
 
 
@@ -597,7 +597,7 @@ class TestContentRetrieval:
         assert_crawl_successful(crawl)
 
         # Try to request 101 URLs
-        urls = [f'https://example.com/page{i}' for i in range(101)]
+        urls = [f'https://web-scraping.dev/page{i}' for i in range(101)]
 
         with pytest.raises(ValueError) as exc_info:
             crawl.read_batch(urls)
@@ -811,7 +811,7 @@ class TestErrorHandling:
         crawl = Crawl(client, config)
 
         with pytest.raises(ScrapflyCrawlerError) as exc_info:
-            crawl.read('https://example.com')
+            crawl.read('https://web-scraping.dev')
 
         assert "not started" in str(exc_info.value).lower()
 
@@ -1064,7 +1064,7 @@ class TestAdvancedConfiguration:
         config = CrawlerConfig(
             url='https://httpbin.dev',
             page_limit=3,
-            user_agent='CustomBot/1.0 (+https://example.com)'
+            user_agent='CustomBot/1.0 (+https://web-scraping.dev)'
         )
         crawl = Crawl(client, config).crawl().wait()
 
@@ -1396,27 +1396,27 @@ class TestCrawlerSearchConfig:
     pytestmark = pytest.mark.unit
 
     def test_search_serializes_to_wire_payload(self):
-        config = CrawlerConfig(url='https://example.com', search=True)
+        config = CrawlerConfig(url='https://web-scraping.dev', search=True)
 
         assert config.to_api_params()['search'] is True
 
     def test_search_omitted_when_off(self):
         """Unset means server default: never emit a field to send its default."""
-        config = CrawlerConfig(url='https://example.com')
+        config = CrawlerConfig(url='https://web-scraping.dev')
 
         assert 'search' not in config.to_api_params()
 
     def test_search_rides_the_multipart_config_part(self):
         """A url_list crawl posts multipart; the flag lives in the config part."""
-        config = CrawlerConfig(url_list=['https://example.com/a'], search=True)
+        config = CrawlerConfig(url_list=['https://web-scraping.dev/a'], search=True)
         parts = config.to_multipart_parts()
 
         assert parts['config']['search'] is True
-        assert parts['urls'] == 'https://example.com/a'
+        assert parts['urls'] == 'https://web-scraping.dev/a'
 
     def test_search_webhook_events_are_accepted(self):
         config = CrawlerConfig(
-            url='https://example.com',
+            url='https://web-scraping.dev',
             search=True,
             webhook_name='my-hook',
             webhook_events=['crawler_search_ready', 'crawler_search_failed'],
@@ -1463,7 +1463,7 @@ class TestCrawlerSearchTransport:
             query='TLS fingerprint',
             limit=20,
             mode='hybrid',
-            filters={'url_prefix': 'https://example.com/docs/'},
+            filters={'url_prefix': 'https://web-scraping.dev/docs/'},
         )
 
         assert captured['method'] == 'POST'
@@ -1474,13 +1474,13 @@ class TestCrawlerSearchTransport:
             'crawl_ids': ['0198aaaa', '0198bbbb'],
             'limit': 20,
             'mode': 'hybrid',
-            'filters': {'url_prefix': 'https://example.com/docs/'},
+            'filters': {'url_prefix': 'https://web-scraping.dev/docs/'},
         }
 
         assert result.mode == 'hybrid'
         assert result.is_exact is True
         assert len(result) == 1
-        assert result.results[0].url == 'https://example.com/foo'
+        assert result.results[0].url == 'https://web-scraping.dev/foo'
         assert result.results[0].scores['rrf'] == 0.0312
         assert result.crawls[0].vectors == 18432
         assert result.skipped[0].reason == 'search_not_ready'
@@ -1524,7 +1524,7 @@ class TestCrawlerSearchTransport:
             return self._json_response(SEARCH_ENVELOPE)
 
         client = self._client_with(handler)
-        crawl = Crawl(client, CrawlerConfig(url='https://example.com', search=True))
+        crawl = Crawl(client, CrawlerConfig(url='https://web-scraping.dev', search=True))
         crawl._uuid = '0198aaaa'
 
         crawl.search('TLS fingerprint')
@@ -1534,7 +1534,7 @@ class TestCrawlerSearchTransport:
 
     def test_search_before_start_raises(self):
         client = self._client_with(lambda **kwargs: None)
-        crawl = Crawl(client, CrawlerConfig(url='https://example.com', search=True))
+        crawl = Crawl(client, CrawlerConfig(url='https://web-scraping.dev', search=True))
 
         with pytest.raises(ScrapflyCrawlerError):
             crawl.search('anything')
@@ -1556,7 +1556,7 @@ class TestCrawlerSearchTransport:
     def test_crawl_prompt_streams_sse_frames(self):
         captured = {}
         stream = (
-            b'event: source\ndata: {"id":1,"crawler_uuid":"0198aaaa","url":"https://example.com/foo"}\n\n'
+            b'event: source\ndata: {"id":1,"crawler_uuid":"0198aaaa","url":"https://web-scraping.dev/foo"}\n\n'
             b':keepalive\n\n'
             b'event: token\ndata: "The"\n\n'
             b'event: token\ndata: " answer"\n\n'
@@ -1668,6 +1668,67 @@ class TestCrawlerSearchTransport:
             client.crawl_prompt(crawl_ids=[], prompt='x')
 
 
+class TestACrawlThatStoppedOnALimitIsASuccess:
+    """`wait()` returns for a DONE crawl with is_success true, whatever its stop_reason says, and raises for one with is_success false."""
+
+    pytestmark = pytest.mark.unit
+
+    @staticmethod
+    def _status(is_success, stop_reason):
+        return CrawlerStatusResponse({
+            'crawler_uuid': '0198aaaa',
+            'status': 'DONE',
+            'is_success': is_success,
+            'is_finished': True,
+            'state': {
+                'duration': 12,
+                'urls_visited': 3 if is_success else 0,
+                'urls_extracted': 10,
+                'urls_failed': 0,
+                'urls_skipped': 7,
+                'urls_to_crawl': 0,
+                'api_credit_used': 30,
+                'stop_reason': stop_reason,
+                'start_time': 1762940028,
+                'stop_time': 1762940040,
+            },
+        })
+
+    @classmethod
+    def _crawl(cls, is_success, stop_reason):
+        class Client:
+            @staticmethod
+            def get_crawl_status(uuid):
+                return cls._status(is_success, stop_reason)
+
+        crawl = Crawl(Client(), CrawlerConfig(url='https://web-scraping.dev/products'))
+        crawl._uuid = '0198aaaa'
+
+        return crawl
+
+    @pytest.mark.parametrize(
+        'stop_reason',
+        ['backlog_empty', 'retry_backlog_only', 'page_limit', 'max_duration_reached', 'max_api_credit', 'crawler_error'],
+    )
+    def test_wait_returns_and_the_status_keeps_the_reason(self, stop_reason):
+        crawl = self._crawl(True, stop_reason)
+
+        assert crawl.wait(poll_interval=0, max_wait=5) is crawl
+
+        status = crawl.status(refresh=False)
+        assert status.is_complete
+        assert not status.is_failed
+        assert status.state.stop_reason == stop_reason
+
+    def test_wait_raises_for_a_crawl_that_ended_without_success(self):
+        crawl = self._crawl(False, 'seed_url_failed')
+
+        with pytest.raises(ScrapflyCrawlerError) as raised:
+            crawl.wait(poll_interval=0, max_wait=5)
+
+        assert raised.value.code == 'FAILED'
+
+
 class TestCrawlerStatusSearchBlock:
     """`/status` is the poll-based path to index readiness."""
 
@@ -1753,8 +1814,8 @@ REFRESH_STATE = {
             'duration_ms': 44900,
             'search_status': 'READY',
             'error': None,
-            'sample_updated': ['https://example.com/pricing'],
-            'sample_removed': ['https://example.com/old'],
+            'sample_updated': ['https://web-scraping.dev/pricing'],
+            'sample_removed': ['https://web-scraping.dev/old'],
         },
     ],
 }
@@ -1766,7 +1827,7 @@ class TestCrawlerRefreshConfig:
     pytestmark = pytest.mark.unit
 
     def test_refresh_fields_serialize_to_wire_payload(self):
-        config = CrawlerConfig(url='https://example.com', refresh=True, refresh_interval=86400)
+        config = CrawlerConfig(url='https://web-scraping.dev', refresh=True, refresh_interval=86400)
         params = config.to_api_params()
 
         assert params['refresh'] is True
@@ -1774,13 +1835,13 @@ class TestCrawlerRefreshConfig:
 
     def test_refresh_omitted_when_off(self):
         """Unset means server default: never emit a field to send its default."""
-        params = CrawlerConfig(url='https://example.com').to_api_params()
+        params = CrawlerConfig(url='https://web-scraping.dev').to_api_params()
 
         assert 'refresh' not in params
         assert 'refresh_interval' not in params
 
     def test_refresh_without_interval_uses_the_server_period(self):
-        params = CrawlerConfig(url='https://example.com', refresh=True).to_api_params()
+        params = CrawlerConfig(url='https://web-scraping.dev', refresh=True).to_api_params()
 
         assert params['refresh'] is True
         assert 'refresh_interval' not in params
@@ -1788,7 +1849,7 @@ class TestCrawlerRefreshConfig:
     def test_refresh_rides_the_multipart_config_part(self):
         """A url_list crawl posts multipart; the flags live in the config part."""
         config = CrawlerConfig(
-            url_list=['https://example.com/a'],
+            url_list=['https://web-scraping.dev/a'],
             refresh=True,
             refresh_interval=7200,
         )
@@ -1801,18 +1862,18 @@ class TestCrawlerRefreshConfig:
     def test_interval_outside_the_bounds_is_refused_locally(self, interval):
         """The floor decides the cost; reject before a round trip."""
         with pytest.raises(ValueError):
-            CrawlerConfig(url='https://example.com', refresh=True, refresh_interval=interval)
+            CrawlerConfig(url='https://web-scraping.dev', refresh=True, refresh_interval=interval)
 
     @pytest.mark.parametrize('interval', [3600, 86400, 90 * 24 * 3600])
     def test_interval_on_the_bounds_is_accepted(self, interval):
-        config = CrawlerConfig(url='https://example.com', refresh=True, refresh_interval=interval)
+        config = CrawlerConfig(url='https://web-scraping.dev', refresh=True, refresh_interval=interval)
 
         assert config.to_api_params()['refresh_interval'] == interval
 
     def test_interval_without_refresh_is_refused(self):
         """A period with the feature off would silently never run."""
         with pytest.raises(ValueError):
-            CrawlerConfig(url='https://example.com', refresh_interval=86400)
+            CrawlerConfig(url='https://web-scraping.dev', refresh_interval=86400)
 
 
 class TestCrawlerRefreshTransport:
@@ -1858,7 +1919,7 @@ class TestCrawlerRefreshTransport:
         assert len(state) == 2
         assert state.last_run.updated == 7
         assert state.last_run.changed == 11
-        assert state.last_run.sample_removed == ['https://example.com/old']
+        assert state.last_run.sample_removed == ['https://web-scraping.dev/old']
 
     def test_refresh_settings_patches_only_what_is_passed(self):
         captured = {}
@@ -1924,7 +1985,7 @@ class TestCrawlerRefreshTransport:
             return self._json_response(REFRESH_STATE)
 
         client = self._client_with(handler)
-        crawl = Crawl(client, CrawlerConfig(url='https://example.com', refresh=True))
+        crawl = Crawl(client, CrawlerConfig(url='https://web-scraping.dev', refresh=True))
         crawl._uuid = '0198aaaa'
 
         crawl.refresh_now()
@@ -1939,7 +2000,7 @@ class TestCrawlerRefreshTransport:
 
     def test_refresh_before_start_raises(self):
         client = self._client_with(lambda **kwargs: None)
-        crawl = Crawl(client, CrawlerConfig(url='https://example.com', refresh=True))
+        crawl = Crawl(client, CrawlerConfig(url='https://web-scraping.dev', refresh=True))
 
         with pytest.raises(ScrapflyCrawlerError):
             crawl.refresh_now()
@@ -2074,7 +2135,7 @@ class TestCrawlerUrlsTransport:
 
         def handler(**kwargs):
             captured.update(kwargs)
-            return self._text_response('https://example.com/a\nhttps://example.com/b\n')
+            return self._text_response('https://web-scraping.dev/a\nhttps://web-scraping.dev/b\n')
 
         client = self._client_with(handler)
         urls = client.get_crawl_urls('0198aaaa', status='visited', page=2, per_page=50)
@@ -2091,7 +2152,7 @@ class TestCrawlerUrlsTransport:
         assert captured['headers']['Accept'] == 'text/plain, application/json'
 
         assert isinstance(urls, CrawlerUrlsResponse)
-        assert [entry.url for entry in urls] == ['https://example.com/a', 'https://example.com/b']
+        assert [entry.url for entry in urls] == ['https://web-scraping.dev/a', 'https://web-scraping.dev/b']
         assert urls.page == 2
         assert urls.per_page == 50
 
@@ -2103,7 +2164,7 @@ class TestCrawlerUrlsTransport:
 
         def handler(**kwargs):
             captured.update(kwargs)
-            return self._text_response('https://example.com/a\n')
+            return self._text_response('https://web-scraping.dev/a\n')
 
         client = self._client_with(handler)
         urls = client.get_crawl_urls('0198aaaa')
@@ -2114,14 +2175,14 @@ class TestCrawlerUrlsTransport:
     def test_failed_records_carry_their_reason(self):
         client = self._client_with(
             lambda **kwargs: self._text_response(
-                'https://example.com/404,http_status\nhttps://example.com/x,timeout\n'
+                'https://web-scraping.dev/404,http_status\nhttps://web-scraping.dev/x,timeout\n'
             )
         )
         urls = client.get_crawl_urls('0198aaaa', status='failed')
 
         assert [(e.url, e.reason) for e in urls] == [
-            ('https://example.com/404', 'http_status'),
-            ('https://example.com/x', 'timeout'),
+            ('https://web-scraping.dev/404', 'http_status'),
+            ('https://web-scraping.dev/x', 'timeout'),
         ]
 
     def test_crawl_urls_is_sugar_over_the_client_call(self):
@@ -2130,10 +2191,10 @@ class TestCrawlerUrlsTransport:
 
         def handler(**kwargs):
             captured.update(kwargs)
-            return self._text_response('https://example.com/a\n')
+            return self._text_response('https://web-scraping.dev/a\n')
 
         client = self._client_with(handler)
-        crawl = Crawl(client, CrawlerConfig(url='https://example.com'))
+        crawl = Crawl(client, CrawlerConfig(url='https://web-scraping.dev'))
         crawl._uuid = '0198aaaa'
 
         urls = crawl.urls(status='pending', page=3, per_page=10)
@@ -2146,7 +2207,7 @@ class TestCrawlerUrlsTransport:
 
     def test_urls_before_start_raises(self):
         client = self._client_with(lambda **kwargs: None)
-        crawl = Crawl(client, CrawlerConfig(url='https://example.com'))
+        crawl = Crawl(client, CrawlerConfig(url='https://web-scraping.dev'))
 
         with pytest.raises(ScrapflyCrawlerError):
             crawl.urls()
@@ -2172,7 +2233,7 @@ class TestCrawlerUrlsTransport:
         page of fabricated URLs; a format mismatch has to surface instead."""
         client = self._client_with(
             lambda **kwargs: self._text_response(
-                json.dumps({'urls': ['https://example.com/a']}),
+                json.dumps({'urls': ['https://web-scraping.dev/a']}),
                 content_type='application/json',
             )
         )

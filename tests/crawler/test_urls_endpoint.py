@@ -34,30 +34,30 @@ class TestSubdomainFields:
     """The two new subdomain control fields."""
 
     def test_follow_internal_subdomains_true_round_trips(self):
-        config = CrawlerConfig(url='https://example.com', follow_internal_subdomains=True)
+        config = CrawlerConfig(url='https://web-scraping.dev', follow_internal_subdomains=True)
         params = config.to_api_params()
         assert params['follow_internal_subdomains'] is True
 
     def test_follow_internal_subdomains_false_round_trips(self):
-        config = CrawlerConfig(url='https://example.com', follow_internal_subdomains=False)
+        config = CrawlerConfig(url='https://web-scraping.dev', follow_internal_subdomains=False)
         params = config.to_api_params()
         assert params['follow_internal_subdomains'] is False
 
     def test_follow_internal_subdomains_default_is_omitted(self):
         # When unset, the field MUST NOT appear in the serialized output so the
         # server applies its own default (True per the public docs).
-        config = CrawlerConfig(url='https://example.com')
+        config = CrawlerConfig(url='https://web-scraping.dev')
         params = config.to_api_params()
         assert 'follow_internal_subdomains' not in params
 
     def test_allowed_internal_subdomains_round_trips(self):
-        domains = ['blog.example.com', 'cdn.example.com']
-        config = CrawlerConfig(url='https://example.com', allowed_internal_subdomains=domains)
+        domains = ['blog.web-scraping.dev', 'cdn.web-scraping.dev']
+        config = CrawlerConfig(url='https://web-scraping.dev', allowed_internal_subdomains=domains)
         params = config.to_api_params()
         assert params['allowed_internal_subdomains'] == domains
 
     def test_allowed_internal_subdomains_default_is_omitted(self):
-        config = CrawlerConfig(url='https://example.com')
+        config = CrawlerConfig(url='https://web-scraping.dev')
         params = config.to_api_params()
         assert 'allowed_internal_subdomains' not in params
 
@@ -65,7 +65,7 @@ class TestSubdomainFields:
         # An explicit empty list is treated like "not set" — the server's
         # default applies. This matches the convention used for the other
         # array fields (exclude_paths, allowed_external_domains, etc.)
-        config = CrawlerConfig(url='https://example.com', allowed_internal_subdomains=[])
+        config = CrawlerConfig(url='https://web-scraping.dev', allowed_internal_subdomains=[])
         params = config.to_api_params()
         assert 'allowed_internal_subdomains' not in params
 
@@ -77,7 +77,7 @@ class TestRespectRobotsTxtTriState:
     def test_respect_robots_txt_default_is_omitted(self):
         # Server default is True. Leaving the field unset means the server
         # applies its own default — we MUST NOT force False on every request.
-        config = CrawlerConfig(url='https://example.com')
+        config = CrawlerConfig(url='https://web-scraping.dev')
         params = config.to_api_params()
         assert 'respect_robots_txt' not in params, (
             'respect_robots_txt must not be sent by default — '
@@ -85,12 +85,12 @@ class TestRespectRobotsTxtTriState:
         )
 
     def test_respect_robots_txt_true_round_trips(self):
-        config = CrawlerConfig(url='https://example.com', respect_robots_txt=True)
+        config = CrawlerConfig(url='https://web-scraping.dev', respect_robots_txt=True)
         params = config.to_api_params()
         assert params['respect_robots_txt'] is True
 
     def test_respect_robots_txt_false_round_trips(self):
-        config = CrawlerConfig(url='https://example.com', respect_robots_txt=False)
+        config = CrawlerConfig(url='https://web-scraping.dev', respect_robots_txt=False)
         params = config.to_api_params()
         assert params['respect_robots_txt'] is False
 
@@ -104,18 +104,18 @@ class TestCrawlerUrlEntryConstruction:
     """`CrawlerUrlEntry` enforces required fields via asserts."""
 
     def test_minimal_visited_entry(self):
-        entry = CrawlerUrlEntry(url='https://example.com', status='visited')
-        assert entry.url == 'https://example.com'
+        entry = CrawlerUrlEntry(url='https://web-scraping.dev', status='visited')
+        assert entry.url == 'https://web-scraping.dev'
         assert entry.status == 'visited'
         assert entry.reason is None
 
     def test_failed_entry_with_reason(self):
         entry = CrawlerUrlEntry(
-            url='https://example.com/404',
+            url='https://web-scraping.dev/404',
             status='failed',
             reason='page_limit',
         )
-        assert entry.url == 'https://example.com/404'
+        assert entry.url == 'https://web-scraping.dev/404'
         assert entry.status == 'failed'
         assert entry.reason == 'page_limit'
 
@@ -125,7 +125,7 @@ class TestCrawlerUrlEntryConstruction:
 
     def test_empty_status_fails_assertion(self):
         with pytest.raises(AssertionError):
-            CrawlerUrlEntry(url='https://example.com', status='')
+            CrawlerUrlEntry(url='https://web-scraping.dev', status='')
 
 
 @pytest.mark.unit
@@ -144,7 +144,7 @@ class TestCrawlerUrlsResponseFromText:
         assert response.per_page == 100
 
     def test_visited_one_per_line(self):
-        body = 'https://example.com/a\nhttps://example.com/b\nhttps://example.com/c\n'
+        body = 'https://web-scraping.dev/a\nhttps://web-scraping.dev/b\nhttps://web-scraping.dev/c\n'
         response = CrawlerUrlsResponse.from_text(
             body=body,
             status_hint='visited',
@@ -152,13 +152,13 @@ class TestCrawlerUrlsResponseFromText:
             per_page=100,
         )
         assert len(response) == 3
-        assert response.urls[0].url == 'https://example.com/a'
+        assert response.urls[0].url == 'https://web-scraping.dev/a'
         assert response.urls[0].status == 'visited'
         assert response.urls[0].reason is None
-        assert response.urls[2].url == 'https://example.com/c'
+        assert response.urls[2].url == 'https://web-scraping.dev/c'
 
     def test_failed_url_comma_reason(self):
-        body = 'https://example.com/404,page_limit\nhttps://example.com/500,crawler_error\n'
+        body = 'https://web-scraping.dev/404,page_limit\nhttps://web-scraping.dev/500,crawler_error\n'
         response = CrawlerUrlsResponse.from_text(
             body=body,
             status_hint='failed',
@@ -166,13 +166,13 @@ class TestCrawlerUrlsResponseFromText:
             per_page=100,
         )
         assert len(response) == 2
-        assert response.urls[0].url == 'https://example.com/404'
+        assert response.urls[0].url == 'https://web-scraping.dev/404'
         assert response.urls[0].reason == 'page_limit'
         assert response.urls[0].status == 'failed'
         assert response.urls[1].reason == 'crawler_error'
 
     def test_skipped_url_comma_reason(self):
-        body = 'https://example.com/robots,robots_txt\n'
+        body = 'https://web-scraping.dev/robots,robots_txt\n'
         response = CrawlerUrlsResponse.from_text(
             body=body,
             status_hint='skipped',
@@ -185,7 +185,7 @@ class TestCrawlerUrlsResponseFromText:
         assert response.per_page == 50
 
     def test_blank_lines_are_ignored(self):
-        body = '\nhttps://example.com/a\n\n\nhttps://example.com/b\n\n'
+        body = '\nhttps://web-scraping.dev/a\n\n\nhttps://web-scraping.dev/b\n\n'
         response = CrawlerUrlsResponse.from_text(
             body=body,
             status_hint='visited',
@@ -195,7 +195,7 @@ class TestCrawlerUrlsResponseFromText:
         assert len(response) == 2
 
     def test_trailing_whitespace_trimmed(self):
-        body = 'https://example.com/a  \r\n  https://example.com/b\r\n'
+        body = 'https://web-scraping.dev/a  \r\n  https://web-scraping.dev/b\r\n'
         response = CrawlerUrlsResponse.from_text(
             body=body,
             status_hint='visited',
@@ -203,11 +203,11 @@ class TestCrawlerUrlsResponseFromText:
             per_page=100,
         )
         assert len(response) == 2
-        assert response.urls[0].url == 'https://example.com/a'
-        assert response.urls[1].url == 'https://example.com/b'
+        assert response.urls[0].url == 'https://web-scraping.dev/a'
+        assert response.urls[1].url == 'https://web-scraping.dev/b'
 
     def test_iter_yields_entries(self):
-        body = 'https://example.com/a\nhttps://example.com/b\n'
+        body = 'https://web-scraping.dev/a\nhttps://web-scraping.dev/b\n'
         response = CrawlerUrlsResponse.from_text(
             body=body,
             status_hint='visited',

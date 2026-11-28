@@ -83,6 +83,10 @@ class ScrapflyMiddleware:
         spider = self._spider(spider)
         delay = 1
 
+        # A read timeout of AsyncScrapflyClient is raised, not retried.
+        if isinstance(exception, httpx.ReadTimeout):
+            raise exception
+
         # ResponseNeverReceived from Twisted's HTTP client, TransportError from AsyncScrapflyClient's.
         if isinstance(exception, (ResponseNeverReceived, httpx.TransportError)):
             return await self._retried(spider.retry(request, exception, delay))

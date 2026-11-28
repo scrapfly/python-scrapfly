@@ -52,7 +52,7 @@ class Crawl:
         from scrapfly import ScrapflyClient, CrawlerConfig, Crawl
 
         client = ScrapflyClient(key='your-key')
-        config = CrawlerConfig(url='https://example.com', page_limit=10)
+        config = CrawlerConfig(url='https://web-scraping.dev', page_limit=10)
 
         # Create and start crawl
         crawl = Crawl(client, config)
@@ -67,7 +67,7 @@ class Crawl:
             print(f"{page['url']}: {page['status_code']}")
 
         # Or read specific URLs
-        html = crawl.read('https://example.com/page1', format='html')
+        html = crawl.read('https://web-scraping.dev/page1', format='html')
         ```
     """
 
@@ -357,7 +357,7 @@ class Crawl:
 
         Example:
             ```python
-            crawl = Crawl(client, CrawlerConfig(url='https://example.com', search=True)).crawl().wait()
+            crawl = Crawl(client, CrawlerConfig(url='https://web-scraping.dev', search=True)).crawl().wait()
             for hit in crawl.search('pricing', limit=5):
                 print(hit.rank, hit.url)
             ```
@@ -650,7 +650,7 @@ class Crawl:
         Example:
             ```python
             # Get HTML content for a specific URL
-            content = crawl.read('https://example.com/page1')
+            content = crawl.read('https://web-scraping.dev/page1')
             if content:
                 print(f"URL: {content.url}")
                 print(f"Status: {content.status_code}")
@@ -658,12 +658,12 @@ class Crawl:
                 print(content.content)
 
             # Get markdown content
-            content = crawl.read('https://example.com/page1', format='markdown')
+            content = crawl.read('https://web-scraping.dev/page1', format='markdown')
             if content:
                 print(content.content)
 
             # Check if URL was crawled
-            if crawl.read('https://example.com/missing') is None:
+            if crawl.read('https://web-scraping.dev/missing') is None:
                 print("URL not found in crawl results")
             ```
         """
@@ -765,7 +765,7 @@ class Crawl:
 
         Args:
             pattern: URL pattern with wildcards (* matches any characters, ? matches one)
-                    Examples: "/products?page=*", "https://example.com/*/detail", "*/product/*"
+                    Examples: "/products?page=*", "https://web-scraping.dev/*/detail", "*/product/*"
             format: Content format to retrieve
 
         Yields:
@@ -785,7 +785,7 @@ class Crawl:
             # Pattern matching examples:
             # "/products?page=*" matches /products?page=1, /products?page=2, etc.
             # "*/product/*" matches any URL with /product/ in the path
-            # "https://example.com/page?" matches https://example.com/page1, page2, etc.
+            # "https://web-scraping.dev/page?" matches https://web-scraping.dev/page1, page2, etc.
             ```
         """
         if self._uuid is None:
@@ -885,11 +885,11 @@ class Crawl:
         Returns:
             Dictionary mapping URLs to their content in requested formats:
             {
-                'https://example.com/page1': {
+                'https://web-scraping.dev/page1': {
                     'markdown': '# Page 1...',
                     'text': 'Page 1...'
                 },
-                'https://example.com/page2': {
+                'https://web-scraping.dev/page2': {
                     'markdown': '# Page 2...',
                     'text': 'Page 2...'
                 }
@@ -898,7 +898,7 @@ class Crawl:
         Example:
             ```python
             # Get markdown and text for multiple URLs
-            urls = ['https://example.com/page1', 'https://example.com/page2']
+            urls = ['https://web-scraping.dev/page1', 'https://web-scraping.dev/page2']
             contents = crawl.read_batch(urls, formats=['markdown', 'text'])
 
             for url, formats in contents.items():
