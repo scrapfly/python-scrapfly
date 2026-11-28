@@ -1,3 +1,5 @@
+"""SentryReporter reports a scrape's tags and extras on its own event, on sentry-sdk 1.x, 2.x and 3.x, with no DeprecationWarning."""
+
 import warnings
 
 import pytest
