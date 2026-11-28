@@ -52,9 +52,9 @@ class SentryReporter:
         scrape_api_response: Optional['ScrapeApiResponse'] = None,  # noqa: F821
     ):
         # Late import — already validated in __init__, safe to import here.
-        from sentry_sdk import capture_exception, push_scope
+        from sentry_sdk import capture_exception
 
-        with push_scope() as scope:
+        with self._new_scope() as scope:
             if scrape_api_response is not None:
                 scope.set_tag('scrapfly_project', scrape_api_response.config['project'])
                 scope.set_tag('scrapfly_env', scrape_api_response.config['env'])
@@ -73,3 +73,18 @@ class SentryReporter:
 
             if error is not None:
                 capture_exception(error)
+
+    @staticmethod
+    def _new_scope():
+        """
+        A scope forked from the current one, so the tags of a report stay on its own event.
+
+        ``new_scope()`` exists since sentry-sdk 2.0 and ``push_scope()`` was removed in 3.0:
+        sentry-sdk 1.x takes ``push_scope()``.
+        """
+        try:
+            from sentry_sdk import new_scope
+        except ImportError:
+            from sentry_sdk import push_scope as new_scope
+
+        return new_scope()
